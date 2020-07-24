@@ -3,7 +3,7 @@ import { select, Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Loadable } from '../../../shared/loadable/loadable';
-import { deepCopy } from '../../../shared/util/misc';
+import { deepCopy } from '../../../shared/util';
 import { GetSettingsAction, UpdateSettingsAction } from '../../participation.actions';
 import { getSettings, ParticipationState } from '../../participation.state';
 import { CitySettings } from '../../projects';

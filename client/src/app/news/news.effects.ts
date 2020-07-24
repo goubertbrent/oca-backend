@@ -6,10 +6,10 @@ import { Router } from '@angular/router';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
+import { SimpleDialogComponent, SimpleDialogData } from '@oca/web-shared';
+import { ErrorService } from '@oca/web-shared';
 import { of } from 'rxjs';
-import { catchError, first, map, switchMap, take, tap, withLatestFrom } from 'rxjs/operators';
-import { SimpleDialogComponent, SimpleDialogData } from '../shared/dialog/simple-dialog.component';
-import { ErrorService } from '../shared/errors/error.service';
+import { catchError, first, map, switchMap, tap } from 'rxjs/operators';
 import { transformErrorResponse } from '../shared/errors/errors';
 import {
   CopyNewsItemAction,
@@ -25,7 +25,10 @@ import {
   GetLocationsFailedAction,
   GetNewsItemAction,
   GetNewsItemCompleteAction,
-  GetNewsItemFailedAction,
+  GetNewsItemFailedAction, GetNewsItemsStatsAction, GetNewsItemsStatsCompleteAction, GetNewsItemsStatsFailedAction,
+  GetNewsItemTimeStatsAction,
+  GetNewsItemTimeStatsCompleteAction,
+  GetNewsItemTimeStatsFailedAction,
   GetNewsListAction,
   GetNewsListCompleteAction,
   GetNewsListFailedAction,
@@ -50,28 +53,49 @@ export class NewsEffects {
       map(data => new GetNewsOptionsCompleteAction(data)),
       catchError(err => this.errorService.toAction(GetNewsOptionsFailedAction, err)),
     )),
-  ));
-   getNewsItems$ = createEffect(() => this.actions$.pipe(
+   ));
+  getNewsItems$ = createEffect(() => this.actions$.pipe(
     ofType<GetNewsListAction>(NewsActionTypes.GET_NEWS_LIST),
     switchMap(action => this.newsService.getNewsList(action.payload.cursor).pipe(
       map(data => new GetNewsListCompleteAction(data)),
       catchError(err => of(new GetNewsListFailedAction(transformErrorResponse(err)))))),
   ));
 
-   getNewsItem$ = createEffect(() => this.actions$.pipe(
+  autoFetchStats$ = createEffect(()=>this.actions$.pipe(
+    ofType<GetNewsListCompleteAction>(NewsActionTypes.GET_NEWS_LIST_COMPLETE),
+    map(action => new GetNewsItemsStatsAction({ ids: action.payload.result.map(r => r.id) }))
+  ));
+
+  getNewsItemsStats$ = createEffect(() => this.actions$.pipe(
+    ofType<GetNewsItemsStatsAction>(NewsActionTypes.GET_NEWS_ITEMS_STATS),
+    switchMap(action => this.newsService.getNewsItemsStats(action.payload.ids).pipe(
+      map(data => new GetNewsItemsStatsCompleteAction(data)),
+      catchError(err => this.errorService.toAction(GetNewsItemsStatsFailedAction, err))
+    )),
+  ));
+
+  getNewsItem$ = createEffect(() => this.actions$.pipe(
     ofType<GetNewsItemAction>(NewsActionTypes.GET_NEWS_ITEM),
     switchMap(action => this.newsService.getNewsItem(action.payload.id).pipe(
       map(data => new GetNewsItemCompleteAction(data)),
       catchError(err => of(new GetNewsItemFailedAction(transformErrorResponse(err)))))),
   ));
 
-   createNewsItem$ = createEffect(() => this.actions$.pipe(
+  getNewsItemTimeStats$ = createEffect(() => this.actions$.pipe(
+    ofType<GetNewsItemTimeStatsAction>(NewsActionTypes.GET_NEWS_ITEM_TIME_STATS),
+    switchMap(action => this.newsService.getNewsItemTimeStats(action.payload.id).pipe(
+      map(data => new GetNewsItemTimeStatsCompleteAction(data)),
+      catchError(err => this.errorService.toAction(GetNewsItemTimeStatsFailedAction, err)),
+    )),
+  ));
+
+  createNewsItem$ = createEffect(() => this.actions$.pipe(
     ofType<CreateNewsItemAction>(NewsActionTypes.CREATE_NEWS_ITEM),
     switchMap(action => this.newsService.createNewsItem(action.payload).pipe(
       map(data => new CreateNewsItemCompleteAction(data)),
       tap(data => {
         if (data.payload) {
-          this.router.navigate([ 'news', 'list']);
+          this.router.navigate(['news', 'list']);
           if (data.payload.published) {
             this.snackBar.open(this.translate.instant('oca.news_item_published'), this.translate.instant('oca.ok'), { duration: 5000 });
           } else {

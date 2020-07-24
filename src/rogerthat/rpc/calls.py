@@ -196,6 +196,7 @@ mapping = {
     u'com.mobicage.api.news.getNews': news.getNews,
     u'com.mobicage.api.news.getNewsItems': news.getNewsItems,
     u'com.mobicage.api.news.saveNewsStatistics': news.saveNewsStatistics,
+    u'com.mobicage.api.news.getNewsItemDetails': news.getNewsItemDetails,
     u'com.mobicage.api.news.getNewsGroups': news.getNewsGroups,
     u'com.mobicage.api.news.getNewsGroup': news.getNewsGroup,
     u'com.mobicage.api.news.getNewsStreamItems': news.getNewsStreamItems,

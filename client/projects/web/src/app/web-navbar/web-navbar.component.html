@@ -1,0 +1,10 @@
+<mat-toolbar class="mat-elevation-z6 page-header">
+  <a class="nav-link" href="https://ourcityapps.com">
+    <img [alt]="'web.our_city_app' | translate" src="/static/images/public/favicon.png" class="logo"/>
+    <span class="hide-sm">{{ 'web.our_city_app' | translate  }}</span>
+    <span class="hide-sm">|</span>
+    <span>{{ (appInfo$ | async)?.name }}</span>
+    <span>|</span>
+    <span>{{ 'web.news' | translate  }}</span>
+  </a>
+</mat-toolbar>

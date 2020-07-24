@@ -8,7 +8,7 @@ import {
   SimpleChanges,
   ViewEncapsulation,
 } from '@angular/core';
-import { updateItem } from '../../../shared/util/redux';
+import { updateItem } from '../../../shared/util';
 import { FormSection } from '../../interfaces/forms';
 import {
   EmailIntegrationConfig,

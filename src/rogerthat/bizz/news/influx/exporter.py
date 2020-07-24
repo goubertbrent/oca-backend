@@ -15,32 +15,35 @@
 #
 # @@license_version:1.7@@
 
-import hashlib
 import logging
 from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
 from google.appengine.ext import deferred, ndb
+from typing import Iterable
 
-from rogerthat.bizz.news.influx import get_influxdb_client
+from rogerthat.bizz.news.influx import get_influxdb_client, get_age_field_key
 from rogerthat.consts import NEWS_STATS_QUEUE
-from rogerthat.models.news import NewsItemStatisticsExporter, \
-    NewsItemActionStatistics
-from rogerthat.utils.app import get_app_id_from_app_user
+from rogerthat.models.news import NewsItemStatisticsExporter, NewsItemActionStatistics
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 
 
 @ndb.transactional()
 def run():
-    key = NewsItemStatisticsExporter.create_key('action')
+    key = NewsItemStatisticsExporter.create_key('influx')
     settings = key.get()
     if not settings:
-        logging.info('NewsItemStatisticsExporter not set for type "action"')
+        logging.info('NewsItemStatisticsExporter not set for type "influx"')
         return
 
     start = settings.exported_until
     end_ = datetime.utcnow()
-    end = datetime(year=end_.year, month=end_.month, day=end_.day, hour=end_.hour, minute=end_.minute)
+    minute = end_.minute
+    # Always round down minute to nearest 5 minutes
+    while minute % 5 != 0:
+        minute -= 1
+
+    end = datetime(year=end_.year, month=end_.month, day=end_.day, hour=end_.hour, minute=minute)
     settings.exported_until = end
     settings.put()
     deferred.defer(_run_scheduler, start, end, _transactional=True, _queue=NEWS_STATS_QUEUE)
@@ -60,69 +63,86 @@ def _run_scheduler(start, end):
     schedule_tasks(tasks, NEWS_STATS_QUEUE)
 
 
-def _run(start, end, params=None):
+def _get_gender_field_key(gender):
+    if gender == 'unknown':
+        return 'gender-unknown'
+    return gender
 
-    def create_item_key(s):
-        app_id = get_app_id_from_app_user(s.app_user)
-        key = u'%s_%s_%s_%s_%s' % (app_id, s.news_id, s.action, s.gender, s.age)
-        return hashlib.sha256(key).hexdigest().upper()
 
-    qry = NewsItemActionStatistics.list_between(start, end)
-    item_stats = dict()
-    for s in qry:
-        key = create_item_key(s)
-        if key not in item_stats:
-            item_stats[key] = dict(app_id=get_app_id_from_app_user(s.app_user),
-                                   news_id=s.news_id,
-                                   action=s.action,
-                                   gender=s.gender,
-                                   age=s.age,
-                                   amount=0)
+def _create_item_stats_key(s):
+    # type: (NewsItemActionStatistics) -> str
+    return '%s_%d_%s' % (s.get_app_id(), s.news_id, s.action)
 
-        item_stats[key]['amount'] += 1
 
-    entries = []
-    influx_time = start
-    for k in sorted(item_stats.iterkeys()):
-        s = item_stats[k]
-        influx_time += relativedelta(microseconds=2)  # influx has duplicate data when using 1 micro
-        time_str = influx_time.isoformat() + 'Z'
+def _create_global_stats_key(s):
+    # type: (NewsItemActionStatistics) -> str
+    return '%s_%s' % (s.get_app_id(), s.action)
 
-        entries.append({
-            'measurement': 'item_%s' % s['news_id'],
-            'time': time_str,
-            'tags': {
-                'app_id': s['app_id'],
-                'action': s['action'],
-            },
+
+def fill_fields_for_stats(all_stats, stats_key, statistic):
+    # type: (dict, str, NewsItemActionStatistics) -> None
+    if stats_key not in all_stats:
+        all_stats[stats_key] = {
+            'app_id': statistic.get_app_id(),
+            'news_id': statistic.news_id,
+            'action': statistic.action,
             'fields': {
-                'f_app_id': s['app_id'],
-                'f_action': s['action'],
-                'age': s['age'],
-                'gender': s['gender'],
-                'amount': s['amount'],
+                'total': 0,
             }
-        })
+        }
+    fields = all_stats[stats_key]['fields']
 
+    if statistic.age:
+        age_key = get_age_field_key(statistic.age)
+        if age_key not in fields:
+            fields[age_key] = 1
+        else:
+            fields[age_key] += 1
+    if statistic.gender:
+        gender_key = _get_gender_field_key(statistic.gender)
+        if gender_key not in fields:
+            fields[gender_key] = 1
+        else:
+            fields[gender_key] += 1
+    fields['total'] += 1
+
+
+def _run(start, end, params=None):
+    time_diff = (end - start)
+    if time_diff.total_seconds() != 300.0:
+        raise Exception('Start & end where more or less then 5 minutes apart')
+
+    item_stats = {}
+    global_stats = {}
+
+    qry = NewsItemActionStatistics.list_between(start, end)  # type: Iterable[NewsItemActionStatistics]
+    for statistic in qry:
+        fill_fields_for_stats(item_stats, _create_item_stats_key(statistic), statistic)
+        fill_fields_for_stats(global_stats, _create_global_stats_key(statistic), statistic)
+
+    time_str = end.isoformat() + 'Z'
+    entries = [{
+        'measurement': 'item.%s' % statistic['news_id'],
+        'time': time_str,
+        'tags': {
+            'app': statistic['app_id'],
+            'action': statistic['action']
+        },
+        'fields': statistic['fields'],
+    } for statistic in item_stats.itervalues()]
+    for statistic in global_stats.itervalues():
         entries.append({
             'measurement': 'global',
             'time': time_str,
             'tags': {
-                'app_id': s['app_id'],
-                'action': s['action'],
+                'app': statistic['app_id'],
+                'action': statistic['action']
             },
-            'fields': {
-                'f_app_id': s['app_id'],
-                'f_action': s['action'],
-                'id': s['news_id'],
-                'age': s['age'],
-                'gender': s['gender'],
-                'amount': s['amount'],
-            }
+            'fields': statistic['fields'],
         })
 
-    logging.info('news_exporter -> %s items', len(entries))
     if entries:
+        logging.info('Writing %d entries to influxdb', len(entries))
         client = get_influxdb_client(params=params)
         success = client.write_points(entries, 'u')
         if not success:

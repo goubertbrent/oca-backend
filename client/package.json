@@ -5,7 +5,11 @@
     "ng": "ng",
     "postinstall": "python fix-agm-maps.py",
     "start": "ng serve --configuration hmr",
-    "build": "ng build --prod --base-href=/static/client",
+    "start-web": "ng serve --project web",
+    "build": "npm run build-libraries && npm run build-dashboard && npm run build-web",
+    "build-libraries": "ng build --project web-shared",
+    "build-dashboard": "ng build --prod --project oca-dashboard --base-href=/static/client",
+    "build-web": "ng build --prod --project web &&  cp ../src/static/web/index.html ../src/rogerthat/templates/web-app.html",
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e"
@@ -50,6 +54,7 @@
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "~0.901.4",
+    "@angular-devkit/build-ng-packagr": "~0.901.4",
     "@angular/cli": "^9.1.4",
     "@angular/compiler-cli": "^9.1.4",
     "@angular/language-service": "^9.1.4",
@@ -68,6 +73,7 @@
     "karma-coverage-istanbul-reporter": "^2.1.1",
     "karma-jasmine": "~3.1.1",
     "karma-jasmine-html-reporter": "^1.5.3",
+    "ng-packagr": "^9.0.0",
     "protractor": "^5.4.4",
     "ts-node": "^8.9.1",
     "tslint": "^6.1.2",

@@ -33,7 +33,17 @@
         </span>
         </mat-card-subtitle>
       </mat-card-header>
-      <mat-card-content [innerHTML]="item.message | truncate : 250 | markdown"></mat-card-content>
+      <mat-card-content>
+        <mat-chip-list *ngIf="item.statistics as stats" class="totals-list">
+          <mat-chip [queryParams]="{metric: 'reached'}" [routerLink]="['/news/details', item.id, 'statistics']">
+            {{ stats.reached.total }} {{ 'oca.reached' | translate }}
+          </mat-chip>
+          <mat-chip [queryParams]="{metric: 'action'}" [routerLink]="['/news/details', item.id, 'statistics']">
+            {{ stats.action.total }} {{ 'oca.action' | translate }}
+          </mat-chip>
+        </mat-chip-list>
+        <div [innerHTML]="item.message | truncate : 150 | markdown"></div>
+      </mat-card-content>
       <mat-card-actions align="end">
         <button mat-button type="button" (click)="copyItem.emit(item)">
           <mat-icon>file_copy</mat-icon>

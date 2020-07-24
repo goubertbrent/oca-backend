@@ -7,7 +7,8 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterModule, Routes } from '@angular/router';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
-import { MarkdownModule } from '../shared/markdown/markdown.module';
+import { MarkdownModule } from '@oca/web-shared';
+import { ERROR_HANDLING_TRANLATIONS_PROVIDER } from '../../environments/config';
 import { SharedModule } from '../shared/shared.module';
 import { EditIncidentComponent } from './components/edit-incident/edit-incident.component';
 import { IncidentListComponent } from './components/incident-list/incident-list.component';
@@ -55,6 +56,7 @@ const routes: Routes = [
     EditIncidentComponent,
     IncidentsTabsPageComponent,
   ],
+  providers: [ERROR_HANDLING_TRANLATIONS_PROVIDER],
 })
 export class ReportsModule {
 }

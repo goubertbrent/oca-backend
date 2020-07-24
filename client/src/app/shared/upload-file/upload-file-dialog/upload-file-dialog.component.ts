@@ -6,6 +6,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { GcsFile, UploadedFile, UploadFileDialogConfig } from '../file-upload';
+// noinspection ES6PreferShortImport
 import { ImageCropperComponent } from '../image-cropper/image-cropper.component';
 import { UploadFileService } from '../upload-file.service';
 

@@ -9,11 +9,7 @@
     <link href="/static/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/node_modules/font-awesome/css/font-awesome.min.css">
     <link rel="stylesheet" href="/static/css/public/base.css">
-    {% if theme_css %}
-    <style>{{ theme_css }}</style>
-    {% else %}
     <link rel="stylesheet" href="/static/css/public/oca-theme.css">
-    {% endif %}
     {% block css %}{% endblock %}
 </head>
 <body>

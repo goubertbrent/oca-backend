@@ -2,8 +2,8 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Inpu
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { TranslateService } from '@ngx-translate/core';
+import { BaseMedia, MediaType } from '@oca/web-shared';
 import { NEWS_MEDIA_TYPE_OPTIONS } from '../../../news/consts';
-import { BaseMedia, MediaType } from '../../../news/interfaces';
 import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../upload-file';
 
 @Component({

@@ -33,6 +33,11 @@ export class ScriptComponent {
   @ViewChild('form') form: NgForm;
   @ViewChildren('runButton') runButtons: QueryList<HTMLAnchorElement>;
 
+  /**
+   * Reference to the monaco editor
+   */
+  private _editor: any;
+
   @HostListener('window:keydown', ['$event'])
   onKeyUp(event: KeyboardEvent) {
     if (hasModifierKey(event, 'ctrlKey') || event.metaKey) {
@@ -66,11 +71,6 @@ export class ScriptComponent {
       this.showFullscreen.emit(this.runResult);
     }
   }
-
-  /**
-   * Reference to the monaco editor
-   */
-  private _editor: any;
 
   onMonacoInit(editor: any) {
     this._editor = editor;

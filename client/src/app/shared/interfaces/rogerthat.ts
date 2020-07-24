@@ -1,9 +1,3 @@
-export interface BaseButton {
-  id: string;
-  caption: string;
-  action: string;
-}
-
 export interface ServiceMenuItemLink {
   url: string;
   external: boolean;
@@ -48,32 +42,4 @@ export interface ServiceIdentityInfo {
   app_ids: string[];
   app_names: string[];
   default_app: string;
-}
-
-export interface App {
-  id: string;
-  name: string;
-}
-
-export interface AppStatistics {
-  app_id: string;
-  total_user_count: number;
-}
-
-export interface AppStatisticsMapping {
-  [ key: string ]: AppStatistics;
-}
-
-export const enum NewsGroupType {
-  PROMOTIONS = 'promotions',
-  CITY = 'city',
-  EVENTS = 'events',
-  TRAFFIC = 'traffic',
-  PRESS = 'press',
-  POLLS = 'polls',
-}
-
-export interface ServiceNewsGroup {
-  group_type: NewsGroupType;
-  name: string;
 }

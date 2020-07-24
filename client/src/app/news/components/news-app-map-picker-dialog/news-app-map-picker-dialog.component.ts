@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, Inject, ViewEncapsulation } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { App, AppStatisticsMapping } from '../../../shared/interfaces/rogerthat';
+import { App, AppStatisticsMapping } from '@oca/web-shared';
 
 export interface NewsAppMapPickerDialogData {
   appIds: string[];

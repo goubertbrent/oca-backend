@@ -27,6 +27,7 @@ from rogerthat import consts
 from rogerthat.settings import get_server_settings
 from rogerthat.templates.jinja_extensions import TranslateExtension
 from rogerthat.translations import DEFAULT_LANGUAGE
+from solutions import get_supported_languages
 
 TEMPLATES_DIR = os.path.dirname(__file__)
 _SUPPORTED_LANGUAGES = [d for d in os.listdir(TEMPLATES_DIR) if os.path.isdir(os.path.join(TEMPLATES_DIR, d))]
@@ -93,3 +94,15 @@ def get_languages_from_header(header):
 @arguments(request=object)
 def get_languages_from_request(request):
     return get_languages_from_header(request.headers.get('Accept-Language', None))
+
+
+def get_language_from_request(request):
+    langs = get_languages_from_request(request)
+    supported = get_supported_languages()
+    for lang in langs:
+        simple_lang = lang.split('_')[0]
+        if lang in supported:
+            return lang
+        if simple_lang in supported:
+            return simple_lang
+    return DEFAULT_LANGUAGE

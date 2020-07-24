@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
-import { ServiceNewsGroup } from '../../../shared/interfaces/rogerthat';
+import { NewsItem, ServiceNewsGroup } from '@oca/web-shared';
 import { Loadable } from '../../../shared/loadable/loadable';
-import { NewsItem } from '../../interfaces';
+import { NewsListItem } from '../../news';
 
 @Component({
   selector: 'oca-news-item-list',
@@ -10,7 +10,7 @@ import { NewsItem } from '../../interfaces';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NewsItemListComponent implements OnChanges {
-  @Input() items: NewsItem[];
+  @Input() items: NewsListItem[];
   @Input() hasMore: boolean;
   @Input() listStatus: Loadable;
   @Input() newsGroups: ServiceNewsGroup[];

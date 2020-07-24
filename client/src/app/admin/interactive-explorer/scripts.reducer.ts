@@ -1,4 +1,5 @@
-import { removeItem, stateError, stateLoading, stateSuccess } from '../../shared/util';
+import { stateError, stateLoading, stateSuccess } from '@oca/web-shared';
+import { removeItem } from '../../shared/util';
 import { Script } from './scripts';
 import { ScriptsActions, ScriptsActionTypes } from './scripts.actions';
 import { initialScriptsState, IScriptsState } from './scripts.state';

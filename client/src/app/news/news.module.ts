@@ -19,10 +19,11 @@ import { YouTubePlayerModule } from '@angular/youtube-player';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
+import { MarkdownModule } from '@oca/web-shared';
+import { ERROR_HANDLING_TRANLATIONS_PROVIDER } from '../../environments/config';
 import { MatStepperIntlImpl } from '../forms/mat-stepper-intl-impl';
 import { DateTimeInputModule } from '../shared/date-time-input/date-time-input.module';
 import { MediaSelectorModule } from '../shared/media-selector/media-selector.module';
-import { MarkdownModule } from '../shared/markdown/markdown.module';
 import { SharedModule } from '../shared/shared.module';
 import { TruncateModule } from '../shared/truncate/truncate.module';
 import { UploadFileModule } from '../shared/upload-file';
@@ -90,6 +91,7 @@ import { NewsListPageComponent } from './pages/news-list-page/news-list-page.com
     { provide: MatStepperIntl, useClass: MatStepperIntlImpl, deps: [ TranslateService ] },
     { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'outline' } },
     DatePipe,
+    ERROR_HANDLING_TRANLATIONS_PROVIDER,
   ],
 })
 export class NewsModule {

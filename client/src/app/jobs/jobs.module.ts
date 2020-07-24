@@ -23,8 +23,9 @@ import { CovalentTextEditorModule } from '@covalent/text-editor';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
 import { TranslateModule } from '@ngx-translate/core';
+import { MarkdownModule } from '@oca/web-shared';
+import { ERROR_HANDLING_TRANLATIONS_PROVIDER } from '../../environments/config';
 import { DynamicDateModule } from '../shared/dynamic-date/dynamic-date.module';
-import { MarkdownModule } from '../shared/markdown/markdown.module';
 import { TruncateModule } from '../shared/truncate/truncate.module';
 import { JobChatMessageComponent } from './components/job-chat-message/job-chat-message.component';
 import { JobEditorComponent } from './components/job-editor/job-editor.component';
@@ -108,6 +109,7 @@ const routes: Routes = [
   ],
   providers: [
     { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'outline' } },
+    ERROR_HANDLING_TRANLATIONS_PROVIDER,
   ],
 })
 export class JobsModule {

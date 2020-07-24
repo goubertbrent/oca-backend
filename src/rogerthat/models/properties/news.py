@@ -15,19 +15,13 @@
 #
 # @@license_version:1.7@@
 
-from collections import defaultdict
-from contextlib import closing
-import logging
-
 from google.appengine.ext import db, ndb
-from mcfw.properties import long_list_property, long_property, unicode_property, azzert
-from mcfw.serialization import s_long, ds_long_list, s_long_list, ds_long, s_unicode, ds_unicode, get_list_serializer, \
-    get_list_deserializer
+
+from mcfw.properties import long_property, unicode_property, azzert
+from mcfw.serialization import s_long, ds_long, s_unicode, ds_unicode, get_list_serializer, get_list_deserializer
 from mcfw.utils import convert_to_str
 from rogerthat.models import UserProfile
-from rogerthat.models.properties.messaging import SpecializedList, DuplicateButtonIdException, \
-    DuplicateAppIdException
-
+from rogerthat.models.properties.messaging import SpecializedList, DuplicateButtonIdException
 
 try:
     from cStringIO import StringIO
@@ -35,159 +29,9 @@ except ImportError:
     from StringIO import StringIO
 
 
-class NewsStatisticPerApp(object):
-
-    def set_data(self, stream):
-        self._stream = stream
-
-    def _setup(self):
-        if self._initialized:
-            return
-
-        if not self._stream:
-            raise Exception("NewsStatisticPerApp not ready, but setup was called.")
-
-        self._data = defaultdict(NewsItemStatistics)
-        ds_long(self._stream)  # version
-        for _ in xrange(ds_long(self._stream)):
-            app_id = ds_unicode(self._stream)
-            self._data[app_id] = _deserialize_news_item_statistics(self._stream)
-
-        self._initialized = True
-
-    def __init__(self):
-        self._initialized = False
-        self._stream = None
-        self._data = None
-
-    def get(self, key, default=None):
-        if not (self._initialized or self._stream):
-            return default
-        self._setup()
-        return self._data.get(key, default)
-
-    def __getitem__(self, key):
-        if not (self._initialized or self._stream):
-            return None
-        self._setup()
-        return self._data.get(key)
-
-    def __setitem__(self, key, value):
-        if not (self._initialized or self._stream):
-            self._data = defaultdict(NewsItemStatistics)
-            self._initialized = True
-        self._setup()
-        self._data[key] = value
-
-    def iterkeys(self):
-        self._setup()
-        return self._data.iterkeys()
-
-    def iteritems(self):
-        self._setup()
-        return self._data.iteritems()
-
-    def __iter__(self):
-        self._setup()
-        for val in self._data.values():
-            yield val
-
-    def keys(self):
-        self._setup()
-        return self._data.keys()
-
-    def has_key(self, key):
-        self._setup()
-        return key in self._data.keys()
-
-    def __contains__(self, key):
-        self._setup()
-        return key in self._data.keys()
-
-    def __len__(self):
-        self._setup()
-        return len(self._data)
-
-
-def _serialize_news_statistic_per_app(stream, value):
-    s_long(stream, 1)  # version
-    s_long(stream, len(value))
-    for app_id, stats in value.iteritems():
-        s_unicode(stream, app_id)
-        _serialize_news_item_statistics(stream, stats)
-
-
-def _deserialize_news_item_statistic_per_app(stream):
-    news_stats_per_app = NewsStatisticPerApp()
-    news_stats_per_app.set_data(stream)
-    return news_stats_per_app
-
-
 class NewsItemStatistics(object):
-    _default_stats = {
-        'age': {},
-        'gender': {},
-    }
     AGE_LENGTH = 21
     GENDER_LENGTH = 3
-
-    @staticmethod
-    def default_age_stats():
-        return [0] * NewsItemStatistics.AGE_LENGTH
-
-    @staticmethod
-    def default_gender_stats():
-        return [0] * NewsItemStatistics.GENDER_LENGTH
-
-    @staticmethod
-    def default_time_stats():
-        return [0]
-
-    @property
-    def reached_total(self):
-        total = sum(self.reached_gender)
-        # for validating if stats work properly
-        if sum(self.reached_age) != total:
-            logging.error('Expected sum of reached_gender (%d) and reached_age (%d) to be the same', total,
-                          sum(self.reached_age))
-        if sum(self.reached_time) != total:
-            logging.error('Expected sum of reached_gender (%d) and reached_time (%d) to be the same', total,
-                          sum(self.reached_time))
-        return total
-
-    @property
-    def rogered_total(self):
-        return sum(self.rogered_gender)
-
-    @property
-    def action_total(self):
-        return sum(self.action_gender)
-
-    @property
-    def followed_total(self):
-        return sum(self.followed_gender)
-
-    reached_age = long_list_property('reached_age')  # 0-5, 5-10, 5-15, ..., 95-100+
-    reached_gender = long_list_property('reached_gender')  # male, female, other
-    reached_time = long_list_property('reached_time')  # reach on first hour, reach on second hour, ... (max 30d)
-    rogered_age = long_list_property('rogered_age')
-    rogered_gender = long_list_property('rogered_gender')
-    rogered_time = long_list_property('rogered_time')
-    action_age = long_list_property('action_age')
-    action_gender = long_list_property('action_gender')
-    action_time = long_list_property('action_time')
-    followed_age = long_list_property('followed_age')
-    followed_gender = long_list_property('followed_gender')
-    followed_time = long_list_property('followed_time')
-
-    @classmethod
-    def default_statistics(cls):
-        stats = cls()
-        for prop in ('reached', 'rogered', 'action', 'followed'):
-            for statistic in ('age', 'gender', 'time'):
-                default_statistics = getattr(cls, 'default_%s_stats' % statistic)()
-                setattr(stats, '%s_%s' % (prop, statistic), default_statistics)
-        return stats
 
     @staticmethod
     def get_age_index(age):
@@ -204,11 +48,14 @@ class NewsItemStatistics(object):
             return 2
         return 0
 
-    @staticmethod
-    def get_time_index(news_item_created_datetime, action_datetime):
-        # type: (datetime, datetime) -> int
-        diff = action_datetime - news_item_created_datetime
-        return int(diff.total_seconds() / 3600)
+    @classmethod
+    def get_gender_label(cls, gender_index):
+        if gender_index == 1:
+            return u'gender-male'
+        elif gender_index == 2:
+            return u'gender-female'
+        else:
+            return u'gender-unknown'
 
     @staticmethod
     def gender_translation_key(gender_index):
@@ -227,82 +74,12 @@ class NewsItemStatistics(object):
         return u'%s - %s' % (start_age, end_age)
 
     @classmethod
-    def default_age_dict(cls):
-        stats = cls._default_stats['age']
-        if not stats:
-            for index in xrange(cls.AGE_LENGTH):
-                stats[cls.get_age_label(index)] = 0
-        return stats.copy()
+    def get_gender_labels(cls):
+        return [cls.get_gender_label(index) for index in xrange(cls.GENDER_LENGTH)]
 
     @classmethod
-    def default_gender_dict(cls):
-        stats = cls._default_stats['gender']
-        if not stats:
-            for index in xrange(cls.GENDER_LENGTH):
-                stats[cls.gender_translation_key(index)] = 0
-        return stats.copy()
-
-
-def _serialize_news_item_statistics(stream, stats):
-    """
-    Args:
-        stream (StringIO)
-        stats (NewsItemStatistics)
-    """
-    s_long(stream, 1)  # version
-    s_long_list(stream, stats.reached_age)
-    s_long_list(stream, stats.reached_gender)
-    s_long_list(stream, stats.reached_time)
-    s_long_list(stream, stats.rogered_age)
-    s_long_list(stream, stats.rogered_gender)
-    s_long_list(stream, stats.rogered_time)
-    s_long_list(stream, stats.action_age)
-    s_long_list(stream, stats.action_gender)
-    s_long_list(stream, stats.action_time)
-    s_long_list(stream, stats.followed_age)
-    s_long_list(stream, stats.followed_gender)
-    s_long_list(stream, stats.followed_time)
-
-
-def _deserialize_news_item_statistics(stream):
-    ds_long(stream)  # version
-    stats = NewsItemStatistics()
-    stats.reached_age = ds_long_list(stream)
-    stats.reached_gender = ds_long_list(stream)
-    stats.reached_time = ds_long_list(stream)
-    stats.rogered_age = ds_long_list(stream)
-    stats.rogered_gender = ds_long_list(stream)
-    stats.rogered_time = ds_long_list(stream)
-    stats.action_age = ds_long_list(stream)
-    stats.action_gender = ds_long_list(stream)
-    stats.action_time = ds_long_list(stream)
-    stats.followed_age = ds_long_list(stream)
-    stats.followed_gender = ds_long_list(stream)
-    stats.followed_time = ds_long_list(stream)
-    return stats
-
-
-class NewsItemStatisticsProperty(ndb.GenericProperty):
-
-    data_type = NewsStatisticPerApp
-
-    # For writing to datastore.
-    def _to_base_type(self, value):
-        stream = StringIO()
-        _serialize_news_statistic_per_app(stream, value)
-        return db.Blob(stream.getvalue())
-
-    # For reading from datastore.
-    def _from_base_type(self, value):
-        if value is None:
-            return None
-        return _deserialize_news_item_statistic_per_app(StringIO(convert_to_str(value)))
-
-    def _validate(self, value):
-        if value is not None and not isinstance(value, self.data_type):
-            raise ValueError(
-                'Property %s must be convertible to a %s instance (%s)' % (self._name, self.data_type.__name__, value))
-        return value
+    def get_age_labels(cls):
+        return [cls.get_age_label(index) for index in xrange(cls.AGE_LENGTH)]
 
 
 class NewsButton(object):

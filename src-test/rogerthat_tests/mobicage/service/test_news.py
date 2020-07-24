@@ -264,7 +264,6 @@ class NewsTest(mc_unittest.TestCase):
         ng1.name = u'%s CITY' % app_id
         ng1.app_id = app_id
         ng1.group_type = NewsGroup.TYPE_CITY
-        ng1.filters = []
         ng1.regional = False
         ng1.default_order = 10
         ng1.default_notifications_enabled = True
@@ -275,7 +274,6 @@ class NewsTest(mc_unittest.TestCase):
         ng2.name = u'%s EVENTS' % app_id
         ng2.app_id = app_id
         ng2.group_type = NewsGroup.TYPE_EVENTS
-        ng2.filters = []
         ng2.regional = False
         ng2.default_order = 30
         ng2.default_notifications_enabled = False
@@ -286,7 +284,6 @@ class NewsTest(mc_unittest.TestCase):
         ng4.name = u'%s PROMOTIONS' % app_id
         ng4.app_id = app_id
         ng4.group_type = NewsGroup.TYPE_PROMOTIONS
-        ng4.filters = NewsGroup.PROMOTIONS_FILTERS
         ng4.regional = False
         ng4.default_order = 70
         ng4.default_notifications_enabled = True
@@ -297,7 +294,6 @@ class NewsTest(mc_unittest.TestCase):
         ng5.name = u'%s PROMOTIONS (regional)' % app_id
         ng5.app_id = app_id
         ng5.group_type = NewsGroup.TYPE_PROMOTIONS
-        ng5.filters = NewsGroup.PROMOTIONS_FILTERS
         ng5.regional = True
         ng5.default_order = 70
         ng5.default_notifications_enabled = True
@@ -308,7 +304,6 @@ class NewsTest(mc_unittest.TestCase):
         ng6.name = u'%s TRAFFIC' % app_id
         ng6.app_id = app_id
         ng6.group_type = NewsGroup.TYPE_TRAFFIC
-        ng6.filters = []
         ng6.regional = False
         ng6.default_order = 50
         ng6.default_notifications_enabled = False
@@ -319,8 +314,8 @@ class NewsTest(mc_unittest.TestCase):
         nss.default_app_id = app_id
         nss.setup_needed_id = 0
         nss.groups = [
-            NewsSettingsServiceGroup(group_type=NewsGroup.TYPE_CITY, filter=None),
-            NewsSettingsServiceGroup(group_type=NewsGroup.TYPE_EVENTS, filter=None)
+            NewsSettingsServiceGroup(group_type=NewsGroup.TYPE_CITY),
+            NewsSettingsServiceGroup(group_type=NewsGroup.TYPE_EVENTS)
         ]
         nss.duplicate_in_city_news = duplicate_in_city_news
         nss.put()

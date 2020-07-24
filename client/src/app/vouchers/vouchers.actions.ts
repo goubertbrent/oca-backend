@@ -1,5 +1,5 @@
 import { Action } from '@ngrx/store';
-import { ErrorAction } from '../shared/errors/errors';
+import { ErrorAction } from '@oca/web-shared';
 import { CirkloSettings, ExportVoucherServices, VoucherProviderId, VoucherService, VouchersServiceList } from './vouchers';
 
 export enum VouchersActionTypes {

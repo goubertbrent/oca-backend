@@ -17,6 +17,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
 import { TranslateModule } from '@ngx-translate/core';
+import { ERROR_HANDLING_TRANLATIONS_PROVIDER } from '../../environments/config';
 import { MAT_PAGINATOR_INTL_PROVIDER } from '../shared/i18n/material-components';
 import { CirkloSettingsPageComponent } from './cirklo-settings-page/cirklo-settings-page.component';
 import { VouchersPageComponent } from './vouchers-page/vouchers-page.component';
@@ -52,7 +53,10 @@ const routes: Routes = [
     MatFormFieldModule,
     MatInputModule,
   ],
-  providers: [MAT_PAGINATOR_INTL_PROVIDER],
+  providers: [
+    MAT_PAGINATOR_INTL_PROVIDER,
+    ERROR_HANDLING_TRANLATIONS_PROVIDER,
+  ],
 })
 export class VouchersModule {
 }

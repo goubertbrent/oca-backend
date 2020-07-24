@@ -13,25 +13,28 @@ import { MatChipEvent } from '@angular/material/chips';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { MatSelect, MatSelectChange } from '@angular/material/select';
 import { TranslateService } from '@ngx-translate/core';
-import { EASYMDE_OPTIONS } from '../../../../environments/config';
-import { DEFAULT_AVATAR_URL } from '../../../consts';
-import { BrandingSettings } from '../../../shared/interfaces/oca';
-import { App, AppStatisticsMapping, NewsGroupType, ServiceIdentityInfo } from '../../../shared/interfaces/rogerthat';
-import { Loadable } from '../../../shared/loadable/loadable';
-import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
-import { GENDER_OPTIONS, NEWS_MEDIA_TYPE_OPTIONS } from '../../consts';
 import {
+  App,
+  AppStatisticsMapping,
   BaseMedia,
   CreateNews,
   Gender,
   MediaType,
   NewsActionButton,
   NewsActionButtonType,
+  NewsGroupType,
   NewsLocation,
   NewsOptions,
   NewsTargetAudience,
   UINewsActionButton,
-} from '../../interfaces';
+} from '@oca/web-shared';
+import { EASYMDE_OPTIONS } from '../../../../environments/config';
+import { DEFAULT_AVATAR_URL } from '../../../consts';
+import { BrandingSettings } from '../../../shared/interfaces/oca';
+import { ServiceIdentityInfo } from '../../../shared/interfaces/rogerthat';
+import { Loadable } from '../../../shared/loadable/loadable';
+import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
+import { GENDER_OPTIONS, NEWS_MEDIA_TYPE_OPTIONS } from '../../consts';
 import {
   NewsAppMapPickerDialogComponent,
   NewsAppMapPickerDialogData,

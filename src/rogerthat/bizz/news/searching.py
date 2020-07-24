@@ -23,9 +23,9 @@ from google.appengine.ext import ndb
 from mcfw.rpc import returns, arguments
 from mcfw.utils import normalize_search_string
 from rogerthat.bizz.job import run_job
+from rogerthat.bizz.news.matching import get_service_visible
 from rogerthat.consts import NEWS_MATCHING_QUEUE
 from rogerthat.dal.service import get_service_identity
-from rogerthat.models import SearchConfig
 from rogerthat.models.news import NewsItem
 from rogerthat.utils import drop_index
 
@@ -62,19 +62,14 @@ def re_index_news_item(news_item):
     news_id = str(news_item.id)
     the_index.delete([news_id])
 
-    if not news_item.published:
-        return None
-
-    if news_item.deleted:
+    if not news_item.published or news_item.deleted:
         return None
 
     si = get_service_identity(news_item.sender)
     if not si:
         return None
 
-    sc = SearchConfig.get(SearchConfig.create_key(news_item.sender))
-    service_visible = bool(sc and sc.enabled)
-    if not service_visible:
+    if not get_service_visible(news_item.sender):
         return None
 
     timestamp = news_item.scheduled_at if news_item.scheduled_at else news_item.timestamp

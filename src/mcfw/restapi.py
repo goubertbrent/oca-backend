@@ -22,6 +22,7 @@ import logging
 import threading
 from collections import defaultdict
 from types import NoneType
+from urllib import unquote
 
 import webapp2
 
@@ -149,16 +150,16 @@ class GenericRESTRequestHandler(webapp2.RequestHandler):
     def ctype(self, type_, value):
         if not isinstance(type_, (list, tuple)):
             if type_ == bool:
-                return bool(value) and value.lower() == "true"
+                return bool(value) and value.lower() == 'true'
             return type_(value)
         elif isinstance(type_, list):
-            return [self.ctype(type_[0], item) for item in value.split(',')]
+            return [self.ctype(type_[0], item) for item in value]
         elif type_ == (str, unicode):
             return unicode(value)
         elif type_ == (int, long):
             return long(value)
         elif type_ == (int, long, NoneType):
-            return None if value is None or value == "" else long(value)
+            return None if value is None or value == '' else long(value)
         raise NotImplementedError()
 
     def get_handler(self, method, route):
@@ -182,7 +183,14 @@ class GenericRESTRequestHandler(webapp2.RequestHandler):
     def update_kwargs(self, func, kwargs):
         for name, type_ in func.meta['kwarg_types'].iteritems():
             if name in self.request.GET:
-                kwargs[name] = self.ctype(type_, self.request.GET[name])
+                if isinstance(type_, list):
+                    # Support both &param=1&param=2 and &param=1,2
+                    items = self.request.GET.getall(name)
+                    if len(items) == 1 and ',' in items[0]:
+                        items = items[0].split(',')
+                    kwargs[name] = self.ctype(type_, [unquote(p) for p in items])
+                else:
+                    kwargs[name] = self.ctype(type_, unquote(self.request.GET.get(name)))
             elif name in kwargs:
                 kwargs[name] = self.ctype(type_, kwargs[name])
 

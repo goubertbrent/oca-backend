@@ -4,19 +4,18 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Actions, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
+import { CreateNews, NewsGroupType } from '@oca/web-shared';
+import { SimpleDialogComponent, SimpleDialogData } from '@oca/web-shared';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { first, map, take, takeUntil, tap, withLatestFrom } from 'rxjs/operators';
-import { CreateNews } from '../../../news/interfaces';
-import { SimpleDialogComponent, SimpleDialogData } from '../../../shared/dialog/simple-dialog.component';
-import { NewsGroupType } from '../../../shared/interfaces/rogerthat';
 import { Loadable } from '../../../shared/loadable/loadable';
 import {
   UserAutoCompleteDialogComponent,
   UserDialogData,
 } from '../../../shared/users/components/user-auto-complete-dialog/user-auto-complete-dialog.component';
 import { UserDetailsTO } from '../../../shared/users/users';
-import { deepCopy } from '../../../shared/util/misc';
-import { createAppUser } from '../../../shared/util/rogerthat';
+import { deepCopy } from '../../../shared/util';
+import { createAppUser } from '../../../shared/util';
 import { FormDetailTab } from '../../components/form-detail/form-detail.component';
 import { ImportFormDialogComponent } from '../../components/import-form-dialog/import-form-dialog.component';
 import {

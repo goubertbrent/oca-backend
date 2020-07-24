@@ -20,7 +20,8 @@ import { RouterModule, Routes } from '@angular/router';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
 import { TranslateModule } from '@ngx-translate/core';
-import { MarkdownModule } from '../shared/markdown/markdown.module';
+import { MarkdownModule } from '@oca/web-shared';
+import { ERROR_HANDLING_TRANLATIONS_PROVIDER } from '../../environments/config';
 import { MediaSelectorModule } from '../shared/media-selector/media-selector.module';
 import { SelectAutocompleteModule } from '../shared/select-autocomplete/select-autocomplete.module';
 import { SharedModule } from '../shared/shared.module';
@@ -94,7 +95,9 @@ const routes: Routes = [
   providers: [
     HoursPipe,
     DatePipe,
-    { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'outline' } }],
+    { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'outline' } },
+    ERROR_HANDLING_TRANLATIONS_PROVIDER,
+  ],
 })
 export class SettingsModule {
 }

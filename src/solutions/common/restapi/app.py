@@ -37,6 +37,8 @@ def rest_import_location_data(app_id, data):
         app = get_app(app_id)
     except AppDoesNotExistException:
         raise HttpNotFoundException('app_not_found', data={'app_id': app_id})
+    app.ios_dev_team = data.ios_dev_team
+    app.put()
     register_app(app_id, data.ios_dev_team)
     if data.official_id:
         deferred.defer(import_location_data, app_id, app.country, data.official_id)

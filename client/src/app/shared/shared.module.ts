@@ -18,9 +18,10 @@ import { CovalentTextEditorModule } from '@covalent/text-editor';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
 import { TranslateModule } from '@ngx-translate/core';
+import { ErrorHandlingModule, SimpleDialogModule } from '@oca/web-shared';
 import { GoogleChartsModule } from 'angular-google-charts';
+import { ERROR_HANDLING_TRANLATIONS_PROVIDER } from '../../environments/config';
 import { environment } from '../../environments/environment';
-import { SimpleDialogComponent } from './dialog/simple-dialog.component';
 import { LoadableComponent } from './loadable/loadable.component';
 import { SharedEffects } from './shared.effects';
 import { sharedReducer } from './shared.reducer';
@@ -30,7 +31,6 @@ import { MaxValidator, MinValidator } from './validators/validators';
 
 @NgModule({
   declarations: [
-    SimpleDialogComponent,
     LoadableComponent,
     UserAutocompleteComponent,
     UserAutoCompleteDialogComponent,
@@ -62,6 +62,8 @@ import { MaxValidator, MinValidator } from './validators/validators';
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTabsModule,
+    SimpleDialogModule,
+    ErrorHandlingModule,
   ],
   exports: [
     GoogleChartsModule,
@@ -83,13 +85,15 @@ import { MaxValidator, MinValidator } from './validators/validators';
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTabsModule,
-    SimpleDialogComponent,
     LoadableComponent,
     UserAutocompleteComponent,
     UserAutoCompleteDialogComponent,
     MinValidator,
     MaxValidator,
+    SimpleDialogModule,
+    ErrorHandlingModule,
   ],
+  providers: [ERROR_HANDLING_TRANLATIONS_PROVIDER],
 })
 export class SharedModule {
 }

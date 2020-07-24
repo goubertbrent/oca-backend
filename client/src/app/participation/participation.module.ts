@@ -17,6 +17,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterModule, Routes } from '@angular/router';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
+import { ERROR_HANDLING_TRANLATIONS_PROVIDER } from '../../environments/config';
 import { SharedModule } from '../shared/shared.module';
 import { CitySettingsComponent } from './components/city-settings/city-settings.component';
 import { ProjectDetailsComponent } from './components/project-details/project-details.component';
@@ -77,6 +78,7 @@ const routes: Routes = [
   ],
   providers: [
     LazyMapsAPILoader,
+    ERROR_HANDLING_TRANLATIONS_PROVIDER,
   ],
 })
 export class ParticipationModule {

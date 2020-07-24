@@ -1,33 +1,49 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Inject, Injectable, InjectionToken } from '@angular/core';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarConfig } from '@angular/material/snack-bar';
 import { Action, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable, of } from 'rxjs';
-import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '../dialog/simple-dialog.component';
-import { SharedState } from '../shared.state';
-import { ApiError, ErrorAction } from './errors';
+import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '../simple-dialog';
+import { ApiError, ErrorAction } from './error';
+import { ErrorHandlingModule } from './error-handling.module';
 
-@Injectable({ providedIn: 'root' })
+/**
+ * Translation keys used by this service. Must be provided via injection token.
+ */
+export interface ErrorServiceTranslations {
+  error: string;
+  knownErrorKey: string;
+  unknownError: string;
+  retry: string;
+  close: string;
+}
+
+/** Injection token that can be used to specify translation keys used by this service. */
+export const ERROR_HANDLING_TRANSLATIONS = new InjectionToken<ErrorServiceTranslations>('error-handling-translations');
+
+@Injectable({ providedIn: ErrorHandlingModule })
 export class ErrorService {
 
   constructor(private translate: TranslateService,
               private snackbar: MatSnackBar,
               private matDialog: MatDialog,
-              private store: Store<SharedState>) {
+              private store: Store,
+              @Inject(ERROR_HANDLING_TRANSLATIONS)
+              private translationKeys: ErrorServiceTranslations) {
   }
 
   getErrorMessage(error: ApiError): string {
     // Translated on server
-    if (error.error === 'oca.error') {
+    if (error.error === this.translationKeys.knownErrorKey) {
       return error.data.message;
     }
     if (this.translate.currentLang in this.translate.translations
       && error.error in this.translate.translations[ this.translate.currentLang ]) {
       return this.translate.instant(error.error, error.data);
     } else {
-      return this.translate.instant('oca.error-occured-unknown-try-again');
+      return this.translate.instant(this.translationKeys.unknownError);
     }
   }
 
@@ -35,7 +51,7 @@ export class ErrorService {
     if (error instanceof HttpErrorResponse) {
       if (error.error && error.error.error) {
         const e = error.error as ApiError;
-        if (e.error === 'oca.error') {
+        if (e.error === this.translationKeys.knownErrorKey) {
           return e.data.message;
         }
         return e.error;
@@ -44,7 +60,7 @@ export class ErrorService {
     if (error instanceof Error) {
       console.error(error);
     }
-    return this.translate.instant('oca.error-occured-unknown-try-again');
+    return this.translate.instant(this.translationKeys.unknownError);
   }
 
   toAction(action: new(error: string) => ErrorAction, error: any): Observable<ErrorAction> {
@@ -63,14 +79,14 @@ export class ErrorService {
     const format = options?.format ?? 'toast';
     const retry = options?.canRetry ?? true;
     const clickAction: { action: Action, text: string } | undefined = retry ? {
-      text: this.translate.instant('oca.Retry'),
+      text: this.translate.instant(this.translationKeys.retry),
       action: originalAction,
     } : undefined;
     const message = this.getMessage(error);
     if (format === 'toast') {
       this.showErrorSnackbar(message, clickAction, { duration: options?.duration ?? 10000 });
     } else {
-      this.showErrorDialog(message, clickAction, retry ? this.translate.instant('Close') : undefined);
+      this.showErrorDialog(message, clickAction, retry ? this.translate.instant(this.translationKeys.close) : undefined);
     }
     return this.toAction(failAction, error);
   }
@@ -84,10 +100,10 @@ export class ErrorService {
 
   showErrorDialog(message: string, clickAction?: { action: Action, text: string }, cancel?: string): MatDialogRef<SimpleDialogComponent> {
     const data: SimpleDialogData = {
-      ok: clickAction?.text ?? this.translate.instant('oca.Close'),
+      ok: clickAction?.text ?? this.translate.instant(this.translationKeys.close),
       cancel,
       message,
-      title: this.translate.instant('oca.Error'),
+      title: this.translate.instant(this.translationKeys.error),
     };
     const dialog = this.matDialog.open(SimpleDialogComponent, { data });
     if (clickAction?.action) {

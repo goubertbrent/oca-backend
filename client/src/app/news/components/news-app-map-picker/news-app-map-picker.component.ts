@@ -13,7 +13,7 @@ import {
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
-import { App, AppStatisticsMapping } from '../../../shared/interfaces/rogerthat';
+import { App, AppStatisticsMapping } from '@oca/web-shared';
 import { getCost, getReach } from '../../utils';
 
 interface CountryMapData {

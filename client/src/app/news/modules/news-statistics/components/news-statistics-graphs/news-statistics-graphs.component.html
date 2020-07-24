@@ -1,14 +1,5 @@
-<ng-container *ngIf="!newsStatistics; else statsTemplate" [ngTemplateOutlet]="noStats"></ng-container>
+<ng-container *ngIf="!timeStatistics; else statsTemplate" [ngTemplateOutlet]="noStats"></ng-container>
 <ng-template #statsTemplate>
-  <mat-form-field>
-    <mat-label>{{ 'oca.app' | translate }}</mat-label>
-    <mat-select (selectionChange)="createChartData()" [(ngModel)]="selectedApp" name="app">
-      <mat-option value="all">{{ 'oca.all_apps' | translate }}</mat-option>
-      <mat-option *ngFor="let app of apps" [value]="app.id">
-        {{ app.name }}
-      </mat-option>
-    </mat-select>
-  </mat-form-field>
   <mat-form-field>
     <mat-label>{{ 'oca.measurement' | translate }}</mat-label>
     <mat-select (ngModelChange)="updateCurrentMetric($event)" [ngModel]="selectedMetric" name="metric">

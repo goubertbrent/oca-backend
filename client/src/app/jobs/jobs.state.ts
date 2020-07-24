@@ -1,6 +1,7 @@
 import { createFeatureSelector, createSelector } from '@ngrx/store';
+import { CallStateType, initialStateResult, ResultState } from '@oca/web-shared';
 import { getRouteParams } from '../reducers';
-import { CallStateType, initialStateResult, parseNumber, ResultState } from '../shared/util';
+import { parseNumber } from '../shared/util';
 import {
   EditJobOffer,
   JobOffer,

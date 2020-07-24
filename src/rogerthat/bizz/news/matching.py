@@ -20,6 +20,7 @@ from datetime import date, datetime
 
 from google.appengine.ext import ndb, deferred, db
 from google.appengine.ext.ndb.query import Cursor
+from typing import Optional, Tuple, Dict, List
 
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.job import run_job, MODE_BATCH
@@ -68,32 +69,31 @@ def setup_default_settings(app_user, set_last_used=False):
         groups_dict = get_groups_for_app_id(app_id)
         logging.debug('debugging_news setup_default_settings user:%s groups_dict:%s', app_user, groups_dict)
         if groups_dict:
-            d = datetime.utcnow()
+            current_date = datetime.utcnow()
             for group_type, groups in groups_dict.iteritems():
-                ug = NewsSettingsUserGroup()
-                ug.group_type = group_type
-                ug.order = groups[0].default_order
-                ug.details = []
-                for g in groups:
-                    ugd = NewsSettingsUserGroupDetails()
-                    ugd.group_id = g.group_id
-                    ugd.order = 20 if g.regional else 10
-                    ugd.filters = g.filters
-                    if g.default_notifications_enabled:
-                        ugd.notifications = NewsNotificationFilter.ALL
+                group_settings = NewsSettingsUserGroup()
+                group_settings.group_type = group_type
+                group_settings.order = groups[0].default_order
+                group_settings.details = []
+                for group in groups:
+                    group_settings_details = NewsSettingsUserGroupDetails()
+                    group_settings_details.group_id = group.group_id
+                    group_settings_details.order = 20 if group.regional else 10
+                    if group.default_notifications_enabled:
+                        group_settings_details.notifications = NewsNotificationFilter.ALL
                     else:
-                        ugd.notifications = NewsNotificationFilter.SPECIFIED
+                        group_settings_details.notifications = NewsNotificationFilter.SPECIFIED
 
-                    ugd.last_load_request = d
+                    group_settings_details.last_load_request = current_date
 
-                    ug.details.append(ugd)
+                    group_settings.details.append(group_settings_details)
 
-                    news_user_settings.group_ids.append(g.group_id)
-                    new_group_ids.append(g.group_id)
+                    news_user_settings.group_ids.append(group.group_id)
+                    new_group_ids.append(group.group_id)
 
-                news_user_settings.groups.append(ug)
+                news_user_settings.groups.append(group_settings)
             if set_last_used:
-                news_user_settings.last_get_groups_request = d
+                news_user_settings.last_get_groups_request = current_date
             news_user_settings.put()
             deferred.defer(migrate_notification_settings_for_user, app_user, _queue=NEWS_MATCHING_QUEUE)
 
@@ -274,6 +274,7 @@ def _create_matches_for_news_item_worker(news_settings_key, news_id, should_crea
 
 
 def _create_news_item_match(user_settings, news_item):
+    # type: (NewsSettingsUser, NewsItem) -> Optional[Tuple[NewsItemMatch, bool]]
     if not news_item:
         logging.debug('debugging_news news item not found')
         return
@@ -315,61 +316,37 @@ def _create_news_item_match(user_settings, news_item):
         logging.debug('debugging_news no groups matches after location matching')
         return
 
-    filter_key = None
-    nss = get_news_settings_service(get_service_user_from_service_identity_user(news_item.sender))
-    if nss:
-        for g in nss.groups:
-            if g.group_type in news_item.group_types:
-                if g.filter:
-                    filter_key = g.filter
-                    break
-
     created_match = False
-    m = NewsItemMatch.create_key(user_settings.app_user, news_item.id).get()
-    if m:
-        group_id_matches = list(set(group_ids) & set(m.group_ids))
+    match = NewsItemMatch.create_key(user_settings.app_user, news_item.id).get()
+    if match:
+        group_id_matches = list(set(group_ids) & set(match.group_ids))
         if len(group_id_matches) != len(group_ids):
-            m.group_ids = group_ids
-        m.publish_time = news_item.stream_publish_timestamp
-        m.sort_time = news_item.stream_sort_timestamp
-        m.location_match = matches_location
+            match.group_ids = group_ids
+        match.publish_time = news_item.stream_publish_timestamp
+        match.sort_time = news_item.stream_sort_timestamp
+        match.location_match = matches_location
     elif news_item.deleted:
         return
     else:
         created_match = True
-        m = NewsItemMatch.create(user_settings.app_user, news_item.id, news_item.stream_publish_timestamp,
-                                 news_item.stream_sort_timestamp, news_item.sender, group_ids, filter_key, matches_location)
+        match = NewsItemMatch.create(user_settings.app_user, news_item.id, news_item.stream_publish_timestamp,
+                                     news_item.stream_sort_timestamp, news_item.sender, group_ids, matches_location)
 
     invisible_reasons = set()
 
     if news_item.deleted:
         invisible_reasons.add(NewsItemMatch.REASON_DELETED)
 
-    if filter_key:
-        for group_id in m.group_ids:
-            if filter_key not in user_settings.get_group_details(group_id).filters:
-                invisible_reasons.add(NewsItemMatch.REASON_FILTERED)
-                break
-
-    for group_id in m.group_ids:
-        nsus = NewsSettingsUserService.create_key(user_settings.app_user, group_id, news_item.sender).get()
-        if not nsus:
-            continue
-        if nsus.blocked:
-            invisible_reasons.add(NewsItemMatch.REASON_BLOCKED)
-            break
-
-    service_visible = get_service_visible(news_item.sender)
-    if not service_visible:
+    if not get_service_visible(news_item.sender):
         invisible_reasons.add(NewsItemMatch.REASON_SERVICE_INVISIBLE)
 
     if invisible_reasons:
-        m.invisible_reasons = list(invisible_reasons)
-        m.visible = False
+        match.invisible_reasons = list(invisible_reasons)
+        match.visible = False
     else:
-        m.visible = True
+        match.visible = True
 
-    return m, created_match
+    return match, created_match
 
 
 @ndb.non_transactional
@@ -456,63 +433,6 @@ def _match_locations_of_item(app_user, news_item):
             if address.address_uid == user_address.street_uid:
                 return True
     return False
-
-
-def block_matches(app_user, service_identity_user, group_id):
-    run_job(_qry_service_matches, [app_user, service_identity_user, group_id],
-            _worker_block_matches, [True, datetime.utcnow()], worker_queue=NEWS_MATCHING_QUEUE)
-
-
-def reactivate_blocked_matches(app_user, service_identity_user, group_id):
-    run_job(_qry_service_matches, [app_user, service_identity_user, group_id],
-            _worker_block_matches, [False, datetime.utcnow()], worker_queue=NEWS_MATCHING_QUEUE)
-
-
-def _qry_service_matches(app_user, service_identity_user, group_id):
-    return NewsItemMatch.list_by_sender(app_user, service_identity_user, group_id)
-
-
-@ndb.transactional()
-def _worker_block_matches(nim_key, should_block, update_date):
-    nim = nim_key.get()
-    if nim.update_time_blocked and nim.update_time_blocked > update_date:
-        return
-    nim.update_time_blocked = update_date
-    if should_block and NewsItemMatch.REASON_BLOCKED not in nim.invisible_reasons:
-        nim.invisible_reasons.append(NewsItemMatch.REASON_BLOCKED)
-        nim.visible = False
-        nim.put()
-    if not should_block and NewsItemMatch.REASON_BLOCKED in nim.invisible_reasons:
-        nim.invisible_reasons.remove(NewsItemMatch.REASON_BLOCKED)
-        nim.visible = True if len(nim.invisible_reasons) == 0 else False
-        nim.put()
-
-
-def enabled_filter(app_user, group_id, filter_):
-    run_job(_qry_filter_matches, [app_user, group_id, filter_],
-            _worker_filter_matches, [True], worker_queue=NEWS_MATCHING_QUEUE)
-
-
-def disable_filter(app_user, group_id, filter_):
-    run_job(_qry_filter_matches, [app_user, group_id, filter_],
-            _worker_filter_matches, [False], worker_queue=NEWS_MATCHING_QUEUE)
-
-
-def _qry_filter_matches(app_user, group_id, filter_):
-    return NewsItemMatch.list_by_filter(app_user, group_id, filter_)
-
-
-@ndb.transactional()
-def _worker_filter_matches(nim_key, should_enable):
-    nim = nim_key.get()
-    if should_enable and NewsItemMatch.REASON_FILTERED in nim.invisible_reasons:
-        nim.invisible_reasons.remove(NewsItemMatch.REASON_FILTERED)
-        nim.visible = True if len(nim.invisible_reasons) == 0 else False
-        nim.put()
-    if not should_enable and NewsItemMatch.REASON_FILTERED not in nim.invisible_reasons:
-        nim.invisible_reasons.append(NewsItemMatch.REASON_FILTERED)
-        nim.visible = False
-        nim.put()
 
 
 def delete_news_matches(news_id):
@@ -655,11 +575,10 @@ def update_badge_count_user(app_user, group_or_id, badge_count, mobiles=None, sa
     return capi_calls
 
 
-def setup_notification_settings_for_user(app_user, service_identity_user):
-    s = NewsSettingsUser.create_key(app_user).get()
-    if not s:
-        return
-
+def _get_group_types_for_user(app_user):
+    # type: (NewsSettingsUser) -> Dict[str, List[str]]
+    # NewsSettingsUser should always exist
+    s = NewsSettingsUser.create_key(app_user).get()  # type: NewsSettingsUser
     group_types = {}
     for g in s.get_groups_sorted():
         for d in g.get_details_sorted():
@@ -667,6 +586,11 @@ def setup_notification_settings_for_user(app_user, service_identity_user):
                 if g.group_type not in group_types:
                     group_types[g.group_type] = []
                 group_types[g.group_type].append(d.group_id)
+    return group_types
+
+
+def setup_notification_settings_for_user(app_user, service_identity_user):
+    group_types = _get_group_types_for_user(app_user)
 
     to_put = _setup_notification_settings_for_user(app_user, service_identity_user, group_types)
     logging.debug('setup_notification_settings_for_user len(to_put): %s', len(to_put))
@@ -675,28 +599,18 @@ def setup_notification_settings_for_user(app_user, service_identity_user):
 
 
 def migrate_notification_settings_for_user(app_user):
-    s = NewsSettingsUser.create_key(app_user).get()
-    if not s:
-        return
-
-    group_types = {}
-    for g in s.get_groups_sorted():
-        for d in g.get_details_sorted():
-            if d.notifications == NewsNotificationFilter.SPECIFIED:
-                if g.group_type not in group_types:
-                    group_types[g.group_type] = []
-                group_types[g.group_type].append(d.group_id)
-
+    group_types = _get_group_types_for_user(app_user)
     logging.debug('migrate_notification_settings_for_user group_types: %s', group_types)
 
     to_put = []
-    friendMap = get_friends_map(app_user)
-    for fd in friendMap.friendDetails:
+    friend_map = get_friends_map(app_user)
+    for fd in friend_map.friendDetails:
         if fd.type != FRIEND_TYPE_SERVICE:
             continue
         if fd.existence != FriendDetail.FRIEND_EXISTENCE_ACTIVE:
             continue
         service_identity_user = add_slash_default(users.User(fd.email))
+        # TODO: batch gets used by _setup_notification_settings_for_user
         to_put.extend(_setup_notification_settings_for_user(app_user, service_identity_user, group_types))
 
     logging.debug('migrate_notification_settings_for_user len(to_put): %s', len(to_put))
@@ -706,6 +620,7 @@ def migrate_notification_settings_for_user(app_user):
 
 
 def _setup_notification_settings_for_user(app_user, service_identity_user, group_types):
+    # type: (users.User, users.User, Dict[str, List[str]]) -> List[NewsSettingsUserService]
     logging.debug('_setup_notification_settings_for_user siu: %s', service_identity_user)
     logging.debug('_setup_notification_settings_for_user group_types: %s', group_types)
     service_user = get_service_user_from_service_identity_user(service_identity_user)
@@ -731,8 +646,7 @@ def _setup_notification_settings_for_user(app_user, service_identity_user, group
         if not nsus:
             nsus = NewsSettingsUserService(key=nsus_key,
                                            group_id=group_id,
-                                           notifications=NewsNotificationStatus.NOT_SET,
-                                           blocked=False)
+                                           notifications=NewsNotificationStatus.NOT_SET)
 
         if nsus.notifications != NewsNotificationStatus.NOT_SET:
             continue

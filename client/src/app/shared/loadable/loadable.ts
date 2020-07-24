@@ -1,4 +1,4 @@
-import { ApiError } from '../errors/errors';
+import { ApiError } from '@oca/web-shared';
 
 export interface Loadable<T = any, U = ApiError> {
   loading: boolean;

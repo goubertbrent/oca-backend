@@ -10,12 +10,12 @@ import {
   Output,
   ViewChild,
 } from '@angular/core';
-import { ControlValueAccessor, FormBuilder, FormGroup, NG_VALUE_ACCESSOR, NgModel, Validators } from '@angular/forms';
+import { ControlValueAccessor, FormBuilder, FormGroup, NgModel, NG_VALUE_ACCESSOR, Validators } from '@angular/forms';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { TranslateService } from '@ngx-translate/core';
+import { SimpleDialogComponent, SimpleDialogData } from '@oca/web-shared';
 import { ReplaySubject, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, map, skip, take, takeUntil } from 'rxjs/operators';
-import { SimpleDialogComponent, SimpleDialogData } from '../../../shared/dialog/simple-dialog.component';
 import { markAllControlsAsDirty } from '../../../shared/util';
 import { Country, ServiceAddress } from '../service-info';
 

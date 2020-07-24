@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, forwardRef, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { select, Store } from '@ngrx/store';
+import { CityAppLocations, LocationBounds, NewsAddress, NewsGeoAddress, NewsLocation } from '@oca/web-shared';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Loadable } from '../../../shared/loadable/loadable';
-import { CityAppLocations, LocationBounds, NewsAddress, NewsGeoAddress, NewsLocation } from '../../interfaces';
 import { GetLocationsAction } from '../../news.actions';
 import { getLocations, NewsState } from '../../news.state';
 

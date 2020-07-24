@@ -21,16 +21,13 @@ import logging
 from collections import defaultdict
 
 from google.appengine.api import logservice
-from google.appengine.ext import deferred, db, ndb
+from google.appengine.ext import deferred, db
 
 from mcfw.utils import chunks
 from rogerthat.dal import parent_key
-from rogerthat.dal.profile import get_user_profile
 from rogerthat.dal.service import count_users_connected_to_service_identity
 from rogerthat.models import LogAnalysis, ServiceInteractionDef, ServiceAPIFailures, \
     ServiceIdentityStatistic, BroadcastStatistic, FlowStatistics
-from rogerthat.models.news import NewsItem
-from rogerthat.models.properties.news import NewsItemStatistics, NewsStatisticPerApp
 from rogerthat.rpc import users
 from rogerthat.utils import now, SLOG_HEADER
 from rogerthat.utils.service import get_service_user_from_service_identity_user
@@ -40,7 +37,6 @@ SERVICE_MONITOR = "fti_monitor"
 SERVICE_STATS = "fti_service_stats"
 BROADCAST_STATS = "fti_broadcast_stats"
 FLOW_STATS = "fti_flow_stats"
-NEWS = "fti_news"
 
 SERVICE_STATS_TYPE_GAINED = "gained"
 SERVICE_STATS_TYPE_LOST = "lost"
@@ -55,14 +51,6 @@ BROADCAST_STATS_READ = "read"
 REQUEST_IDENTIFICATION = "request_identification"
 REQUEST_IDENTIFICATION_TYPE_USER = "user"
 REQUEST_IDENTIFICATION_TYPE_DEFERRED = "deferred"
-
-NEWS_CREATED = "news.created"
-NEWS_UPDATED = "news.updated"
-NEWS_REACHED = "news.reached"
-NEWS_ROGERED = "news.rogered"
-NEWS_NEW_FOLLOWER = 'news.followed'
-NEWS_ACTION = 'news.action'
-NEWS_SPONSORING_TIMED_OUT = "news.sticky_timed_out"
 
 
 def run():
@@ -299,156 +287,6 @@ def _analyze(start, end):
         for chunk in chunks(to_put, 200):
             put_rpcs['flow_stats'].append(db.put_async(chunk))
 
-    def news_statistics(request, log_entry, slog_entry, counters):
-        """counters = {caches_to_clear: {app_id_1, app_id_2...}
-                       },
-                       'news_to_update': {
-                            '465489498': {
-                                'rogerthat': {
-                                    'stats_reached': 35,
-                                    'stats_gender': [0, 3, 5],  # other, male, female
-                                    'stats_time': [42, 32, 12, 14, 2, 0],  # per hour
-                                    'stats_age': [0, 0, 0, 1, 0, 5, 5],  # 21 long, first elem = unknown age, 2nd = 0-5, 3rd: 5-10, ...
-                                }
-                            }
-                        }
-                       }
-           }"""
-        user_email = slog_entry['e'] if 'e' in slog_entry else None  # Should only be None for NEWS_SPONSORING_TIMED_OUT
-        params = slog_entry['a']
-        action = params['action']
-
-        _now = now()
-        if action in (NEWS_REACHED, NEWS_ROGERED, NEWS_NEW_FOLLOWER, NEWS_ACTION):
-            app_id = params['app_id']
-            user_profile = get_user_profile(users.User(user_email))
-            if not user_profile:
-                return
-            age_index = NewsItemStatistics.get_age_index(user_profile.age)
-            gender_index = NewsItemStatistics.get_gender_index(user_profile.gender)
-            for news_id in params['news_ids']:
-                if app_id not in counters['news_to_update'][news_id]:
-                    counters['news_to_update'][news_id][app_id] = {}
-                news_updates = counters['news_to_update'][news_id][app_id]
-                if action == NEWS_REACHED:
-                    news_updates['reached'] = news_updates.get('reached', 0) + 1
-                elif action == NEWS_ROGERED:
-                    users_that_rogered = news_updates.get('rogered', set())
-                    users_that_rogered.add(users.User(user_email))
-                    news_updates['rogered'] = users_that_rogered
-                elif action == NEWS_NEW_FOLLOWER:
-                    news_updates['follow_count'] = news_updates.get('follow_count', 0) + 1
-                elif action == NEWS_ACTION:
-                    news_updates['action_count'] = news_updates.get('action_count', 0) + 1
-
-                stats_key = 'stats_%s' % action
-                if stats_key not in news_updates:
-                    news_updates[stats_key] = defaultdict(lambda: dict)
-                news_updates[stats_key]['gender'] = news_updates[stats_key].get('gender',
-                                                                                NewsItemStatistics.default_gender_stats())
-                news_updates[stats_key]['gender'][gender_index] += 1
-                news_updates[stats_key]['time'] = news_updates[stats_key].get('time', {})
-                news_updates[stats_key]['time'][_now] = news_updates[stats_key]['time'].get(_now, 0) + 1
-                news_updates[stats_key]['age'] = news_updates[stats_key].get('age',
-                                                                             NewsItemStatistics.default_age_stats())
-                news_updates[stats_key]['age'][age_index] += 1
-        elif action == NEWS_CREATED:
-            # add a new dict if news_id not yet in news_to_update (defaultdict)
-            counters['news_to_update'][params['news_id']]
-        elif action == NEWS_SPONSORING_TIMED_OUT:
-            counters['news_to_update'][params['news_id']]['sticky_timed_out'] = True
-        elif action == NEWS_UPDATED:
-            counters['caches_to_clear']['app_ids'].update(params['app_ids'])
-
-    def store_news_actions(counters):
-        from rogerthat.bizz.news import setup_news_statistics_count_for_news_item, get_news_by_ids
-
-        news_to_update = counters['news_to_update']
-        news_ids = news_to_update.keys()
-        news_ds_objects = get_news_by_ids(news_ids)
-        news_items = {}
-        for news_id, news_item in zip(news_ids, news_ds_objects):
-            if news_item:
-                news_items[news_id] = news_item
-                if news_item.statistics is None:
-                    news_item.statistics = NewsStatisticPerApp()
-                    for app_id in news_item.app_ids:
-                        news_item.statistics[app_id] = NewsItemStatistics.default_statistics()
-            else:
-                logging.warn('Skipping summarize for news item %s since it was not found.', news_id)
-
-        for news_id, news_item in news_items.iteritems():
-            updated = False
-            assert (isinstance(news_item, NewsItem))
-            news_item_datetime = datetime.datetime.utcfromtimestamp(news_item.timestamp)
-            if news_item.follow_count < 0:
-                setup_news_statistics_count_for_news_item(news_item)
-                updated = True
-
-            for app_id, update in news_to_update[news_id].iteritems():
-                if app_id == 'sticky_timed_out':
-                    sponsoring_timed_out = update
-                    if sponsoring_timed_out and news_item.sticky:
-                        news_item.sticky = False
-                        updated = True
-                        continue
-
-                reached = update.get('reached')
-                if reached:
-                    news_item.reach += reached
-                    updated = True
-
-                rogered = update.get('rogered')
-                if rogered:
-                    news_item.rogered = True
-                    news_item.users_that_rogered.extend(rogered)
-                    updated = True
-
-                follow_count = update.get('follow_count')
-                if follow_count:
-                    news_item.follow_count += follow_count
-                    updated = True
-
-                action_count = update.get('action_count')
-                if action_count:
-                    news_item.action_count += action_count
-                    updated = True
-
-                for action in (NEWS_REACHED, NEWS_ROGERED, NEWS_NEW_FOLLOWER, NEWS_ACTION):
-                    added_statistics = update.get('stats_%s' % action)
-                    if added_statistics:
-                        updated = True
-                        key = action.replace('news.', '')
-                        for prop in ('age', 'gender', 'time'):
-                            statistic_property = '%s_%s' % (key, prop)
-                            default_stats = getattr(NewsItemStatistics, 'default_%s_stats' % prop)()
-                            original_statistics = getattr(news_item.statistics[app_id], statistic_property,
-                                                          default_stats)
-                            if prop == 'time':
-                                # This is a dict instead of a list
-                                for timestamp, value in added_statistics[prop].iteritems():
-                                    item_date = datetime.datetime.utcfromtimestamp(timestamp)
-                                    hour_index = NewsItemStatistics.get_time_index(news_item_datetime, item_date)
-                                    diff = hour_index - len(original_statistics) + 1
-                                    for i in xrange(diff):
-                                        original_statistics.append(0)
-                                    original_statistics[hour_index] += value
-                            else:
-                                for i, value in enumerate(added_statistics[prop]):
-                                    original_statistics[i] += value
-
-                            if news_item.statistics[app_id] is None:
-                                news_item.statistics[app_id] = NewsItemStatistics.default_statistics()
-                            setattr(news_item.statistics[app_id], statistic_property, original_statistics)
-
-                if not updated:
-                    del news_items[news_id]  # don't include in db.put
-
-        if len(news_items):
-            logging.info('Summarize: updating %d news items\n%s', len(news_items), news_items.keys())
-            for chunk in chunks(news_items.values(), 200):
-                put_rpcs['news_stats'].extend(ndb.put_multi_async(chunk))
-
     amap = {
         QRCODE_SCANNED: dict(analysis_func=qr_code_scanned, summarize_func=store_stats_qr_scans,
                              counters=dict()),
@@ -460,17 +298,6 @@ def _analyze(start, end):
                               counters=dict()),
         FLOW_STATS: dict(analysis_func=flow_stats, summarize_func=store_flow_stats,
                          counters=defaultdict(lambda: defaultdict(list))),
-        NEWS: {
-            'analysis_func': news_statistics,
-            'summarize_func': store_news_actions,
-            'counters': {
-                'news_to_update': defaultdict(dict),
-                'caches_to_clear': {
-                    'news': set(),
-                    'app_ids': set()
-                }
-            }
-        },
     }
 
     slog_header_length = len(SLOG_HEADER)

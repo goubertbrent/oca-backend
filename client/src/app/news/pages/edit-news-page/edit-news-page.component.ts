@@ -2,11 +2,12 @@ import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/
 import { Router } from '@angular/router';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
+import { App, AppStatisticsMapping, CreateNews, NewsOptions, NewsSettingsTag, NewsStats } from '@oca/web-shared';
+import { ErrorService } from '@oca/web-shared';
 import { Observable, Subject } from 'rxjs';
-import { distinctUntilChanged, map, take, takeUntil, withLatestFrom } from 'rxjs/operators';
-import { ErrorService } from '../../../shared/errors/error.service';
+import { distinctUntilChanged, map, takeUntil, withLatestFrom } from 'rxjs/operators';
 import { BrandingSettings } from '../../../shared/interfaces/oca';
-import { App, AppStatisticsMapping, ServiceIdentityInfo } from '../../../shared/interfaces/rogerthat';
+import { ServiceIdentityInfo } from '../../../shared/interfaces/rogerthat';
 import { Loadable } from '../../../shared/loadable/loadable';
 import {
   GetAppsAction,
@@ -18,7 +19,6 @@ import {
 import { getApps, getAppStatistics, getBrandingSettings, getBudget, getServiceIdentityInfo } from '../../../shared/shared.state';
 import { filterNull } from '../../../shared/util';
 import { BUDGET_RATE } from '../../consts';
-import { CreateNews, NewsOptions, NewsSettingsTag, NewsStats } from '../../interfaces';
 import { CreateNewsItemAction, GetNewsOptionsAction, UpdateNewsItemAction } from '../../news.actions';
 import { NewsService } from '../../news.service';
 import { getEditingNewsItem, getNewsItemStats, getNewsOptions, getNewsOptionsError, NewsState } from '../../news.state';

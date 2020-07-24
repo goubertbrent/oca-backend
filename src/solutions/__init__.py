@@ -29,6 +29,10 @@ from solutions.flex import SOLUTION_FLEX
 webapp.template.register_template_library('solutions.templates.filter')
 
 
+def get_supported_languages():
+    return translations.keys()
+
+
 def translate(language, key, suppress_warning=False, _duplicate_backslashes=False, **kwargs):
     # type: (str, str, bool, bool, dict) -> str
     if key == SOLUTION_COMMON:

@@ -3,14 +3,14 @@ import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
+import { CreateNews, NewsGroupType, NewsItemType } from '@oca/web-shared';
+import { SimpleDialogComponent, SimpleDialogData } from '@oca/web-shared';
 import { combineLatest, Observable } from 'rxjs';
 import { filter, take } from 'rxjs/operators';
-import { SimpleDialogComponent, SimpleDialogData } from '../../../shared/dialog/simple-dialog.component';
-import { NewsGroupType, ServiceIdentityInfo } from '../../../shared/interfaces/rogerthat';
+import { ServiceIdentityInfo } from '../../../shared/interfaces/rogerthat';
 import { NonNullLoadable } from '../../../shared/loadable/loadable';
 import { getServiceIdentityInfo } from '../../../shared/shared.state';
 import { filterNull } from '../../../shared/util';
-import { CreateNews, NewsItemType } from '../../interfaces';
 import { SetNewNewsItemAction } from '../../news.actions';
 import { getNewsOptions, NewsState } from '../../news.state';
 

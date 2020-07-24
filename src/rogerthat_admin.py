@@ -45,6 +45,7 @@ from rogerthat.pages.admin.js_embedding import JSEmbeddingTools, DeployJSEmbeddi
 from rogerthat.pages.admin.mobile_errors import MobileErrorHandler
 from rogerthat.pages.admin.settings import ServerSettingsHandler
 from rogerthat.restapi import explorer, admin
+from rogerthat.web_client.cron import CleanupWebSessionsHandler
 from rogerthat.wsgi import RogerthatWSGIApplication
 
 
@@ -80,6 +81,7 @@ handlers = [
     ('/cron/clean-oauth', RemoveStatesHandler),
     ('/cron/maps/notifications', MapNotificationsHandler),
     ('/cron/user/cleanup/context', CleanupUserContextHandler),
+    ('/cron/web-cleanup-sessions', CleanupWebSessionsHandler),
     ('/mobiadmin/explorer', ExplorerPage),
     ('/mobiadmin/installation_logs', InstallationLogsHandler),
     ('/mobiadmin/activation_logs', ActivationLogsHandler),

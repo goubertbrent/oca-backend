@@ -1,5 +1,5 @@
 import { Action } from '@ngrx/store';
-import { ApiError } from '../shared/errors/errors';
+import { ApiError } from '@oca/web-shared';
 import { UserDetailsTO } from '../shared/users/users';
 import {
   CreateDynamicForm,

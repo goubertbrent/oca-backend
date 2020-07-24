@@ -40,6 +40,9 @@ class ServerSettings(CachedModelMixIn, db.Model):
     baseUrl = add_meta(db.StringProperty(indexed=False),
                        doc="Rogerthat cloud address",
                        order=5)
+    webClientUrl = add_meta(db.StringProperty(indexed=False),
+                       doc='Web client url',
+                       order=6)
     jabberDomain = add_meta(db.StringProperty(indexed=False),
                             doc="Jabber domain",
                             order=10)

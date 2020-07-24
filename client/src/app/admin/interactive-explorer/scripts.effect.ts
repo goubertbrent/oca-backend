@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { ErrorService } from '@oca/web-shared';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
-import { ErrorService } from '../../shared/errors/error.service';
 import * as actions from './scripts.actions';
 import { GetScriptsFailedAction, ScriptsActions, ScriptsActionTypes } from './scripts.actions';
 import { ScriptsService } from './scripts.service';

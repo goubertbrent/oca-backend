@@ -1,7 +1,7 @@
+import { stateError, stateLoading, stateSuccess } from '@oca/web-shared';
 import { onLoadableError, onLoadableLoad, onLoadableSuccess } from './loadable/loadable';
 import { SharedActions, SharedActionTypes } from './shared.actions';
 import { initialSharedState, SharedState } from './shared.state';
-import { stateError, stateLoading, stateSuccess } from './util';
 
 export function sharedReducer(state: SharedState = initialSharedState, action: SharedActions): SharedState {
   switch (action.type) {

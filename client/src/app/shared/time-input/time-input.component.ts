@@ -153,7 +153,7 @@ export class TimeInputComponent extends _TimeInputMixinBase implements OnInit, O
   get shouldLabelFloat() {
     // return this.focused && !this.empty;
     return true;
-  };
+  }
 
 
   /** Whether filling out the time is required in the form. */

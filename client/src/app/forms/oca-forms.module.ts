@@ -27,6 +27,7 @@ import { RouterModule } from '@angular/router';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
+import { ERROR_HANDLING_TRANLATIONS_PROVIDER } from '../../environments/config';
 import { SharedModule } from '../shared/shared.module';
 import { TimeInputModule } from '../shared/time-input/time-input.module';
 import { UploadFileModule } from '../shared/upload-file';
@@ -121,7 +122,8 @@ import { ImportFormDialogComponent } from './components/import-form-dialog/impor
     TimeInputModule,
   ],
   providers: [
-    { provide: MatStepperIntl, useClass: MatStepperIntlImpl, deps: [ TranslateService ] },
+    { provide: MatStepperIntl, useClass: MatStepperIntlImpl, deps: [TranslateService] },
+    ERROR_HANDLING_TRANLATIONS_PROVIDER,
   ],
 })
 export class OcaFormsModule {

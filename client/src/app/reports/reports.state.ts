@@ -1,5 +1,5 @@
 import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { CallStateType, initialStateResult, ResultState } from '../shared/util';
+import { CallStateType, initialStateResult, ResultState } from '@oca/web-shared';
 import { MapConfig } from './maps';
 import { Incident, IncidentList } from './pages/reports';
 

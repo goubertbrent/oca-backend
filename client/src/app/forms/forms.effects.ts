@@ -5,10 +5,10 @@ import { Router } from '@angular/router';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
+import { SimpleDialogComponent, SimpleDialogData } from '@oca/web-shared';
+import { ErrorService } from '@oca/web-shared';
 import { of } from 'rxjs';
 import { catchError, first, map, startWith, switchMap, tap } from 'rxjs/operators';
-import { SimpleDialogComponent, SimpleDialogData } from '../shared/dialog/simple-dialog.component';
-import { ErrorService } from '../shared/errors/error.service';
 import { transformErrorResponse } from '../shared/errors/errors';
 import {
   CopyFormAction,

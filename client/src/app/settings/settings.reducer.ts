@@ -1,4 +1,4 @@
-import { stateError, stateLoading, stateSuccess } from '../shared/util';
+import { stateLoading, stateSuccess, stateError } from '@oca/web-shared';
 import { SettingsActions, SettingsActionTypes } from './settings.actions';
 import { initialSettingsState, SettingsState } from './settings.state';
 

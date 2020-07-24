@@ -13,9 +13,9 @@ import {
   ViewChild,
   ViewChildren,
 } from '@angular/core';
-import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
+import { MatTableDataSource } from '@angular/material/table';
 import { Loadable } from '../../../shared/loadable/loadable';
 import { MerchantStatistics, ProjectStatistics } from '../../projects';
 
@@ -29,7 +29,7 @@ interface ChartOptions {
   data: (string | number)[][];
   columns: string[];
   options: google.visualization.BarChartOptions;
-  type: string
+  type: string;
 }
 
 @Component({

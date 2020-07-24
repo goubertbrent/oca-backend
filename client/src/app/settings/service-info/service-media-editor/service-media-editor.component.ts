@@ -1,7 +1,7 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Input, ViewChild } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { BaseMedia, MediaType } from '../../../news/interfaces';
+import { BaseMedia, MediaType } from '@oca/web-shared';
 import { MediaSelectorComponent } from '../../../shared/media-selector/media-selector/media-selector.component';
 import { MapServiceMediaItem } from '../service-info';
 

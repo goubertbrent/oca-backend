@@ -15,6 +15,7 @@
 #
 # @@license_version:1.7@@
 from __future__ import unicode_literals
+
 import base64
 import datetime
 import json
@@ -33,7 +34,6 @@ from mcfw.rpc import arguments, returns
 from rogerthat.bizz.app import get_app
 from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_ndb_key
-from rogerthat.dal.app import get_apps_by_id
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import App, Image
 from rogerthat.models.news import NewsItem
@@ -57,7 +57,7 @@ from solutions.common.models import SolutionInboxMessage, SolutionSettings
 from solutions.common.models.budget import Budget
 from solutions.common.models.news import NewsCoupon, SolutionNewsItem, NewsSettings, NewsSettingsTags, NewsReview, \
     CityAppLocations
-from solutions.common.to.news import NewsStatsTO, NewsAppTO
+from solutions.common.to.news import NewsStatsTO
 
 
 class AllNewsSentToReviewWarning(BusinessException):
@@ -74,16 +74,18 @@ def get_news(cursor=None, service_identity=None, tag=None):
 
 @returns(NewsStatsTO)
 @arguments(news_id=(int, long), service_identity=unicode)
-def get_news_statistics(news_id, service_identity=None):
+def get_news_item(news_id, service_identity=None):
     news_item = news.get(news_id, service_identity)
-    statistics = news.get_statistics([news_id], service_identity)
+    statistics = news.get_basic_statistics([news_id], service_identity)
     stats = statistics[0] if statistics else None
-    apps = get_apps_by_id([s.app_id for s in stats.details]) if stats else []
     return NewsStatsTO(
         news_item=news_item,
         statistics=stats,
-        apps=[NewsAppTO.from_model(app) for app in apps],
     )
+
+
+def get_news_statistics(news_id, service_identity=None):
+    return news.get_time_statistics(news_id, service_identity)
 
 
 def _save_coupon_news_id(news_item_id, coupon):

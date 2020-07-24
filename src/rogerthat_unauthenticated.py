@@ -21,6 +21,7 @@ from google.appengine.api import app_identity
 from mcfw.restapi import rest_functions, GenericRESTRequestHandler
 from rogerthat.bizz.jobs import worker_callbacks as jobs_worker_callbacks
 from rogerthat.consts import DEBUG
+from rogerthat.handlers.apple import AppleAppSiteAssociationHandler
 from rogerthat.handlers.image_handlers import AppQRTemplateHandler
 from rogerthat.handlers.itsme import ItsmeAuthorizeHandler, ItsmeLoginHandler, ItsmeAuthorizedHandler, ItsmeJWKsHandler
 from rogerthat.handlers.upload_handlers import UploadAppAssetHandler, UploadDefaultBrandingHandler, \
@@ -60,12 +61,14 @@ from rogerthat.pages.settings import ForwardLog, DebugLog
 from rogerthat.pages.shortner import ShortUrlHandler
 from rogerthat.pages.unsubscribe_reminder_service import UnsubscribeReminderHandler, UnsubscribeBroadcastHandler, \
     UnsubscribeDeactivateHandler
-from rogerthat.restapi import user, srv, service_map, news, apps, payment, logger, embedded_apps, firebase
+from rogerthat.restapi import user, srv, service_map, news, apps, payment, logger, embedded_apps, firebase, build_api
 from rogerthat.restapi.admin import ApplePushFeedbackHandler, ServerTimeHandler, ApplePushCertificateDownloadHandler
 from rogerthat.rpc.http import JSONRPCRequestHandler, UserAuthenticationHandler, \
     InstantJSONRPCRequestHandler
 from rogerthat.rpc.service import ServiceApiHandler, CallbackResponseReceiver
 from rogerthat.service.api import XMLSchemaHandler
+import rogerthat.web_client.api
+from rogerthat.web_client.pages.news import NewsPageHandler
 from rogerthat.wsgi import RogerthatWSGIApplication
 from rogerthat_service_api_calls import register_all_service_api_calls
 
@@ -152,6 +155,8 @@ handlers = [
     ('/payments/callbacks/([^/]+)/(.*)', PaymentCallbackHandler),
     ('/payments/login/([^/]+)/redirect', PaymentLoginRedirectHandler),
     ('/payments/login/app', PaymentLoginAppHandler),
+    ('/apple-app-site-association', AppleAppSiteAssociationHandler),
+    ('/.well-known/apple-app-site-association', AppleAppSiteAssociationHandler),
     webapp2.Route('/images/apps/<app_id:[^/]+>/qr-templates/<description:[^/]+>', AppQRTemplateHandler),
     webapp2.Route('/uploads/apps/<app_id:[^/]+>/assets/<asset_type:[^/]+>', UploadAppAssetHandler),
     webapp2.Route('/uploads/assets', UploadGlobalAppAssetHandler),
@@ -165,6 +170,7 @@ handlers = [
     webapp2.Route('/oauth/itsme/authorized', ItsmeAuthorizedHandler, 'itsme_authorized'),
     webapp2.Route('/oauth/itsme/jwks.json', ItsmeJWKsHandler),
     webapp2.Route('/oauth/itsme/<app_id:[^/]+>/jwks.json', ItsmeJWKsHandler),
+    webapp2.Route('/web/<application_identifier:[^/]+>/news/id/<news_id:\d+>', NewsPageHandler, name='news-item')
 ]
 
 handlers.extend(rest_functions(user))
@@ -176,6 +182,8 @@ handlers.extend(rest_functions(embedded_apps))
 handlers.extend(rest_functions(payment))
 handlers.extend(rest_functions(logger))
 handlers.extend(rest_functions(firebase))
+handlers.extend(rest_functions(rogerthat.web_client.api))
+handlers.extend(rest_functions(build_api))
 handlers.extend(rest_functions(jobs_worker_callbacks, authorized_function=authorize_internal_request))
 
 register_all_service_api_calls()

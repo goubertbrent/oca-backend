@@ -16,7 +16,9 @@ import { RouterModule, Routes } from '@angular/router';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
 import { MissingTranslationHandler, MissingTranslationHandlerParams, TranslateModule, TranslateService } from '@ngx-translate/core';
+import { SimpleDialogModule } from '@oca/web-shared';
 import { MonacoEditorModule, NgxMonacoEditorConfig } from 'ngx-monaco-editor';
+import { ERROR_HANDLING_TRANLATIONS_PROVIDER } from '../../../environments/config';
 import { environment } from '../../../environments/environment';
 import { RunResultDialogComponent } from './components/result-dialog/result-dialog.component';
 import { ScriptPageComponent } from './components/script-page.component';
@@ -40,7 +42,6 @@ const monacoConfig: NgxMonacoEditorConfig = {
 export class MissingTranslationWarnHandler implements MissingTranslationHandler {
 
   handle(params: MissingTranslationHandlerParams) {
-    console.log(params);
     const lang = params.translateService.currentLang;
     console.warn(`Missing translation for key '${params.key}' for language '${lang}'`);
     return params.key;
@@ -74,6 +75,7 @@ const routes: Routes = [
     MatTooltipModule,
     MatDialogModule,
     MatProgressBarModule,
+    SimpleDialogModule,
   ],
   exports: [],
   declarations: [
@@ -85,6 +87,7 @@ const routes: Routes = [
   providers: [
     ScriptsService,
     DatePipe,
+    ERROR_HANDLING_TRANLATIONS_PROVIDER,
     {
       provide: MAT_FORM_FIELD_DEFAULT_OPTIONS,
       useValue: {

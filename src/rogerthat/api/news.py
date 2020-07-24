@@ -24,7 +24,8 @@ from rogerthat.to.news import GetNewsGroupsResponseTO, GetNewsGroupsRequestTO, G
     GetNewsStreamItemsRequestTO, \
     GetNewsGroupServicesResponseTO, GetNewsGroupServicesRequestTO, SaveNewsGroupServicesResponseTO, \
     SaveNewsGroupServicesRequestTO, SaveNewsGroupFiltersResponseTO, SaveNewsGroupFiltersRequestTO, \
-    GetNewsGroupResponseTO, GetNewsGroupRequestTO, SaveNewsStatisticsResponseTO, SaveNewsStatisticsRequestTO
+    GetNewsGroupResponseTO, GetNewsGroupRequestTO, SaveNewsStatisticsResponseTO, SaveNewsStatisticsRequestTO, \
+    GetNewsItemDetailsResponseTO, GetNewsItemDetailsRequestTO
 from rogerthat.utils.app import get_app_id_from_app_user
 
 
@@ -132,10 +133,19 @@ def saveNewsGroupServices(request):
     return save_group_services(app_user, request.group_id, request.key, request.action, request.service)
 
 
+# Deprecated but not removed for old client support
 @expose(('api',))
 @returns(SaveNewsGroupFiltersResponseTO)
 @arguments(request=SaveNewsGroupFiltersRequestTO)
 def saveNewsGroupFilters(request):
-    from rogerthat.bizz.news import save_group_filters
+    return SaveNewsGroupFiltersResponseTO()
+
+
+@expose(('api',))
+@returns(GetNewsItemDetailsResponseTO)
+@arguments(request=GetNewsItemDetailsRequestTO)
+def getNewsItemDetails(request):
+    # type: (GetNewsItemDetailsRequestTO) -> GetNewsItemDetailsResponseTO
+    from rogerthat.bizz.news import get_news_item_details
     app_user = users.get_current_user()
-    return save_group_filters(app_user, request.group_id, request.enabled_filters)
+    return get_news_item_details(app_user, request.id)

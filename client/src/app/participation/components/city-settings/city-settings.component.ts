@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { NgForm } from '@angular/forms';
 import { Loadable } from '../../../shared/loadable/loadable';
-import { deepCopy } from '../../../shared/util/misc';
+import { deepCopy } from '../../../shared/util';
 import { CitySettings } from '../../projects';
 
 @Component({

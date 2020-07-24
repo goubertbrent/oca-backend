@@ -1,5 +1,5 @@
 import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { CallStateType } from '../../shared/util';
+import { CallStateType } from '@oca/web-shared';
 import { IScriptsState } from './scripts.state';
 
 export const getScriptsState = createFeatureSelector<IScriptsState>('ie');

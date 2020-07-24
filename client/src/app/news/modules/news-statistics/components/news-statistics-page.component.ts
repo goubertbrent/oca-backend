@@ -1,11 +1,13 @@
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { select, Store } from '@ngrx/store';
+import { NewsItemTimeStatistics, NewsStats } from '@oca/web-shared';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, take } from 'rxjs/operators';
 import { Loadable } from '../../../../shared/loadable/loadable';
-import { NewsStats } from '../../../interfaces';
-import { getNewsItemStats, NewsState } from '../../../news.state';
+import { filterNull } from '../../../../shared/util';
+import { GetNewsItemTimeStatsAction } from '../../../news.actions';
+import { areNewsItemTimeStatsLoading, getNewsItemStats, getNewsItemTimeStats, NewsState } from '../../../news.state';
 import { PossibleMetrics } from './news-statistics-graphs/news-statistics-graphs.component';
 
 @Component({
@@ -18,7 +20,9 @@ import { PossibleMetrics } from './news-statistics-graphs/news-statistics-graphs
   }`],
 })
 export class NewsStatisticsPageComponent implements OnInit {
-  newsItemStats$: Observable<Loadable<NewsStats>>;
+  newsItemWithStats$: Observable<Loadable<NewsStats>>;
+  timeStats$: Observable<NewsItemTimeStatistics | null>;
+  timeStatsLoading$: Observable<boolean>;
   selectedMetric$: Observable<PossibleMetrics>;
 
   constructor(private store: Store<NewsState>,
@@ -26,14 +30,19 @@ export class NewsStatisticsPageComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.newsItemStats$ = this.store.pipe(select(getNewsItemStats));
-    const metricChoices = [ 'reached', 'rogered', 'action', 'followed' ];
+    this.newsItemWithStats$ = this.store.pipe(select(getNewsItemStats));
+    this.timeStats$ = this.store.pipe(select(getNewsItemTimeStats));
+    this.timeStatsLoading$ = this.store.pipe(select(areNewsItemTimeStatsLoading));
+    const metricChoices = ['reached', 'action'];
     this.selectedMetric$ = this.route.queryParams.pipe(map(params => {
       if (params.metric && metricChoices.includes(params.metric)) {
         return params.metric;
       }
       return 'reached';
     }));
+    this.newsItemWithStats$.pipe(map(s => s.data), filterNull(), take(1)).subscribe(stats => {
+      this.store.dispatch(new GetNewsItemTimeStatsAction({ id: stats.news_item.id }));
+    });
   }
 
 }

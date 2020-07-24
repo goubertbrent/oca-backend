@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { select, Store } from '@ngrx/store';
+import { CallStateType, ResultState } from '@oca/web-shared';
 import { Observable } from 'rxjs';
 import { isShopUser } from '../../../shared/shared.state';
-import { CallStateType, ResultState } from '../../../shared/util';
 import { MapConfig } from '../../maps';
 import { GetMapConfigAction, SaveMapConfigAction } from '../../reports.actions';
 import { getMapConfig, ReportsState } from '../../reports.state';

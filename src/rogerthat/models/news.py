@@ -19,15 +19,19 @@ from __future__ import unicode_literals
 
 from datetime import datetime
 
+from dateutil.relativedelta import relativedelta
 from google.appengine.ext import ndb
 from google.appengine.ext.ndb.query import QueryOptions
+from typing import List
 
 from mcfw.utils import Enum
 from rogerthat.dal import parent_ndb_key
 from rogerthat.models.common import NdbModel
-from rogerthat.models.properties.news import NewsItemStatisticsProperty, NewsButtonsProperty
+from rogerthat.models.properties.news import NewsButtonsProperty
 from rogerthat.rpc import users
 from rogerthat.utils import now
+from rogerthat.utils.app import get_app_id_from_app_user
+from rogerthat.web_client.models import WebClientSession
 
 
 class MediaType(Enum):
@@ -68,7 +72,6 @@ class NewsItemLocation(NdbModel):
 class NewsItem(NdbModel):
     MAX_TITLE_LENGTH = 80
     MAX_BUTTON_CAPTION_LENGTH = 15
-    STATISTICS_TYPE_INFLUX_DB = 'influxdb'
 
     sticky = ndb.BooleanProperty(indexed=True, required=True)
     sticky_until = ndb.IntegerProperty(indexed=True, default=0)
@@ -95,16 +98,7 @@ class NewsItem(NdbModel):
     location_match_required = ndb.BooleanProperty(default=False)
     locations = ndb.StructuredProperty(NewsItemLocation)  # type: NewsItemLocation
 
-    # --- only used for statistics_type None ---
-    reach = ndb.IntegerProperty(indexed=False, default=0)
-    rogered = ndb.BooleanProperty(indexed=True, required=True)
-    users_that_rogered = ndb.UserProperty(indexed=False, repeated=True)  # type: list[users.User]
-    statistics = NewsItemStatisticsProperty(indexed=False)
-    follow_count = ndb.IntegerProperty(indexed=False, default=-1)
-    action_count = ndb.IntegerProperty(indexed=False, default=-1)
-    # --- end only used for statistics_type None ---
     buttons = NewsButtonsProperty(indexed=False)
-    statistics_type = ndb.StringProperty(indexed=True, choices=[None, STATISTICS_TYPE_INFLUX_DB])
     qr_code_content = ndb.StringProperty(indexed=False)
     qr_code_caption = ndb.StringProperty(indexed=False)
     version = ndb.IntegerProperty(indexed=False, default=1)
@@ -221,10 +215,7 @@ class NewsItem(NdbModel):
 
     @classmethod
     def get_expired_sponsored_news_keys(cls):
-        """
-        Returns:
-            keys (list of ndb.Key)
-        """
+        # type: () -> ndb.Query
         return cls.query().filter(cls.sticky == True).filter(cls.sticky_until < now())
 
 
@@ -256,22 +247,75 @@ class NewsItemAction(Enum):
     ACTION = 'action'
     PINNED = 'pinned'
     UNPINNED = 'unpinned'
+    SHARE = 'share'
+
+
+MAX_ACTION_COUNT_MAP = {
+    NewsItemAction.REACHED: 1,
+    NewsItemAction.ROGERED: 5,
+    NewsItemAction.UNROGERED: 5,
+    NewsItemAction.FOLLOWED: 1,
+    NewsItemAction.ACTION: 5,
+    NewsItemAction.PINNED: 5,
+    NewsItemAction.UNPINNED: 5,
+}
+
+
+class NewsItemActionHistory(NdbModel):
+    action = ndb.StringProperty(indexed=False, choices=NewsItemAction.all())
+    date = ndb.DateTimeProperty(auto_now_add=True, indexed=False)
+
+
+class NewsItemActions(NdbModel):
+    actions = ndb.StructuredProperty(NewsItemActionHistory, indexed=False, repeated=True)  # type: List[NewsItemActionHistory]
+
+    @classmethod
+    def create_key(cls, session_key, news_id):
+        return ndb.Key(cls, news_id, parent=session_key)
+
+    def can_save_action(self, action, date):
+        action_count = sum(1 for a in self.actions if a.action == action)
+        max_count = MAX_ACTION_COUNT_MAP.get(action, 5)
+        # Limit amount of actions to a certain amount to avoid abuse
+        can_save = action_count < max_count
+        if can_save:
+            # Limit same action to once every 5 seconds, also to avoid abuse / double clicks
+            acceptable_date = date - relativedelta(seconds=5)
+            for a in reversed(self.actions):
+                if a.action == action:
+                    can_save = a.date < acceptable_date
+                    break
+        return can_save
+
+    def add_action(self, action, date):
+        can_save = self.can_save_action(action, date)
+        if can_save:
+            self.actions.append(NewsItemActionHistory(action=action, date=date))
+        return can_save
 
 
 class NewsItemActionStatistics(NdbModel):
     created = ndb.DateTimeProperty(auto_now_add=True)
     news_id = ndb.IntegerProperty()
     action = ndb.StringProperty()
-    age = ndb.StringProperty()
-    gender = ndb.StringProperty()
+    age = ndb.StringProperty(indexed=False) # if empty, it's a web user
+    gender = ndb.StringProperty(indexed=False) # if empty, it's a web user
+    app_id = ndb.StringProperty(indexed=False)  # if empty, parent key is always an app user
+
+    def get_app_id(self):
+        return self.app_id if self.app_id else get_app_id_from_app_user(self.app_user)
 
     @property
     def app_user(self):
+        if self.key.parent().kind() == WebClientSession._get_kind():
+            return None
         return users.User(self.key.parent().id().decode('utf8'))
-
+        
     @classmethod
-    def create_key(cls, app_user, uid):
-        return ndb.Key(cls, uid, parent=parent_ndb_key(app_user))
+    def create_key(cls, app_user_or_session_key, uid):
+        if isinstance(app_user_or_session_key, users.User):
+            return ndb.Key(cls, uid, parent=parent_ndb_key(app_user_or_session_key))
+        return ndb.Key(cls, uid, parent=app_user_or_session_key)
 
     @classmethod
     def list_by_action(cls, news_id, action):
@@ -337,26 +381,12 @@ class NewsGroup(NdbModel):
     TYPE_POLLS = 'polls'
     TYPE_PUBLIC_SERVICE_ANNOUNCEMENTS = 'public_service_announcements'
 
-    FILTER_PROMOTIONS_FOOD = 'food'
-    FILTER_PROMOTIONS_RESTAURANT = 'restaurant'
-    FILTER_PROMOTIONS_CLOTHING = 'clothing'
-    FILTER_PROMOTIONS_ASSOCIATIONS = 'associations'
-    FILTER_PROMOTIONS_OTHER = 'other'
-    PROMOTIONS_FILTERS = [
-        FILTER_PROMOTIONS_FOOD,
-        FILTER_PROMOTIONS_RESTAURANT,
-        FILTER_PROMOTIONS_CLOTHING,
-        FILTER_PROMOTIONS_ASSOCIATIONS,
-        FILTER_PROMOTIONS_OTHER
-    ]
-
     name = ndb.StringProperty(indexed=False)  # not visible to users/customers
     app_id = ndb.StringProperty()
     send_notifications = ndb.BooleanProperty(indexed=False, default=True)
     visible_until = ndb.DateTimeProperty(indexed=True)
 
     group_type = ndb.StringProperty()
-    filters = ndb.StringProperty(repeated=True, indexed=False)
     regional = ndb.BooleanProperty(indexed=False)
 
     default_order = ndb.IntegerProperty(indexed=False)
@@ -391,7 +421,6 @@ class NewsGroup(NdbModel):
 
 class NewsSettingsServiceGroup(NdbModel):
     group_type = ndb.StringProperty()
-    filter = ndb.StringProperty()
 
 
 class NewsSettingsService(NdbModel):
@@ -402,8 +431,8 @@ class NewsSettingsService(NdbModel):
 
     default_app_id = ndb.StringProperty()
     setup_needed_id = ndb.IntegerProperty()
-    groups = ndb.LocalStructuredProperty(NewsSettingsServiceGroup, repeated=True)
-    duplicate_in_city_news = ndb.BooleanProperty(indexed=False, default=False)
+    groups = ndb.LocalStructuredProperty(NewsSettingsServiceGroup, repeated=True)  # type: List[NewsSettingsServiceGroup]
+    duplicate_in_city_news = ndb.BooleanProperty(indexed=False, default=False)  # type: bool
 
     @property
     def service_user(self):
@@ -460,15 +489,15 @@ class NewsMatchType(Enum):
 class NewsSettingsUserGroupDetails(NdbModel):
     group_id = ndb.StringProperty()
     order = ndb.IntegerProperty()
-    filters = ndb.StringProperty(repeated=True)
     notifications = ndb.IntegerProperty()
     last_load_request = ndb.DateTimeProperty()
 
 
 class NewsSettingsUserGroup(NdbModel):
-    group_type = ndb.StringProperty()
-    order = ndb.IntegerProperty()
-    details = ndb.LocalStructuredProperty(NewsSettingsUserGroupDetails, repeated=True)  # type: list[NewsSettingsUserGroupDetails]
+    group_type = ndb.StringProperty(required=True)
+    order = ndb.IntegerProperty(required=True)
+    details = ndb.LocalStructuredProperty(NewsSettingsUserGroupDetails,
+                                          repeated=True)  # type: List[NewsSettingsUserGroupDetails]
 
     def get_details_sorted(self):
         return sorted(self.details, key=lambda k: k.order)
@@ -487,8 +516,8 @@ class NewsSettingsUser(NdbModel):
 
     app_id = ndb.StringProperty()
     last_get_groups_request = ndb.DateTimeProperty()
-    group_ids = ndb.StringProperty(repeated=True)
-    groups = ndb.LocalStructuredProperty(NewsSettingsUserGroup, repeated=True)
+    group_ids = ndb.StringProperty(repeated=True)  # type: List[str]
+    groups = ndb.LocalStructuredProperty(NewsSettingsUserGroup, repeated=True)  # type: List[NewsSettingsUserGroup]
 
     @property
     def app_user(self):
@@ -529,7 +558,6 @@ class NewsSettingsUser(NdbModel):
 class NewsSettingsUserService(NdbModel):
     group_id = ndb.StringProperty()
     notifications = ndb.IntegerProperty()
-    blocked = ndb.BooleanProperty()
 
     @classmethod
     def create_parent_key(cls, app_user, group_id):
@@ -553,12 +581,6 @@ class NewsSettingsUserService(NdbModel):
         qry = qry.filter(cls.notifications == status)
         return qry
 
-    @classmethod
-    def list_blocked(cls, app_user, group_id):
-        qry = cls.list_by_group_id(app_user, group_id)
-        qry = qry.filter(cls.blocked == True)
-        return qry
-
 
 class NewsItemMatch(NdbModel):
     REASON_BLOCKED = u'blocked'
@@ -575,17 +597,15 @@ class NewsItemMatch(NdbModel):
     }
 
     update_time = ndb.DateTimeProperty(auto_now=True)
-    update_time_blocked = ndb.DateTimeProperty(indexed=False, default=None)
     publish_time = ndb.DateTimeProperty(default=None)
     sort_time = ndb.DateTimeProperty()
 
     news_id = ndb.IntegerProperty()
     sender = ndb.UserProperty()  # service identity user
     group_ids = ndb.StringProperty(repeated=True)  # group_id can be None (service news, searching news)
-    filter = ndb.StringProperty()
     location_match = ndb.BooleanProperty(indexed=False, default=False)
 
-    actions = ndb.StringProperty(repeated=True)
+    actions = ndb.StringProperty(repeated=True)  # type: List[str]
     disabled = ndb.BooleanProperty(indexed=False)
 
     visible = ndb.BooleanProperty()
@@ -608,14 +628,13 @@ class NewsItemMatch(NdbModel):
         return ndb.Key(cls, news_id, parent=parent_ndb_key(app_user, namespace=cls.NAMESPACE))
 
     @classmethod
-    def create(cls, app_user, news_id, publish_time, sort_time, sender, group_ids=None, filter_=None, location_match=False):
+    def create(cls, app_user, news_id, publish_time, sort_time, sender, group_ids=None, location_match=False):
         return cls(key=cls.create_key(app_user, news_id),
                    publish_time=publish_time,
                    sort_time=sort_time,
                    news_id=news_id,
                    sender=sender,
                    group_ids=group_ids or [],
-                   filter=filter_,
                    location_match=location_match,
                    actions=[],
                    disabled=False,
@@ -656,12 +675,6 @@ class NewsItemMatch(NdbModel):
         return cls.list_by_sender(app_user, sender, group_id)\
             .filter(cls.visible == True)\
             .order(-NewsItemMatch.sort_time)
-
-    @classmethod
-    def list_by_filter(cls, app_user, group_id, filter_):
-        return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE))\
-            .filter(cls.group_ids == group_id)\
-            .filter(cls.filter == filter_)
 
     @classmethod
     def list_by_action(cls, app_user, action):

@@ -1,10 +1,10 @@
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
+import { ErrorService } from '@oca/web-shared';
 import { of, timer } from 'rxjs';
 import { catchError, first, map, mergeMap, retryWhen, switchMap, take } from 'rxjs/operators';
 import { RootState } from '../reducers';
-import { ErrorService } from './errors/error.service';
 import { transformErrorResponse } from './errors/errors';
 import {
   GetAppsAction,

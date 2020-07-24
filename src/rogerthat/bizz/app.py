@@ -44,7 +44,7 @@ from rogerthat.dal.profile import get_user_profile_keys_by_app_id, get_user_prof
 from rogerthat.dal.service import get_service_identities_by_service_identity_users, get_service_identity
 from rogerthat.exceptions.app import DuplicateAppIdException
 from rogerthat.models import App, AppSettings, UserProfile, ServiceIdentity, \
-    AppTranslations
+    AppTranslations, AppNameMapping
 from rogerthat.models.apps import EmbeddedApplication
 from rogerthat.models.firebase import FirebaseProjectSettings
 from rogerthat.models.news import NewsGroup, NewsGroupTile
@@ -62,6 +62,7 @@ from rogerthat.to.system import UpdateSettingsRequestTO, SettingsTO
 from rogerthat.utils import now, read_file_in_chunks, random_string
 from rogerthat.utils.service import add_slash_default
 from rogerthat.utils.transactions import run_in_xg_transaction, on_trans_committed
+
 
 try:
     from cStringIO import StringIO
@@ -123,8 +124,7 @@ def add_auto_connected_services(app_id, services, auto_connect_now=True):
     if auto_connect_now:
         logging.info('There are new auto-connected services for %s: %s', app_id, [acs.service_identity_email
                                                                                   for acs in services])
-        for acs in services:
-            deferred.defer(connect_auto_connected_service, app_id, acs)
+        deferred.defer(connect_auto_connected_services, app_id, services)
 
 
 @returns()
@@ -431,6 +431,9 @@ def update_app(app_id, data):
         if set(app.embedded_apps).symmetric_difference(data.embedded_apps):
             deferred.defer(send_update_all_embedded_apps, app_id, _countdown=2, _transactional=True)
         app.embedded_apps = data.embedded_apps
+        if data.default_app_name_mapping and data.default_app_name_mapping != app.default_app_name_mapping:
+            app.default_app_name_mapping = data.default_app_name_mapping
+            deferred.defer(set_app_name_mapping, app_id, app.default_app_name_mapping, _transactional=True)
 
         old_auto_connected_services = {acs.service_identity_email for acs in app.auto_connected_services}
         app.auto_connected_services = AutoConnectedServices()
@@ -458,15 +461,24 @@ def update_app(app_id, data):
         if new_acs:
             logging.info('There are new auto-connected services for %s: %s', app_id,
                          [acs.service_identity_email for acs in new_acs])
-        for acs in new_acs:
-            deferred.defer(connect_auto_connected_service, app_id, acs, _transactional=True)
+        deferred.defer(connect_auto_connected_services, app_id, new_acs, _transactional=True)
         put_and_invalidate_cache(*to_put)
         return app
 
     return run_in_xg_transaction(trans)
 
 
-def connect_auto_connected_service(app_id, acs):
+def set_app_name_mapping(app_id, name):
+    AppNameMapping(key=AppNameMapping.create_key(name), app_id=app_id).put()
+
+
+def connect_auto_connected_services(app_id, auto_connected_services):
+    # type: (unicode, [AutoConnectedService]) -> None
+    for acs in auto_connected_services:
+        deferred.defer(_connect_auto_connected_service, app_id, acs)
+
+
+def _connect_auto_connected_service(app_id, acs):
     # type: (unicode, AutoConnectedService) -> None
     helper = FriendHelper.serialize(users.User(acs.service_identity_email), FRIEND_TYPE_SERVICE)
     run_job(get_user_profile_keys_by_app_id, [app_id],

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges, ViewEncapsulation } from '@angular/core';
-import { AppStatisticsMapping } from '../../../shared/interfaces/rogerthat';
+import { AppStatisticsMapping } from '@oca/web-shared';
 import { getCost, getReach } from '../../utils';
 
 @Component({

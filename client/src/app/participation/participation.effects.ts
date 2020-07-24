@@ -7,7 +7,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { catchError, filter, first, map, switchMap, tap } from 'rxjs/operators';
 import { transformErrorResponse } from '../shared/errors/errors';
-import { filterNull } from '../shared/util/redux';
+import { filterNull } from '../shared/util';
 import {
   CreateProjectAction,
   CreateProjectCompleteAction,

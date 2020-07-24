@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges } from '@angular/core';
-import { SafeResourceUrl } from '@angular/platform-browser';
+import { BaseMedia, MediaType, NewsActionButton, NewsItemType } from '@oca/web-shared';
 import { SharedService } from '../../../shared/shared.service';
-import { BaseMedia, MediaType, NewsActionButton, NewsItemType } from '../../interfaces';
 
 @Component({
   selector: 'oca-news-item-preview-item',
@@ -22,14 +21,12 @@ export class NewsItemPreviewItemComponent implements OnChanges {
 
   NewsItemType = NewsItemType;
   MediaType = MediaType;
-  youtubeUrl: SafeResourceUrl | null = null;
 
   constructor(private sharedService: SharedService) {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes.media && changes.media.currentValue) {
-      this.youtubeUrl = null;
       if (this.media && this.media.type === MediaType.YOUTUBE_VIDEO) {
         this.sharedService.ensureYoutubeLoaded();
       }

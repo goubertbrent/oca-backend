@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { ErrorService } from '@oca/web-shared';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
-import { ErrorService } from '../shared/errors/error.service';
 import {
   ExportVoucherServicesAction,
   ExportVoucherServicesFailedAction,

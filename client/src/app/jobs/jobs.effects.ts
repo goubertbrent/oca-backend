@@ -5,11 +5,11 @@ import { Router } from '@angular/router';
 import { Actions, Effect, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
+import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '@oca/web-shared';
+import { ErrorService } from '@oca/web-shared';
 import { combineLatest } from 'rxjs';
 import { catchError, distinctUntilChanged, filter, map, switchMap, tap } from 'rxjs/operators';
 import { RootState } from '../reducers';
-import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '../shared/dialog/simple-dialog.component';
-import { ErrorService } from '../shared/errors/error.service';
 import { filterNull } from '../shared/util';
 import { JobStatus } from './jobs';
 import {

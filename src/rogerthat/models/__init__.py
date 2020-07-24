@@ -15,7 +15,6 @@
 #
 # @@license_version:1.7@@
 
-from collections import namedtuple
 import datetime
 import hashlib
 import json
@@ -26,6 +25,7 @@ import urllib
 import urlparse
 import uuid
 import zlib
+from collections import namedtuple
 
 from dateutil.parser import parse as parse_date
 from google.appengine.ext import db, ndb
@@ -37,8 +37,7 @@ from typing import List
 from mcfw.cache import CachedModelMixIn, invalidate_cache, invalidate_model_cache
 from mcfw.properties import azzert
 from mcfw.serialization import deserializer, ds_model, register, s_model, s_long, ds_long, serializer, \
-    model_deserializer, get_list_serializer, get_list_deserializer, List as ListSerializer, s_any, \
-    ds_any
+    model_deserializer, s_any, ds_any
 from mcfw.utils import Enum
 from rogerthat.consts import MC_RESERVED_TAG_PREFIX, IOS_APPSTORE_WEB_URI_FORMAT, \
     ANDROID_MARKET_ANDROID_URI_FORMAT, ANDROID_MARKET_WEB_URI_FORMAT, ANDROID_BETA_MARKET_WEB_URI_FORMAT
@@ -52,7 +51,7 @@ from rogerthat.models.properties.keyvalue import KeyValueProperty, KVStore
 from rogerthat.models.properties.messaging import ButtonsProperty, MemberStatusesProperty, JsFlowDefinitionsProperty, \
     AttachmentsProperty, SpecializedList, EmbeddedAppProperty
 from rogerthat.models.properties.oauth import OAuthSettingsProperty
-from rogerthat.models.properties.profiles import MobileDetailsProperty,\
+from rogerthat.models.properties.profiles import MobileDetailsProperty, \
     MobileDetailsNdbProperty
 from rogerthat.models.utils import get_meta, add_meta
 from rogerthat.rpc import users
@@ -61,7 +60,6 @@ from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import base38, base65, llist, now, calculate_age_from_date, set_flag, unset_flag, is_flag_set
 from rogerthat.utils.crypto import sha256_hex, encrypt
 from rogerthat.utils.translations import localize_app_translation
-
 
 try:
     from cStringIO import StringIO
@@ -122,6 +120,7 @@ class App(CachedModelMixIn, db.Model):
     facebook_app_id = db.IntegerProperty(indexed=False)
     facebook_app_secret = db.StringProperty(indexed=False)
     ios_app_id = db.StringProperty(indexed=False)
+    ios_dev_team = db.StringProperty(indexed=False)
     android_app_id = db.StringProperty(indexed=False)
     user_regex = db.TextProperty(indexed=False)
     visible = db.BooleanProperty(indexed=True, default=True)
@@ -147,7 +146,8 @@ class App(CachedModelMixIn, db.Model):
     owncloud_admin_password = db.StringProperty(indexed=False)
     embedded_apps = db.StringListProperty(indexed=True, default=[])
     disabled = db.BooleanProperty(default=False)
-    country = db.StringProperty()  # 2 letter country code
+    country = db.StringProperty(indexed=True)  # 2 letter country code
+    default_app_name_mapping = db.TextProperty()
 
     def invalidateCache(self):
         logging.info("App '%s' removed from cache." % self.app_id)
@@ -195,6 +195,22 @@ class App(CachedModelMixIn, db.Model):
     @staticmethod
     def create_key(app_id):
         return db.Key.from_path(App.kind(), app_id)
+
+
+class AppNameMapping(NdbModel):
+    app_id = ndb.StringProperty()
+
+    @property
+    def name(self):
+        return self.key.id()
+
+    @classmethod
+    def create_key(cls, name):
+        return ndb.Key(cls, name)
+
+    @classmethod
+    def list_by_app(cls, app_id):
+        return cls.query().filter(cls.app_id == app_id)
 
 
 class NdbApp(NdbModel):

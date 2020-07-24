@@ -16,6 +16,8 @@
 # @@license_version:1.7@@
 from __future__ import unicode_literals
 
+import logging
+
 from google.appengine.ext import ndb
 
 from mcfw.consts import MISSING, REST_TYPE_TO
@@ -32,16 +34,17 @@ from rogerthat.models.settings import ServiceInfo
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException
 from rogerthat.service.api import system
-from rogerthat.service.api.news import list_groups
+from rogerthat.service.api.news import list_groups, get_basic_statistics
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
-from rogerthat.to.news import NewsItemTO, NewsItemListResultTO, NewsActionButtonTO
+from rogerthat.to.news import NewsItemTO, NewsItemListResultTO, NewsActionButtonTO, NewsItemTimeStatisticsTO, \
+    NewsItemBasicStatisticsTO
 from rogerthat.utils.service import create_service_identity_user
 from shop.exceptions import BusinessException
 from shop.models import ShopApp
 from solutions import translate as common_translate
-from solutions.common.bizz.news import get_news, put_news_item, delete_news, get_news_statistics, get_news_reviews, \
+from solutions.common.bizz.news import get_news, put_news_item, delete_news, get_news_item, get_news_reviews, \
     send_news_review_reply, publish_item_from_review, AllNewsSentToReviewWarning, get_locations, \
-    is_regional_news_enabled, check_can_send_news
+    is_regional_news_enabled, check_can_send_news, get_news_statistics
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.cityapp import get_service_user_for_city
 from solutions.common.models.news import NewsSettings, NewsSettingsTags
@@ -67,8 +70,24 @@ def rest_get_news(tag=None, cursor=None):
     return get_news(cursor, service_identity, tag)
 
 
+@rest('/common/news/statistics', 'get', read_only_access=True, silent_result=True)
+@returns([NewsItemBasicStatisticsTO])
+@arguments(id=[(int, long)])
+def rest_get_basic_stats_for_ids(id):
+    service_identity = users.get_current_session().service_identity
+    return get_basic_statistics(ids=id, service_identity=service_identity)
+
+
 @rest('/common/news/<news_id:\d+>', 'get', read_only_access=True, silent_result=True)
 @returns(NewsStatsTO)
+@arguments(news_id=(int, long))
+def rest_get_news_item(news_id):
+    service_identity = users.get_current_session().service_identity
+    return get_news_item(news_id, service_identity)
+
+
+@rest('/common/news/<news_id:\d+>/statistics', 'get', read_only_access=True, silent_result=True)
+@returns(NewsItemTimeStatisticsTO)
 @arguments(news_id=(int, long))
 def rest_get_news_statistics(news_id):
     service_identity = users.get_current_session().service_identity

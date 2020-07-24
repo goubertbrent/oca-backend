@@ -190,21 +190,16 @@ class SetupNewsServiceHandler(NewsAdminHandler):
             nss.groups = []
             if groups == 'city':
                 if NewsGroup.TYPE_CITY in group_types:
-                    nss.groups.append(NewsSettingsServiceGroup(group_type=NewsGroup.TYPE_CITY,
-                                                               filter=None))
+                    nss.groups.append(NewsSettingsServiceGroup(group_type=NewsGroup.TYPE_CITY))
                 if NewsGroup.TYPE_TRAFFIC in group_types:
-                    nss.groups.append(NewsSettingsServiceGroup(group_type=NewsGroup.TYPE_TRAFFIC,
-                                                               filter=None))
+                    nss.groups.append(NewsSettingsServiceGroup(group_type=NewsGroup.TYPE_TRAFFIC))
                 if NewsGroup.TYPE_EVENTS in group_types:
-                    nss.groups.append(NewsSettingsServiceGroup(group_type=NewsGroup.TYPE_EVENTS,
-                                                               filter=None))
+                    nss.groups.append(NewsSettingsServiceGroup(group_type=NewsGroup.TYPE_EVENTS))
             elif groups == 'other':
                 if NewsGroup.TYPE_PROMOTIONS in group_types:
-                    nss.groups.append(NewsSettingsServiceGroup(group_type=NewsGroup.TYPE_PROMOTIONS,
-                                                               filter=NewsGroup.FILTER_PROMOTIONS_OTHER))
+                    nss.groups.append(NewsSettingsServiceGroup(group_type=NewsGroup.TYPE_PROMOTIONS))
                 if NewsGroup.TYPE_EVENTS in group_types:
-                    nss.groups.append(NewsSettingsServiceGroup(group_type=NewsGroup.TYPE_EVENTS,
-                                                               filter=None))
+                    nss.groups.append(NewsSettingsServiceGroup(group_type=NewsGroup.TYPE_EVENTS))
             else:
                 self.response.out.write(json.dumps({'success': False,
                                                     'errormsg': 'This is awkward... (group not found)'}))

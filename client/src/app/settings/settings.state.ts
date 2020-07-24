@@ -1,6 +1,6 @@
 import { createFeatureSelector, createSelector } from '@ngrx/store';
+import { CallStateType, initialStateResult, ResultState } from '@oca/web-shared';
 import { AvailablePlaceType, OpeningHours, PlaceType } from '../shared/interfaces/oca';
-import { CallStateType, initialStateResult, ResultState } from '../shared/util';
 import { Country, ServiceInfo } from './service-info/service-info';
 
 

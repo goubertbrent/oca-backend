@@ -19,8 +19,8 @@ import inspect
 import itertools
 import logging
 import time
-from types import NoneType
 import types
+from types import NoneType
 
 from google.appengine.ext import db, ndb
 
@@ -109,7 +109,8 @@ def arguments(**kwarg_types):
         f_pure_default_args_dict = {f_args[0][i]: f_defaults[i - f_arg_no_defaults_count]
                                     for i in xrange(f_arg_no_defaults_count, f_arg_count)}
         if f_arg_count != len(kwarg_types):
-            raise ValueError(f.func_name + " does not contain the expected arguments!")
+            raise ValueError('%s: function signature contains more arguments than the type annotations.'
+                             '\nExpected: %s\nActual: %s' % (f.func_name, kwarg_types.keys(), f_args.args))
         unknown_args = [arg for arg in f_args[0] if arg not in kwarg_types]
         if unknown_args:
             raise ValueError("No type information is supplied for %s!" % ", ".join(unknown_args))

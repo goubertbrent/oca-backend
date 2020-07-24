@@ -2,8 +2,8 @@ import { ChangeDetectionStrategy, Component, OnInit, ViewEncapsulation } from '@
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
+import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '@oca/web-shared';
 import { Observable } from 'rxjs';
-import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '../../../shared/dialog/simple-dialog.component';
 import { Loadable, NonNullLoadable } from '../../../shared/loadable/loadable';
 import { CreateFormAction, DeleteFormAction, GetFormsAction } from '../../forms.actions';
 import { FormsState, getForms, getIntegrations } from '../../forms.state';

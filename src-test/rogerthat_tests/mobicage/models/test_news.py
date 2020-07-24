@@ -39,7 +39,6 @@ class TestNewsItem(mc_unittest.TestCase):
                               sender=users.User('hello@mail.com'),
                               app_ids=['rogerthat'],
                               timestamp=now(),
-                              rogered=False,
                               target_audience_enabled=False)
 
         self.assertTrue(_match_target_audience_of_item(profile_old_male.user, news_item0))
@@ -50,7 +49,6 @@ class TestNewsItem(mc_unittest.TestCase):
                               sender=users.User('hello@mail.com'),
                               app_ids=['rogerthat'],
                               timestamp=now(),
-                              rogered=False,
                               target_audience_enabled=True,
                               target_audience_min_age=0,
                               target_audience_max_age=100,
@@ -66,7 +64,6 @@ class TestNewsItem(mc_unittest.TestCase):
                               sender=users.User('hello@mail.com'),
                               app_ids=['rogerthat'],
                               timestamp=now(),
-                              rogered=False,
                               target_audience_enabled=True,
                               target_audience_min_age=18,
                               target_audience_max_age=99,

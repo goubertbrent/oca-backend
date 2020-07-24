@@ -1,0 +1,31 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  align-items: center;
+}
+
+.news-item {
+  width: auto;
+  max-width: 640px;
+  margin: 16px;
+}
+
+.news-item-avatar {
+  background-size: cover;
+}
+
+.media-image {
+  max-width: 100%;
+}
+
+.media-video {
+  min-width: 100%;
+}
+
+
+.news-item-actions {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}

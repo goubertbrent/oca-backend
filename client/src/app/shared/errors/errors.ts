@@ -1,15 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Action } from '@ngrx/store';
-
-export interface ApiError<T = any> {
-  status_code: number;
-  error: string;
-  data: T | null;
-}
-
-export interface ErrorAction extends Action {
-  error: string;
-}
+import { ApiError } from '@oca/web-shared';
 
 
 export function transformErrorResponse(response: HttpErrorResponse): ApiError {
@@ -28,3 +18,5 @@ export function transformErrorResponse(response: HttpErrorResponse): ApiError {
   }
   return apiError;
 }
+
+export { ApiError, ErrorAction } from '@oca/web-shared';

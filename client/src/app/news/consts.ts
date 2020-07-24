@@ -1,4 +1,4 @@
-import { Gender, MediaType } from './interfaces';
+import { Gender, MediaType } from '@oca/web-shared';
 
 export const GENDER_OPTIONS = [
   { value: Gender.MALE_OR_FEMALE, label: 'oca.gender-male-female' },

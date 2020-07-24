@@ -1,4 +1,4 @@
-import { stateError, stateLoading, stateSuccess } from '../shared/util';
+import { stateError, stateLoading, stateSuccess } from '@oca/web-shared';
 import { ReportsActions, ReportsActionTypes } from './reports.actions';
 import { initialState, ReportsState } from './reports.state';
 

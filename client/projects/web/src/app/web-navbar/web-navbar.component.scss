@@ -1,0 +1,40 @@
+:host {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.logo {
+  height: 40px;
+  width: 40px;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.page-header {
+  span {
+    vertical-align: middle;
+    margin: 0 8px;
+  }
+}
+
+.nav-link {
+  font-size: 16px;
+  text-decoration: none;
+  color: currentColor;
+  margin: 0 auto;
+}
+
+@media screen and (max-width: 599px) {
+
+  .hide-sm {
+    display: none;
+  }
+
+  .logo {
+    height: 32px;
+    width: 32px;
+  }
+}

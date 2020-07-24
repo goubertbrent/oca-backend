@@ -1,4 +1,4 @@
-import { initialStateResult, ResultState } from '../../shared/util';
+import { initialStateResult, ResultState } from '@oca/web-shared';
 import { RunResult, Script } from './scripts';
 
 export interface IScriptsState {

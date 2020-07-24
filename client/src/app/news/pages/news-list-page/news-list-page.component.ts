@@ -1,10 +1,9 @@
 import { ChangeDetectionStrategy, Component, OnInit, ViewEncapsulation } from '@angular/core';
 import { select, Store } from '@ngrx/store';
+import { NewsItem, ServiceNewsGroup } from '@oca/web-shared';
 import { Observable } from 'rxjs';
 import { map, take } from 'rxjs/operators';
-import { ServiceNewsGroup } from '../../../shared/interfaces/rogerthat';
 import { Loadable } from '../../../shared/loadable/loadable';
-import { NewsItem } from '../../interfaces';
 import { CopyNewsItemAction, DeleteNewsItemAction, GetNewsListAction } from '../../news.actions';
 import {
   getNewsCursor,

@@ -1963,24 +1963,24 @@ def rest_list_gallery_images(prefix):
     return [GcsFileTO(url=get_serving_url(f.filename), content_type=f.content_type, size=f.st_size) for f in cloudstorage.listbucket(path) if f.filename != path]
 
 
-@rest('/common/i18n/<lang:[^/]+>.json', 'get', read_only_access=True, authenticated=False, silent=True,
+@rest('/common/i18n/<prefix:[^/]+>/<lang:[^/]+>.json', 'get', read_only_access=True, authenticated=False, silent=True,
       silent_result=True)
 @returns(dict)
-@arguments(lang=unicode)
-def api_get_translations(lang):
-    prefix = 'oca.'
+@arguments(lang=unicode, prefix=unicode)
+def api_get_translations(lang, prefix):
     language_translations = translations.get(lang, {})
-    mapping = {key.replace(prefix, ''): translation
+    prefix_with_dot = prefix + '.'
+    mapping = {key.replace(prefix_with_dot, ''): translation
                for key, translation in language_translations.iteritems()
-               if key.startswith(prefix)}
+               if key.startswith(prefix_with_dot)}
     translation_re = re.compile(r'%\((.*)\)s')
     # Replace %(var)s with {{ var }}
-    for key in TRANSLATION_MAPPING:
+    for key in TRANSLATION_MAPPING.get(prefix, []):
         if key in language_translations:
             mapping[key] = translation_re.sub(r'{{ \1 }}', language_translations[key])
         elif DEBUG:
             logging.warning('Translation not found for language %s: %s', lang, key)
-    return {'oca': mapping}
+    return {prefix: mapping}
 
 
 @rest('/common/consts', 'get', read_only_access=True, silent=True, silent_result=True)

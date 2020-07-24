@@ -82,7 +82,6 @@ def setup_default_groups_app(app_id):
     ng1.name = u'%s CITY' % app.name
     ng1.app_id = app.app_id
     ng1.group_type = NewsGroup.TYPE_CITY
-    ng1.filters = []
     ng1.regional = False
     ng1.default_order = 10
     ng1.default_notifications_enabled = True
@@ -93,7 +92,6 @@ def setup_default_groups_app(app_id):
     ng2.name = u'%s PROMOTIONS' % app.name
     ng2.app_id = app.app_id
     ng2.group_type = NewsGroup.TYPE_PROMOTIONS
-    ng2.filters = NewsGroup.PROMOTIONS_FILTERS
     ng2.regional = False
     ng2.default_order = 20
     ng2.default_notifications_enabled = False
@@ -104,7 +102,6 @@ def setup_default_groups_app(app_id):
     ng3.name = u'%s PROMOTIONS (regional)' % app.name
     ng3.app_id = app.app_id
     ng3.group_type = NewsGroup.TYPE_PROMOTIONS
-    ng3.filters = NewsGroup.PROMOTIONS_FILTERS
     ng3.regional = True
     ng3.default_order = 20
     ng3.default_notifications_enabled = False
@@ -114,7 +111,6 @@ def setup_default_groups_app(app_id):
     ng4.name = u'%s EVENTS' % app.name
     ng4.app_id = app.app_id
     ng4.group_type = NewsGroup.TYPE_EVENTS
-    ng4.filters = []
     ng4.regional = False
     ng4.default_order = 30
     ng4.default_notifications_enabled = False
@@ -125,7 +121,6 @@ def setup_default_groups_app(app_id):
     ng5.name = u'%s TRAFFIC' % app.name
     ng5.app_id = app.app_id
     ng5.group_type = NewsGroup.TYPE_TRAFFIC
-    ng5.filters = []
     ng5.regional = False
     ng5.default_order = 40
     ng5.default_notifications_enabled = True
@@ -136,7 +131,6 @@ def setup_default_groups_app(app_id):
     ng6.name = u'%s PRESS' % app.name
     ng6.app_id = app.app_id
     ng6.group_type = NewsGroup.TYPE_PRESS
-    ng6.filters = []
     ng6.regional = False
     ng6.default_order = 50
     ng6.default_notifications_enabled = False
@@ -149,7 +143,6 @@ def setup_default_groups_app(app_id):
     ng7.app_id = app.app_id
     ng7.send_notifications = False
     ng7.group_type = NewsGroup.TYPE_POLLS
-    ng7.filters = []
     ng7.regional = False
     ng7.default_order = 60
     ng7.default_notifications_enabled = True
@@ -354,40 +347,41 @@ def _qry_user_settings_app(app_id):
 
 @ndb.non_transactional()
 def _get_news_group(group_id):
+    # type: (str) -> NewsGroup
     return NewsGroup.create_key(group_id).get()
 
 
 @ndb.transactional(xg=True)
 def _worker_add_group_to_user_settings(s_key, group_id):
     from rogerthat.bizz.news.matching import create_matches_for_user
-    s = s_key.get()
-    if group_id in s.group_ids:
+    user_settings = s_key.get()  # type: NewsSettingsUser
+    if group_id in user_settings.group_ids:
         return
 
-    g = _get_news_group(group_id)
+    group = _get_news_group(group_id)
 
-    ug = NewsSettingsUserGroup()
-    ug.group_type = g.group_type
-    ug.order = g.default_order
-    ug.details = []
-    ugd = NewsSettingsUserGroupDetails()
-    ugd.group_id = g.group_id
-    ugd.order = 20 if g.regional else 10
-    ugd.filters = g.filters
-    if g.default_notifications_enabled:
-        ugd.notifications = NewsNotificationFilter.ALL
+    settings_user_group = NewsSettingsUserGroup(
+        group_type=group.group_type,
+        order=group.default_order,
+        details=[],
+    )
+    settings_group_details = NewsSettingsUserGroupDetails()
+    settings_group_details.group_id = group.group_id
+    settings_group_details.order = 20 if group.regional else 10
+    if group.default_notifications_enabled:
+        settings_group_details.notifications = NewsNotificationFilter.ALL
     else:
-        ugd.notifications = NewsNotificationFilter.SPECIFIED
+        settings_group_details.notifications = NewsNotificationFilter.SPECIFIED
+    settings_group_details.last_load_request = datetime.utcnow()
 
-    ugd.last_load_request = datetime.utcnow()
+    settings_user_group.details.append(settings_group_details)
 
-    ug.details.append(ugd)
+    user_settings.group_ids.append(group.group_id)
+    user_settings.groups.append(settings_user_group)
+    user_settings.put()
 
-    s.group_ids.append(g.group_id)
-    s.groups.append(ug)
-    s.put()
-
-    deferred.defer(create_matches_for_user, s.app_user, group_id, _transactional=True, _queue=NEWS_MATCHING_QUEUE)
+    deferred.defer(create_matches_for_user, user_settings.app_user, group_id, _transactional=True,
+                   _queue=NEWS_MATCHING_QUEUE)
 
 
 @ndb.transactional(xg=True)

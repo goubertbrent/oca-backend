@@ -4,8 +4,8 @@ import { MatSelectChange } from '@angular/material/select';
 import { TranslateService } from '@ngx-translate/core';
 import { EASYMDE_OPTIONS } from '../../../../environments/config';
 import {
-  COMPONENT_TYPES,
   ComponentTypeItem,
+  COMPONENT_TYPES,
   DATE_FORMATS,
   FILE_TYPES,
   GOTO_SECTION_OPTION,

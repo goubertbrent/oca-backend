@@ -1,9 +1,9 @@
 import { createFeatureSelector, createSelector } from '@ngrx/store';
+import { App, AppStatistics, AppStatisticsMapping, CallStateType, initialStateResult, ResultState } from '@oca/web-shared';
 import { Budget } from './billing/billing';
 import { BrandingSettings, GlobalConfig, SolutionSettings } from './interfaces/oca';
-import { App, AppStatistics, AppStatisticsMapping, ServiceIdentityInfo } from './interfaces/rogerthat';
+import { ServiceIdentityInfo } from './interfaces/rogerthat';
 import { DEFAULT_LIST_LOADABLE, DEFAULT_LOADABLE, Loadable } from './loadable/loadable';
-import { CallStateType, initialStateResult, ResultState } from './util';
 
 
 export const initialSharedState: SharedState = {

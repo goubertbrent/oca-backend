@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Input } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatDatepickerInputEvent } from '@angular/material/datepicker';
-import { updateItem } from '../../../shared/util/redux';
+import { updateItem } from '../../../shared/util';
 import { FormComponentType } from '../../interfaces/enums';
 import { DatetimeValue } from '../../interfaces/form-values';
 import { FormValidator, FormValidatorType, MaxDateValidator, MinDateValidator, ValidatorType } from '../../interfaces/validators';

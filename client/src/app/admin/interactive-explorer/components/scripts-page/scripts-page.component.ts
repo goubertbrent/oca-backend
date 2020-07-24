@@ -8,7 +8,7 @@ import { CreateScriptAction, GetScriptsAction } from '../../scripts.actions';
 import { IScriptsState } from '../../scripts.state';
 
 @Component({
-  selector: 'ie-scripts-page-component',
+  selector: 'oca-scripts-page-component',
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: 'scripts-page.component.html',
   styles: [`

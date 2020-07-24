@@ -1,4 +1,4 @@
-import { BaseButton, NewsGroupType, ServiceNewsGroup } from '../shared/interfaces/rogerthat';
+import { BaseButton } from './messaging';
 
 export enum NewsItemType {
   NORMAL = 1,
@@ -17,38 +17,40 @@ export enum MediaType {
   YOUTUBE_VIDEO = 'video_youtube',
 }
 
+export interface NewsItemTimeValue {
+  time: string;
+  value: number;
+}
+
+export interface NewsItemTimeStatistics {
+  id: number;
+  reached: NewsItemTimeValue[];
+  action: NewsItemTimeValue[];
+}
+
 export interface KeyValueLong {
   key: string;
   value: number;
 }
 
-export interface NewsItemStatisticsTime {
-  timestamp: number;
-  amount: number;
-}
+export type UINewsActionButton =
+  NewsActionButtonWebsite
+  | NewsActionButtonPhone
+  | NewsActionButtonEmail
+  | NewsActionButtonAttachment
+  | NewsActionButtonMenuItem
+  | NewsActionButtonOpen;
 
-export interface NewsItemStatisticsDetails {
-  age: KeyValueLong[];
-  gender: KeyValueLong[];
-  time: NewsItemStatisticsTime[];
+export interface NewsItemBasicStatistic {
   total: number;
+  gender: KeyValueLong[];
+  age: KeyValueLong[];
 }
 
-export interface NewsItemStatistics {
+export interface NewsItemBasicStatistics {
   id: number;
-  users_that_rogered: string[];
-  total_reached: number;
-  total_action: number;
-  total_followed: number;
-  details: NewsItemAppStatistics[];
-}
-
-export interface NewsItemAppStatistics {
-  app_id: string;
-  reached: NewsItemStatisticsDetails;
-  rogered: NewsItemStatisticsDetails;
-  action: NewsItemStatisticsDetails;
-  followed: NewsItemStatisticsDetails;
+  reached: NewsItemBasicStatistic;
+  action: NewsItemBasicStatistic;
 }
 
 export interface NewsTargetAudience {
@@ -66,7 +68,7 @@ export interface NewsSender {
 }
 
 export interface NewsActionButton extends BaseButton {
-  flow_params?: string;
+  flow_params?: string | null;
 }
 
 export enum NewsActionButtonType {
@@ -109,14 +111,6 @@ export interface NewsActionButtonOpen extends BaseNewsButton {
   type: NewsActionButtonType.OPEN;
 }
 
-export type UINewsActionButton =
-  NewsActionButtonWebsite
-  | NewsActionButtonPhone
-  | NewsActionButtonEmail
-  | NewsActionButtonAttachment
-  | NewsActionButtonMenuItem
-  | NewsActionButtonOpen;
-
 export interface BaseMedia {
   type: MediaType;
   content: string;
@@ -125,36 +119,6 @@ export interface BaseMedia {
 export interface Media extends BaseMedia {
   width: number;
   height: number;
-}
-
-export interface NewsItem {
-  type: NewsItemType;
-  sticky: boolean;
-  sticky_until: number;
-  app_ids: string[];
-  scheduled_at: number;
-  published: boolean;
-  target_audience: NewsTargetAudience | null;
-  role_ids: number[];
-  tags: string[];
-  id: number;
-  sender: NewsSender;
-  title: string;
-  message: string;
-  /**
-   * @deprecated use group_type instead
-   */
-  broadcast_type: string;
-  buttons: NewsActionButton[];
-  qr_code_content: string;
-  qr_code_caption: string;
-  version: number;
-  timestamp: number;
-  flags: number;
-  media: Media;
-  group_type: NewsGroupType;
-  locations: NewsLocation | null;
-  group_visible_until: number | null;
 }
 
 export interface NewsItemList {
@@ -186,6 +150,20 @@ export interface NewsLocation {
   addresses: NewsAddress[];
 }
 
+export const enum NewsGroupType {
+  PROMOTIONS = 'promotions',
+  CITY = 'city',
+  EVENTS = 'events',
+  TRAFFIC = 'traffic',
+  PRESS = 'press',
+  POLLS = 'polls',
+}
+
+export interface ServiceNewsGroup {
+  group_type: NewsGroupType;
+  name: string;
+}
+
 export interface CreateNews<T = Date> {
   id: number | null;
   title: string;
@@ -203,17 +181,9 @@ export interface CreateNews<T = Date> {
   group_visible_until: T | null;
 }
 
-export interface NewsApp {
-  id: string;
-  type: number;
-  name: string;
-}
-
 export interface NewsStats {
   news_item: NewsItem;
-  // Only null if stats server couldn't be reached
-  statistics: NewsItemStatistics | null;
-  apps: NewsApp[];
+  statistics: NewsItemBasicStatistics;
 }
 
 export const enum NewsSettingsTag {
@@ -231,7 +201,6 @@ export interface NewsOptions {
   location_filter_enabled: boolean;
   action_buttons: UINewsActionButton[];
 }
-
 
 export interface Street {
   name: string;
@@ -251,10 +220,39 @@ export interface Locality {
   streets: Street[];
 }
 
-
 export interface CityAppLocations {
   app_id: string;
   country_code: string;
   localities: Locality[];
 }
 
+export interface NewsItem {
+  type: NewsItemType;
+  sticky: boolean;
+  sticky_until: number;
+  app_ids: string[];
+  scheduled_at: number;
+  published: boolean;
+  target_audience: NewsTargetAudience | null;
+  role_ids: number[];
+  tags: string[];
+  id: number;
+  sender: NewsSender;
+  title: string;
+  message: string;
+  /**
+   * @deprecated use group_type instead
+   */
+  broadcast_type: string;
+  buttons: NewsActionButton[];
+  qr_code_content: string | null;
+  qr_code_caption: string | null;
+  version: number;
+  timestamp: number;
+  flags: number;
+  media: Media | null;
+  group_type: NewsGroupType;
+  locations: NewsLocation | null;
+  group_visible_until: number | null;
+  share_url: string | null;
+}

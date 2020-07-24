@@ -5,10 +5,12 @@ import { Observable } from 'rxjs';
 
 // I don't know why Angular Team doesn't define it https://github.com/angular/angular/blob/9.0.0/packages/forms/src/model.ts#L15-L45
 type STATUS = 'VALID' | 'INVALID' | 'PENDING' | 'DISABLED';
-//string is added only becouse Angular base class use string insted of union type https://github.com/angular/angular/blob/9.0.0/packages/forms/src/model.ts#L196)
+// string is added only becouse Angular base class use string insted of union type
+// https://github.com/angular/angular/blob/9.0.0/packages/forms/src/model.ts#L196)
 type STATUSs = STATUS | string;
 
-// OVVERRIDE TYPES WITH STRICT TYPED INTERFACES + SOME TYPE TRICKS TO COMPOSE INTERFACE (https://github.com/Microsoft/TypeScript/issues/16936)
+// OVVERRIDE TYPES WITH STRICT TYPED INTERFACES + SOME TYPE TRICKS TO COMPOSE INTERFACE
+// (https://github.com/Microsoft/TypeScript/issues/16936)
 export interface AbstractControlTyped<T> extends AbstractControl {
   // BASE PROPS AND METHODS COMMON TO ALL FormControl/FormGroup/FormArray
   readonly value: T;

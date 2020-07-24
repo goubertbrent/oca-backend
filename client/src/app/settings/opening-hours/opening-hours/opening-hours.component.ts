@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { TranslateService } from '@ngx-translate/core';
-import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '../../../shared/dialog/simple-dialog.component';
+import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '@oca/web-shared';
 import { OpeningHourException, OpeningHours, OpeningHourType, OpeningPeriod } from '../../../shared/interfaces/oca';
 import { HoursPipe } from '../../pipes/hours.pipe';
 

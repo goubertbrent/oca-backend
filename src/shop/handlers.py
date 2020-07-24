@@ -23,12 +23,12 @@ import os
 import time
 import urllib
 
+import webapp2
 from dateutil.relativedelta import relativedelta
 from google.appengine.api import search, users as gusers
 from google.appengine.ext import db
 from google.appengine.ext.deferred import deferred
 from google.appengine.ext.webapp import template
-import webapp2
 
 from mcfw.cache import cached
 from mcfw.consts import MISSING
@@ -40,7 +40,6 @@ from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.service import SERVICE_LOCATION_INDEX, re_index_map_only
 from rogerthat.bizz.session import create_session
 from rogerthat.dal.app import get_app_by_id
-from rogerthat.exceptions import ServiceExpiredException
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
 from rogerthat.models import ProfilePointer, ServiceProfile
 from rogerthat.pages.legal import DOC_TERMS_SERVICE, get_current_document_version, get_version_content, \
@@ -57,24 +56,23 @@ from rogerthat.utils.cookie import set_cookie
 from rogerthat.utils.service import create_service_identity_user
 from shop import SHOP_JINJA_ENVIRONMENT
 from shop.bizz import create_customer_signup, complete_customer_signup, get_organization_types, \
-    update_customer_consents, get_customer_signup, validate_customer_url_data,\
+    update_customer_consents, get_customer_signup, validate_customer_url_data, \
     get_customer_consents
 from shop.business.i18n import shop_translate
 from shop.business.permissions import is_admin
 from shop.constants import OFFICIALLY_SUPPORTED_LANGUAGES
 from shop.dal import get_all_signup_enabled_apps
 from shop.models import Invoice, OrderItem, Product, Prospect, RegioManagerTeam, LegalEntity, Customer, \
-    Quotation, AppCss, CustomerSignup
-from shop.to import CompanyTO, CustomerTO, CustomerLocationTO, EmailConsentTO
+    Quotation, CustomerSignup
+from shop.to import CompanyTO, CustomerTO, CustomerLocationTO
 from shop.view import get_shop_context, get_current_http_host
 from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz.settings import get_consents_for_app
-from solutions.common.integrations.cirklo.models import VoucherSettings,\
+from solutions.common.integrations.cirklo.models import VoucherSettings, \
     VoucherProviderId
 from solutions.common.models import SolutionServiceConsent
 from solutions.common.restapi.services import do_create_service
-from solutions.common.to.settings import PrivacySettingsTO, PrivacySettingsGroupTO
-
+from solutions.common.to.settings import PrivacySettingsGroupTO
 
 try:
     from cStringIO import StringIO
@@ -424,14 +422,6 @@ class PublicPageHandler(webapp2.RequestHandler):
             else:
                 url = self.url_for(route_name)
             params[route_name + '_url'] = url
-        if app_id:
-            custom_css = AppCss.create_key(app_id, 'public').get()
-            if custom_css:
-                params['theme_css'] = custom_css.content
-            else:
-                params['theme_css'] = None
-        else:
-            params['theme_css'] = None
         template_path = 'public/%s.html' % template_name
         return SHOP_JINJA_ENVIRONMENT.get_template(template_path).render(params)
 
@@ -662,7 +652,7 @@ class QuotationHandler(webapp2.RequestHandler):
 
 
 class CustomerCirkloAcceptHandler(PublicPageHandler):
-    
+
     def get_url(self, customer):
         url_params = urllib.urlencode({'cid': customer.id})
         return '/customers/consent/cirklo?{}'.format(url_params)
@@ -681,12 +671,12 @@ class CustomerCirkloAcceptHandler(PublicPageHandler):
         else:
             email = self.request.get('email')
             data = self.request.get('data')
-    
+
             try:
                 data = validate_customer_url_data(email, data)
             except InvalidUrlException:
                 return self.return_error('invalid_url')
-    
+
             customer = db.get(data['s']) # Customer
         if not customer:
             return self.abort(404)
@@ -724,10 +714,10 @@ class CustomerCirkloAcceptHandler(PublicPageHandler):
         if SolutionServiceConsent.TYPE_CIRKLO_SHARE not in consents.types:
             consents.types.append(SolutionServiceConsent.TYPE_CIRKLO_SHARE)
             should_put_consents = True
-            
+
         if should_put_consents:
             consents.put()
-            
+
             settings_key = VoucherSettings.create_key(customer.service_user)
             settings = settings_key.get()
             if not settings:
@@ -739,5 +729,5 @@ class CustomerCirkloAcceptHandler(PublicPageHandler):
 
             service_identity_user = create_service_identity_user(customer.service_user)
             try_or_defer(re_index_map_only, service_identity_user)
-            
+
         self.redirect(self.get_url(customer))

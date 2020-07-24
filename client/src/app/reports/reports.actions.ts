@@ -1,5 +1,5 @@
 import { Action } from '@ngrx/store';
-import { ErrorAction } from '../shared/errors/errors';
+import { ErrorAction } from '@oca/web-shared';
 import { MapConfig } from './maps';
 import { Incident, IncidentList, IncidentStatus } from './pages/reports';
 

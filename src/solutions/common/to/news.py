@@ -19,17 +19,7 @@ from mcfw.properties import unicode_property, long_property, typed_property, uni
 from rogerthat.to import TO
 
 from rogerthat.to.news import NewsItemTO, NewsActionButtonTO, NewsTargetAudienceTO, BaseMediaTO, NewsLocationsTO, \
-    NewsItemStatisticsTO
-
-
-class NewsAppTO(TO):
-    name = unicode_property('name')
-    type = long_property('type')
-    id = unicode_property('id')
-
-    @classmethod
-    def from_model(cls, app):
-        return cls(name=app.name, type=app.type, id=app.app_id)
+    NewsItemBasicStatisticsTO
 
 
 class CreateNewsItemTO(TO):
@@ -51,8 +41,7 @@ class CreateNewsItemTO(TO):
 
 class NewsStatsTO(TO):
     news_item = typed_property('news_item', NewsItemTO)
-    statistics = typed_property('statistics', NewsItemStatisticsTO)
-    apps = typed_property('apps', NewsAppTO, True)
+    statistics = typed_property('statistics', NewsItemBasicStatisticsTO)
 
 
 class NewsReviewTO(TO):

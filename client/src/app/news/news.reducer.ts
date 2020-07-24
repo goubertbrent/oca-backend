@@ -1,8 +1,8 @@
+import { CreateNews, NewsItem } from '@oca/web-shared';
+import { stateError, stateLoading, stateSuccess } from '@oca/web-shared';
 import { onLoadableError, onLoadableLoad, onLoadableSuccess } from '../shared/loadable/loadable';
-import { stateError, stateLoading, stateSuccess } from '../shared/util';
-import { CreateNews, NewsItem } from './interfaces';
 import { NewsActions, NewsActionTypes } from './news.actions';
-import { appsAdapter, initialNewsState, newsAdapter, NewsState } from './news.state';
+import { initialNewsState, newsAdapter, NewsState } from './news.state';
 
 export function newsReducer(state: NewsState = initialNewsState, action: NewsActions): NewsState {
   switch (action.type) {
@@ -37,11 +37,21 @@ export function newsReducer(state: NewsState = initialNewsState, action: NewsAct
         ...state,
         itemStats: onLoadableSuccess(action.payload),
         items: newsAdapter.updateOne({ id: action.payload.news_item.id, changes: action.payload.news_item }, state.items),
-        apps: appsAdapter.upsertMany(action.payload.apps, state.apps),
         editingNewsItem: onLoadableSuccess(convertNewsItem(action.payload.news_item)),
       };
     case NewsActionTypes.GET_NEWS_ITEM_FAILED:
       return { ...state, itemStats: onLoadableError(action.error, initialNewsState.itemStats.data) };
+    case NewsActionTypes.GET_NEWS_ITEMS_STATS_COMPLETE:
+      return {
+        ...state,
+        items: newsAdapter.updateMany(action.payload.map(stats => ({ id: stats.id, changes: { statistics: stats } })), state.items)
+      };
+    case NewsActionTypes.GET_NEWS_ITEM_TIME_STATS:
+      return { ...state, timeStats: stateLoading(initialNewsState.timeStats.result) };
+    case NewsActionTypes.GET_NEWS_ITEM_TIME_STATS_COMPLETE:
+      return { ...state, timeStats: stateSuccess(action.payload) };
+    case NewsActionTypes.GET_NEWS_ITEM_TIME_STATS_FAILED:
+      return { ...state, timeStats: stateError(action.error, initialNewsState.timeStats.result) };
     case NewsActionTypes.SET_NEW_NEWS_ITEM:
       return {
         ...state,

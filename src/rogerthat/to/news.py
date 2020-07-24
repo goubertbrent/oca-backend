@@ -17,15 +17,14 @@
 
 import json
 import time
-from datetime import datetime
 
-from dateutil.relativedelta import relativedelta
 from typing import List
 
 from mcfw.properties import long_list_property, typed_property, bool_property, long_property, unicode_property, \
     unicode_list_property, azzert, float_property
 from mcfw.serialization import s_long, ds_long, s_bool, s_unicode, ds_bool, ds_unicode, \
     get_list_serializer, get_list_deserializer
+from mcfw.utils import Enum
 from rogerthat.models import UserProfile, ServiceIdentity, NdbServiceProfile
 from rogerthat.models.news import NewsItem, NewsNotificationStatus, NewsMatchType
 from rogerthat.models.properties.news import NewsItemStatistics
@@ -34,11 +33,22 @@ from rogerthat.to import BaseButtonTO, TO, KeyValueLongTO
 from rogerthat.utils.service import remove_slash_default
 
 
+class NewsStatisticAction(Enum):
+    STATISTIC_REACH = 'news.reached'
+    STATISTIC_ROGERED = 'news.rogered'
+    STATISTIC_UNROGERED = 'news.unrogered'
+    STATISTIC_FOLLOWED = 'news.followed'
+    STATISTIC_ACTION = 'news.action'
+    STATISTIC_PINNED = 'news.pinned'
+    STATISTIC_UNPINNED = 'news.unpinned'
+    STATISTIC_SHARE = 'news.share'
+
+
 class NewsSenderTO(object):
     email = unicode_property('1')
     name = unicode_property('2')
     avatar_id = long_property('3')
-    avatar_url = unicode_property('avatar_url')
+    avatar_url = unicode_property('avatar_url', default=None)
 
     def __init__(self, email=None, name=None, avatar_id=None, avatar_url=None):
         self.email = email
@@ -115,107 +125,44 @@ def _deserialize_news_buttons(stream):
     return _deserialize_news_button_list(stream, version)
 
 
-class NewsItemStatisticsTimeTO(TO):
-    timestamp = long_property('1')
-    amount = long_property('2')
-
-    def __init__(self, timestamp, amount):
-        self.timestamp = timestamp
-        self.amount = amount
-
-
-class NewsItemStatisticsDetailsTO(TO):
-    age = typed_property('1', KeyValueLongTO, True)  # key: age (e.g. 10 - 15), value: amount
-    gender = typed_property('2', KeyValueLongTO, True)  # key: gender, value: amount
-    time = typed_property('3', NewsItemStatisticsTimeTO, True)
-    total = long_property('4')
-
-    def __init__(self, age=None, gender=None, time=None, total=0):
-        if age is None:
-            age = []
-        if gender is None:
-            gender = []
-        if time is None:
-            time = []
-        self.age = age
-        self.gender = gender
-        self.time = time
-        self.total = total
+class NewsItemBasicStatisticTO(TO):
+    total = long_property('total')
+    gender = typed_property('gender', KeyValueLongTO, True)  # type: List[KeyValueLongTO]
+    age = typed_property('age', KeyValueLongTO, True)  # type: List[KeyValueLongTO]
 
     @classmethod
-    def from_model(cls, model, news_type, news_item_creation_timestamp):
-        """
-        Args:
-            model (NewsItemStatistics)
-            news_type (unicode)
-            news_item_creation_timestamp (long)
-        """
-        age = []
-        gender = []
-        time_to = []
-        for i, _ in enumerate(NewsItemStatistics.default_age_stats()):
-            start_age = i * 5
-            end_age = start_age + 5
-            age_label = u'%s - %s' % (start_age, end_age)
-            age_value = getattr(model, '%s_age' % news_type)[i]
-            age.append(KeyValueLongTO(age_label, age_value))
-        for i, _ in enumerate(NewsItemStatistics.default_gender_stats()):
-            gender_label = NewsItemStatistics.gender_translation_key(i)
-            gender_value = getattr(model, '%s_gender' % news_type)[i]
-            gender.append(KeyValueLongTO(gender_label, gender_value))
-        time_values = getattr(model, '%s_time' % news_type, [])
-        for hours_from_creation, time_value in enumerate(time_values):
-            dt = datetime.utcfromtimestamp(news_item_creation_timestamp) + relativedelta(hours=hours_from_creation)
-            timestamp = long(time.mktime(dt.utctimetuple()))
-            time_to.append(NewsItemStatisticsTimeTO(timestamp, time_value))
-        return cls(age, gender, time_to, getattr(model, '%s_total' % news_type))
+    def from_point(cls, stats):
+        from rogerthat.bizz.news.influx import get_age_field_key
+        gender_stats = []
+        age_stats = []
+        if not stats:
+            total = 0
+        else:
+            total = stats['total']
+            for label in NewsItemStatistics.get_gender_labels():
+                value = stats.get(label) or 0
+                gender_stats.append(KeyValueLongTO(key=label.replace('gender-', ''), value=value))
+            for label in NewsItemStatistics.get_age_labels():
+                value = stats.get(get_age_field_key(label)) or 0
+                age_stats.append(KeyValueLongTO(key=label.replace('age-', ''), value=value))
+        return cls(total=total, gender=gender_stats, age=age_stats)
 
 
-class NewsItemAppStatisticsTO(TO):
-    app_id = unicode_property('app_id')
-    # following dicts could have type NewsItemStatisticsDetailsTO, but are dictionaries for enhanced performance
-    reached = typed_property('2', dict, False)  # type: dict
-    rogered = typed_property('3', dict, False)  # type: dict
-    action = typed_property('4', dict, False)  # type: dict
-    followed = typed_property('5', dict, False)  # type: dict
-
-    @classmethod
-    def from_model(cls, app_id, statistics, news_item_creation_timestamp):
-        """
-        Args:
-            statistics (rogerthat.models.properties.news.NewsItemStatistics)
-            news_item_creation_timestamp (long)
-        """
-        reached = NewsItemStatisticsDetailsTO.from_model(statistics, u'reached', news_item_creation_timestamp).to_dict()
-        rogered = NewsItemStatisticsDetailsTO.from_model(statistics, u'rogered', news_item_creation_timestamp).to_dict()
-        action = NewsItemStatisticsDetailsTO.from_model(statistics, u'action', news_item_creation_timestamp).to_dict()
-        followed = NewsItemStatisticsDetailsTO.from_model(statistics, u'followed',
-                                                          news_item_creation_timestamp).to_dict()
-        return cls(app_id=app_id, reached=reached, rogered=rogered, action=action, followed=followed)
-
-
-class NewsItemStatisticsTO(TO):
+class NewsItemBasicStatisticsTO(TO):
     id = long_property('id')
-    users_that_rogered = unicode_list_property('users_that_rogered')
-    total_reached = long_property('total_reached')
-    total_action = long_property('total_action')
-    total_followed = long_property('total_followed')
-    details = typed_property('details', NewsItemAppStatisticsTO, True)  # type: List[NewsItemAppStatisticsTO]
-
-    def __init__(self, id_=0, total_reached=0, users_that_rogered=None, total_action=0, total_followed=0, details=None):
-        super(NewsItemStatisticsTO, self).__init__(
-            id=id_,
-            users_that_rogered=users_that_rogered or [],
-            total_reached=total_reached,
-            total_action=total_action,
-            total_followed=total_followed,
-            details=details or []
-        )
+    reached = typed_property('reached', NewsItemBasicStatisticTO)  # type: NewsItemBasicStatisticTO
+    action = typed_property('action', NewsItemBasicStatisticTO)  # type: NewsItemBasicStatisticTO
 
 
-class NewsStatisticsResultTO(TO):
+class NewsItemTimeValueTO(TO):
+    time = unicode_property('time')
+    value = long_property('value')
+
+
+class NewsItemTimeStatisticsTO(TO):
     id = long_property('id')
-    data = typed_property('data', NewsItemStatisticsTO)
+    reached = typed_property('reached', NewsItemTimeValueTO, True)  # type: List[NewsItemTimeStatisticsTO]
+    action = typed_property('action', NewsItemTimeValueTO, True)  # type: List[NewsItemTimeStatisticsTO]
 
 
 class NewsTargetAudienceTO(object):
@@ -273,7 +220,12 @@ class NewsLocationsTO(TO):
     addresses = typed_property('3', NewsAddressTO, True)  # type: list[NewsAddressTO]
 
 
-class BaseNewsItemTO(object):
+class NewsItemTO(TO):
+    TYPE_NORMAL = u'NORMAL'
+    TYPE_QR_CODE = u'QR_CODE'
+
+    TYPES = (TYPE_NORMAL, TYPE_QR_CODE)
+
     id = long_property('1')
     sender = typed_property('2', NewsSenderTO, False)  # type: NewsSenderTO
     title = unicode_property('3')
@@ -289,9 +241,37 @@ class BaseNewsItemTO(object):
     type = long_property('15')
     media = typed_property('media', MediaTO, False, default=None)  # type: MediaTO
 
+    sticky = bool_property('101')
+    sticky_until = long_property('102')
+    app_ids = unicode_list_property('103')
+    scheduled_at = long_property('105')
+    published = bool_property('106')
+
+    target_audience = typed_property('110', NewsTargetAudienceTO, False)
+    role_ids = long_list_property('111', default=[])
+    tags = unicode_list_property('112')
+    group_type = unicode_property('114', default=None)
+    locations = typed_property('locations', NewsLocationsTO)
+    group_visible_until = long_property('group_visible_until')
+    share_url = unicode_property('share_url', default=None)
+
     def __init__(self, news_id=0, sender_email=None, sender_name=None, sender_avatar_id=0, sender_avatar_url=None,
                  title=None, message=None, image_url=None, buttons=None,
-                 qr_code_content=None, qr_code_caption=None, version=0, timestamp=0, flags=0, news_type=1, media=None):
+                 qr_code_content=None, qr_code_caption=None, version=0, timestamp=0, flags=0, news_type=1,
+                 sticky=False, sticky_until=0, app_ids=None, scheduled_at=0, published=False,
+                 target_audience=None, role_ids=None,
+                 tags=None, media=None, group_type=None, locations=None, group_visible_until=None,
+                 share_url=None):
+
+        if app_ids is None:
+            app_ids = []
+        if buttons is None:
+            buttons = []
+        if role_ids is None:
+            role_ids = []
+        if tags is None:
+            tags = []
+
         if buttons is None:
             buttons = []
         self.id = news_id
@@ -310,56 +290,6 @@ class BaseNewsItemTO(object):
         self.flags = flags
         self.type = news_type
         self.media = media
-
-    @classmethod
-    def from_model(cls, model, base_url):
-        # type: (NewsItem, unicode) -> BaseNewsItemTO
-        from rogerthat.dal.service import get_service_identity
-        si = get_service_identity(model.sender)
-        return cls(model.id, si.service_identity_user.email(), si.name, si.avatarId, model.title, model.message,
-                   model.media_url(base_url), model.buttons, model.qr_code_content, model.qr_code_caption,
-                   model.version, model.timestamp, model.flags, model.type, model.media)
-
-
-class NewsItemTO(BaseNewsItemTO):
-    TYPE_NORMAL = u'NORMAL'
-    TYPE_QR_CODE = u'QR_CODE'
-
-    TYPES = (TYPE_NORMAL, TYPE_QR_CODE)
-
-    sticky = bool_property('101')
-    sticky_until = long_property('102')
-    app_ids = unicode_list_property('103')
-    scheduled_at = long_property('105')
-    published = bool_property('106')
-
-    target_audience = typed_property('110', NewsTargetAudienceTO, False)
-    role_ids = long_list_property('111', default=[])
-    tags = unicode_list_property('112')
-    group_type = unicode_property('114', default=None)
-    locations = typed_property('locations', NewsLocationsTO)
-    group_visible_until = long_property('group_visible_until')
-
-    def __init__(self, news_id=0, sender_email=None, sender_name=None, sender_avatar_id=0, sender_avatar_url=None,
-                 title=None, message=None, image_url=None, buttons=None,
-                 qr_code_content=None, qr_code_caption=None, version=0, timestamp=0, flags=0, news_type=1,
-                 sticky=False, sticky_until=0, app_ids=None, scheduled_at=0, published=False,
-                 target_audience=None, role_ids=None,
-                 tags=None, media=None, group_type=None, locations=None, group_visible_until=None):
-
-        if app_ids is None:
-            app_ids = []
-        if buttons is None:
-            buttons = []
-        if role_ids is None:
-            role_ids = []
-        if tags is None:
-            tags = []
-
-        super(NewsItemTO, self).__init__(news_id, sender_email, sender_name, sender_avatar_id, sender_avatar_url, title,
-                                         message, image_url, buttons,
-                                         qr_code_content, qr_code_caption, version, timestamp, flags, news_type, media)
-
         self.sticky = sticky
         self.sticky_until = sticky_until
         self.app_ids = app_ids
@@ -374,14 +304,15 @@ class NewsItemTO(BaseNewsItemTO):
         self.group_type = group_type
         self.locations = locations
         self.group_visible_until = group_visible_until
+        self.share_url = share_url
 
     def has_roles(self):
         """Check if this news item has any assigned roles."""
         return len(self.role_ids) > 0
 
     @classmethod
-    def from_model(cls, model, base_url, service_profile=None, service_identity=None):
-        # type: (NewsItem, unicode, NdbServiceProfile, ServiceIdentity) -> NewsItemTO
+    def from_model(cls, model, base_url, service_profile, service_identity, share_url):
+        # type: (NewsItem, unicode, NdbServiceProfile, ServiceIdentity, unicode) -> NewsItemTO
         buttons = model.buttons.values() if model.buttons else []
 
         # set the target audience
@@ -420,7 +351,8 @@ class NewsItemTO(BaseNewsItemTO):
                    model.timestamp, model.flags, model.type, model.sticky, model.sticky_until, model.app_ids,
                    model.scheduled_at, model.published, target_audience,
                    model.role_ids, model.tags, media, group_type, locations,
-                   model.group_visible_until and long(time.mktime(model.group_visible_until.timetuple())))
+                   model.group_visible_until and long(time.mktime(model.group_visible_until.timetuple())),
+                   share_url)
 
 
 def _serialize_news_target_audience(stream, target_audience, version):
@@ -454,13 +386,17 @@ class NewsItemListResultTO(object):
     more = bool_property('more')
 
     def __init__(self, news_items=None, more=True, cursor=None, base_url=None, service_profile=None,
-                 service_identity=None):
+                 service_identity=None, share_base_url=None):
         # type: (list[NewsItem], bool, unicode, unicode, NdbServiceProfile, ServiceIdentity) -> None
+        from rogerthat.bizz.news import get_news_share_url
         if news_items is None:
             news_items = []
         self.cursor = cursor
-        results = [NewsItemTO.from_model(item, base_url, service_profile, service_identity) for item in news_items]
-        self.result = results
+
+        self.result = []
+        for news_item in news_items:
+            share_url = get_news_share_url(share_base_url, news_item.id)
+            self.result.append(NewsItemTO.from_model(news_item, base_url, service_profile, service_identity, share_url=share_url))
         self.more = more
 
 
@@ -499,7 +435,6 @@ class NewsGroupTabInfoTO(TO):
     key = unicode_property('1')
     name = unicode_property('2')
     notifications = long_property('3')  # enum: NewsNotificationFilter
-    filters = typed_property('4', NewsGroupFilterInfoTO, True, default=[])
 
 
 class NewsGroupLayoutTO(TO):
@@ -549,25 +484,27 @@ class GetNewsStreamFilterTO(TO):
 
 
 class NewsStreamItemTO(TO):
-    id = long_property('1')
-    sender = typed_property('2', NewsSenderTO, False)
-    title = unicode_property('3')
-    message = unicode_property('4')
-    media = typed_property('5', MediaTO, False)
-    buttons = typed_property('6', NewsActionButtonTO, True)
-    qr_code_content = unicode_property('7')
-    qr_code_caption = unicode_property('8')
-    flags = long_property('11')
-    type = long_property('12')
-    timestamp = long_property('13')
-    actions = long_property('14')  # flags: NewsActionFlag
-    disabled = bool_property('15')
-    notifications = long_property('16')  # enum: NewsNotificationStatus
-    blocked = bool_property('17')
-    match_type = long_property('18')  # flags: NewsMatchType
+    id = long_property('id')
+    sender = typed_property('sender', NewsSenderTO, False)
+    title = unicode_property('title')
+    message = unicode_property('message')
+    media = typed_property('media', MediaTO, False)
+    buttons = typed_property('buttons', NewsActionButtonTO, True)
+    qr_code_content = unicode_property('qr_code_content')
+    qr_code_caption = unicode_property('qr_code_caption')
+    flags = long_property('flags')
+    type = long_property('type')
+    timestamp = long_property('timestamp')
+    actions = long_property('actions')  # flags: NewsActionFlag
+    disabled = bool_property('disabled')
+    notifications = long_property('notifications')  # enum: NewsNotificationStatus
+    # unused, but can't be removed because old clients still expect this property
+    blocked = bool_property('blocked', default=False)
+    match_type = long_property('match_type')  # flags: NewsMatchType
+    share_url = unicode_property('share_url', default=None)
 
     @classmethod
-    def from_model(cls, app_user, news_match, news_item_to, notifications=NewsNotificationStatus.NOT_SET, blocked=False):
+    def from_model(cls, app_user, news_match, news_item_to, notifications=NewsNotificationStatus.NOT_SET):
         to = cls()
         to.id = news_item_to.id
         to.sender = news_item_to.sender
@@ -591,11 +528,12 @@ class NewsStreamItemTO(TO):
         to.actions = news_match.action_flags if news_match else 0
         to.disabled = news_match.disabled if news_match else False
         to.notifications = notifications
-        to.blocked = blocked
+        to.blocked = False
         if news_match:
             to.match_type = NewsMatchType.LOCATION if news_match.location_match else NewsMatchType.NORMAL
         else:
             to.match_type = NewsMatchType.NORMAL
+        to.share_url = news_item_to.share_url
         return to
 
 
@@ -642,6 +580,14 @@ class SaveNewsGroupFiltersResponseTO(TO):
     pass
 
 
+class GetNewsItemDetailsRequestTO(TO):
+    id = long_property('id')
+
+
+class GetNewsItemDetailsResponseTO(TO):
+    item = typed_property('item', NewsStreamItemTO)  # type: NewsStreamItemTO
+
+
 class CreateNotificationGroupTO(TO):
     id = unicode_property('1', default=None)
     name = unicode_property('2', default=None)
@@ -672,14 +618,12 @@ class NewsReadInfoTO(TO):
     users_that_rogered = unicode_list_property('4')
 
     @classmethod
-    def from_news_model(cls, model, statistics=None):
-        # type: (NewsItem, NewsItemStatisticsTO) -> NewsReadInfoTO
-        if not statistics:
-            statistics = NewsItemStatisticsTO(model.id)
+    def from_news_model(cls, model):
+        # type: (NewsItem) -> NewsReadInfoTO
         return cls(news_id=model.id,
                    app_ids=model.app_ids or [],
-                   read_count=statistics.total_reached,
-                   users_that_rogered=statistics.users_that_rogered)
+                   read_count=0,
+                   users_that_rogered=[])
 
 
 class NewsMobileConfigTO(object):

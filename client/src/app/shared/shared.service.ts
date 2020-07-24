@@ -1,8 +1,9 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { App, AppStatistics } from '@oca/web-shared';
 import { Budget } from './billing/billing';
 import { BrandingSettings, GlobalConfig, SolutionSettings } from './interfaces/oca';
-import { App, AppStatistics, ServiceIdentityInfo } from './interfaces/rogerthat';
+import { ServiceIdentityInfo } from './interfaces/rogerthat';
 
 @Injectable({ providedIn: 'root' })
 export class SharedService {

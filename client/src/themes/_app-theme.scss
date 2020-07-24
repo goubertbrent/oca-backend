@@ -23,7 +23,21 @@
 }
 
 // Default (light) theme
-$oca-app-primary: mat-palette($mat-cyan);
+
+$oca-color: #3abb9e;
+
+$oca-theme: (
+  100: #b2ebf2,
+  500: $oca-color,
+  700: #0097a7,
+  contrast: (
+    100: $dark-primary-text,
+    500: $light-primary-text,
+    700: $light-primary-text,
+  )
+);
+
+$oca-app-primary: mat-palette($oca-theme);
 $oca-app-accent: mat-palette($mat-deep-purple, A200, A100, A400);
 
 $theme: mat-light-theme($oca-app-primary, $oca-app-accent);

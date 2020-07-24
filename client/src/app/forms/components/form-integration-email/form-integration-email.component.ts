@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Out
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { TranslateService } from '@ngx-translate/core';
-import { SimpleDialogComponent, SimpleDialogData } from '../../../shared/dialog/simple-dialog.component';
+import { SimpleDialogComponent, SimpleDialogData } from '@oca/web-shared';
 import { updateItem } from '../../../shared/util';
 import { FormComponentType } from '../../interfaces/enums';
 import { FormSection, SingleSelectComponent, Value } from '../../interfaces/forms';

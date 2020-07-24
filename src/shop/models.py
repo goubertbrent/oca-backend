@@ -1270,11 +1270,11 @@ class ShopApp(NdbModel):
     @property
     def app_id(self):
         return self.key.id()
-    
+
     @property
     def jobs_enabled(self):
         return PaidFeatures.JOBS in self.paid_features
-        
+
     @classmethod
     def create_key(cls, app_id):
         return ndb.Key(cls, app_id)
@@ -1302,14 +1302,6 @@ class ShopAppGridPoints(NdbModel):
     @classmethod
     def list_by_app(cls, app_id):
         return cls.query().ancestor(ShopApp.create_key(app_id))
-
-
-class AppCss(NdbModel):
-    content = ndb.TextProperty()
-
-    @classmethod
-    def create_key(cls, type, app_id):  # @ReservedAssignment
-        return ndb.Key('App', app_id, cls, type)
 
 
 class Prospect(db.Model):

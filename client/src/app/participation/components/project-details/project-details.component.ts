@@ -13,7 +13,7 @@ import {
 } from '@angular/core';
 import { NgForm } from '@angular/forms';
 import { EASYMDE_OPTIONS } from '../../../../environments/config';
-import { deepCopy } from '../../../shared/util/misc';
+import { deepCopy } from '../../../shared/util';
 import { CreateProject, Project } from '../../projects';
 
 @Component({

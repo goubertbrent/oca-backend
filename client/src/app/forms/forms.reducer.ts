@@ -1,5 +1,5 @@
 import { NonNullLoadable, onLoadableError, onLoadableLoad, onLoadableSuccess } from '../shared/loadable/loadable';
-import { insertItem, removeItem, updateItem } from '../shared/util/redux';
+import { insertItem, removeItem, updateItem } from '../shared/util';
 import { FormsActions, FormsActionTypes } from './forms.actions';
 import { FormResponsesState, FormsState, initialFormsState, responsesAdapter } from './forms.state';
 import { FormSettings } from './interfaces/forms';

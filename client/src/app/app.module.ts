@@ -1,4 +1,4 @@
-import { HTTP_INTERCEPTORS, HttpClient, HttpClientModule } from '@angular/common/http';
+import { HttpClient, HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { Injectable, NgModule } from '@angular/core';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { BrowserModule } from '@angular/platform-browser';
@@ -20,7 +20,7 @@ import { storeRouterConfig } from './shared/util/store-router';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
-  return new TranslateHttpLoader(http, '/common/i18n/', '.json');
+  return new TranslateHttpLoader(http, '/common/i18n/oca/', '.json');
 }
 
 @Injectable()

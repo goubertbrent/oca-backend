@@ -20,7 +20,8 @@ from types import NoneType
 from mcfw.consts import MISSING
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz import news
-from rogerthat.bizz.news import get_news_items_statistics
+from rogerthat.bizz.news import get_news_share_base_url, get_news_share_url
+from rogerthat.bizz.news.influx import get_news_item_time_statistics, get_basic_news_item_statistics
 from rogerthat.bizz.service import get_and_validate_service_identity_user
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_service_identity
@@ -30,7 +31,8 @@ from rogerthat.rpc.service import service_api, service_api_callback
 from rogerthat.settings import get_server_settings
 from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.to.news import NewsActionButtonTO, NewsItemTO, NewsItemListResultTO, \
-    NewsTargetAudienceTO, BaseMediaTO, NewsLocationsTO, ServiceNewsGroupTO, NewsItemStatisticsTO
+    NewsTargetAudienceTO, BaseMediaTO, NewsLocationsTO, ServiceNewsGroupTO, NewsItemBasicStatisticsTO, \
+    NewsItemTimeStatisticsTO
 from rogerthat.utils import bizz_check
 
 
@@ -43,17 +45,30 @@ def get(news_id, service_identity=None):
     news_item = news.get_and_validate_news_item(news_id, service_identity_user)
     service_profile = get_service_profile(service_user)
     si = get_service_identity(service_identity_user)
-    return NewsItemTO.from_model(news_item, get_server_settings().baseUrl, service_profile, si)
+    server_settings = get_server_settings()
+    share_base_url = get_news_share_base_url(server_settings.webClientUrl, si.defaultAppId, news_item.app_ids)
+    share_url = get_news_share_url(share_base_url, news_item.id)
+    return NewsItemTO.from_model(news_item, server_settings.baseUrl, service_profile, si, share_url=share_url)
 
 
-@service_api(function=u'news.get_statistics', silent_result=True)
-@returns([(NewsItemStatisticsTO, NoneType)])
+@service_api(function=u'news.get_basic_statistics', silent_result=True)
+@returns([NewsItemBasicStatisticsTO])
 @arguments(ids=[(int, long)], service_identity=unicode)
-def get_statistics(ids, service_identity=None):
+def get_basic_statistics(ids, service_identity=None):
     service_user = users.get_current_user()
     service_identity_user = get_and_validate_service_identity_user(service_user, service_identity)
     news_items = news.get_and_validate_news_items(ids, service_identity_user)
-    return get_news_items_statistics(news_items, True)
+    return get_basic_news_item_statistics(news_items)
+
+
+@service_api(function=u'news.get_time_statistics', silent_result=True)
+@returns(NewsItemTimeStatisticsTO)
+@arguments(id=(int, long), service_identity=unicode)
+def get_time_statistics(id, service_identity=None):
+    service_user = users.get_current_user()
+    service_identity_user = get_and_validate_service_identity_user(service_user, service_identity)
+    news_item = news.get_and_validate_news_item(id, service_identity_user)
+    return get_news_item_time_statistics(news_item)
 
 
 @service_api(function=u'news.publish')
@@ -86,7 +101,10 @@ def publish(sticky=MISSING, sticky_until=MISSING, title=MISSING, message=MISSING
                     break
     service_profile = get_service_profile(service_user)
     si = get_service_identity(service_identity_user)
-    return NewsItemTO.from_model(news_item, get_server_settings().baseUrl, service_profile, si)
+    server_settings = get_server_settings()
+    share_base_url = get_news_share_base_url(server_settings.webClientUrl, si.defaultAppId, news_item.app_ids)
+    share_url = get_news_share_url(share_base_url, news_item.id)
+    return NewsItemTO.from_model(news_item, server_settings.baseUrl, service_profile, si, share_url)
 
 
 @service_api(function=u'news.disable')

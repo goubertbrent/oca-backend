@@ -1,6 +1,15 @@
 import { Action } from '@ngrx/store';
-import { ApiError, ErrorAction } from '../shared/errors/errors';
-import { CityAppLocations, CreateNews, NewsItem, NewsItemList, NewsOptions, NewsStats } from './interfaces';
+import {
+  CityAppLocations,
+  CreateNews,
+  NewsItem,
+  NewsItemBasicStatistics,
+  NewsItemList,
+  NewsItemTimeStatistics,
+  NewsOptions,
+  NewsStats,
+} from '@oca/web-shared';
+import { ApiError, ErrorAction } from '@oca/web-shared';
 
 export enum NewsActionTypes {
   GET_NEWS_OPTIONS = '[news] Get news options',
@@ -12,6 +21,12 @@ export enum NewsActionTypes {
   GET_NEWS_ITEM = '[news] Get news item',
   GET_NEWS_ITEM_COMPLETE = '[news] Get news item complete',
   GET_NEWS_ITEM_FAILED = '[news] Get news item failed',
+  GET_NEWS_ITEMS_STATS = '[news] Get news items stats',
+  GET_NEWS_ITEMS_STATS_COMPLETE = '[news] Get news items stats complete',
+  GET_NEWS_ITEMS_STATS_FAILED = '[news] Get news items stats failed',
+  GET_NEWS_ITEM_TIME_STATS = '[news] Get news item time stats',
+  GET_NEWS_ITEM_TIME_STATS_COMPLETE = '[news] Get news item time stats complete',
+  GET_NEWS_ITEM_TIME_STATS_FAILED = '[news] Get news item time stats failed',
   SET_NEW_NEWS_ITEM = '[news] Set new news item',
   CREATE_NEWS_ITEM = '[news] Create news item',
   CREATE_NEWS_ITEM_COMPLETE = '[news] Create news item complete',
@@ -69,6 +84,27 @@ export class GetNewsListFailedAction implements Action {
   constructor(public error: ApiError) {
   }
 }
+export class GetNewsItemsStatsAction implements Action {
+  readonly type = NewsActionTypes.GET_NEWS_ITEMS_STATS;
+
+  constructor(public payload: { ids: number[] }) {
+  }
+}
+
+export class GetNewsItemsStatsCompleteAction implements Action {
+  readonly type = NewsActionTypes.GET_NEWS_ITEMS_STATS_COMPLETE;
+
+  constructor(public payload: NewsItemBasicStatistics[]) {
+  }
+
+}
+
+export class GetNewsItemsStatsFailedAction implements ErrorAction {
+  readonly type = NewsActionTypes.GET_NEWS_ITEMS_STATS_FAILED;
+
+  constructor(public error: string) {
+  }
+}
 
 export class GetNewsItemAction implements Action {
   readonly type = NewsActionTypes.GET_NEWS_ITEM;
@@ -89,6 +125,28 @@ export class GetNewsItemFailedAction implements Action {
   readonly type = NewsActionTypes.GET_NEWS_ITEM_FAILED;
 
   constructor(public error: ApiError) {
+  }
+}
+
+export class GetNewsItemTimeStatsAction implements Action {
+  readonly type = NewsActionTypes.GET_NEWS_ITEM_TIME_STATS;
+
+  constructor(public payload: { id: number }) {
+  }
+}
+
+export class GetNewsItemTimeStatsCompleteAction implements Action {
+  readonly type = NewsActionTypes.GET_NEWS_ITEM_TIME_STATS_COMPLETE;
+
+  constructor(public payload: NewsItemTimeStatistics) {
+  }
+
+}
+
+export class GetNewsItemTimeStatsFailedAction implements ErrorAction {
+  readonly type = NewsActionTypes.GET_NEWS_ITEM_TIME_STATS_FAILED;
+
+  constructor(public error: string) {
   }
 }
 
@@ -210,6 +268,12 @@ export type NewsActions = GetNewsOptionsAction
   | GetNewsItemAction
   | GetNewsItemCompleteAction
   | GetNewsItemFailedAction
+  | GetNewsItemsStatsAction
+  | GetNewsItemsStatsCompleteAction
+  | GetNewsItemsStatsFailedAction
+  | GetNewsItemTimeStatsAction
+  | GetNewsItemTimeStatsCompleteAction
+  | GetNewsItemTimeStatsFailedAction
   | SetNewNewsItemAction
   | CreateNewsItemAction
   | CreateNewsItemCompleteAction

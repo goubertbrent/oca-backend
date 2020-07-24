@@ -43,7 +43,7 @@ cron:
 - description: News group visibility reset
   url: /cron/news/group_visibility
   schedule: every 30 minutes
-  
+
 - description: Solution rss scraper
   url: /admin/cron/rpc/solution_rss_scraper
   schedule: every 30 minutes
@@ -71,7 +71,7 @@ cron:
 - description: Cleanup user context models
   url: /cron/user/cleanup/context
   schedule: every day 00:00
-  
+
 - description: Shop recurrent billing
   url: /admin/cron/shop/recurrent_billing
   schedule: every day 00:00
@@ -108,7 +108,7 @@ cron:
 - description: Daily statistics
   url: /cron/daily_statistics
   schedule: every day 04:00
-  
+
 - description: Daily OCA statistics
   url: /admin/cron/daily_statistics
   schedule: every day 04:30
@@ -120,10 +120,14 @@ cron:
 - description: news service setup
   url: /cron/news/service_setup
   schedule: every day 05:30
-  
+
 - description: Solution events cleanup
   url: /admin/cron/rpc/cleanup_solution_events
   schedule: every day 08:00
+  
+- description: Cleanup web sessions
+  url: /cron/web-cleanup-sessions
+  schedule: every day 10:00
 
 - description: APN expiration check
   url: /cron/apn_expiration_check
@@ -136,7 +140,7 @@ cron:
 - description: Birthday messages
   url: /cron/birthday_messages
   schedule: every day 12:00
-  
+
 - description: Solution sync google calendar events
   url: /admin/cron/rpc/solution_sync_google_calendar_events
   schedule: every day 23:30
@@ -144,7 +148,7 @@ cron:
 - description: Service statistics email
   url: /cron/rpc/service_statistics_email
   schedule: every monday 05:00
-  
+
 - description: Shop export reseller invoices
   url: /admin/cron/rpc/shop_export_reseller_invoices
   schedule: every monday 14:00

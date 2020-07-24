@@ -21,6 +21,12 @@
     "lib": [
       "es2018",
       "dom"
-    ]
+    ],
+    "paths": {
+      "@oca/web-shared": [
+        "dist/web-shared/web-shared",
+        "dist/web-shared"
+      ]
+    }
   }
 }

@@ -17,7 +17,7 @@ import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { MatInput } from '@angular/material/input';
 import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { TranslateService } from '@ngx-translate/core';
-import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '../../../shared/dialog/simple-dialog.component';
+import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '@oca/web-shared';
 import { UserDetailsTO } from '../../../shared/users/users';
 import {
   COMPLETED_STEP_MAPPING,
@@ -165,7 +165,6 @@ export class EditFormComponent implements OnChanges {
 
   updateDate($event: Date | null) {
     // Preserve selected time
-    debugger;
     const visibleUntil = $event ? new Date($event.getTime()) : new Date();
     if (this.dateInput) {
       visibleUntil.setHours(this.dateInput.getHours());

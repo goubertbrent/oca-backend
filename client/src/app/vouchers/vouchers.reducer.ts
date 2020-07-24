@@ -1,4 +1,5 @@
-import { initialStateResult, ResultState, stateError, stateLoading, stateSuccess, updateItem } from '../shared/util';
+import { initialStateResult, ResultState, stateError, stateLoading, stateSuccess } from '@oca/web-shared';
+import { updateItem } from '../shared/util';
 import { CirkloSettings, ExportVoucherServices, VouchersServiceList } from './vouchers';
 import { VouchersActions, VouchersActionTypes } from './vouchers.actions';
 

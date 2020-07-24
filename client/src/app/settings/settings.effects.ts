@@ -3,9 +3,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { ErrorService } from '@oca/web-shared';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
-import { ErrorService } from '../shared/errors/error.service';
 import {
   GetAvailablePlaceTypesAction,
   GetAvailablePlaceTypesCompleteAction,

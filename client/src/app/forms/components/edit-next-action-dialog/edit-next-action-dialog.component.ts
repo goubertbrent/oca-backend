@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, Inject } from '@angular/core';
 import { NgForm } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { deepCopy } from '../../../shared/util/misc';
+import { deepCopy } from '../../../shared/util';
 import { NextAction, NextActionType } from '../../interfaces/forms';
 
 @Component({

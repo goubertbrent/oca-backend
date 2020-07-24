@@ -1,8 +1,9 @@
 import { Action } from '@ngrx/store';
+import { App, AppStatistics } from '@oca/web-shared';
 import { Budget } from './billing/billing';
 import { ApiError } from './errors/errors';
 import { BrandingSettings, GlobalConfig, SolutionSettings } from './interfaces/oca';
-import { App, AppStatistics, ServiceIdentityInfo } from './interfaces/rogerthat';
+import { ServiceIdentityInfo } from './interfaces/rogerthat';
 
 export const enum SharedActionTypes {
   GET_INFO = '[shared] Get info',

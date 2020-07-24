@@ -1,0 +1,19 @@
+web-root {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  top: 64px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+web-root > web-news-item-page {
+  overflow-y: auto;
+}
+
+@media (max-width: 720px) {
+  web-root {
+    top: 56px;
+  }
+}

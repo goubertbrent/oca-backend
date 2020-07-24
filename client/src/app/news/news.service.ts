@@ -1,7 +1,17 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { CityAppLocations, CreateNews, NewsItem, NewsItemList, NewsOptions, NewsStats } from './interfaces';
+import {
+  CityAppLocations,
+  CreateNews,
+  NewsItem,
+  NewsItemBasicStatistics,
+  NewsItemList,
+  NewsItemTimeStatistics,
+  NewsOptions,
+  NewsStats,
+} from '@oca/web-shared';
+import { Observable, of } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class NewsService {
@@ -18,6 +28,17 @@ export class NewsService {
     return this._http.get<NewsItemList>('/common/news', { params });
   }
 
+  getNewsItemsStats(ids: number[]): Observable<NewsItemBasicStatistics[]> {
+    let params = new HttpParams();
+    if (ids.length === 0) {
+      return of([]);
+    }
+    for (const id of ids) {
+      params = params.append('id', id.toString());
+    }
+    return this._http.get<NewsItemBasicStatistics[]>('/common/news/statistics', { params });
+  }
+
   createNewsItem(newsItem: CreateNews) {
     // Returns null in case item needs to be reviewed
     return this._http.post<NewsItem | null>(`/common/news`, convertNewsItem(newsItem));
@@ -25,6 +46,10 @@ export class NewsService {
 
   getNewsItem(id: number) {
     return this._http.get<NewsStats>(`/common/news/${id}`);
+  }
+
+  getNewsItemTimeStats(id: number) {
+    return this._http.get<NewsItemTimeStatistics>(`/common/news/${id}/statistics`);
   }
 
   updateNewsItem(id: number, newsItem: CreateNews) {

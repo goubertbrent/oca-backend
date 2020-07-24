@@ -300,8 +300,17 @@ def _read_file(file_name):
         f.close()
 
 
+DEPRECATED_API_CALLS = [
+    'com.mobicage.api.news.getNews',
+    'com.mobicage.api.news.getNewsItems',
+    'com.mobicage.api.news.saveNewsGroupFilters',
+]
+
+
 def generate(target, mapping, client_mapping, max_argument_count=1):
     print 'Generating %s' % target
+    for method in DEPRECATED_API_CALLS:
+        del mapping[method]
     render(generate_TOs(mapping, client_mapping, max_argument_count),
            generate_API_packages(mapping, max_argument_count),
            generate_CAPI_packages(client_mapping, max_argument_count),

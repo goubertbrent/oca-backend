@@ -75,32 +75,33 @@ class CreateAppQRTemplateTO(AppQRTemplateTO):
 
 
 class AppTO(TO):
-    id = unicode_property('0')
-    name = unicode_property('1')
-    type = long_property('2')
-    core_branding_hash = unicode_property('3')
-    facebook_app_id = long_property('4')
-    facebook_app_secret = unicode_property('5')
-    ios_app_id = unicode_property('6')
-    android_app_id = unicode_property('7')
-    creation_time = long_property('8')
-    auto_connected_services = typed_property('9', AutoConnectedService, True)
-    is_default = bool_property('10')
-    user_regex = unicode_property('11')
-    dashboard_email_address = unicode_property('12')
-    admin_services = unicode_list_property('13')
-    demo = bool_property('17')
-    beta = bool_property('18')
-    chat_enabled = bool_property('19')
-    mdp_client_id = unicode_property('20')
-    mdp_client_secret = unicode_property('21')
-    contact_email_address = unicode_property('22')
-    secure = bool_property('23')
-    owncloud_base_uri = unicode_property('24')
-    owncloud_admin_username = unicode_property('25')
-    owncloud_admin_password = unicode_property('26')
-    main_service = unicode_property('27')
-    embedded_apps = unicode_list_property('28')
+    id = unicode_property('id')
+    name = unicode_property('name')
+    type = long_property('type')
+    core_branding_hash = unicode_property('core_branding_hash')
+    facebook_app_id = long_property('facebook_app_id')
+    facebook_app_secret = unicode_property('facebook_app_secret')
+    ios_app_id = unicode_property('ios_app_id')
+    android_app_id = unicode_property('android_app_id')
+    creation_time = long_property('creation_time')
+    auto_connected_services = typed_property('auto_connected_services', AutoConnectedService, True)
+    is_default = bool_property('is_default')
+    user_regex = unicode_property('user_regex')
+    dashboard_email_address = unicode_property('dashboard_email_address')
+    admin_services = unicode_list_property('admin_services')
+    demo = bool_property('demo')
+    beta = bool_property('beta')
+    chat_enabled = bool_property('chat_enabled')
+    mdp_client_id = unicode_property('mdp_client_id')
+    mdp_client_secret = unicode_property('mdp_client_secret')
+    contact_email_address = unicode_property('contact_email_address')
+    secure = bool_property('secure')
+    owncloud_base_uri = unicode_property('owncloud_base_uri')
+    owncloud_admin_username = unicode_property('owncloud_admin_username')
+    owncloud_admin_password = unicode_property('owncloud_admin_password')
+    main_service = unicode_property('main_service')
+    embedded_apps = unicode_list_property('embedded_apps')
+    default_app_name_mapping = unicode_property('default_app_name_mapping')
 
     @classmethod
     def from_model(cls, model):
@@ -138,6 +139,7 @@ class AppTO(TO):
         app.owncloud_admin_username = model.owncloud_admin_username
         app.owncloud_admin_password = model.owncloud_admin_password
         app.embedded_apps = model.embedded_apps if model.embedded_apps else []
+        app.default_app_name_mapping = model.default_app_name_mapping
         return app
 
 

@@ -14,10 +14,10 @@ import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { MatInput } from '@angular/material/input';
 import { MatSelect } from '@angular/material/select';
 import { TranslateService } from '@ngx-translate/core';
+import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '@oca/web-shared';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { EASYMDE_OPTIONS } from '../../../../environments/config';
-import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '../../../shared/dialog/simple-dialog.component';
 import { Controls, FormGroupTyped } from '../../../shared/util/forms';
 import {
   CONTRACT_TYPES,

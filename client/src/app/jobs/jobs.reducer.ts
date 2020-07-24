@@ -1,4 +1,5 @@
-import { CallStateType, ResultState, stateError, stateLoading, stateSuccess, updateItem } from '../shared/util';
+import { CallStateType, ResultState, stateError, stateLoading, stateSuccess } from '@oca/web-shared';
+import { updateItem } from '../shared/util';
 import {
   JobOfferList,
   JobOfferStatistics,

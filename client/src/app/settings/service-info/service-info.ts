@@ -1,4 +1,4 @@
-import { BaseMedia } from '../../news/interfaces';
+import { BaseMedia } from '@oca/web-shared';
 
 export interface MapServiceMediaItem {
   role_ids: string[];

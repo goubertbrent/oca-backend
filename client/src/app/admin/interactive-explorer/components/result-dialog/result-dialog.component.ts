@@ -3,7 +3,7 @@ import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { RunResult } from '../../scripts';
 
 @Component({
-  selector: 'ie-run-result',
+  selector: 'oca-run-result',
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: 'result-dialog.component.html',
 })
