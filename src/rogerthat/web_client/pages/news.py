@@ -71,8 +71,8 @@ def get_meta_tags_for_news(news_item, url, locale, title, site_name):
             ])
         elif news_item.media.type == MediaType.VIDEO_YOUTUBE:
             tags.extend([
-                ('og:video', news_item.media.url),
-                ('og:video:secure_url', news_item.media.url),
+                ('og:video', 'https://youtu.be/%s' % news_item.media.url),
+                ('og:video:secure_url', 'https://youtu.be/%s' % news_item.media.url),
                 ('og:video:width', news_item.media.width),
                 ('og:video:height', news_item.media.height),
             ])

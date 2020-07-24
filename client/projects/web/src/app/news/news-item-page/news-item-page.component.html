@@ -10,7 +10,7 @@
          class="news-item-avatar"
          mat-card-avatar></div>
     <mat-card-title>{{ newsItem.title }}</mat-card-title>
-    <mat-card-subtitle>{{ newsItem.sender.name }}</mat-card-subtitle>
+    <mat-card-subtitle><span>{{ (newsItem.timestamp * 1000) | date: 'mediumDate' }}</span> - {{ newsItem.sender.name }}</mat-card-subtitle>
   </mat-card-header>
   <mat-card-content>
     <div [innerHTML]="newsItem.message | markdown"></div>
