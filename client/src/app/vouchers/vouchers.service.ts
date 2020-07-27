@@ -18,8 +18,8 @@ export class VouchersService {
     return this.http.get<VouchersServiceList>(`/common/vouchers/services/${organizationType}`, { params });
   }
 
-  saveProvider(serviceEmail: string, providers: VoucherProviderId[]) {
-    return this.http.put<VoucherService>(`/common/vouchers/services/${serviceEmail}`, { providers });
+  saveProvider(serviceEmail: string, provider: VoucherProviderId, enabled: boolean) {
+    return this.http.put<VoucherService>(`/common/vouchers/services/${serviceEmail}`, { provider, enabled });
   }
 
   exportServices() {

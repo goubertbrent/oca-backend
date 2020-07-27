@@ -28,15 +28,21 @@
     <th *matHeaderCellDef mat-header-cell mat-sort-header>{{ 'oca.created' | translate }}</th>
     <td *matCellDef="let row" mat-cell>{{ row.creation_time | date }}</td>
   </ng-container>
-  <ng-container matColumnDef="enabled">
+  <ng-container matColumnDef="cirklo_enabled">
     <th *matHeaderCellDef mat-header-cell>{{ 'oca.cirklo_light_enabled' | translate }}</th>
     <td *matCellDef="let row" mat-cell>
-      <mat-slide-toggle (change)="toggleProvider($event, row, cirklo)"
+      <mat-slide-toggle (change)="toggleProvider($event, row)"
                         #toggle
-                        [disabled]="!toggle.checked && row.disabled_providers.includes(cirklo)"
+                        [disabled]="!row.cirkloProvider.can_enable && !row.cirkloProvider.enabled"
                         [matTooltipDisabled]="!toggle.disabled"
                         [matTooltip]="'oca.cirklo_disabled_reason_privacy' | translate"
-                        [checked]="row.providers.includes(cirklo)"></mat-slide-toggle>
+                        [checked]="row.cirkloProvider.enabled"></mat-slide-toggle>
+    </td>
+  </ng-container>
+  <ng-container matColumnDef="cirklo_enable_date">
+    <th *matHeaderCellDef mat-header-cell>{{ 'oca.cirklo_light_enable_date' | translate }}</th>
+    <td *matCellDef="let row" mat-cell>
+      <ng-container *ngIf="row.cirkloProvider.enable_date as date">{{ date | date }}</ng-container>
     </td>
   </ng-container>
   <tr *matHeaderRowDef="displayedColumns" mat-header-row></tr>

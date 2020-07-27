@@ -37,7 +37,7 @@ export class VouchersEffects {
 
   saveVoucherProvider$ = createEffect(() => this.actions$.pipe(
     ofType<SaveVoucherSettingsAction>(VouchersActionTypes.SAVE_VOUCHER_PROVIDER),
-    switchMap(action => this.service.saveProvider(action.payload.serviceEmail, action.payload.providers).pipe(
+    switchMap(action => this.service.saveProvider(action.payload.serviceEmail, action.payload.provider, action.payload.enabled).pipe(
       map(result => new SaveVoucherSettingsSuccessAction({
         serviceEmail: action.payload.serviceEmail,
         service: result,

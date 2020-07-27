@@ -5,9 +5,15 @@ export const enum VoucherProviderId {
 export interface VoucherService {
   name: string;
   service_email: string;
-  providers: VoucherProviderId[];
-  disabled_providers: VoucherProviderId[];
+  providers: VoucherProvider[];
   creation_time: string;
+}
+
+export interface VoucherProvider {
+  provider: VoucherProviderId;
+  enabled: boolean;
+  can_enable: boolean;
+  enable_date: string | null;
 }
 
 export interface VouchersServiceList {

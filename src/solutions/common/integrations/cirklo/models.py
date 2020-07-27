@@ -29,9 +29,16 @@ class VoucherProviderId(Enum):
     CIRKLO = 'cirklo'
 
 
+class VoucherProvider(NdbModel):
+    provider = ndb.StringProperty(choices=VoucherProviderId.all())
+    enable_date = ndb.DateTimeProperty(auto_now_add=True)
+
+
 class VoucherSettings(NdbModel):
     app_id = ndb.StringProperty()
+    # TODO: remove 'providers' property
     providers = ndb.StringProperty(choices=VoucherProviderId.all(), repeated=True)  # type: List[str]
+    provider_mapping = ndb.StructuredProperty(VoucherProvider, repeated=True)  # type: List[VoucherProvider]
     customer_id = ndb.IntegerProperty()
 
     @property
@@ -47,7 +54,20 @@ class VoucherSettings(NdbModel):
     def list_by_provider_and_app(cls, provider, app_id):
         return cls.query() \
             .filter(cls.app_id == app_id) \
-            .filter(cls.providers == provider)
+            .filter(cls.provider_mapping.provider == provider)
+
+    def get_provider(self, provider_id):
+        for p in self.provider_mapping:
+            if p.provider == provider_id:
+                return p
+
+    def set_provider(self, provider_id, enabled):
+        provider = self.get_provider(provider_id)
+        if enabled:
+            if not provider:
+                self.provider_mapping.append(VoucherProvider(provider=provider_id))
+        elif provider:
+            self.provider_mapping.remove(provider)
 
 
 class CirkloUserVouchers(NdbModel):

@@ -44,7 +44,7 @@ export class GetServicesFailedAction implements ErrorAction {
 export class SaveVoucherSettingsAction implements Action {
   readonly type = VouchersActionTypes.SAVE_VOUCHER_PROVIDER;
 
-  constructor(public payload: { serviceEmail: string, providers: VoucherProviderId[] }) {
+  constructor(public payload: { serviceEmail: string, provider: VoucherProviderId, enabled: boolean }) {
   }
 }
 

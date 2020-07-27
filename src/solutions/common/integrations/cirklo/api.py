@@ -16,12 +16,12 @@
 # @@license_version:1.7@@
 
 import csv
-from datetime import datetime
 import logging
 import urllib
+from datetime import datetime
 
-from babel.dates import format_datetime
 import cloudstorage
+from babel.dates import format_datetime
 from google.appengine.ext import ndb, db
 from google.appengine.ext.deferred import deferred
 from typing import List
@@ -48,7 +48,7 @@ from solutions.common.bizz import OrganizationType
 from solutions.common.dal import get_solution_settings
 from solutions.common.integrations.cirklo.cirklo import get_city_id_by_service_email
 from solutions.common.integrations.cirklo.models import VoucherSettings, VoucherProviderId, CirkloCity
-from solutions.common.integrations.cirklo.to import VoucherListTO, VoucherServiceTO, UpdateVoucherServiceTO,\
+from solutions.common.integrations.cirklo.to import VoucherListTO, VoucherServiceTO, UpdateVoucherServiceTO, \
     CirkloCityTO
 from solutions.common.models import SolutionServiceConsent
 from solutions.common.restapi.services import _check_is_city
@@ -98,7 +98,7 @@ def save_voucher_settings(service_email, data):
     settings_key = VoucherSettings.create_key(users.User(service_email))
     settings, service_consent = ndb.get_multi([settings_key, SolutionServiceConsent.create_key(
         customer.user_email)])  # type: VoucherSettings, SolutionServiceConsent
-    if service_consent and VoucherProviderId.CIRKLO in data.providers \
+    if data.enabled and service_consent and VoucherProviderId.CIRKLO == data.provider \
         and SolutionServiceConsent.TYPE_CIRKLO_SHARE not in service_consent.types:
         err = translate(customer.language, 'oca.cirklo_disabled_reason_privacy')
         raise HttpBadRequestException(err)
@@ -106,7 +106,7 @@ def save_voucher_settings(service_email, data):
         settings = VoucherSettings(key=settings_key)  # type: VoucherSettings
     settings.customer_id = customer.id
     settings.app_id = city_customer.app_id
-    settings.providers = data.providers
+    settings.set_provider(data.provider, data.enabled)
     settings.put()
     service_identity_user = create_service_identity_user(customer.service_user)
     try_or_defer(re_index_map_only, service_identity_user)
@@ -134,8 +134,8 @@ def export_voucher_services():
     gcs_path = '/%s/services/%s/export/%s' % (FILES_BUCKET, city_service_user.email(), filename)
     org_types = {org_type: localize('en', key) for org_type, key in OrganizationType.get_translation_keys().iteritems()}
     with cloudstorage.open(gcs_path, 'w', content_type='text/csv') as gcs_file:
-        field_names = ['Name', 'Login email', 'Phone number', 'Date created', 'Organization type', 'Street',
-                       'Street number', 'Postal code', 'Place', 'Location url']
+        field_names = ['Name', 'Login email', 'Phone number', 'Date created', 'Date enabled', 'Organization type',
+                       'Street', 'Street number', 'Postal code', 'Place', 'Location url']
         writer = csv.DictWriter(gcs_file, dialect='excel', fieldnames=field_names)
         writer.writeheader()
         rows = []
@@ -151,7 +151,8 @@ def export_voucher_services():
                 'Name': service_info.name.encode('utf8') if service_info.name else '',
                 'Phone number': service_info.main_phone_number,
                 'Date created': datetime.utcfromtimestamp(customer.creation_time),
-                'Organization type': org_types[customer.organization_type]
+                'Organization type': org_types[customer.organization_type],
+                'Date enabled': voucher_setting.get_provider(VoucherProviderId.CIRKLO).enable_date
             }
             address = service_info.addresses[0] if service_info.addresses else None
             if address:
@@ -167,7 +168,7 @@ def export_voucher_services():
             rows.append(row)
         if missing:
             logging.error('Some data was missing when exporting services: %s', missing)
-        sorted_rows = sorted(rows, key=lambda row: row['Name'])
+        sorted_rows = sorted(rows, key=lambda row: row['Date enabled'], reverse=True)
         writer.writerows(sorted_rows)
 
     deferred.defer(cloudstorage.delete, gcs_path, _countdown=DAY, _queue=SCHEDULED_QUEUE)

@@ -6,9 +6,15 @@ import { MatTableDataSource } from '@angular/material/table';
 import { select, Store } from '@ngrx/store';
 import { Observable, Subject } from 'rxjs';
 import { take, takeUntil } from 'rxjs/operators';
-import { VoucherProviderId, VoucherService, VouchersServiceList } from '../vouchers';
+import { VoucherProvider, VoucherProviderId, VoucherService, VouchersServiceList } from '../vouchers';
 import { ExportVoucherServicesAction, GetServicesAction, SaveVoucherSettingsAction } from '../vouchers.actions';
 import { getVoucherList, getVoucherServices, voucherServicesLoading } from '../vouchers.selectors';
+
+export interface VoucherServiceDataRow extends VoucherService{
+  cirkloProvider: VoucherProvider;
+  cirklo_enabled: boolean;
+  cirklo_enable_date: string | null;
+}
 
 @Component({
   selector: 'oca-vouchers-page',
@@ -20,7 +26,6 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator, { static: true }) paginator: MatPaginator;
   @ViewChild(MatSort, { static: true }) sort: MatSort;
 
-  cirklo = VoucherProviderId.CIRKLO;
   selectedOrganizationType = 1;
   organizationTypes = [
     { type: 1, label: 'oca.associations' },
@@ -28,12 +33,12 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
     { type: 3, label: 'oca.community_services' },
     { type: 4, label: 'oca.care' },
   ];
-  displayedColumns = ['name', 'creation_time', 'enabled'];
+  displayedColumns: (keyof VoucherServiceDataRow)[] = ['name', 'creation_time', 'cirklo_enabled', 'cirklo_enable_date'];
   pageIndex = 0;
   pageSize = 50;
   loading$: Observable<boolean>;
   voucherList$: Observable<VouchersServiceList>;
-  dataSource = new MatTableDataSource<VoucherService>();
+  dataSource = new MatTableDataSource<VoucherServiceDataRow>();
 
   private destroyed$ = new Subject();
 
@@ -45,7 +50,11 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
     this.dataSource.sort = this.sort;
     this.getServices();
     this.store.pipe(select(getVoucherServices), takeUntil(this.destroyed$)).subscribe(services => {
-      this.dataSource.data = services;
+      this.dataSource.data = services.map(s => {
+        const cirkloProvider = s.providers.find(p => p.provider === VoucherProviderId.CIRKLO) ?? {
+          enable_date: null, provider: VoucherProviderId.CIRKLO, can_enable: false, enabled: false};
+        return ({ ...s, cirkloProvider, cirklo_enabled: cirkloProvider.enabled, cirklo_enable_date: cirkloProvider.enable_date});
+      });
     });
     this.voucherList$ = this.store.pipe(select(getVoucherList));
     this.loading$ = this.store.pipe(select(voucherServicesLoading));
@@ -62,16 +71,11 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
     this.getServices();
   }
 
-  toggleProvider($event: MatSlideToggleChange, service: VoucherService, provider: VoucherProviderId) {
-    let providers: VoucherProviderId[];
-    if ($event.checked) {
-      providers = [...service.providers, provider];
-    } else {
-      providers = service.providers.filter(p => p !== provider);
-    }
+  toggleProvider($event: MatSlideToggleChange, service: VoucherServiceDataRow) {
     this.store.dispatch(new SaveVoucherSettingsAction({
       serviceEmail: service.service_email,
-      providers,
+      provider: service.cirkloProvider.provider,
+      enabled: $event.checked,
     }));
   }
 

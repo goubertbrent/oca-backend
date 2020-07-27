@@ -594,7 +594,7 @@ def _execute_consent_actions(service_user):
         settings = VoucherSettings(key=VoucherSettings.create_key(service_user))
         settings.customer_id = customer.id
         settings.app_id = customer.default_app_id
-        settings.providers = [VoucherProviderId.CIRKLO]
+        settings.set_provider(VoucherProviderId.CIRKLO, True)
         settings.put()
 
 

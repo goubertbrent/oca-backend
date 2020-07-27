@@ -2239,8 +2239,8 @@ def get_search_fields(service_user, service_identity_user, sc):
             continue
         tags.add(SearchTag.place_type(place_type))
     if voucher_settings:
-        for provider in voucher_settings.providers:
-            tags.add(SearchTag.vouchers(provider))
+        for mapping in voucher_settings.provider_mapping:
+            tags.add(SearchTag.vouchers(mapping.provider))
 
     return service_identity.name.lower(), list(tags), fields
 

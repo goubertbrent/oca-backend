@@ -20,6 +20,7 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'oca.cirklo_light_enable_date': u'Cirklo enabled date',
          u'web.our_city_app': u'Our City App',
          u'web.share': u'Share',
          u'web.news': u'News',
@@ -4002,6 +4003,7 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'%(app_name)s has 1 new message for you': u'%(app_name)s heeft 1 nieuw bericht voor u',
+         u'oca.cirklo_light_enable_date': u'Cadeaubonnen ingeschakeld datum',
          u'web.our_city_app': u'Onze Stad App',
          u'web.share': u'Delen',
          u'web.news': u'Nieuws',

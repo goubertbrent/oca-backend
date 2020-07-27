@@ -18,8 +18,9 @@ from __future__ import unicode_literals
 
 from datetime import datetime
 
-from mcfw.properties import typed_property, unicode_property, bool_property, long_property, unicode_list_property, \
-    float_property
+from typing import List
+
+from mcfw.properties import typed_property, unicode_property, bool_property, long_property, float_property
 from rogerthat.to import TO
 from rogerthat.utils import parse_date
 from shop.models import Customer
@@ -28,14 +29,29 @@ from solutions.common.models import SolutionServiceConsent
 
 
 class UpdateVoucherServiceTO(TO):
-    providers = unicode_list_property('providers')
+    provider = unicode_property('provider')
+    enabled = bool_property('enabled')
 
 
-class VoucherServiceTO(UpdateVoucherServiceTO):
+class VoucherProviderTO(TO):
+    provider = unicode_property('provider')
+    enabled = bool_property('enabled')
+    can_enable = bool_property('can_enable')
+    enable_date = unicode_property('enable_date')
+
+    @classmethod
+    def from_model(cls, provider, can_enable, model):
+        return cls(provider=provider,
+                   enabled=model is not None,
+                   can_enable=can_enable,
+                   enable_date=model and (model.enable_date.isoformat() + 'Z'))
+
+
+class VoucherServiceTO(TO):
     name = unicode_property('name')
     service_email = unicode_property('service_email')
     creation_time = unicode_property('creation_time')
-    disabled_providers = unicode_property('disabled_providers')
+    providers = typed_property('providers', VoucherProviderTO, True)  # type: List[VoucherProviderTO]
 
     @classmethod
     def from_models(cls, customer, voucher_settings, service_consent):
@@ -44,10 +60,14 @@ class VoucherServiceTO(UpdateVoucherServiceTO):
         to.name = customer.name
         to.service_email = customer.service_email
         to.creation_time = datetime.utcfromtimestamp(customer.creation_time).isoformat() + 'Z'
-        to.providers = [] if not voucher_settings else voucher_settings.providers
-        to.disabled_providers = []
-        if not service_consent or SolutionServiceConsent.TYPE_CIRKLO_SHARE not in service_consent.types:
-            to.disabled_providers.append(VoucherProviderId.CIRKLO)
+        to.providers = []
+        for provider in VoucherProviderId.all():
+            if provider == VoucherProviderId.CIRKLO:
+                can_enable = service_consent and SolutionServiceConsent.TYPE_CIRKLO_SHARE in service_consent.types
+            else:
+                can_enable = False # should never happen
+            settings = voucher_settings and voucher_settings.get_provider(provider)
+            to.providers.append(VoucherProviderTO.from_model(provider, can_enable, settings))
         return to
 
 

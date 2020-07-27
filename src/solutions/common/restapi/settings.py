@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
-import logging
 
 from mcfw.consts import REST_TYPE_TO
 from mcfw.restapi import rest, GenericRESTRequestHandler
@@ -67,11 +66,13 @@ def save_consent(data):
     customer = get_customer(users.get_current_user())
     context = u'User dashboard'
     headers = get_headers_for_consent(GenericRESTRequestHandler.getCurrentRequest())
+    # User can enable the consent, but can only disable the actual voucher settings.
+    # This way they can't enable themselves again when the city has disabled them
     update_customer_consents(customer.user_email, {data.type: data.enabled}, headers, context)
     if data.type == SolutionServiceConsent.TYPE_CIRKLO_SHARE and not data.enabled:
         voucher_settings = VoucherSettings.create_key(users.get_current_user()).get()  # type: VoucherSettings
-        if voucher_settings and VoucherProviderId.CIRKLO in voucher_settings.providers:
-            voucher_settings.providers.remove(VoucherProviderId.CIRKLO)
+        if voucher_settings:
+            voucher_settings.set_provider(VoucherProviderId.CIRKLO, False)
             voucher_settings.put()
 
         service_identity_user = create_service_identity_user(customer.service_user)

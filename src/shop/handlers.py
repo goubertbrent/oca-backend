@@ -719,12 +719,12 @@ class CustomerCirkloAcceptHandler(PublicPageHandler):
             consents.put()
 
             settings_key = VoucherSettings.create_key(customer.service_user)
-            settings = settings_key.get()
+            settings = settings_key.get()  # type: VoucherSettings
             if not settings:
                 settings = VoucherSettings(key=settings_key)  # type: VoucherSettings
             settings.customer_id = customer.id
             settings.app_id = customer.default_app_id
-            settings.providers = [VoucherProviderId.CIRKLO]
+            settings.set_provider(VoucherProviderId.CIRKLO, True)
             settings.put()
 
             service_identity_user = create_service_identity_user(customer.service_user)
