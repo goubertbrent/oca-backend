@@ -336,6 +336,10 @@ def handle_method(service_user, email, method, params, tag, service_identity, us
         elif method == JccApiMethod.ADD_TO_CALENDAR:
             result = add_appointment_to_calendar(settings, app_user, json_data['appointmentID'])
         else:
+            if method == JccApiMethod.bookGovAppointmentExtendedDetails:
+                if 'isRecurring' not in json_data['appDetail']:
+                    json_data['appDetail']['isRecurring'] = False
+
             result = _do_call(client, method, json_data)
         if method in _post_call_handlers:
             result = _post_call_handlers[method](settings, app_user, json_data, result)
