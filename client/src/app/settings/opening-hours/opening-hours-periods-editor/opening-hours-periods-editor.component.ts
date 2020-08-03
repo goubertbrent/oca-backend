@@ -23,9 +23,10 @@ function hourToStr(hour: OpeningHour | null) {
 }
 
 function parseHours(value: string): Date {
-  const hours = new Date();
-  const [hour, minutes] = value.split(':').map(part => parseInt(part, 10));
-  hours.setUTCHours(hour, minutes, 0, 0);
+  const hours = new Date(0);
+  const hour = parseInt(value.substr(0, 2), 10);
+  const minutes = parseInt(value.substr(2, 4), 10);
+  hours.setHours(hour, minutes, 0, 0);
   return hours;
 }
 
@@ -80,9 +81,16 @@ export class OpeningHoursPeriodsEditorComponent implements ControlValueAccessor 
     return index;
   }
 
-  setOpenTime(hours: OpeningPeriod, newValue: Date | null) {
-    if (newValue) {
-      hours.open.time = formatDateToHours(newValue, '');
+  setOpenTime(hours: OpeningPeriod, openTime: Date | null) {
+    if (openTime) {
+      hours.open.time = formatDateToHours(openTime, '');
+      if (hours.close) {
+	    const closeTime = parseHours(hours.close.time);
+	    hours.close = {
+	      day: openTime < closeTime ? hours.open.day : getNextDay(hours.open.day),
+	      time: hours.close.time,
+	    };
+      }
       this.setChanged();
     }
   }
