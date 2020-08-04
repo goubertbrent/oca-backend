@@ -832,7 +832,11 @@ def update_avatar_profile(profile, avatar, image):
 @arguments(user=users.User, app_id=unicode)
 def get_profile_info_name(user, app_id):
     if user == MC_DASHBOARD:
-        app_name = get_app_name_by_id(app_id)
+        try:
+            app_name = get_app_name_by_id(app_id)
+        except:
+            logging.debug('app_id:%s', app_id)
+            raise
         if app_id == App.APP_ID_ROGERTHAT:
             return u"%s Dashboard" % app_name
         else:

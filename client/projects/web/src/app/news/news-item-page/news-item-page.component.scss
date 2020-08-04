@@ -9,6 +9,8 @@
   width: auto;
   max-width: 640px;
   margin: 16px;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .news-item-avatar {
@@ -28,4 +30,16 @@
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+}
+
+@media screen and (max-width:450px) {
+  .news-item-actions { flex-wrap: wrap;  }
+  .news-item-actions button { flex-basis: 100%; }
+  .news-item-actions .action-buttons {
+    flex-basis: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  .news-item-actions .action-buttons a { flex-basis: 100%; }
 }
