@@ -261,13 +261,13 @@ MAX_ACTION_COUNT_MAP = {
 }
 
 
-class NewsItemActionHistory(NdbModel):
+class NewsItemWebActionHistory(NdbModel):
     action = ndb.StringProperty(indexed=False, choices=NewsItemAction.all())
     date = ndb.DateTimeProperty(auto_now_add=True, indexed=False)
 
 
-class NewsItemActions(NdbModel):
-    actions = ndb.StructuredProperty(NewsItemActionHistory, indexed=False, repeated=True)  # type: List[NewsItemActionHistory]
+class NewsItemWebActions(NdbModel):
+    actions = ndb.StructuredProperty(NewsItemWebActionHistory, indexed=False, repeated=True)  # type: List[NewsItemWebActionHistory]
 
     @classmethod
     def create_key(cls, session_key, news_id):
@@ -290,7 +290,7 @@ class NewsItemActions(NdbModel):
     def add_action(self, action, date):
         can_save = self.can_save_action(action, date)
         if can_save:
-            self.actions.append(NewsItemActionHistory(action=action, date=date))
+            self.actions.append(NewsItemWebActionHistory(action=action, date=date))
         return can_save
 
 

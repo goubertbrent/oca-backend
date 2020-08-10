@@ -68,7 +68,7 @@ from rogerthat.models.news import NewsItem, NewsItemImage, NewsItemActionStatist
     NewsItemMatch, NewsSettingsService, NewsSettingsUserService, \
     NewsMedia, NewsStream, NewsItemLocation, NewsItemGeoAddress, NewsItemAddress, \
     NewsNotificationStatus, NewsNotificationFilter, NewsStreamCustomLayout, NewsItemAction, MediaType, \
-    NewsSettingsUserGroup, NewsSettingsServiceGroup, NewsItemActions
+    NewsSettingsUserGroup, NewsSettingsServiceGroup, NewsItemWebActions
 from rogerthat.models.properties.news import NewsItemStatistics, NewsButtons, NewsButton
 from rogerthat.models.utils import ndb_allocate_id
 from rogerthat.rpc import users
@@ -1283,8 +1283,8 @@ def save_statistics_to_model(app_user, stats, action_date):
 
 def save_web_news_item_action_statistic(session, app_id, news_id, action, date):
     # type: (WebClientSession, str, int, str, datetime) -> None
-    stats_key = NewsItemActions.create_key(session.key, news_id)
-    stats = stats_key.get() or NewsItemActions(key=stats_key)
+    stats_key = NewsItemWebActions.create_key(session.key, news_id)
+    stats = stats_key.get() or NewsItemWebActions(key=stats_key)
     should_save = stats.add_action(action, date)
     if should_save:
         item_stats = NewsItemActionStatistics(
