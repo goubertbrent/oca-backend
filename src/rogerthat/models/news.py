@@ -70,6 +70,11 @@ class NewsItemLocation(NdbModel):
 
 
 class NewsItem(NdbModel):
+    STATUS_SCHEDULED = u'scheduled'
+    STATUS_PUBLISHED = u'published'
+    STATUS_INVISIBLE = u'invisible'
+    STATUS_DELETED = u'deleted'
+
     MAX_TITLE_LENGTH = 80
     MAX_BUTTON_CAPTION_LENGTH = 15
 
@@ -85,6 +90,9 @@ class NewsItem(NdbModel):
     published_timestamp = ndb.IntegerProperty(indexed=True, default=0)
     published = ndb.BooleanProperty(default=False)
     deleted = ndb.BooleanProperty(default=False)
+
+    status = ndb.StringProperty(indexed=True)
+
     title = ndb.StringProperty(indexed=False)
     message = ndb.TextProperty()
     type = ndb.IntegerProperty(indexed=False)
@@ -482,6 +490,7 @@ class NewsNotificationFilter(Enum):
 
 
 class NewsMatchType(Enum):
+    NO_MATCH = -1
     NORMAL = 0
     LOCATION = 1
 
@@ -582,19 +591,77 @@ class NewsSettingsUserService(NdbModel):
         return qry
 
 
-class NewsItemMatch(NdbModel):
-    REASON_BLOCKED = u'blocked'
-    REASON_FILTERED = u'filtered'
-    REASON_DELETED = u'deleted'
-    REASON_SERVICE_INVISIBLE = u'service_invisible'
-
-    ACTION_FLAG_MAPPING = {
+ACTION_FLAG_MAPPING = {
         NewsItemAction.REACHED: NewsActionFlag.REACHED,
         NewsItemAction.ROGERED: NewsActionFlag.ROGERED,
         NewsItemAction.FOLLOWED: NewsActionFlag.FOLLOWED,
         NewsItemAction.ACTION: NewsActionFlag.ACTION,
         NewsItemAction.PINNED: NewsActionFlag.PINNED,
     }
+
+
+class NewsItemActions(NdbModel):
+    sort_time = ndb.DateTimeProperty()
+    sort_time_unindexed = ndb.DateTimeProperty(indexed=False)
+    actions = ndb.StringProperty(repeated=True)
+    disabled = ndb.BooleanProperty(indexed=False)
+
+    @property
+    def news_id(self):
+        return self.key.integer_id()
+
+    @property
+    def app_user(self):
+        return users.User(self.key.parent().id().decode('utf8'))
+
+    @property
+    def action_flags(self):
+        flags = 0
+        for k, v in ACTION_FLAG_MAPPING.iteritems():
+            if k in self.actions:
+                flags |= v
+        return flags
+
+    @classmethod
+    def create_key(cls, app_user, news_id):
+        return ndb.Key(cls, news_id, parent=parent_ndb_key(app_user, namespace=cls.NAMESPACE))
+
+    @classmethod
+    def create(cls, app_user, news_id, sort_time):
+        return cls(key=cls.create_key(app_user, news_id),
+                   sort_time=None,
+                   sort_time_unindexed=sort_time,
+                   actions=[],
+                   disabled=False)
+
+    @classmethod
+    def list_by_app_user(cls, app_user):
+        return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE))
+
+    @classmethod
+    def list_by_action(cls, app_user, action):
+        return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE))\
+            .filter(cls.actions == action)\
+            .order(-NewsItemActions.sort_time)
+
+    def add_action(self, action):
+        if action not in self.actions:
+            self.actions.append(action)
+        if action == NewsItemAction.PINNED:
+            self.sort_time = self.sort_time_unindexed
+
+    def remove_action(self, action):
+        if action in self.actions:
+            self.actions.remove(action)
+        if action == NewsItemAction.PINNED:
+            self.sort_time = None
+
+
+class NewsItemMatch(NdbModel):
+    REASON_BLOCKED = u'blocked'
+    REASON_FILTERED = u'filtered'
+    REASON_DELETED = u'deleted'
+    REASON_SERVICE_INVISIBLE = u'service_invisible'
 
     update_time = ndb.DateTimeProperty(auto_now=True)
     publish_time = ndb.DateTimeProperty(default=None)
@@ -618,7 +685,7 @@ class NewsItemMatch(NdbModel):
     @property
     def action_flags(self):
         flags = 0
-        for k, v in self.ACTION_FLAG_MAPPING.iteritems():
+        for k, v in ACTION_FLAG_MAPPING.iteritems():
             if k in self.actions:
                 flags |= v
         return flags

@@ -327,6 +327,19 @@ def get_avatar_by_id(id_):
     return Avatar.get_by_id(id_)
 
 
+@returns(bool)
+@arguments(service_identity_user=users.User)
+def get_service_visible(service_identity_user):
+    sc = SearchConfig.get(SearchConfig.create_key(service_identity_user))
+    return bool(sc and sc.enabled)
+
+@ndb.non_transactional
+@returns(bool)
+@arguments(service_identity_user=users.User)
+def get_service_visible_non_transactional(service_identity_user):
+    return get_service_visible(service_identity_user)
+
+
 @returns(tuple)  # return config & locations
 @arguments(service_identity_user=users.User)
 def get_search_config(service_identity_user):

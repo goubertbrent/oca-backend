@@ -16,14 +16,14 @@
 # @@license_version:1.7@@
 
 import base64
+from datetime import datetime
 import imghdr
 import json
 import logging
 import random
+from types import NoneType
 import urllib2
 import urlparse
-from datetime import datetime
-from types import NoneType
 
 from google.appengine.api import urlfetch, images, taskqueue
 from google.appengine.ext import db, ndb
@@ -54,7 +54,8 @@ from rogerthat.consts import SCHEDULED_QUEUE, DEBUG, NEWS_STATS_QUEUE, NEWS_MATC
 from rogerthat.dal import put_in_chunks
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.mobile import get_mobile_key_by_account
-from rogerthat.dal.profile import get_user_profile, get_service_profile, get_service_profiles
+from rogerthat.dal.profile import get_user_profile, get_service_profile, get_service_profiles,\
+    get_service_visible_non_transactional
 from rogerthat.dal.service import get_service_identity, \
     ndb_get_service_menu_items, get_service_identities_not_cached, get_default_service_identity
 from rogerthat.exceptions.news import NewsNotFoundException, CannotUnstickNewsException, TooManyNewsButtonsException, \
@@ -68,7 +69,7 @@ from rogerthat.models.news import NewsItem, NewsItemImage, NewsItemActionStatist
     NewsItemMatch, NewsSettingsService, NewsSettingsUserService, \
     NewsMedia, NewsStream, NewsItemLocation, NewsItemGeoAddress, NewsItemAddress, \
     NewsNotificationStatus, NewsNotificationFilter, NewsStreamCustomLayout, NewsItemAction, MediaType, \
-    NewsSettingsUserGroup, NewsSettingsServiceGroup, NewsItemWebActions
+    NewsSettingsUserGroup, NewsSettingsServiceGroup, NewsItemWebActions, NewsItemActions
 from rogerthat.models.properties.news import NewsItemStatistics, NewsButtons, NewsButton
 from rogerthat.models.utils import ndb_allocate_id
 from rogerthat.rpc import users
@@ -93,6 +94,7 @@ from rogerthat.utils.iOS import construct_push_notification
 from rogerthat.utils.service import add_slash_default, get_service_user_from_service_identity_user, \
     remove_slash_default, get_service_identity_tuple
 from rogerthat.web_client.models import WebClientSession
+
 
 _DEFAULT_LIMIT = 100
 ALLOWED_NEWS_BUTTON_ACTIONS = list(ALLOWED_BUTTON_ACTIONS) + ['poke']
@@ -153,6 +155,7 @@ def _query_news_items_service(service_identity_user):
 def _worker_delete_news_items(ni_key):
     news_item = ni_key.get()
     news_item.deleted = True
+    news_item.status = NewsItem.STATUS_DELETED
     news_item.put()
     delete_news_matches(news_item.id)
     re_index_news_item(news_item)
@@ -166,6 +169,14 @@ def update_visibility_news_items(service_identity_user, visible):
 
 def _worker_update_visibility_news_items(ni_key, visible):
     news_item = ni_key.get()
+    if visible:
+        if news_item.status == NewsItem.STATUS_PUBLISHED:
+            news_item.status = NewsItem.STATUS_INVISIBLE
+            news_item.put()
+    elif news_item.status == NewsItem.STATUS_INVISIBLE:
+        news_item.status = NewsItem.STATUS_PUBLISHED
+        news_item.put()
+
     update_visibility_news_matches(news_item.id, visible)
     re_index_news_item(news_item)
 
@@ -928,6 +939,8 @@ def put_news(sender, sticky, sticky_until, title, message, image, news_type, new
         for app in ndb.get_multi([NdbApp.create_key(i) for i in app_ids]):
             if not app.demo:
                 raise DemoServiceException(app.app_id)
+            
+    service_visible = get_service_visible_non_transactional(sender)
 
     if media is not MISSING and media:
         pass
@@ -1009,6 +1022,11 @@ def put_news(sender, sticky, sticky_until, title, message, image, news_type, new
                                  version=1,
                                  scheduled_at=scheduled_at,
                                  published=scheduled_at is 0)
+            
+            if news_item.published:
+                news_item.status = NewsItem.STATUS_PUBLISHED if service_visible else NewsItem.STATUS_INVISIBLE
+            else:
+                news_item.status = NewsItem.STATUS_SCHEDULED
 
         if news_item.type == NewsItem.TYPE_QR_CODE:
             if is_set(qr_code_caption):
@@ -1228,6 +1246,9 @@ def send_delayed_realtime_updates(news_item_id, sender, *args):
         raise BusinessException('Not sending realtime news update for already published news item %d' % news_item_id)
     news_item.update_timestamp = now()  # to make sure the getNews call returns this news item
     news_item.published = True
+    if news_item.status == NewsItem.STATUS_SCHEDULED:
+        service_visible = get_service_visible_non_transactional(news_item.sender)
+        news_item.status = NewsItem.STATUS_PUBLISHED if service_visible else NewsItem.STATUS_INVISIBLE
     news_item.put()
 
     re_index_news_item(news_item)
@@ -1303,6 +1324,21 @@ def save_statistics_to_matches(app_user, new_actions):
     keys = {NewsItemMatch.create_key(app_user, news_id) for news_id in new_actions}
     matches = {match.news_id: match for match in ndb.get_multi(list(keys)) if match}
 
+    news_item_actions_keys = {NewsItemActions.create_key(app_user, news_id) for news_id in new_actions}
+    missing_news_item_ids = set()
+    news_item_actions_dict = {}
+    for news_item_actions, key in zip(ndb.get_multi(news_item_actions_keys), news_item_actions_keys):
+        if news_item_actions:
+            news_item_actions_dict[news_item_actions.news_id] = news_item_actions
+        else:
+            missing_news_item_ids.add(key.integer_id())
+
+    if missing_news_item_ids:
+        news_item_keys = [NewsItem.create_key(news_id) for news_id in missing_news_item_ids]
+        missing_news_items = {news_item.id: news_item for news_item in ndb.get_multi(news_item_keys)}
+    else:
+        missing_news_items = {}
+
     for news_id, actions in new_actions.iteritems():
         match = matches.get(news_id)
         should_save = False
@@ -1315,6 +1351,13 @@ def save_statistics_to_matches(app_user, new_actions):
                                          ni.sender)
             matches[news_id] = match
             should_save = True
+            
+        should_save_actions = False
+        news_item_actions = news_item_actions_dict.get(news_id)
+        if not news_item_actions:
+            ni = missing_news_items[news_id]
+            news_item_actions = NewsItemActions.create(app_user, news_id, ni.stream_publish_timestamp)
+            news_item_actions_dict[news_id] = news_item_actions
 
         for action in actions:
             remove_action = None
@@ -1322,16 +1365,26 @@ def save_statistics_to_matches(app_user, new_actions):
                 remove_action = NewsItemAction.PINNED
             elif action == NewsItemAction.UNROGERED:
                 remove_action = NewsItemAction.ROGERED
-            elif action not in match.actions:
-                match.actions.append(action)
-                should_save = True
+            else:
+                if action not in match.actions:
+                    match.actions.append(action)
+                    should_save = True
+                if action not in news_item_actions.actions:
+                    news_item_actions.add_action(action)
+                    should_save_actions = True
 
             if remove_action and remove_action in match.actions:
                 match.actions.remove(remove_action)
                 should_save = True
+                
+            if remove_action and remove_action in news_item_actions.actions:
+                news_item_actions.remove_action(remove_action)
+                should_save_actions = True
 
         if should_save:
             to_put.append(match)
+        if should_save_actions:
+            to_put.append(news_item_actions)
     return to_put
 
 
@@ -1494,6 +1547,12 @@ def disable_news(service_identity_user, news_id, members):
             nm = NewsItemMatch.create(app_user, news_id, publish_time, sort_time, service_identity_user)
         nm.disabled = True
         to_put.append(nm)
+        
+        news_item_actions = NewsItemActions.create_key(app_user, news_id).get()
+        if not news_item_actions:
+            news_item_actions = NewsItemActions.create(app_user, news_id, sort_time)
+        news_item_actions.disabled = True
+        to_put.append(news_item_actions)
 
     put_in_chunks(to_put, is_ndb=True)
 
@@ -1555,6 +1614,7 @@ def delete(news_id, service_identity_user):
 
     if news_item.published:
         news_item.deleted = True
+        news_item.status = NewsItem.STATUS_DELETED
         news_item.update_timestamp = now()
         news_item.put()
         delete_news_matches(news_id)

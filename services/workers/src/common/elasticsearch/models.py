@@ -30,6 +30,9 @@ class ElasticsearchSettings(NdbModel):
     services_index = ndb.TextProperty()
     place_types_index = ndb.TextProperty()
     jobs_index = ndb.TextProperty()
+    news_index = ndb.TextProperty()
+
+    shop_customers_index = ndb.TextProperty()
 
     @classmethod
     def create_key(cls):

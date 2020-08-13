@@ -15,6 +15,7 @@
 #
 # @@license_version:1.7@@
 
+from datetime import datetime
 import logging
 
 from google.appengine.api import search
@@ -22,12 +23,16 @@ from google.appengine.ext import ndb
 
 from mcfw.rpc import returns, arguments
 from mcfw.utils import normalize_search_string
+from rogerthat.bizz.elasticsearch import delete_index, create_index,\
+    get_elasticsearch_config, delete_doc, index_doc
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.news.matching import get_service_visible
 from rogerthat.consts import NEWS_MATCHING_QUEUE
+from rogerthat.dal.profile import get_service_visible_non_transactional
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models.news import NewsItem
 from rogerthat.utils import drop_index
+
 
 NEWS_INDEX = 'NEWS_INDEX'
 
@@ -35,6 +40,13 @@ NEWS_INDEX = 'NEWS_INDEX'
 def re_index_all(queue=NEWS_MATCHING_QUEUE):
     the_index = search.Index(name=NEWS_INDEX)
     drop_index(the_index)
+    config = get_elasticsearch_config()
+    delete_news_index(config)
+    create_news_index(config)
+    run_job(re_index_all_query, [], re_index_all_worker, [], worker_queue=queue)
+
+
+def index_all(queue=NEWS_MATCHING_QUEUE):
     run_job(re_index_all_query, [], re_index_all_worker, [], worker_queue=queue)
 
 
@@ -53,9 +65,75 @@ def re_index_news_item_by_key(ni_key):
     return re_index_news_item(ni)
 
 
+def delete_news_index(config):
+    delete_index(config.news_index)
+
+
+def create_news_index(config):
+    # type: (ElasticsearchSettings) -> Any
+    index = {
+        'mappings': {
+            'properties': {
+                'app_ids': {
+                    'type': 'keyword'
+                },
+                'txt': {
+                    'type': 'text'
+                },
+                'timestamp': {
+                    'type': 'date'
+                },
+            }
+        }
+    }
+    return create_index(config.news_index, index)
+
+
+@arguments(news_item=NewsItem)
+def re_index_news_item_new(news_item):
+    if not news_item:
+        return None
+
+    config = get_elasticsearch_config()
+    news_id = str(news_item.id)
+
+    if news_item.status != NewsItem.STATUS_PUBLISHED:
+        return delete_doc(config.news_index, news_id)
+
+    si = get_service_identity(news_item.sender)
+    if not si:
+        return delete_doc(config.news_index, news_id)
+
+    if not get_service_visible_non_transactional(news_item.sender):
+        return delete_doc(config.news_index, news_id)
+
+    txt = [si.name]
+    if news_item.type == NewsItem.TYPE_NORMAL:
+        if news_item.title:
+            txt.append(news_item.title)
+        if news_item.message:
+            txt.append(news_item.message)
+    elif news_item.type == NewsItem.TYPE_QR_CODE:
+        if news_item.qr_code_caption:
+            txt.append(news_item.qr_code_caption)
+        if news_item.qr_code_content:
+            txt.append(news_item.qr_code_content)
+    else:
+        return delete_doc(config.news_index, news_id)
+
+    timestamp = news_item.scheduled_at if news_item.scheduled_at else news_item.timestamp
+    doc = {
+        'app_ids': news_item.app_ids,
+        'timestamp': datetime.utcfromtimestamp(timestamp).isoformat() + 'Z',
+        'txt': txt
+    }
+    return index_doc(config.news_index, news_id, doc)
+
+
 @returns(search.Document)
 @arguments(news_item=NewsItem)
 def re_index_news_item(news_item):
+    re_index_news_item_new(news_item)
     if not news_item:
         return None
     the_index = search.Index(name=NEWS_INDEX)

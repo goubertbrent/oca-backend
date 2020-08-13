@@ -408,7 +408,7 @@ def populate_identity(sln_settings, main_branding_key):
                                    opening_hours, branding_settings)
         system.put_service_data(json.dumps(app_data).decode('utf8'), service_identity)
 
-        handle_auto_connected_service(service_user, sln_settings.search_enabled)
+        handle_auto_connected_service(service_user, service_info.visible)
 
 
 def handle_auto_connected_service(service_user, visible):
@@ -437,6 +437,8 @@ def handle_auto_connected_service(service_user, visible):
             add_auto_connected_services(customer.app_id, [auto_connected_service])
     else:
         logging.error('Auto connected service is invisible... %s', service_identity_email, _suppress=False)
+        # todo check if fixed by using service_info.visible instead of sln_settings.search_enabled
+        # then set this function back or leave it (making sure no accidents happen)
 #         delete_auto_connected_service(service_user, customer.app_id, service_identity_email)
 
 
