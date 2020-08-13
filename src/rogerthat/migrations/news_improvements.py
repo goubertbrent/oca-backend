@@ -21,41 +21,23 @@ from rogerthat.bizz.job import run_job
 from rogerthat.bizz.news.searching import re_index_news_item
 from rogerthat.consts import MIGRATION_QUEUE
 from rogerthat.dal.profile import get_service_visible
-from rogerthat.dal.service import get_service_identities
-from rogerthat.models.news import NewsItem, NewsSettingsService, NewsItemMatch,\
-    NewsItemActions
-from rogerthat.rpc import users
+from rogerthat.models.news import NewsItem, NewsItemMatch, NewsItemActions
+
+    
+def migrate_all_news_items(dry_run=True):
+    run_job(_query_all_news_items, [], _worker_all_news_items, [dry_run], worker_queue=MIGRATION_QUEUE)
+    
+    
+def _query_all_news_items():
+    return NewsItem.query()
 
 
-def migrate_all_services(dry_run=True):
-    run_job(_query_nss, [], _worker_nss, [dry_run], worker_queue=MIGRATION_QUEUE)
-
-
-def _query_nss():
-    return NewsSettingsService.query()
-
-
-def _worker_nss(nss_key, dry_run=True):
-    service_user = users.User(nss_key.parent().id().decode('utf8'))
-    migrate_service_news_items(service_user, dry_run)
-
-
-def migrate_service_news_items(service_user, dry_run=True):
-    service_identities = get_service_identities(service_user)
-    for si in service_identities:
-        visible = get_service_visible(si.service_identity_user)
-        run_job(_query_service_news_items, [si.service_identity_user], _worker_service_news_item, [visible, dry_run], worker_queue=MIGRATION_QUEUE)
-
-
-def _query_service_news_items(service_identity_user):
-    return NewsItem.list_by_sender(service_identity_user)
-
-
-def _worker_service_news_item(ni_key, visible, dry_run=True):
+def _worker_all_news_items(ni_key, dry_run=True):
     news_item = ni_key.get()  # type: NewsItem
     if news_item.deleted:
         news_item.status = NewsItem.STATUS_DELETED
     elif news_item.published:
+        visible = get_service_visible(news_item.sender)
         if visible:
             news_item.status = NewsItem.STATUS_PUBLISHED
         else:
@@ -63,10 +45,11 @@ def _worker_service_news_item(ni_key, visible, dry_run=True):
     else:
         news_item.status = NewsItem.STATUS_SCHEDULED
     if dry_run:
-        logging.debug('migrate_service_news_items dry_run news_id:%s status:%s', news_item.id, news_item.status)
+        logging.debug('migrate_all_news_items dry_run news_id:%s status:%s', news_item.id, news_item.status)
         return
     news_item.put()
-    re_index_news_item(news_item)
+    if news_item.status == NewsItem.STATUS_PUBLISHED:
+        re_index_news_item(news_item)
 
 
 def migrate_news_matches(dry_run=True):
