@@ -1282,7 +1282,7 @@ def news_statistics(app_user, news_type, news_ids):
 
 def _save_statistics(app_user, model_stats, matches, action_date):
     # type: (users.User, Dict, Dict[int, List[str]], datetime) -> None
-    models = save_statistics_to_matches(app_user, matches)
+    models = save_statistics_to_matches(app_user, matches, action_date)
     models.extend(save_statistics_to_model(app_user, model_stats, action_date))
     ndb.put_multi(models)
 
@@ -1318,26 +1318,13 @@ def save_web_news_item_action_statistic(session, app_id, news_id, action, date):
         ndb.put_multi([stats, item_stats])
 
 
-def save_statistics_to_matches(app_user, new_actions):
-    # type: (users.User, Dict[int, List[str]]) -> List[ndb.Model]
+def save_statistics_to_matches(app_user, new_actions, action_date):
     to_put = []
     keys = {NewsItemMatch.create_key(app_user, news_id) for news_id in new_actions}
     matches = {match.news_id: match for match in ndb.get_multi(list(keys)) if match}
 
     news_item_actions_keys = {NewsItemActions.create_key(app_user, news_id) for news_id in new_actions}
-    missing_news_item_ids = set()
-    news_item_actions_dict = {}
-    for news_item_actions, key in zip(ndb.get_multi(news_item_actions_keys), news_item_actions_keys):
-        if news_item_actions:
-            news_item_actions_dict[news_item_actions.news_id] = news_item_actions
-        else:
-            missing_news_item_ids.add(key.integer_id())
-
-    if missing_news_item_ids:
-        news_item_keys = [NewsItem.create_key(news_id) for news_id in missing_news_item_ids]
-        missing_news_items = {news_item.id: news_item for news_item in ndb.get_multi(news_item_keys)}
-    else:
-        missing_news_items = {}
+    news_item_actions_dict = {news_item_actions.news_id: news_item_actions for news_item_actions in ndb.get_multi(list(news_item_actions_keys)) if news_item_actions}
 
     for news_id, actions in new_actions.iteritems():
         match = matches.get(news_id)
@@ -1355,8 +1342,7 @@ def save_statistics_to_matches(app_user, new_actions):
         should_save_actions = False
         news_item_actions = news_item_actions_dict.get(news_id)
         if not news_item_actions:
-            ni = missing_news_items[news_id]
-            news_item_actions = NewsItemActions.create(app_user, news_id, ni.stream_publish_timestamp)
+            news_item_actions = NewsItemActions.create(app_user, news_id)
             news_item_actions_dict[news_id] = news_item_actions
 
         for action in actions:
@@ -1370,7 +1356,7 @@ def save_statistics_to_matches(app_user, new_actions):
                     match.actions.append(action)
                     should_save = True
                 if action not in news_item_actions.actions:
-                    news_item_actions.add_action(action)
+                    news_item_actions.add_action(action, action_date)
                     should_save_actions = True
 
             if remove_action and remove_action in match.actions:
@@ -1550,7 +1536,7 @@ def disable_news(service_identity_user, news_id, members):
         
         news_item_actions = NewsItemActions.create_key(app_user, news_id).get()
         if not news_item_actions:
-            news_item_actions = NewsItemActions.create(app_user, news_id, sort_time)
+            news_item_actions = NewsItemActions.create(app_user, news_id)
         news_item_actions.disabled = True
         to_put.append(news_item_actions)
 

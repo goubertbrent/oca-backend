@@ -1,6 +1,42 @@
 queue:
 - name: migration-queue
-  rate: 50/s
+  rate: 500/s
+- name: migration-queue2
+  rate: 500/s
+- name: migration-queue3
+  rate: 500/s
+- name: migration-queue4
+  rate: 500/s
+- name: migration-queue5
+  rate: 500/s
+- name: migration-queue6
+  rate: 500/s
+- name: migration-queue7
+  rate: 500/s
+- name: migration-queue8
+  rate: 500/s
+- name: migration-queue9
+  rate: 500/s
+- name: migration-queue10
+  rate: 500/s
+- name: migration-queue11
+  rate: 500/s
+- name: migration-queue12
+  rate: 500/s
+- name: migration-queue13
+  rate: 500/s
+- name: migration-queue14
+  rate: 500/s
+- name: migration-queue15
+  rate: 500/s
+- name: migration-queue16
+  rate: 500/s
+- name: migration-queue17
+  rate: 500/s
+- name: migration-queue18
+  rate: 500/s
+- name: migration-queue19
+  rate: 500/s
 - name: highload-controller-queue
   rate: 20/s
   max_concurrent_requests: 20

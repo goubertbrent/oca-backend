@@ -16,14 +16,17 @@
 # @@license_version:1.7@@
 
 import logging
+import random
 
-from rogerthat.bizz.job import run_job
+from google.appengine.ext import ndb
+
+from rogerthat.bizz.job import run_job, MODE_BATCH
 from rogerthat.bizz.news.searching import re_index_news_item
-from rogerthat.consts import MIGRATION_QUEUE
+from rogerthat.consts import MIGRATION_QUEUE, ALL_MIGRATION_QUEUES, DEBUG
 from rogerthat.dal.profile import get_service_visible
 from rogerthat.models.news import NewsItem, NewsItemMatch, NewsItemActions
 
-    
+
 def migrate_all_news_items(dry_run=True):
     run_job(_query_all_news_items, [], _worker_all_news_items, [dry_run], worker_queue=MIGRATION_QUEUE)
     
@@ -53,26 +56,36 @@ def _worker_all_news_items(ni_key, dry_run=True):
 
 
 def migrate_news_matches(dry_run=True):
-    run_job(_query_matches, [], worker_matches, [dry_run], worker_queue=MIGRATION_QUEUE)
+    run_job(_query_all_news_items, [], _worker_migrate_news_matches, [dry_run], worker_queue=MIGRATION_QUEUE, batch_timeout=0 if DEBUG else 2)
 
 
-def _query_matches():
-    return NewsItemMatch.query()
+def _worker_migrate_news_matches(news_item_key, dry_run=True):
+    news_id = news_item_key.id()
+    queue_name = random.choice(ALL_MIGRATION_QUEUES)
+    run_job(_query_matches, [news_id], worker_matches, [dry_run], worker_queue=queue_name, controller_queue=MIGRATION_QUEUE, mode=MODE_BATCH, batch_size=200)
 
 
-def worker_matches(m_key, dry_run=True):
-    news_item_match = m_key.get()
-    if not news_item_match.actions:
-        if not news_item_match.disabled:
-            if dry_run:
-                logging.debug('migrate_news_matches dry_run nothing to save news_id:%s', news_item_match.news_id)
-            return
+def _query_matches(news_id):
+    return NewsItemMatch.list_by_news_id(news_id)
 
-    news_item_actions = NewsItemActions.create(news_item_match.app_user, news_item_match.news_id, news_item_match.publish_time)
-    for action in news_item_match.actions:
-        news_item_actions.add_action(action)
-    news_item_actions.disabled = news_item_match.disabled
-    if dry_run:
-        logging.debug('migrate_news_matches dry_run news_id:%s actions:%s disabled:%s', news_item_match.news_id, news_item_actions.actions, news_item_actions.disabled)
-        return
-    news_item_actions.put()
+
+def worker_matches(match_keys, dry_run=True):
+    to_put = []
+    for news_item_match in ndb.get_multi(match_keys):
+        if not news_item_match.actions:
+            if not news_item_match.disabled:
+                if dry_run:
+                    logging.debug('migrate_news_matches dry_run nothing to save news_id:%s', news_item_match.news_id)
+                continue
+    
+        news_item_actions = NewsItemActions.create(news_item_match.app_user, news_item_match.news_id)
+        for action in news_item_match.actions:
+            news_item_actions.add_action(action, news_item_match.update_time)
+        news_item_actions.disabled = news_item_match.disabled
+        if dry_run:
+            logging.debug('migrate_news_matches dry_run news_id:%s actions:%s disabled:%s', news_item_match.news_id, news_item_actions.actions, news_item_actions.disabled)
+            continue
+        to_put.append(news_item_actions)
+    if to_put:
+        logging.debug("migrate_news_matches saving %s news_item_actions", len(to_put))
+        ndb.put_multi(to_put)

@@ -601,14 +601,12 @@ ACTION_FLAG_MAPPING = {
 
 
 class NewsItemActions(NdbModel):
-    sort_time = ndb.DateTimeProperty()
-    sort_time_unindexed = ndb.DateTimeProperty(indexed=False)
+    news_id = ndb.IntegerProperty()
+
+    pinned_time = ndb.DateTimeProperty()
+
     actions = ndb.StringProperty(repeated=True)
     disabled = ndb.BooleanProperty(indexed=False)
-
-    @property
-    def news_id(self):
-        return self.key.integer_id()
 
     @property
     def app_user(self):
@@ -627,10 +625,10 @@ class NewsItemActions(NdbModel):
         return ndb.Key(cls, news_id, parent=parent_ndb_key(app_user, namespace=cls.NAMESPACE))
 
     @classmethod
-    def create(cls, app_user, news_id, sort_time):
+    def create(cls, app_user, news_id):
         return cls(key=cls.create_key(app_user, news_id),
-                   sort_time=None,
-                   sort_time_unindexed=sort_time,
+                   news_id=news_id,
+                   pinned_time=None,
                    actions=[],
                    disabled=False)
 
@@ -641,20 +639,25 @@ class NewsItemActions(NdbModel):
     @classmethod
     def list_by_action(cls, app_user, action):
         return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE))\
-            .filter(cls.actions == action)\
-            .order(-NewsItemActions.sort_time)
+            .filter(cls.actions == action)
 
-    def add_action(self, action):
+    @classmethod
+    def list_pinned(cls, app_user):
+        return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE))\
+            .filter(cls.actions == NewsItemAction.ACTION)\
+            .order(-NewsItemActions.pinned_time)
+
+    def add_action(self, action, action_time):
         if action not in self.actions:
             self.actions.append(action)
         if action == NewsItemAction.PINNED:
-            self.sort_time = self.sort_time_unindexed
+            self.pinned_time = action_time
 
     def remove_action(self, action):
         if action in self.actions:
             self.actions.remove(action)
         if action == NewsItemAction.PINNED:
-            self.sort_time = None
+            self.pinned_time = None
 
 
 class NewsItemMatch(NdbModel):
