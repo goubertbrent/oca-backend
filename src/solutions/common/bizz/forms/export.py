@@ -17,22 +17,23 @@
 
 from collections import defaultdict
 
-from google.appengine.ext.deferred import deferred
-
 import cloudstorage
 import xlwt
+from google.appengine.ext.deferred import deferred
+from typing import List
+from xlwt import XFStyle
+
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.consts import DAY, SCHEDULED_QUEUE
 from rogerthat.rpc import users
 from rogerthat.service.api.forms import service_api
-from rogerthat.to.forms import FormSectionValueTO, FieldComponentTO, DatetimeComponentValueTO, FormSectionTO, \
+from rogerthat.to.forms import FormSectionValueTO, FieldComponentTO, FormSectionTO, \
     DynamicFormTO
 from rogerthat.utils.app import get_human_user_from_app_user
 from solutions import translate
 from solutions.common.consts import OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings
 from solutions.common.models.forms import FormSubmission, OcaForm
-from xlwt import XFStyle
 
 
 def _delete_file(path):
@@ -59,8 +60,8 @@ def export_submissions(service_user, form_id):
 
 
 def _export_to_xlsx(form, oca_form, language, submissions, file_handle):
-    # type: (DynamicFormTO, OcaForm, str, list[FormSubmission], file) -> object
-    book = xlwt.Workbook(encoding="utf-8")
+    # type: (DynamicFormTO, OcaForm, str, List[FormSubmission], file) -> None
+    book = xlwt.Workbook(encoding='utf-8')
     # Write headers
     component_mapping = defaultdict(dict)
     sheet = book.add_sheet(form.title)  # type: xlwt.Worksheet
@@ -99,7 +100,10 @@ def _export_to_xlsx(form, oca_form, language, submissions, file_handle):
                 for component_value in section_value.components:
                     if component_value.id in component_mapping[section_value.id]:
                         column = component_mapping[section_value.id][component_value.id]
-                        component = form_mapping.get(section_value.id, {}).get(component_value.id)
+                        if section_value.id in form_mapping:
+                            component = form_mapping[section_value.id].components.get(component_value.id)
+                        else:
+                            component = None
                         sheet.write(row, column, component_value.get_string_value(component))
         row += 1
     book.save(file_handle)
