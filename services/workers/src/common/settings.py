@@ -156,9 +156,6 @@ class ServerSettings(CachedModelMixIn, db.Model):
     news_statistics_influxdb_port = add_meta(db.IntegerProperty(indexed=False),
                                              doc='News stats influxdb PORT',
                                              order=302)
-    news_statistics_influxdb_database = add_meta(db.StringProperty(indexed=False),
-                                                 doc='News stats influxdb DB',
-                                                 order=303)
     news_statistics_influxdb_username = add_meta(db.StringProperty(indexed=False),
                                                  doc='News stats influxdb USER',
                                                  order=304)

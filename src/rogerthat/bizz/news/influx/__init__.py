@@ -58,7 +58,7 @@ def get_influxdb_client(database='news', params=None):
                           port=ss.news_statistics_influxdb_port,
                           ssl=not DEBUG,
                           verify_ssl=not DEBUG,
-                          database=database or ss.news_statistics_influxdb_database,
+                          database=database,
                           username=ss.news_statistics_influxdb_username,
                           password=ss.news_statistics_influxdb_password)
 
