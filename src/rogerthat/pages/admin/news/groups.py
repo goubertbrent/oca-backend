@@ -35,7 +35,7 @@ class NewsGroupsHandler(NewsAdminHandler):
 
         groups_dict = {}
         for g in qry:
-            groups_dict[g.group_id] = dict(group=g, rpc=NewsItem.list_published_by_group_id(g.group_id).count_async())
+            groups_dict[g.group_id] = dict(group=g, rpc=NewsItem.list_published_by_group_id_sorted(g.group_id).count_async())
 
         groups = []
         for v in groups_dict.values():

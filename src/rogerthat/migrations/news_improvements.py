@@ -66,7 +66,7 @@ def _worker_migrate_news_matches(news_item_key, dry_run=True):
 
 
 def _query_matches(news_id):
-    return NewsItemMatch.list_by_news_id(news_id)
+    return NewsItemMatch.query().filter(NewsItemMatch.news_id == news_id)
 
 
 def worker_matches(match_keys, dry_run=True):

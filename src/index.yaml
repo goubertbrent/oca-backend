@@ -309,46 +309,6 @@ indexes:
 
 - kind: NewsItem
   properties:
-  - name: deleted
-  - name: tags
-  - name: sender
-  - name: published_timestamp
-    direction: desc
-
-- kind: NewsItem
-  properties:
-  - name: deleted
-  - name: sender
-  - name: update_timestamp
-    direction: desc
-
-- kind: NewsItem
-  properties:
-  - name: deleted
-  - name: tags
-  - name: sender
-  - name: update_timestamp
-    direction: desc
-
-- kind: NewsItem
-  properties:
-  - name: deleted
-  - name: app_ids
-  - name: sender
-  - name: sticky
-  - name: timestamp
-    direction: desc
-
-- kind: NewsItem
-  properties:
-  - name: app_ids
-  - name: sender
-  - name: sticky
-  - name: order_timestamp
-    direction: desc
-
-- kind: NewsItem
-  properties:
   - name: sticky
   - name: sticky_until
 
@@ -360,44 +320,32 @@ indexes:
 
 - kind: NewsItem
   properties:
+  - name: status
   - name: app_ids
-  - name: deleted
-  - name: published
   - name: sender
   - name: published_timestamp
     direction: desc
 
-- kind: NewsItemMatch
-  ancestor: yes
+- kind: NewsItem
   properties:
+  - name: status
   - name: group_ids
-  - name: visible
-  - name: publish_time
+  - name: published_timestamp
     direction: desc
 
-- kind: NewsItemMatch
-  ancestor: yes
+- kind: NewsItem
   properties:
+  - name: status
   - name: group_ids
-  - name: visible
-  - name: sort_time
+  - name: sender
+  - name: published_timestamp
     direction: desc
 
-- kind: NewsItemMatch
+- kind: NewsItemActions
   ancestor: yes
   properties:
   - name: actions
-  - name: visible
-  - name: update_time
-    direction: desc
-
-- kind: NewsItemMatch
-  ancestor: yes
-  properties:
-  - name: group_ids
-  - name: sender
-  - name: visible
-  - name: sort_time
+  - name: pinned_time
     direction: desc
 
 # ======================================================== PAYMENT ========================================================

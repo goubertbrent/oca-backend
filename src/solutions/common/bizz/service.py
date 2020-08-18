@@ -51,9 +51,10 @@ from solutions.common.to import SolutionInboxMessageTO, ProvisionResponseTO
 # signup smart emails with the countdown (seconds) they should be sent after
 # successfull registration
 SMART_EMAILS = {
-    '8dd5fe5f-02eb-40f9-b9fa-9a48d52952b4': 1,
-    'e6b456af-a811-4540-903c-5135cd6e4802': 2 * DAY,
-    'c87c3b2c-e1e8-4680-914e-6f81f2bd37f5': 4 * DAY,
+    '8dd5fe5f-02eb-40f9-b9fa-9a48d52952b4': 1, # 1. Proficiat + opmaak & zichtbaar
+    'e6b456af-a811-4540-903c-5135cd6e4802': 2 * DAY, # 2. NWSbericht aan&opmaken
+#     'f98e0153-f295-412b-89a3-4d4cc6b95162': 2 * DAY, # Dashboard Aanvullen
+    'c87c3b2c-e1e8-4680-914e-6f81f2bd37f5': 4 * DAY, # 3. Uw eigen reservatie-systeem
 }
 
 

@@ -78,8 +78,26 @@ class NewsItem(NdbModel):
     MAX_TITLE_LENGTH = 80
     MAX_BUTTON_CAPTION_LENGTH = 15
 
+    # todo ruben news item
+    # delete properties? -> sticky/sticky_until/tags (already removed) statistics/statistics_type/rogered/reach/action_count/feeds/follow_count/image_id/users_that_rogered/broadcast_type
+    # unindex -> has_locations/location_match_required/locations/media
+
+    # add status to qry -> scheduled/published/deleted
+    # it needs to be published & not deleted
+    # if deleting published should stay as well
+    #
+    # check needed -> timestamp/update_timestamp/order_timestamp/published_timestamp (unindexed) scheduled_at
+
+    # migrate to ndb propery -> buttons
+
+    # badge count -> just the 10 items of the news group and count those who are later then the last view time
+    # but lets do it 1 time globally and then run a job
+
+    # location matched only apply for the main list (not when listing items of 1 service or when searching)
+
     sticky = ndb.BooleanProperty(indexed=True, required=True)
     sticky_until = ndb.IntegerProperty(indexed=True, default=0)
+
     sender = ndb.UserProperty(indexed=True, required=True)  # service identity user
     app_ids = ndb.StringProperty(indexed=True, repeated=True)
     timestamp = ndb.IntegerProperty(indexed=True, required=True)  # type: long
@@ -180,35 +198,51 @@ class NewsItem(NdbModel):
         return len(self.role_ids) > 0
 
     @classmethod
-    def list_by_sender(cls, sender, updated_since=0, tag=None):
+    def list_by_sender(cls, sender):
         qry = cls.query()
         qry = qry.filter(cls.deleted == False)
-        if tag:
-            qry = qry.filter(cls.tags == tag)
         qry = qry.filter(cls.sender == sender)
-        if updated_since:
-            qry = qry.filter(cls.update_timestamp >= updated_since)
-            qry = qry.order(-cls.update_timestamp)
-        else:
-            qry = qry.order(-cls.published_timestamp)
+        qry = qry.order(-cls.published_timestamp)
         return qry
 
     @classmethod
     def list_published_by_sender(cls, sender, app_id, keys_only=False):
         qry = cls.query(default_options=QueryOptions(keys_only=keys_only))
-        qry = qry.filter(cls.published == True)
-        qry = qry.filter(cls.deleted == False)
+        qry = qry.filter(cls.status == cls.STATUS_PUBLISHED)
         qry = qry.filter(cls.sender == sender)
         qry = qry.filter(cls.app_ids == app_id)
         qry = qry.order(-cls.published_timestamp)
         return qry
 
     @classmethod
-    def list_published_by_group_id(cls, group_id):
+    def list_published_by_group_id_sorted(cls, group_id):
         qry = cls.query()
-        qry = qry.filter(cls.published == True)
+        qry = qry.filter(cls.status == cls.STATUS_PUBLISHED)
         qry = qry.filter(cls.group_ids == group_id)
+        qry = qry.order(-cls.published_timestamp)
         return qry
+
+    @classmethod
+    def list_published_by_sender_and_group_id_sorted(cls, sender, group_id, keys_only=False):
+        qry = cls.query(default_options=QueryOptions(keys_only=keys_only))
+        qry = qry.filter(cls.status == cls.STATUS_PUBLISHED)
+        qry = qry.filter(cls.sender == sender)
+        qry = qry.filter(cls.group_ids == group_id)
+        qry = qry.order(-cls.published_timestamp)
+        return qry
+
+    @classmethod
+    def count_unread(cls, group_id, min_time, max_count=10):
+        qry = cls.query()
+        qry = qry.filter(cls.status == cls.STATUS_PUBLISHED)
+        qry = qry.filter(cls.group_ids == group_id)
+        qry = qry.filter(cls.published_timestamp > min_time)
+        return qry.count_async(max_count)
+
+    @classmethod
+    def get_expired_sponsored_news_keys(cls):
+        # type: () -> ndb.Query
+        return cls.query().filter(cls.sticky == True).filter(cls.sticky_until < now())
 
     def media_url(self, base_url):
         if base_url and self.media:
@@ -220,11 +254,6 @@ class NewsItem(NdbModel):
     @classmethod
     def create_key(cls, news_id):
         return ndb.Key(cls, news_id)
-
-    @classmethod
-    def get_expired_sponsored_news_keys(cls):
-        # type: () -> ndb.Query
-        return cls.query().filter(cls.sticky == True).filter(cls.sticky_until < now())
 
 
 class NewsItemImage(NdbModel):
@@ -318,7 +347,7 @@ class NewsItemActionStatistics(NdbModel):
         if self.key.parent().kind() == WebClientSession._get_kind():
             return None
         return users.User(self.key.parent().id().decode('utf8'))
-        
+
     @classmethod
     def create_key(cls, app_user_or_session_key, uid):
         if isinstance(app_user_or_session_key, users.User):
@@ -592,12 +621,12 @@ class NewsSettingsUserService(NdbModel):
 
 
 ACTION_FLAG_MAPPING = {
-        NewsItemAction.REACHED: NewsActionFlag.REACHED,
-        NewsItemAction.ROGERED: NewsActionFlag.ROGERED,
-        NewsItemAction.FOLLOWED: NewsActionFlag.FOLLOWED,
-        NewsItemAction.ACTION: NewsActionFlag.ACTION,
-        NewsItemAction.PINNED: NewsActionFlag.PINNED,
-    }
+    NewsItemAction.REACHED: NewsActionFlag.REACHED,
+    NewsItemAction.ROGERED: NewsActionFlag.ROGERED,
+    NewsItemAction.FOLLOWED: NewsActionFlag.FOLLOWED,
+    NewsItemAction.ACTION: NewsActionFlag.ACTION,
+    NewsItemAction.PINNED: NewsActionFlag.PINNED,
+}
 
 
 class NewsItemActions(NdbModel):
@@ -644,7 +673,7 @@ class NewsItemActions(NdbModel):
     @classmethod
     def list_pinned(cls, app_user):
         return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE))\
-            .filter(cls.actions == NewsItemAction.ACTION)\
+            .filter(cls.actions == NewsItemAction.PINNED)\
             .order(-NewsItemActions.pinned_time)
 
     def add_action(self, action, action_time):
@@ -660,23 +689,25 @@ class NewsItemActions(NdbModel):
             self.pinned_time = None
 
 
-class NewsItemMatch(NdbModel):
+class NewsItemMatch(NdbModel): # todo ruben nuke this and use NewsItemActions instead
     REASON_BLOCKED = u'blocked'
     REASON_FILTERED = u'filtered'
     REASON_DELETED = u'deleted'
     REASON_SERVICE_INVISIBLE = u'service_invisible'
 
     update_time = ndb.DateTimeProperty(auto_now=True)
+    news_id = ndb.IntegerProperty()
+    location_match = ndb.BooleanProperty(indexed=False, default=False)
+    actions = ndb.StringProperty(repeated=True)  # type: List[str]
+    disabled = ndb.BooleanProperty(indexed=False)
+
+    # delete properties below this
+
     publish_time = ndb.DateTimeProperty(default=None)
     sort_time = ndb.DateTimeProperty()
 
-    news_id = ndb.IntegerProperty()
     sender = ndb.UserProperty()  # service identity user
     group_ids = ndb.StringProperty(repeated=True)  # group_id can be None (service news, searching news)
-    location_match = ndb.BooleanProperty(indexed=False, default=False)
-
-    actions = ndb.StringProperty(repeated=True)  # type: List[str]
-    disabled = ndb.BooleanProperty(indexed=False)
 
     visible = ndb.BooleanProperty()
     invisible_reasons = ndb.StringProperty(repeated=True, indexed=False)
@@ -715,36 +746,36 @@ class NewsItemMatch(NdbModel):
     def list_by_app_user(cls, app_user):
         return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE))
 
-    @classmethod
-    def count_unread(cls, app_user, group_id, d, max_count=10):
-        return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE))\
-            .filter(cls.group_ids == group_id)\
-            .filter(cls.visible == True)\
-            .filter(cls.publish_time > d)\
-            .count_async(max_count)
-
-    @classmethod
-    def list_by_group_id(cls, app_user, group_id):
-        return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE))\
-            .filter(cls.group_ids == group_id)
-
-    @classmethod
-    def list_visible_by_group_id(cls, app_user, group_id):
-        return cls.list_by_group_id(app_user, group_id)\
-            .filter(cls.visible == True)\
-            .order(-NewsItemMatch.sort_time)
-
-    @classmethod
-    def list_by_sender(cls, app_user, sender, group_id):
-        return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE))\
-            .filter(cls.sender == sender)\
-            .filter(cls.group_ids == group_id)
-
-    @classmethod
-    def list_visible_by_sender_and_group_id(cls, app_user, sender, group_id):
-        return cls.list_by_sender(app_user, sender, group_id)\
-            .filter(cls.visible == True)\
-            .order(-NewsItemMatch.sort_time)
+#     @classmethod
+#     def count_unread(cls, app_user, group_id, d, max_count=10):
+#         return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE))\
+#             .filter(cls.group_ids == group_id)\
+#             .filter(cls.visible == True)\
+#             .filter(cls.publish_time > d)\
+#             .count_async(max_count)
+#
+#     @classmethod
+#     def list_by_group_id(cls, app_user, group_id):
+#         return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE))\
+#             .filter(cls.group_ids == group_id)
+#
+#     @classmethod
+#     def list_visible_by_group_id(cls, app_user, group_id):
+#         return cls.list_by_group_id(app_user, group_id)\
+#             .filter(cls.visible == True)\
+#             .order(-NewsItemMatch.sort_time)
+#
+#     @classmethod
+#     def list_by_sender(cls, app_user, sender, group_id):
+#         return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE))\
+#             .filter(cls.sender == sender)\
+#             .filter(cls.group_ids == group_id)
+#
+#     @classmethod
+#     def list_visible_by_sender_and_group_id(cls, app_user, sender, group_id):
+#         return cls.list_by_sender(app_user, sender, group_id)\
+#             .filter(cls.visible == True)\
+#             .order(-NewsItemMatch.sort_time)
 
     @classmethod
     def list_by_action(cls, app_user, action):
@@ -753,12 +784,12 @@ class NewsItemMatch(NdbModel):
             .filter(cls.visible == True)\
             .order(-NewsItemMatch.update_time)
 
-    @classmethod
-    def list_by_news_id(cls, news_id):
-        return cls.query().filter(cls.news_id == news_id)
-
-    @classmethod
-    def list_by_news_and_group_id(cls, news_id, group_id):
-        return cls.query()\
-            .filter(cls.news_id == news_id)\
-            .filter(cls.group_ids == group_id)
+#     @classmethod
+#     def list_by_news_id(cls, news_id):
+#         return cls.query().filter(cls.news_id == news_id)
+#
+#     @classmethod
+#     def list_by_news_and_group_id(cls, news_id, group_id):
+#         return cls.query()\
+#             .filter(cls.news_id == news_id)\
+#             .filter(cls.group_ids == group_id)

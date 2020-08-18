@@ -16,37 +16,25 @@
 # @@license_version:1.7@@
 
 from datetime import datetime
-import logging
 
-from google.appengine.api import search
+from google.appengine.api import urlfetch
 from google.appengine.ext import ndb
 
-from mcfw.rpc import returns, arguments
-from mcfw.utils import normalize_search_string
-from rogerthat.bizz.elasticsearch import delete_index, create_index,\
-    get_elasticsearch_config, delete_doc, index_doc
+from mcfw.rpc import arguments
+from rogerthat.bizz.elasticsearch import delete_index, create_index, \
+    get_elasticsearch_config, delete_doc, index_doc, es_request
 from rogerthat.bizz.job import run_job
-from rogerthat.bizz.news.matching import get_service_visible
 from rogerthat.consts import NEWS_MATCHING_QUEUE
 from rogerthat.dal.profile import get_service_visible_non_transactional
 from rogerthat.dal.service import get_service_identity
+from rogerthat.models.elasticsearch import ElasticsearchSettings
 from rogerthat.models.news import NewsItem
-from rogerthat.utils import drop_index
-
-
-NEWS_INDEX = 'NEWS_INDEX'
 
 
 def re_index_all(queue=NEWS_MATCHING_QUEUE):
-    the_index = search.Index(name=NEWS_INDEX)
-    drop_index(the_index)
     config = get_elasticsearch_config()
     delete_news_index(config)
     create_news_index(config)
-    run_job(re_index_all_query, [], re_index_all_worker, [], worker_queue=queue)
-
-
-def index_all(queue=NEWS_MATCHING_QUEUE):
     run_job(re_index_all_query, [], re_index_all_worker, [], worker_queue=queue)
 
 
@@ -58,7 +46,6 @@ def re_index_all_worker(ni_key):
     re_index_news_item_by_key(ni_key)
 
 
-@returns(search.Document)
 @arguments(ni_key=ndb.Key)
 def re_index_news_item_by_key(ni_key):
     ni = ni_key.get()
@@ -90,7 +77,7 @@ def create_news_index(config):
 
 
 @arguments(news_item=NewsItem)
-def re_index_news_item_new(news_item):
+def re_index_news_item(news_item):
     if not news_item:
         return None
 
@@ -130,69 +117,44 @@ def re_index_news_item_new(news_item):
     return index_doc(config.news_index, news_id, doc)
 
 
-@returns(search.Document)
-@arguments(news_item=NewsItem)
-def re_index_news_item(news_item):
-    re_index_news_item_new(news_item)
-    if not news_item:
-        return None
-    the_index = search.Index(name=NEWS_INDEX)
-    news_id = str(news_item.id)
-    the_index.delete([news_id])
-
-    if not news_item.published or news_item.deleted:
-        return None
-
-    si = get_service_identity(news_item.sender)
-    if not si:
-        return None
-
-    if not get_service_visible(news_item.sender):
-        return None
-
-    timestamp = news_item.scheduled_at if news_item.scheduled_at else news_item.timestamp
-
-    fields = [search.AtomField(name='id', value=news_id),
-              search.TextField(name='app_ids', value=" ".join(news_item.app_ids)),
-              search.TextField(name='sender_name', value=si.name),
-              search.NumberField(name='timestamp', value=timestamp)]
-
-    if news_item.type == NewsItem.TYPE_NORMAL:
-        if news_item.title:
-            fields.append(search.TextField(name='title', value=news_item.title))
-        if news_item.message:
-            fields.append(search.TextField(name='message', value=news_item.message))
-    elif news_item.type == NewsItem.TYPE_QR_CODE:
-        if news_item.qr_code_caption:
-            fields.append(search.TextField(name='title', value=news_item.qr_code_caption))
-        if news_item.qr_code_content:
-            fields.append(search.TextField(name='message', value=news_item.qr_code_content))
-    else:
-        return None
-
-    m_doc = search.Document(doc_id=news_id, fields=fields)
-    the_index.put(m_doc)
-
-    return m_doc
-
-
 def find_news(app_id, search_string, cursor=None):
-    the_index = search.Index(name=NEWS_INDEX)
-    try:
-        sort_expr = search.SortExpression(expression='timestamp', direction=search.SortExpression.DESCENDING)
+    start_offset = long(cursor) if cursor else 0
+    amount = 10
+    if (start_offset + amount) > 10000:
+        amount = 10000 - start_offset
+    if amount <= 0:
+        return None, []
+    if not search_string:
+        return None, []
+    qry = {
+        'size': amount,
+        'from': start_offset,
+        'query': {
+            'bool': {
+                'filter': [
+                    {'term': {'app_ids': app_id}}
+                ],
+                'must': [
+                    {'match_phrase': {'txt': search_string}}
+                ],
+                'should': []
+            }
+        },
+        # We don't care what's in the document as we'll have to fetch the datastore model anyway
+        'stored_fields': [],
+        'sort': [
+            "_score",
+            {'timestamp': 'desc'}
+        ]
+    }
 
-        q = u"%s app_ids:%s" % (normalize_search_string(search_string), app_id)
-
-        query = search.Query(query_string=q,
-                             options=search.QueryOptions(returned_fields=['id'],
-                                                         sort_options=search.SortOptions(expressions=[sort_expr]),
-                                                         limit=10,
-                                                         cursor=search.Cursor(cursor)))
-
-        search_result = the_index.search(query)
-        if search_result.results:
-            return search_result.results, search_result.cursor.web_safe_string if search_result.cursor else None
-    except:
-        logging.error('Search query error', exc_info=True)
-
-    return None
+    config = get_elasticsearch_config()
+    path = '/%s/_search' % config.news_index
+    result_data = es_request(path, urlfetch.POST, qry)
+    new_cursor = None
+    next_offset = start_offset + len(result_data['hits']['hits'])
+    if result_data['hits']['total']['relation'] in ('eq', 'gte'):
+        if result_data['hits']['total']['value'] > next_offset and next_offset < 10000:
+            new_cursor = u'%s' % next_offset
+    news_ids = [long(hit['_id']) for hit in result_data['hits']['hits']]
+    return new_cursor, news_ids

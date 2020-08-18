@@ -14,52 +14,35 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
+import logging
 
 from google.appengine.ext import deferred, ndb
 
 from rogerthat.consts import MIGRATION_QUEUE
-from rogerthat.models.news import NewsItemMatch, NewsSettingsUser, \
-    NewsSettingsUserService, NewsItemActions
+from rogerthat.models.news import NewsItemActions, NewsSettingsUser, NewsSettingsUserService
 
 
 def job(app_user):
     NewsSettingsUser.create_key(app_user).delete()
-    deferred.defer(_cleanup_matches, app_user, _queue=MIGRATION_QUEUE)
     deferred.defer(_cleanup_actions, app_user, _queue=MIGRATION_QUEUE)
     deferred.defer(_cleanup_user_services, app_user, _queue=MIGRATION_QUEUE)
 
 
+def _delete_all(qry):
+    # type: (ndb.Query) -> None
+    start_cursor = None
+    has_more = True
+    deleted_count = 0
+    while has_more:
+        keys, start_cursor, has_more = qry.fetch_page(500, keys_only=True, start_cursor=start_cursor)
+        deleted_count += len(keys)
+        ndb.delete_multi(keys)
+    logging.debug('Deleted %d %s items', deleted_count, qry.kind)
+
+
 def _cleanup_actions(app_user):
-    batch_count = 200
-    qry = NewsItemActions.list_by_app_user(app_user)
-    items, _, has_more = qry.fetch_page(batch_count, keys_only=True)
-
-    if items:
-        ndb.delete_multi(items)
-
-    if has_more:
-        deferred.defer(_cleanup_actions, app_user, _countdown=2, _queue=MIGRATION_QUEUE)
-
-
-def _cleanup_matches(app_user):
-    batch_count = 200
-    qry = NewsItemMatch.list_by_app_user(app_user)
-    items, _, has_more = qry.fetch_page(batch_count, keys_only=True)
-
-    if items:
-        ndb.delete_multi(items)
-
-    if has_more:
-        deferred.defer(_cleanup_matches, app_user, _countdown=2, _queue=MIGRATION_QUEUE)
+    _delete_all(NewsItemActions.list_by_app_user(app_user))
 
 
 def _cleanup_user_services(app_user):
-    batch_count = 200
-    qry = NewsSettingsUserService.list_by_app_user(app_user)
-    items, _, has_more = qry.fetch_page(batch_count, keys_only=True)
-
-    if items:
-        ndb.delete_multi(items)
-
-    if has_more:
-        deferred.defer(_cleanup_user_services, app_user, _countdown=2, _queue=MIGRATION_QUEUE)
+    _delete_all(NewsSettingsUserService.list_by_app_user(app_user))

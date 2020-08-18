@@ -65,11 +65,9 @@ class AllNewsSentToReviewWarning(BusinessException):
 
 
 @returns(NewsItemListResultTO)
-@arguments(cursor=unicode, service_identity=unicode, tag=unicode)
-def get_news(cursor=None, service_identity=None, tag=None):
-    if not tag or tag is MISSING:
-        tag = u'news'
-    return news.list_news(cursor, 10, service_identity, tag=tag)
+@arguments(cursor=unicode, service_identity=unicode)
+def get_news(cursor=None, service_identity=None):
+    return news.list_news(cursor, 10, service_identity)
 
 
 @returns(NewsStatsTO)

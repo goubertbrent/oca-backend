@@ -504,7 +504,7 @@ class NewsStreamItemTO(TO):
     share_url = unicode_property('share_url', default=None)
 
     @classmethod
-    def from_model(cls, app_user, news_match, news_item_to, notifications=NewsNotificationStatus.NOT_SET):
+    def from_model(cls, app_user, news_item_actions, news_item_to, notifications=NewsNotificationStatus.NOT_SET, match_type=NewsMatchType.NORMAL):
         to = cls()
         to.id = news_item_to.id
         to.sender = news_item_to.sender
@@ -525,14 +525,11 @@ class NewsStreamItemTO(TO):
         to.flags = news_item_to.flags
         to.type = news_item_to.type
         to.timestamp = news_item_to.timestamp
-        to.actions = news_match.action_flags if news_match else 0
-        to.disabled = news_match.disabled if news_match else False
+        to.actions = news_item_actions.action_flags if news_item_actions else 0
+        to.disabled = news_item_actions.disabled if news_item_actions else False
         to.notifications = notifications
         to.blocked = False
-        if news_match:
-            to.match_type = NewsMatchType.LOCATION if news_match.location_match else NewsMatchType.NORMAL
-        else:
-            to.match_type = NewsMatchType.NORMAL
+        to.match_type = match_type
         to.share_url = news_item_to.share_url
         return to
 

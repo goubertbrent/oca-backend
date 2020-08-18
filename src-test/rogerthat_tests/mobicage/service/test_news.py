@@ -177,18 +177,6 @@ class NewsTest(mc_unittest.TestCase):
         news_item.message = None
         print create_push_notification(news_item)
 
-    def test_properties(self):
-        with set_current_user(self.user, skip_create_session=True):
-            news_item_id = self._create_news_item(1).id
-
-        news_item = NewsItem.get_by_id(news_item_id)
-        app_id = news_item.app_ids[0]
-        statistic_property = "reached_age"
-        default_stats = getattr(NewsItemStatistics, 'default_age_stats')()
-
-        original_statistics = getattr(news_item.statistics[app_id], statistic_property, default_stats)
-        setattr(news_item.statistics[app_id], statistic_property, original_statistics)
-
     def test_roles_matching(self):
         role_names = ['employee', 'manager', 'g.manager']
         with set_current_user(self.user, skip_create_session=True):
@@ -792,13 +780,13 @@ class NewsTest(mc_unittest.TestCase):
 
                 t = trans1()
                 self.assertIsNotNone(t)
-                m, _ = t
+                _, matches_location, group_ids = t
                 if i in (0, 4):
-                    self.assertEqual(m.group_ids, [u'be-testing-city'])
-                    self.assertEqual(m.location_match, False)
+                    self.assertEqual(group_ids, [u'be-testing-city'])
+                    self.assertEqual(matches_location, False)
                 else:
-                    self.assertEqual(m.group_ids, [u'be-testing-city'])
-                    self.assertEqual(m.location_match, True)
+                    self.assertEqual(group_ids, [u'be-testing-city'])
+                    self.assertEqual(matches_location, True)
 
             news_item_2_locations = NewsLocationsTO()
             news_item_2_locations.match_required = True
@@ -833,9 +821,9 @@ class NewsTest(mc_unittest.TestCase):
                     self.assertIsNone(t)
                 else:
                     self.assertIsNotNone(t)
-                    m, _ = t
-                    self.assertEqual(m.group_ids, [u'be-testing-events'])
-                    self.assertEqual(m.location_match, True)
+                    _, matches_location, group_ids = t
+                    self.assertEqual(group_ids, [u'be-testing-events'])
+                    self.assertEqual(matches_location, True)
 
             news_item_3_locations = NewsLocationsTO()
             news_item_3_locations.match_required = True
@@ -873,9 +861,9 @@ class NewsTest(mc_unittest.TestCase):
                     self.assertIsNone(t)
                 else:
                     self.assertIsNotNone(t)
-                    m, _ = t
-                    self.assertEqual(m.group_ids, [u'be-testing-events'])
-                    self.assertEqual(m.location_match, True)
+                    _, matches_location, group_ids = t
+                    self.assertEqual(group_ids, [u'be-testing-events'])
+                    self.assertEqual(matches_location, True)
 
         for i in range(5):
             app_user = users.User('user_%s@example.com:%s' % (i, self.app_id))

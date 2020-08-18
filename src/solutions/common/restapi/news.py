@@ -64,10 +64,10 @@ def _translate_exception_msg(sln_settings, msg):
 
 @rest('/common/news', 'get', read_only_access=True, silent_result=True)
 @returns(NewsItemListResultTO)
-@arguments(tag=unicode, cursor=unicode)
-def rest_get_news(tag=None, cursor=None):
+@arguments(cursor=unicode)
+def rest_get_news(cursor=None):
     service_identity = users.get_current_session().service_identity
-    return get_news(cursor, service_identity, tag)
+    return get_news(cursor, service_identity)
 
 
 @rest('/common/news/statistics', 'get', read_only_access=True, silent_result=True)

@@ -19,17 +19,15 @@ import datetime
 import json
 import logging
 import os
-import random
-
+d
 from google.appengine.ext.deferred import deferred
 from google.appengine.ext.webapp import template
 
 from rogerthat.bizz import channel
 from rogerthat.bizz.rtemail import generate_auto_login_url
 from rogerthat.consts import NEWS_MATCHING_QUEUE
-from rogerthat.dal.profile import get_service_profile, get_search_config
-from rogerthat.dal.service import get_service_identities, \
-    count_users_connected_to_service_identity
+from rogerthat.dal.profile import get_service_profile, get_service_visible
+from rogerthat.dal.service import get_service_identities, count_users_connected_to_service_identity
 from rogerthat.migrations.migrate_news_items import migrate_service
 from rogerthat.models.news import NewsSettingsService, NewsItem, NewsGroup, \
     NewsSettingsServiceGroup
@@ -65,7 +63,7 @@ class SetupNewsServiceHandler(NewsAdminHandler):
         if not item:
             self.redirect('/mobiadmin/google/news?app_id=%s' % app_id)
             return
-        
+
         sp = get_service_profile(item.service_user)
         last_activity = get_last_activity(item.service_user)
         latest_activity_days = get_days_between_last_activity(last_activity) if last_activity else -1
@@ -78,7 +76,7 @@ class SetupNewsServiceHandler(NewsAdminHandler):
                     disabled_reason = c.disabled_reason
             except:
                 pass
-        
+
         identities = []
 
         total_user_count = 0
@@ -87,15 +85,15 @@ class SetupNewsServiceHandler(NewsAdminHandler):
             news_count = NewsItem.query().filter(NewsItem.sender == si.user).count(None)
             user_count = count_users_connected_to_service_identity(si.user)
             total_user_count += user_count
-            sc, _ = get_search_config(si.user)
-            if sc.enabled and all_hidden:
+            service_visible = get_service_visible(si.user)
+            if service_visible and all_hidden:
                 all_hidden = False
             identities.append(dict(id=si.identifier,
                                    name=si.name,
                                    news_count=news_count,
                                    user_count=user_count,
                                    app_ids=si.appIds,
-                                   search_enabled=sc.enabled))
+                                   search_enabled=service_visible))
 
         delete_enabled = False
         if disabled_reason:
@@ -237,12 +235,12 @@ class ListNewsServiceHandler(NewsAdminHandler):
             identities = []
             for si in get_service_identities(nss.service_user):
                 news_count = NewsItem.query().filter(NewsItem.sender == si.user).count(None)
-                sc, _ = get_search_config(si.user)
+                service_visible = get_service_visible(si.user)
                 identities.append(dict(id=si.identifier,
                                        name=si.name,
                                        news_count=news_count,
                                        app_ids=si.appIds,
-                                       search_enabled=sc.enabled))
+                                       search_enabled=service_visible))
 
             items.append(dict(service_user_email=nss.service_user.email(),
                               latest_activity=dict(date=str(last_activity) if last_activity else 'never', days=latest_activity_days),

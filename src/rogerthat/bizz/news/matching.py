@@ -19,33 +19,31 @@ import logging
 from datetime import date, datetime
 
 from google.appengine.ext import ndb, deferred, db
-from google.appengine.ext.ndb.query import Cursor
-from typing import Optional, Tuple, Dict, List
+from typing import Dict, List
 
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.job import run_job, MODE_BATCH
+from rogerthat.bizz.job import run_job
 from rogerthat.bizz.news.groups import get_groups_for_app_id, \
     update_stream_layout
 from rogerthat.bizz.roles import has_role
 from rogerthat.capi.news import updateBadgeCount
 from rogerthat.consts import NEWS_MATCHING_QUEUE
-from rogerthat.dal import put_in_chunks
 from rogerthat.dal.friend import get_friends_map_cached, get_friends_map
 from rogerthat.dal.mobile import get_mobile_key_by_account
 from rogerthat.dal.profile import get_user_profile
 from rogerthat.dal.roles import get_service_roles_by_ids
 from rogerthat.dal.service import get_service_identity
-from rogerthat.models import UserProfile, UserProfileInfo, SearchConfig
-from rogerthat.models.news import NewsItem, NewsSettingsUser, NewsItemMatch, \
+from rogerthat.models import UserProfile, UserProfileInfo
+from rogerthat.models.news import NewsItem, NewsSettingsUser, \
     NewsSettingsUserGroup, NewsSettingsUserGroupDetails, NewsSettingsUserService, \
     NewsSettingsService, NewsItemAddress, NewsGroup, NewsNotificationStatus, NewsNotificationFilter, \
-    NewsStream, NewsStreamCustomLayout
+    NewsStream, NewsStreamCustomLayout, NewsItemActions, NewsMatchType
 from rogerthat.models.properties.friend import FriendDetail
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import logError
 from rogerthat.to.friends import FRIEND_TYPE_SERVICE
 from rogerthat.to.news import UpdateBadgeCountRequestTO
-from rogerthat.utils import calculate_age_from_date, is_flag_set
+from rogerthat.utils import calculate_age_from_date, is_flag_set, get_epoch_from_datetime
 from rogerthat.utils.app import get_app_id_from_app_user
 from rogerthat.utils.location import haversine
 from rogerthat.utils.service import get_service_user_from_service_identity_user, \
@@ -97,62 +95,7 @@ def setup_default_settings(app_user, set_last_used=False):
             news_user_settings.put()
             deferred.defer(migrate_notification_settings_for_user, app_user, _queue=NEWS_MATCHING_QUEUE)
 
-    for group_id in new_group_ids:
-        deferred.defer(create_matches_for_user, app_user, group_id, _queue=NEWS_MATCHING_QUEUE)
-
     return news_user_settings
-
-
-def create_matches_for_user(app_user, group_id, cursor=None):
-    logging.debug('debugging_news create_matches_for_user user:%s group:%s', app_user, group_id)
-
-    user_settings = NewsSettingsUser.create_key(app_user).get()
-
-    batch_count = 50
-    qry = NewsItem.list_published_by_group_id(group_id)
-    start_cursor = Cursor.from_websafe_string(cursor) if cursor else None
-    items, new_cursor, has_more = qry.fetch_page(batch_count, start_cursor=start_cursor)
-    si_users = []
-    for news_item in items:
-        if news_item.sender in si_users:
-            continue
-        si_users.append(news_item.sender)
-
-    to_put = []
-    for news_item in items:
-        t = _create_news_item_match(user_settings, news_item)
-        if not t:
-            continue
-        m, _ = t
-        to_put.append(m)
-    if to_put:
-        put_in_chunks(to_put, is_ndb=True)
-
-    if has_more and new_cursor:
-        new_cursor_str = new_cursor.to_websafe_string().decode('utf-8')
-        deferred.defer(create_matches_for_user, app_user, group_id, new_cursor_str, _queue=NEWS_MATCHING_QUEUE)
-
-
-def delete_matches_for_user(app_user, group_id):
-    logging.debug('debugging_news delete_matches_for_user user:%s group:%s', app_user, group_id)
-
-    batch_count = 200
-    qry = NewsItemMatch.list_by_group_id(app_user, group_id)
-    items, _, has_more = qry.fetch_page(batch_count)
-    to_put = []
-    for nim in items:
-        if group_id not in nim.group_ids:
-            continue
-        nim.group_ids.remove(group_id)
-        if not nim.group_ids:
-            nim.visible = False
-        to_put.append(nim)
-
-    if to_put:
-        put_in_chunks(to_put, is_ndb=True)
-
-    if has_more:
-        deferred.defer(delete_matches_for_user, app_user, group_id, _countdown=2, _queue=NEWS_MATCHING_QUEUE)
 
 
 def create_matches_for_news_item_key(news_item_key, old_group_ids, should_create_notification=False):
@@ -169,18 +112,12 @@ def create_matches_for_news_item(news_item, old_group_ids, should_create_notific
     if news_item.group_visible_until and NewsGroup.TYPE_POLLS in news_item.group_types:
         update_stream_layout(news_item.group_ids, NewsGroup.TYPE_POLLS, news_item.group_visible_until)
 
-    for group_id in old_group_ids:
-        if group_id in news_item.group_ids:
-            continue
-        run_job(_qry_by_news_and_group_id, [news_item.id, group_id],
-                _delete_group_matches_for_news_item_worker, [group_id], worker_queue=NEWS_MATCHING_QUEUE)
-
     for group_id in news_item.group_ids:
         if group_id in old_group_ids:
             continue
         deferred.defer(_update_service_filter, group_id, news_item.sender, _queue=NEWS_MATCHING_QUEUE)
         run_job(_create_matches_for_news_item_qry, [group_id],
-                _create_matches_for_news_item_worker, [news_item.id, should_create_notification], worker_queue=NEWS_MATCHING_QUEUE)
+                _create_matches_for_news_item_worker, [news_item.id, should_create_notification, group_id], worker_queue=NEWS_MATCHING_QUEUE)
 
     if old_group_ids:
         do_callback_for_update(news_item)
@@ -205,8 +142,8 @@ def _create_matches_for_news_item_qry(group_id):
 
 @ndb.transactional(xg=True)
 @returns()
-@arguments(news_settings_key=ndb.Key, news_id=(int, long), should_create_notification=bool)
-def _create_matches_for_news_item_worker(news_settings_key, news_id, should_create_notification=False):
+@arguments(news_settings_key=ndb.Key, news_id=(int, long), should_create_notification=bool, group_id=unicode)
+def _create_matches_for_news_item_worker(news_settings_key, news_id, should_create_notification=False, group_id=None):
     from rogerthat.bizz.news import create_notification
     user_settings = news_settings_key.get()
     if not user_settings:
@@ -218,16 +155,11 @@ def _create_matches_for_news_item_worker(news_settings_key, news_id, should_crea
     t = _create_news_item_match(user_settings, news_item)
     if not t:
         return
-    m, created_match = t
-    m.put()
-    if not m.visible:
-        return
-
+    created_match, matches_location, group_ids = t
     if not created_match:
         return
 
-    if m.group_ids:
-        deferred.defer(calculate_and_update_badge_count, user_settings.app_user, m.group_ids, _transactional=True, _queue=NEWS_MATCHING_QUEUE)
+    deferred.defer(calculate_and_update_badge_count, user_settings.app_user, group_ids, _transactional=True, _queue=NEWS_MATCHING_QUEUE)
 
     if not should_create_notification:
         return
@@ -235,8 +167,8 @@ def _create_matches_for_news_item_worker(news_settings_key, news_id, should_crea
     notification_group_id = None
     if not is_flag_set(NewsItem.FLAG_SILENT, news_item.flags):
         groups = []
-        for group_id in m.group_ids:
-            g = user_settings.get_group(group_id)
+        for possible_group_id in group_ids:
+            g = user_settings.get_group(possible_group_id)
             if g and g not in groups:
                 groups.append(g)
 
@@ -250,7 +182,7 @@ def _create_matches_for_news_item_worker(news_settings_key, news_id, should_crea
             for d in g.details:
                 if notification_group_id:
                     break
-                if d.group_id not in m.group_ids:
+                if d.group_id not in group_ids:
                     continue
                 if d.notifications == NewsNotificationFilter.HIDDEN:
                     continue
@@ -268,85 +200,69 @@ def _create_matches_for_news_item_worker(news_settings_key, news_id, should_crea
                         notification_group_id = d.group_id
                         break
 
-    if notification_group_id:
-        deferred.defer(create_notification, user_settings.app_user, notification_group_id, news_item.id, location_match=m.location_match,
+    if notification_group_id and notification_group_id == group_id:
+        deferred.defer(create_notification, user_settings.app_user, notification_group_id, news_item.id, location_match=matches_location,
                        _transactional=True, _queue=NEWS_MATCHING_QUEUE)
 
 
-def _create_news_item_match(user_settings, news_item):
-    # type: (NewsSettingsUser, NewsItem) -> Optional[Tuple[NewsItemMatch, bool]]
+def get_news_item_match_type(user_settings, news_item):
     if not news_item:
         logging.debug('debugging_news news item not found')
-        return
+        return NewsMatchType.NO_MATCH
 
     if not news_item.published:
         logging.debug('debugging_news news item not published')
-        return
+        return NewsMatchType.NO_MATCH
+
+    if news_item.deleted:
+        logging.debug('debugging_news news item deleted')
+        return NewsMatchType.NO_MATCH
 
     if not user_settings:
         logging.debug('debugging_news user settings not found')
-        return
+        return NewsMatchType.NO_MATCH
 
     if not user_settings.group_ids:
         logging.debug('debugging_news user groups empty')
-        return
+        return NewsMatchType.NO_MATCH
 
     group_ids = list(set(news_item.group_ids) & set(user_settings.group_ids))
     if not group_ids:
         logging.debug('debugging_news no groups matches')
-        return
+        return NewsMatchType.NO_MATCH
 
     if not _match_target_audience_of_item(user_settings.app_user, news_item):
         logging.debug('debugging_news no target_audience match')
-        return
+        return NewsMatchType.NO_MATCH
 
     if not _match_roles_of_item(user_settings.app_user, news_item):
         logging.debug('debugging_news no roles match')
-        return
+        return NewsMatchType.NO_MATCH
 
     if news_item.has_locations:
         matches_location = _match_locations_of_item(user_settings.app_user, news_item)
         if news_item.location_match_required and not matches_location:
             logging.debug('debugging_news no location match')
-            return
+            return NewsMatchType.NO_MATCH
     else:
         matches_location = False
 
-    if not group_ids:
-        logging.debug('debugging_news no groups matches after location matching')
-        return
+    if matches_location:
+        return NewsMatchType.LOCATION
+    return NewsMatchType.NORMAL
 
+
+def _create_news_item_match(user_settings, news_item):
+    match_type = get_news_item_match_type(user_settings, news_item)
+    if match_type == NewsMatchType.NO_MATCH:
+        return
     created_match = False
-    match = NewsItemMatch.create_key(user_settings.app_user, news_item.id).get()
-    if match:
-        group_id_matches = list(set(group_ids) & set(match.group_ids))
-        if len(group_id_matches) != len(group_ids):
-            match.group_ids = group_ids
-        match.publish_time = news_item.stream_publish_timestamp
-        match.sort_time = news_item.stream_sort_timestamp
-        match.location_match = matches_location
-    elif news_item.deleted:
-        return
-    else:
+    news_item_actions = NewsItemActions.create_key(user_settings.app_user, news_item.id).get()
+    if not news_item_actions:
         created_match = True
-        match = NewsItemMatch.create(user_settings.app_user, news_item.id, news_item.stream_publish_timestamp,
-                                     news_item.stream_sort_timestamp, news_item.sender, group_ids, matches_location)
 
-    invisible_reasons = set()
-
-    if news_item.deleted:
-        invisible_reasons.add(NewsItemMatch.REASON_DELETED)
-
-    if not get_service_visible(news_item.sender):
-        invisible_reasons.add(NewsItemMatch.REASON_SERVICE_INVISIBLE)
-
-    if invisible_reasons:
-        match.invisible_reasons = list(invisible_reasons)
-        match.visible = False
-    else:
-        match.visible = True
-
-    return match, created_match
+    group_ids = list(set(news_item.group_ids) & set(user_settings.group_ids))
+    return created_match, match_type == NewsMatchType.LOCATION, group_ids
 
 
 @ndb.non_transactional
@@ -357,17 +273,6 @@ def get_news_item(news_id):
 @ndb.non_transactional
 def get_news_group(group_id):
     return NewsGroup.create_key(group_id).get()
-
-
-@ndb.non_transactional
-def get_service_visible(service_identity_user):
-    sc = SearchConfig.get(SearchConfig.create_key(service_identity_user))
-    return bool(sc and sc.enabled)
-
-
-@ndb.non_transactional
-def get_news_settings_service(service_user):
-    return NewsSettingsService.create_key(service_user).get()
 
 
 def _match_target_audience_of_item(app_user, news_item):
@@ -435,68 +340,6 @@ def _match_locations_of_item(app_user, news_item):
     return False
 
 
-def delete_news_matches(news_id):
-    run_job(_qry_news_id_matches, [news_id],
-            _worker_delete_matches, [], worker_queue=NEWS_MATCHING_QUEUE)
-
-
-def _qry_news_id_matches(news_id):
-    return NewsItemMatch.list_by_news_id(news_id)
-
-
-@ndb.transactional()
-def _worker_delete_matches(nim_key):
-    nim = nim_key.get()
-    if not nim:
-        return
-    if NewsItemMatch.REASON_DELETED not in nim.invisible_reasons:
-        nim.invisible_reasons.append(NewsItemMatch.REASON_DELETED)
-        nim.visible = False
-        nim.put()
-
-
-def update_visibility_news_matches(news_id, visible):
-    run_job(_qry_news_id_matches, [news_id],
-            _worker_update_visibility_matches, [visible], worker_queue=NEWS_MATCHING_QUEUE,
-            mode=MODE_BATCH, batch_size=25)
-
-
-@ndb.transactional(xg=True)
-def _worker_update_visibility_matches(nim_keys, visible):
-    to_put = []
-    for nim in ndb.get_multi(nim_keys):
-        if not nim:
-            continue
-        if visible:
-            if NewsItemMatch.REASON_SERVICE_INVISIBLE in nim.invisible_reasons:
-                nim.invisible_reasons.remove(NewsItemMatch.REASON_SERVICE_INVISIBLE)
-                nim.visible = True if len(nim.invisible_reasons) == 0 else False
-                to_put.append(nim)
-        elif NewsItemMatch.REASON_SERVICE_INVISIBLE not in nim.invisible_reasons:
-            nim.invisible_reasons.append(NewsItemMatch.REASON_SERVICE_INVISIBLE)
-            nim.visible = False
-            to_put.append(nim)
-    ndb.put_multi(to_put)
-
-
-def _qry_by_news_and_group_id(news_id, group_id):
-    return NewsItemMatch.list_by_news_and_group_id(news_id, group_id)
-
-
-@ndb.transactional()
-@returns()
-@arguments(nim_key=ndb.Key, group_id=unicode)
-def _delete_group_matches_for_news_item_worker(nim_key, group_id):
-    nim = nim_key.get()
-    if group_id not in nim.group_ids:
-        return
-    logging.debug('debugging_news _delete_group_matches_for_news_item_worker user:%s news_id:%s group_id:%s',
-                  nim.app_user, nim.news_id, group_id)
-
-    nim.group_ids.remove(group_id)
-    nim.put()
-
-
 def should_match_location(ni_lat, ni_lon, ni_distance, my_lat, my_lon, my_distance):
     distance_meter = long(haversine(my_lon, my_lat, ni_lon, ni_lat) * 1000)
     if distance_meter > sum([ni_distance, my_distance]):
@@ -538,7 +381,7 @@ def calculate_and_update_badge_count(app_user, group_ids):
         if news_stream_group_types and news_group.group_type not in news_stream_group_types:
             badge_count = 0
         else:
-            badge_count = NewsItemMatch.count_unread(app_user, news_group.group_id, details.last_load_request).get_result()
+            badge_count = NewsItem.count_unread(news_group.group_id, get_epoch_from_datetime(details.last_load_request)).get_result()
         to_put.extend(update_badge_count_user(app_user, news_group, badge_count, mobiles, save_capi_calls=False))
     db.put(to_put)
 

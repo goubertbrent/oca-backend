@@ -353,7 +353,6 @@ def _get_news_group(group_id):
 
 @ndb.transactional(xg=True)
 def _worker_add_group_to_user_settings(s_key, group_id):
-    from rogerthat.bizz.news.matching import create_matches_for_user
     user_settings = s_key.get()  # type: NewsSettingsUser
     if group_id in user_settings.group_ids:
         return
@@ -380,13 +379,9 @@ def _worker_add_group_to_user_settings(s_key, group_id):
     user_settings.groups.append(settings_user_group)
     user_settings.put()
 
-    deferred.defer(create_matches_for_user, user_settings.app_user, group_id, _transactional=True,
-                   _queue=NEWS_MATCHING_QUEUE)
-
 
 @ndb.transactional(xg=True)
 def _worker_delete_group_from_user_settings(s_key, group_id):
-    from rogerthat.bizz.news.matching import delete_matches_for_user
     s = s_key.get()
     if group_id not in s.group_ids:
         return
@@ -396,8 +391,6 @@ def _worker_delete_group_from_user_settings(s_key, group_id):
     azzert(len(g.details) == 1)
     s.groups.remove(g)
     s.put()
-
-    deferred.defer(delete_matches_for_user, s.app_user, group_id, _transactional=True, _queue=NEWS_MATCHING_QUEUE)
 
 
 def delete_service_group(app_id, group_type):

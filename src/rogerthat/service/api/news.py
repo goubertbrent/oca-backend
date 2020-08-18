@@ -63,11 +63,11 @@ def get_basic_statistics(ids, service_identity=None):
 
 @service_api(function=u'news.get_time_statistics', silent_result=True)
 @returns(NewsItemTimeStatisticsTO)
-@arguments(id=(int, long), service_identity=unicode)
-def get_time_statistics(id, service_identity=None):
+@arguments(news_id=(int, long), service_identity=unicode)
+def get_time_statistics(news_id, service_identity=None):
     service_user = users.get_current_user()
     service_identity_user = get_and_validate_service_identity_user(service_user, service_identity)
-    news_item = news.get_and_validate_news_item(id, service_identity_user)
+    news_item = news.get_and_validate_news_item(news_id, service_identity_user)
     return get_news_item_time_statistics(news_item)
 
 
@@ -118,13 +118,12 @@ def disable_news(news_id, members, service_identity=None):
 
 @service_api(function=u'news.list')
 @returns(NewsItemListResultTO)
-@arguments(cursor=unicode, batch_count=(int, long), service_identity=unicode, updated_since=(int, long),
-           tag=unicode)
-def list_news(cursor=None, batch_count=10, service_identity=None, updated_since=0, tag=None):
+@arguments(cursor=unicode, batch_count=(int, long), service_identity=unicode)
+def list_news(cursor=None, batch_count=10, service_identity=None):
     bizz_check(batch_count <= 100, 'Cannot get more than 100 news items at once.')
     service_user = users.get_current_user()
     service_identity_user = get_and_validate_service_identity_user(service_user, service_identity)
-    return news.get_news_by_service(cursor, batch_count, service_identity_user, updated_since, tag)
+    return news.get_news_by_service(cursor, batch_count, service_identity_user)
 
 
 @service_api(function=u'news.list_groups')
