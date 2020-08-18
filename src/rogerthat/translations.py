@@ -1425,6 +1425,12 @@ Sont supportés les formats pdf, jpeg et png""",
 """Community news""": u"""Nouvelles de la ville""",
 
 
+"""The latest information about COVID-19""": u"""Les dernières informations sur COVID-19""",
+
+
+"""Coronavirus info""": u"""Coronavirus info""",
+
+
 """Community Services""": u"""Ma ville""",
 
 
