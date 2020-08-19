@@ -1,7 +1,3 @@
-export const enum VoucherProviderId {
-  CIRKLO = 'cirklo'
-}
-
 export interface VoucherService {
   id: string;
   name: string;
@@ -12,13 +8,6 @@ export interface VoucherService {
   whitelist_date: string | null;
   denied: boolean;
   search_data: string[];
-}
-
-export interface VoucherProvider {
-  provider: VoucherProviderId;
-  enabled: boolean;
-  can_enable: boolean;
-  enable_date: string | null;
 }
 
 export interface VouchersServiceList {

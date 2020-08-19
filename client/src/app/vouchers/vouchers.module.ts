@@ -6,7 +6,6 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSortModule } from '@angular/material/sort';
@@ -22,9 +21,9 @@ import { ERROR_HANDLING_TRANLATIONS_PROVIDER } from '../../environments/config';
 import { MAT_PAGINATOR_INTL_PROVIDER } from '../shared/i18n/material-components';
 import { CirkloSettingsPageComponent } from './cirklo-settings-page/cirklo-settings-page.component';
 import { VouchersPageComponent } from './vouchers-page/vouchers-page.component';
+import { WhitelistDialogComponent } from './vouchers-page/whitelist-dialog.component';
 import { VouchersEffects } from './vouchers.effects';
 import { vouchersFeatureKey, vouchersReducer } from './vouchers.reducer';
-import { WhitelistDialogComponent } from './vouchers-page/whitelist-dialog.component';
 
 const routes: Routes = [
   { path: '', component: VouchersPageComponent },
@@ -44,7 +43,6 @@ const routes: Routes = [
     MatTableModule,
     MatSlideToggleModule,
     MatProgressBarModule,
-    MatPaginatorModule,
     MatToolbarModule,
     MatButtonModule,
     MatDialogModule,
