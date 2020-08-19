@@ -79,7 +79,7 @@ def send_smart_email(email_id, to, add_recipients_to_list=True, data=None):
 
     cs = Transactional(get_auth_parameters())
     results = cs.smart_email_send(email_id, allowed_to, data=data, add_recipients_to_list=add_recipients_to_list)
-    rejected = [res.Recipient for res in results if res.Recipient not in allowed_to]
+    rejected = [res.__dict__ for res in results if res.Status != u'Accepted']
     if rejected:
         logging.error('Sending smart email of %s is rejected for %s', email_id, rejected, _suppress=False)
 
@@ -96,7 +96,7 @@ def send_smart_email_without_check(email_id, to):
 
     cs = Transactional(get_auth_parameters())
     results = cs.smart_email_send(email_id, to)
-    rejected = [res.Recipient for res in results]
+    rejected = [res.__dict__ for res in results if res.Status != u'Accepted']
     if rejected:
         logging.error('Sending smart email of %s is rejected for %s', email_id, rejected, _suppress=False)
 
