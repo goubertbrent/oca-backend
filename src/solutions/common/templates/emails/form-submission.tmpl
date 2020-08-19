@@ -130,7 +130,7 @@
                             {%- elif comp.type == 'location' -%}
                                 {%- call render_location_value(value) -%}{%- endcall -%}
                             {%- else -%}
-                                {{ component.value.get_string_value(comp) }}
+                                {{ value.get_string_value(comp) }}
                             {%- endif -%}
                         {%- endcall -%}
                     {%- endfor -%}

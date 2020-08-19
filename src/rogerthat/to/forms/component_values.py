@@ -43,7 +43,7 @@ class TextInputComponentValueTO(FieldComponentValueTO, BaseComponentValue):
 
     def get_string_value(self, component):
         # type: (TextInputComponentTO) -> str
-        return self.value
+        return self.value or ''
 
 
 class SingleSelectComponentValueTO(TextInputComponentValueTO, BaseComponentValue):
@@ -51,7 +51,6 @@ class SingleSelectComponentValueTO(TextInputComponentValueTO, BaseComponentValue
         # type: (TextInputComponentTO) -> str
         choices_map = {choice.value: choice.label for choice in component.choices}
         return choices_map.get(self.value, self.value)
-
 
 
 class MultiSelectComponentValueTO(FieldComponentValueTO, BaseComponentValue):
