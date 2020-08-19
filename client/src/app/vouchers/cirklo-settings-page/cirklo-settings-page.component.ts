@@ -15,6 +15,11 @@ export class CirkloSettingsPageComponent implements OnInit, OnDestroy {
   formGroup = new FormGroup({
     city_id: new FormControl(null),
     logo_url: new FormControl(null),
+    signup_logo_url: new FormControl(null),
+    signup_name_nl: new FormControl(null),
+    signup_name_fr: new FormControl(null),
+    signup_mail_id_accepted: new FormControl(null),
+    signup_mail_id_denied: new FormControl(null),
   });
   cirkloSettingsLoading$: Observable<boolean>;
   destroyed$ = new Subject();

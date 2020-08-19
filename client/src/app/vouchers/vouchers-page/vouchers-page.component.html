@@ -1,56 +1,58 @@
 <mat-toolbar>
   <h1 class="flex-grow">{{ 'oca.cirklo_light' | translate }}</h1>
-  <button (click)="export()" [disabled]="loading$ | async" mat-icon-button [matTooltip]="'oca.export' | translate">
-    <mat-icon>get_app</mat-icon>
+  <mat-form-field class="flex-grow">
+    <mat-label>{{ 'oca.search' | translate }}</mat-label>
+    <input matInput (keyup)="applyFilter($event.target.value)">
+  </mat-form-field>
+  <button (click)="refresh()" [disabled]="loading$ | async" mat-icon-button [matTooltip]="'oca.refresh' | translate">
+    <mat-icon>refresh</mat-icon>
   </button>
   <a mat-icon-button routerLink="settings">
     <mat-icon>settings</mat-icon>
   </a>
 </mat-toolbar>
-<p class="vouchers-info">{{ 'oca.cirklo_light_info_page' | translate }}</p>
-<mat-tab-group (selectedIndexChange)="tabChanged($event)">
-  <mat-tab *ngFor="let organizationType of organizationTypes" [label]="organizationType.label | translate">
-  </mat-tab>
-</mat-tab-group>
 <mat-progress-bar *ngIf="loading$ | async" mode="indeterminate"></mat-progress-bar>
-<table (matSortChange)="onSorted()"
+<table (matSortChange)="sortData($event)"
        [dataSource]="dataSource"
        class="vouchers-table"
        mat-table matSort
-       matSortActive="creation_time"
+       matSortActive="creation_date"
        matSortDirection="desc"
        matSortDisableClear>
   <ng-container matColumnDef="name">
     <th *matHeaderCellDef mat-header-cell mat-sort-header>{{ 'oca.reservation-name' | translate }}</th>
     <td *matCellDef="let row" mat-cell>{{ row.name }}</td>
   </ng-container>
-  <ng-container matColumnDef="creation_time">
+  <ng-container matColumnDef="email">
+    <th *matHeaderCellDef mat-header-cell mat-sort-header>{{ 'oca.Email' | translate }}</th>
+    <td *matCellDef="let row" mat-cell>{{ row.email }}</td>
+  </ng-container>
+  <ng-container matColumnDef="creation_date">
     <th *matHeaderCellDef mat-header-cell mat-sort-header>{{ 'oca.created' | translate }}</th>
-    <td *matCellDef="let row" mat-cell>{{ row.creation_time | date }}</td>
+    <td *matCellDef="let row" mat-cell>{{ row.creation_date | date }}</td>
   </ng-container>
-  <ng-container matColumnDef="cirklo_enabled">
-    <th *matHeaderCellDef mat-header-cell>{{ 'oca.cirklo_light_enabled' | translate }}</th>
+  <ng-container matColumnDef="address">
+    <th *matHeaderCellDef mat-header-cell>{{ 'oca.address' | translate }}</th>
+    <td *matCellDef="let row" mat-cell>{{ row.address }}</td>
+  </ng-container>
+  <ng-container matColumnDef="whitelist_date">
+    <th *matHeaderCellDef mat-header-cell>{{ 'oca.whitelist' | translate }}</th>
     <td *matCellDef="let row" mat-cell>
-      <mat-slide-toggle (change)="toggleProvider($event, row)"
-                        #toggle
-                        [disabled]="!row.cirkloProvider.can_enable && !row.cirkloProvider.enabled"
-                        [matTooltipDisabled]="!toggle.disabled"
-                        [matTooltip]="'oca.cirklo_disabled_reason_privacy' | translate"
-                        [checked]="row.cirkloProvider.enabled"></mat-slide-toggle>
+      <div *ngIf="!row.whitelist_date">
+      	  <ng-container *ngIf="row.denied">{{ 'oca.denied' | translate }}</ng-container>
+	      <button *ngIf="!row.denied" mat-raised-button color="primary" (click)="whitelistService(row)">{{ 'oca.whitelist' | translate }}</button>
+      </div>
+      <ng-container *ngIf="row.whitelist_date as date">{{ date | date }}</ng-container>
     </td>
   </ng-container>
-  <ng-container matColumnDef="cirklo_enable_date">
-    <th *matHeaderCellDef mat-header-cell>{{ 'oca.cirklo_light_enable_date' | translate }}</th>
+  <ng-container matColumnDef="merchant_registered">
+    <th *matHeaderCellDef mat-header-cell>{{ 'oca.merchant_registered' | translate }}</th>
     <td *matCellDef="let row" mat-cell>
-      <ng-container *ngIf="row.cirkloProvider.enable_date as date">{{ date | date }}</ng-container>
+      <ng-container *ngIf="row.merchant_registered">{{ 'oca.Yes' | translate }}</ng-container>
+      <ng-container *ngIf="!row.merchant_registered">{{ 'oca.No' | translate }}</ng-container>
     </td>
   </ng-container>
+
   <tr *matHeaderRowDef="displayedColumns" mat-header-row></tr>
   <tr *matRowDef="let row; columns: displayedColumns" mat-row></tr>
 </table>
-<mat-paginator (page)="pageChanged($event)"
-               [disabled]="loading$ | async"
-               [length]="(voucherList$ | async).total"
-               [pageIndex]="pageIndex"
-               [pageSizeOptions]="[50, 100, 200, 500]"
-               [pageSize]="pageSize"></mat-paginator>

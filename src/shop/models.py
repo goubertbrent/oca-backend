@@ -517,8 +517,7 @@ class Customer(db.Model):
 
     @classmethod
     def list_by_app_id(cls, app_id):
-        return Customer.all()\
-            .filter('app_ids', app_id)
+        return Customer.all().filter('app_ids', app_id)
 
     @property
     def editable_organization_types(self):
@@ -543,6 +542,12 @@ class Customer(db.Model):
     def can_edit_service(self):
         """Check if a city service can edit another service on dashboard (merchants...etc)."""
         return self.organization_type == OrganizationType.CITY
+
+    @property
+    def full_address_string(self):
+        return ', '.join([' '.join([self.address1 or '', self.address2 or '']),
+                          self.zip_code,
+                          self.city])
 
 
 class CustomerSignupStatus(Enum):

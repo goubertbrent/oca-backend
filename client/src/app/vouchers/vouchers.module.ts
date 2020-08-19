@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -23,7 +24,7 @@ import { CirkloSettingsPageComponent } from './cirklo-settings-page/cirklo-setti
 import { VouchersPageComponent } from './vouchers-page/vouchers-page.component';
 import { VouchersEffects } from './vouchers.effects';
 import { vouchersFeatureKey, vouchersReducer } from './vouchers.reducer';
-
+import { WhitelistDialogComponent } from './vouchers-page/whitelist-dialog.component';
 
 const routes: Routes = [
   { path: '', component: VouchersPageComponent },
@@ -32,7 +33,7 @@ const routes: Routes = [
 
 
 @NgModule({
-  declarations: [VouchersPageComponent, CirkloSettingsPageComponent],
+  declarations: [VouchersPageComponent, CirkloSettingsPageComponent, WhitelistDialogComponent],
   imports: [
     CommonModule,
     EffectsModule.forFeature([VouchersEffects]),
@@ -46,6 +47,7 @@ const routes: Routes = [
     MatPaginatorModule,
     MatToolbarModule,
     MatButtonModule,
+    MatDialogModule,
     MatIconModule,
     MatTooltipModule,
     MatSortModule,

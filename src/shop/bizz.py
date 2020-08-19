@@ -52,7 +52,8 @@ from rogerthat.bizz.profile import update_password_hash, create_user_profile, ge
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.consts import WEEK, SCHEDULED_QUEUE, FAST_QUEUE, OFFICIALLY_SUPPORTED_COUNTRIES, DEBUG, EXPORTS_BUCKET
 from rogerthat.dal import put_and_invalidate_cache
-from rogerthat.dal.app import get_app_settings, get_app_by_id
+from rogerthat.dal.app import get_app_settings, get_app_by_id,\
+    get_app_name_by_id
 from rogerthat.dal.profile import get_service_or_user_profile, get_user_profile
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
@@ -71,7 +72,8 @@ from rogerthat.utils.crypto import encrypt, decrypt, sha256_hex
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException, \
     address_to_coordinates, GeoCodeException
 from rogerthat.utils.service import add_slash_default
-from rogerthat.utils.transactions import run_in_transaction, run_in_xg_transaction
+from rogerthat.utils.transactions import run_in_transaction, run_in_xg_transaction,\
+    run_after_transaction
 from shop import SHOP_JINJA_ENVIRONMENT
 from shop.business.audit import audit_log
 from shop.business.i18n import shop_translate
@@ -102,7 +104,7 @@ from solutions.common.bizz.grecaptcha import recaptcha_verify
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
 from solutions.common.bizz.service import new_inbox_message, send_signup_update_messages, \
     add_service_consent, remove_service_consent, create_customer_with_service, put_customer_service, \
-    get_default_modules
+    get_default_modules, _schedule_signup_smart_emails
 from solutions.common.bizz.settings import parse_facebook_url, validate_url
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.hints import get_solution_hints
@@ -2476,6 +2478,11 @@ def validate_customer_url_data(email, data):
 @returns()
 @arguments(email=unicode, data=str, service_email=unicode)
 def complete_customer_signup(email, data, service_email=None):
+    
+    @run_after_transaction
+    def send_smart_emails(email, app_id):
+        app_name = get_app_name_by_id(app_id)
+        _schedule_signup_smart_emails(email, app_name)
 
     def update_signup():
         signup, parsed_data = get_customer_signup(email, data)
@@ -2483,6 +2490,10 @@ def complete_customer_signup(email, data, service_email=None):
         signup.inbox_message_key = _send_new_customer_signup_message(service_user, signup)
         signup.service_email = service_email
         signup.put()
+        
+        city_customer = signup.city_customer
+        if city_customer.language == 'nl':
+            send_smart_emails(signup.customer_email, city_customer.app_id)
 
     run_in_xg_transaction(update_signup)
 

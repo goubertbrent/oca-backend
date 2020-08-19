@@ -78,13 +78,33 @@ class CirkloUserVouchers(NdbModel):
         return ndb.Key(cls, app_user.email(), parent=parent_ndb_key(app_user))
 
 
+class SignupNames(NdbModel):
+    nl = ndb.TextProperty()
+    fr = ndb.TextProperty()
+
+
+class SignupMails(NdbModel):
+    accepted = ndb.TextProperty()
+    denied = ndb.TextProperty()
+
+
 class CirkloCity(NdbModel):
     service_user_email = ndb.StringProperty()
     logo_url = ndb.TextProperty()
 
+    signup_enabled = ndb.BooleanProperty()
+    signup_logo_url = ndb.TextProperty()
+    signup_names = ndb.LocalStructuredProperty(SignupNames)
+    signup_mails = ndb.LocalStructuredProperty(SignupMails)
+
     @property
     def city_id(self):
         return self.key.id().decode('utf-8')
+
+    def signup_name(self, language):
+        if language == 'fr':
+            return self.signup_names.fr
+        return self.signup_names.nl
 
     @classmethod
     def create_key(cls, city_id):
@@ -93,3 +113,29 @@ class CirkloCity(NdbModel):
     @classmethod
     def get_by_service_email(cls, service_email):
         return cls.query(cls.service_user_email == service_email).get()
+
+    @classmethod
+    def list_signup_enabled(cls):
+        return cls.query().filter(cls.signup_enabled == True)
+
+
+class CirkloMerchant(NdbModel):
+    creation_date = ndb.DateTimeProperty(indexed=False, auto_now_add=True)
+
+    city_id = ndb.StringProperty()
+    whitelisted = ndb.BooleanProperty(indexed=False)  # needed to be able to show in the app (search index)
+    denied = ndb.BooleanProperty(indexed=False)
+
+    service_user_email = ndb.StringProperty(indexed=False)  # oca only
+    customer_id = ndb.IntegerProperty(indexed=False)  # oca only
+
+    data = ndb.JsonProperty()  # cirklo only
+
+    @classmethod
+    def create_key(cls, service_user_email):
+        # this is only used for normal customers that want to use cirklo
+        return ndb.Key(cls, service_user_email)
+
+    @classmethod
+    def list_by_city_id(cls, city_id):
+        return cls.query().filter(cls.city_id == city_id)

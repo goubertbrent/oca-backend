@@ -79,7 +79,7 @@ from solutions.common.consts import ORDER_TYPE_ADVANCED, OUR_CITY_APP_COLOUR, OC
 from solutions.common.dal import get_solution_settings, get_restaurant_menu
 from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.exceptions import TranslatedException
-from solutions.common.integrations.cirklo.models import VoucherSettings, VoucherProviderId
+from solutions.common.integrations.cirklo.models import CirkloMerchant, CirkloCity
 from solutions.common.models import SolutionSettings, SolutionMainBranding, \
     SolutionBrandingSettings, FileBlob, SolutionNewsPublisher, SolutionModuleAppText, RestaurantMenu
 from solutions.common.models.order import SolutionOrderSettings, SolutionOrderWeekdayTimeframe
@@ -587,15 +587,25 @@ def _after_service_created(service_user):
 def _execute_consent_actions(service_user):
     from shop.bizz import get_customer_consents
     from shop.dal import get_customer
+    from solutions.common.dal.cityapp import get_service_user_for_city
+    from solutions.common.integrations.cirklo.cirklo import check_merchant_whitelisted
     customer = get_customer(service_user)
     consents = get_customer_consents(customer.user_email)
     # If consent was given, automatically allow cirklo data to be shared instead of requiring city to toggle this
     if consents.TYPE_CIRKLO_SHARE in consents.types:
-        settings = VoucherSettings(key=VoucherSettings.create_key(service_user))
-        settings.customer_id = customer.id
-        settings.app_id = customer.default_app_id
-        settings.set_provider(VoucherProviderId.CIRKLO, True)
-        settings.put()
+        service_user = get_service_user_for_city(customer.default_app_id)
+        city_id = CirkloCity.get_by_service_email(service_user.email()).city_id
+
+        service_user_email = service_user.eamil()
+        cirklo_merchant = CirkloMerchant(key=CirkloMerchant.create_key(service_user_email))
+        cirklo_merchant.creation_date = datetime.utcfromtimestamp(customer.creation_time)
+        cirklo_merchant.service_user_email = service_user_email
+        cirklo_merchant.customer_id = customer.id
+        cirklo_merchant.city_id = city_id
+        cirklo_merchant.data = None
+        cirklo_merchant.whitelisted = check_merchant_whitelisted(city_id, customer.user_email)
+        cirklo_merchant.denied = False
+        cirklo_merchant.put()
 
 
 def get_default_cover_media(organization_type):

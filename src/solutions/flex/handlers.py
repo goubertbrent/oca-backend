@@ -377,6 +377,12 @@ class FlexHomeHandler(webapp2.RequestHandler):
         is_city = service_user == city_service_user
         city_app_profile = city_service_user and get_cityapp_profile(city_service_user)
         news_review_enabled = city_app_profile and city_app_profile.review_news or True
+        
+        default_router_location = u'#/functionalities'
+        if sln_settings.ciklo_vouchers_only():
+            default_router_location = u'#/vouchers'
+        elif not functionality_modules:
+            default_router_location = u'#/news'
 
         organization_types = get_organization_types(customer, lang, include_all=True)
         currency = service_info.currency
@@ -427,6 +433,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'news_review_enabled': news_review_enabled,
                   'can_edit_paddle': is_city and session_.shop,
                   'is_shop_admin': session_.shop if session_ else False,
+                  'default_router_location': default_router_location
                   }
 
         if SolutionModule.BULK_INVITE in sln_settings.modules:

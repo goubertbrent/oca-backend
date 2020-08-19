@@ -23,12 +23,12 @@ import os
 import time
 import urllib
 
-import webapp2
 from dateutil.relativedelta import relativedelta
 from google.appengine.api import search, users as gusers
 from google.appengine.ext import db
 from google.appengine.ext.deferred import deferred
 from google.appengine.ext.webapp import template
+import webapp2
 
 from mcfw.cache import cached
 from mcfw.consts import MISSING
@@ -67,12 +67,16 @@ from shop.models import Invoice, OrderItem, Product, Prospect, RegioManagerTeam,
 from shop.to import CompanyTO, CustomerTO, CustomerLocationTO
 from shop.view import get_shop_context, get_current_http_host
 from solution_server_settings import get_solution_server_settings
+from solutions import translate
+from solutions.common.bizz.grecaptcha import recaptcha_verify
 from solutions.common.bizz.settings import get_consents_for_app
-from solutions.common.integrations.cirklo.models import VoucherSettings, \
-    VoucherProviderId
+from solutions.common.integrations.cirklo.cirklo import check_merchant_whitelisted
+from solutions.common.integrations.cirklo.models import CirkloMerchant, CirkloCity
 from solutions.common.models import SolutionServiceConsent
 from solutions.common.restapi.services import do_create_service
 from solutions.common.to.settings import PrivacySettingsGroupTO
+from markdown import Markdown
+from solutions.common.markdown_newtab import NewTabExtension
 
 try:
     from cStringIO import StringIO
@@ -697,6 +701,7 @@ class CustomerCirkloAcceptHandler(PublicPageHandler):
         self.response.out.write(self.render('cirklo_accept', **params))
 
     def post(self):
+        from solutions.common.dal.cityapp import get_service_user_for_city
         try:
             customer_id = self.request.get('cid')
             customer = Customer.get_by_id(long(customer_id))
@@ -718,16 +723,108 @@ class CustomerCirkloAcceptHandler(PublicPageHandler):
         if should_put_consents:
             consents.put()
 
-            settings_key = VoucherSettings.create_key(customer.service_user)
-            settings = settings_key.get()  # type: VoucherSettings
-            if not settings:
-                settings = VoucherSettings(key=settings_key)  # type: VoucherSettings
-            settings.customer_id = customer.id
-            settings.app_id = customer.default_app_id
-            settings.set_provider(VoucherProviderId.CIRKLO, True)
-            settings.put()
+            service_user = get_service_user_for_city(customer.default_app_id)
+            city_id = CirkloCity.get_by_service_email(service_user.email()).city_id
+
+            service_user_email = customer.service_user.email()
+            cirklo_merchant_key = CirkloMerchant.create_key(service_user_email)
+            cirklo_merchant = cirklo_merchant_key.get()  # type: CirkloMerchant
+            if not cirklo_merchant:
+                cirklo_merchant = CirkloMerchant(key=cirklo_merchant_key)  # type: CirkloMerchant
+                cirklo_merchant.denied = False
+            cirklo_merchant.creation_date = datetime.datetime.utcfromtimestamp(customer.creation_time)
+            cirklo_merchant.service_user_email = service_user_email
+            cirklo_merchant.customer_id = customer.id
+            cirklo_merchant.city_id = city_id
+            cirklo_merchant.data = None
+            cirklo_merchant.whitelisted = check_merchant_whitelisted(city_id, customer.user_email)
+            cirklo_merchant.put()
 
             service_identity_user = create_service_identity_user(customer.service_user)
             try_or_defer(re_index_map_only, service_identity_user)
 
         self.redirect(self.get_url(customer))
+
+
+class VouchersCirkloSignupHandler(PublicPageHandler):
+
+    def get(self, city_id=''):
+        supported_languages = ["nl", "fr"]
+        language = (self.request.get('language') or self.language).split('_')[0].lower()
+
+        cities = []
+        if city_id and city_id != 'staging':
+            city = CirkloCity.create_key(city_id).get()
+            if city:
+                cities = [city]
+        if not cities:
+            if city_id and city_id == 'staging':
+                cities = [city for city in CirkloCity.list_signup_enabled() if city.city_id.startswith('staging-')]
+            else:
+                cities = [city for city in CirkloCity.list_signup_enabled() if not city.city_id.startswith('staging-')]
+        solution_server_settings = get_solution_server_settings()
+        if language not in supported_languages:
+            language = supported_languages[0]
+        if language == 'fr':
+            sorted_cities = sorted(cities, key=lambda x: x.signup_names.fr)
+        else:
+            sorted_cities = sorted(cities, key=lambda x: x.signup_names.nl)
+        params = {
+            'city_id': city_id or None,
+            'cities': sorted_cities,
+            'recaptcha_site_key': solution_server_settings.recaptcha_site_key,
+            'language': language,
+            'languages': [(code, name) for code, name in OFFICIALLY_SUPPORTED_LANGUAGES.iteritems()
+                          if code in supported_languages]
+        }
+
+        md = Markdown(output='html', extensions=['nl2br', NewTabExtension()])
+        lines = [
+            '#### %s' % translate(language, 'cirklo_info_title'),
+            '<br />',
+            translate(language, 'cirklo_info_text_signup'),
+            '',
+            translate(language, 'cirklo_participation_text_signup'),
+        ]
+
+        params['privacy_settings'] = {
+            'cirklo': {
+                'label': translate(language, 'consent_cirklo_share'),
+                'description': md.convert('\n\n'.join(lines))
+            },
+            'city': {
+                'label': translate(language, 'consent_city_contact'),
+                'description': '<h4>%s</h4>' % translate(language, 'consent_share_with_city')
+            }
+        }
+
+        params['signup_success'] = md.convert('\n\n'.join([translate(language, 'cirklo.signup.success')]))
+
+        self.response.write(self.render('cirklo_signup', **params))
+
+    def post(self):
+        json_data = json.loads(self.request.body)
+        logging.debug(json_data)
+
+        if not recaptcha_verify(json_data['recaptcha_token']):
+            logging.debug('Cannot verify recaptcha response')
+            self.abort(400)
+
+        if not CirkloCity.create_key(json_data['city_id']).get():
+            logging.debug('CirkloCity was invalid')
+            self.abort(400)
+
+        merchant = CirkloMerchant()
+        merchant.service_user_email = None
+        merchant.customer_id = -1
+        merchant.city_id = json_data['city_id']
+        merchant.data = {
+            u'company': json_data['company'],
+            u'language': json_data['language']
+        }
+        merchant.whitelisted = check_merchant_whitelisted(json_data['city_id'], json_data['company']['email'])
+        merchant.denied = False
+        merchant.put()
+
+        self.response.headers['Content-Type'] = 'text/json'
+        return self.response.out.write(json.dumps({'success': True, 'errormsg': None}))

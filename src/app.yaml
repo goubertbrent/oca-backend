@@ -243,6 +243,10 @@ handlers:
   - url: /customers/.*
     script: main_unauthenticated.app
     secure: always
+    
+  - url: /vouchers/.*
+    script: main_unauthenticated.app
+    secure: always
 
   - url: /unauthenticated/loyalty/.*
     script: main_unauthenticated.app

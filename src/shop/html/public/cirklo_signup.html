@@ -1,0 +1,134 @@
+{% extends 'public/cirklo_base.html' %}
+
+{% block title %}{% translate language, "signup" %}{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="/static/css/public/signup.css">
+{% endblock %}
+{% block js %}
+    <script>
+        var SignupTranslations = {
+            LOADING_CAPTCHA_CHALLENGE: '{% translate language, "loading_captcha_challenge" %}',
+        };
+    </script>
+    <script src="/static/js/public/cirklo_signup.js"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="span12 white-box" style="float: none; margin: 0 auto;">
+        <h2>{% translate language, "cirklo.signup.explanation_title" %}</h2>
+        <div id="signup_note">
+            <p style="word-wrap: break-word;"
+               align="justify">{% translate language, "cirklo.signup.explanation_notes" %}</p>
+            <hr/>
+        </div>
+        <div id="signup_success" style="display: none;">
+            <p style="word-wrap: break-word;" align="justify">{{ signup_success }}</p>
+            <hr/>
+        </div>
+        <div id="signup_box">
+            <form id="signup_form" class="form-horizontal" autocomplete="off">
+                <div id="tab0">
+                    <div class="control-group">
+                        <label for="language" class="control-label">
+                            {% translate language, "Language" %}
+                        </label>
+                        <div class="controls">
+                            <select id="language" class="input-block-level" required>
+                                <option value="">{% translate language, "Select..." %}</option>
+                                {% for lang_code, lang_name in languages %}
+                                    <option value="{{ lang_code }}"
+                                            {% if language == lang_code %}selected{% endif %}>{{ lang_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label for="city"
+                               class="control-label">{% translate language, "City/Municipality" %}</label>
+                        <div class="controls">
+                            <select id="app" class="input-block-level" required>
+                                <option value="">{% translate language, "Select..." %}</option>
+                                {% for city in cities %}
+                                    <option value="{{ city.city_id }}"
+                                            {% if city_id == city.city_id %}selected{% endif %}
+                                      {% if city.signup_logo_url %}
+                                            logo_url="{{ city.signup_logo_url }}"{% endif %}>{{ city.signup_name(language) }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div id="tab1" style="display: none;">
+                    <div class="image-row">
+                        <img alt="Cirklo Light"
+                             src="https://storage.googleapis.com/oca-files/misc/cirklo_light_colored.svg">
+                        <img id="tab1_city_logo" alt="City logo"
+                             src="https://storage.googleapis.com/oca-files/misc/cirklo_light_colored.svg">
+                    </div>
+                    <br/>
+                    <div id="privacy-settings-cirklo">
+                        {{ privacy_settings.cirklo.description }}
+                        <label class="checkbox" for="privacy_cirklo_share">
+                            <input type="checkbox" id="privacy_cirklo_share" name="cirklo_share"
+                                   required>{{ privacy_settings.cirklo.label }}</label>
+                    </div>
+                </div>
+                <div id="tab2" style="display: none;">
+                    <div id="enterprise">
+                        <div>
+                            <h4>{% translate language, "cirklo.signup.business_name" %}</h4>
+                            <p>{% translate language, "cirklo.signup.business_name_notes" %}</p>
+                            <input id="enterprise_name" type="text" class="input-block-level" required/>
+                        </div>
+                        <hr/>
+                        <div>
+                            <h4>{% translate language, "cirklo.signup.business_address" %}</h4>
+                            <p>{% translate language, "cirklo.signup.business_address_notes" %}</p>
+                            <input id="enterprise_address" type="text" class="input-block-level" required/>
+                        </div>
+                        <hr/>
+                        <div>
+                            <h4>{% translate language, "cirklo.signup.business_email" %}</h4>
+                            <p>{% translate language, "cirklo.signup.business_email_notes" %}</p>
+                            <input id="enterprise_email" type="email"
+                                   pattern="[a-zA-z0-9!#$%&'*+\/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+\/=?^_`{|}~-]+)*@(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?"
+                                   class="input-block-level" required/>
+                        </div>
+                        <hr/>
+                        <div>
+                            <h4>{% translate language, "cirklo.signup.business_phone" %}</h4>
+                            <p>{% translate language, "cirklo.signup.business_phone_notes" %}</p>
+                            <input id="enterprise_telephone" type="tel" pattern="^[0-9\-\+\s\(\)]*$"
+                                   class="input-block-level" required/>
+                        </div>
+                        <hr/>
+                        <div>
+                            <h4>{% translate language, "cirklo.signup.personal_name" %}</h4>
+                            <p>{% translate language, "cirklo.signup.personal_name_notes" %}</p>
+                            <input id="contact_name" type="text" class="input-block-level" required/>
+                        </div>
+                        <div id="privacy-settings-city">
+                            {{ privacy_settings.city.description }}
+                            <label class="checkbox" for="privacy_city_contact">
+                                <input type="checkbox" id="privacy_city_contact" name="city_contact"
+                                       required>{{ privacy_settings.city.label }}</label>
+                        </div>
+                    </div>
+                </div>
+                <hr/>
+                <div id="recaptcha_container" class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}"
+                     data-callback="signupCallback" data-size="invisible"></div>
+                <button id="signup" style="display: none;" class="btn btn-wizard pull-right"
+                        type="button">{% translate language, "Submit" %} <i class="icon-ok icon-white"></i>
+                </button>
+                <button id="next" class="btn btn-wizard pull-right"
+                        type="button">{% translate language, "Next" %} <i
+                  class="icon-circle-arrow-right icon-white"></i></button>
+                <button id="back" style="display: none;" class="btn btn btn-wizard pull-left" type="button"><i
+                  class="icon-circle-arrow-left icon-white"></i> {% translate language, "back" %}</button>
+                <div class="clearfix"></div>
+            </form>
+        </div>
+    </div>
+{% endblock %}

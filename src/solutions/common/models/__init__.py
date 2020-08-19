@@ -376,6 +376,10 @@ class SolutionSettings(SolutionIdentitySettings):
     def uses_inbox(self):
         from solutions.common.bizz import SolutionModule
         return any((m in self.modules for m in SolutionModule.INBOX_MODULES))
+    
+    def ciklo_vouchers_only(self):
+        from solutions.common.bizz import SolutionModule
+        return len(self.modules) == 1 and SolutionModule.CIRKLO_VOUCHERS in self.modules
 
     def can_edit_services(self, customer):
         from solutions.common.bizz import SolutionModule, OrganizationType

@@ -15,10 +15,10 @@
 #
 # @@license_version:1.7@@
 
+from datetime import datetime
 import json
 import logging
 import urllib
-from datetime import datetime
 
 from google.appengine.api import urlfetch
 from google.appengine.api.apiproxy_stub_map import UserRPC
@@ -65,16 +65,18 @@ class TranslatedException(Exception):
         super(TranslatedException, self).__init__(msg)
 
 
-def _cirklo_api_call(settings, url, method, payload=None):
+def _cirklo_api_call(settings, url, method, payload=None, staging=False):
     # type: (SolutionServerSettings, str, str, dict) -> UserRPC
     url_params = ('?' + urllib.urlencode(payload)) if payload and method == urlfetch.GET else ''
     url = settings.cirklo_server_url + url + url_params
+    if staging and 'staging-app' not in url:
+        url = url.replace('https://', 'https://staging-app-')
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'x-api-key': settings.cirklo_api_key
+        'x-api-key': settings.cirklo_api_key_staging if staging else settings.cirklo_api_key
     }
-    if method in ('PUT', 'POST') and payload:
+    if method in (urlfetch.PUT, urlfetch.POST) and payload:
         payload = json.dumps(payload)
     else:
         payload = None
@@ -82,6 +84,44 @@ def _cirklo_api_call(settings, url, method, payload=None):
         logging.debug('%s %s', method, url)
     rpc = urlfetch.create_rpc(30)
     return urlfetch.make_fetch_call(rpc, url, payload, method, headers, follow_redirects=False)
+
+
+def list_whitelisted_merchants(city_id):
+    staging = city_id.startswith('staging-')
+    payload = {'cityId': city_id.replace('staging-', ''),
+               'includeShops': True}
+    rpc = _cirklo_api_call(get_solution_server_settings(), '/whitelists', urlfetch.GET, payload, staging)
+    result = rpc.get_result()  # type: urlfetch._URLFetchResult
+    if result.status_code == 200:
+        return json.loads(result.content)
+    else:
+        logging.debug('%s\n%s', result.status_code, result.content)
+        raise Exception('Unexpected result from cirklo api')
+
+
+def check_merchant_whitelisted(city_id, email):
+    staging = city_id.startswith('staging-')
+    payload = {'cityId': city_id.replace('staging-', ''),
+               'emails': email}
+    rpc = _cirklo_api_call(get_solution_server_settings(), '/whitelists', urlfetch.GET, payload, staging)
+    result = rpc.get_result()  # type: urlfetch._URLFetchResult
+    if result.status_code == 200:
+        merchant_list = json.loads(result.content)
+        return len(merchant_list) > 0
+    else:
+        logging.debug('%s\n%s', result.status_code, result.content)
+        return False
+
+
+def whitelist_merchant(city_id, email):
+    staging = city_id.startswith('staging-')
+    payload = {'cityId': city_id.replace('staging-', ''),
+               'whitelistEntries': [{'email': email}]}
+    rpc = _cirklo_api_call(get_solution_server_settings(), '/whitelists', urlfetch.POST, payload, staging)
+    result = rpc.get_result()  # type: urlfetch._URLFetchResult
+    if result.status_code != 201:
+        logging.debug('%s\n%s', result.status_code, result.content)
+        raise Exception('Unexpected result from cirklo api')
 
 
 def add_voucher(service_user, app_user, qr_content):
@@ -93,7 +133,7 @@ def add_voucher(service_user, app_user, qr_content):
         voucher_id = None
     voucher_details = None
     if voucher_id:
-        rpc = _cirklo_api_call(get_solution_server_settings(), '/vouchers/' + voucher_id, 'GET')
+        rpc = _cirklo_api_call(get_solution_server_settings(), '/vouchers/' + voucher_id, urlfetch.GET)
         result = rpc.get_result()  # type: urlfetch._URLFetchResult
         if result.status_code == 200:
             voucher_details = json.loads(result.content)
@@ -170,7 +210,7 @@ def get_vouchers(service_user, app_user):
     # type: (users.User, users.User) -> AppVoucherList
     ids = get_user_vouchers_ids(app_user)
     settings = get_solution_server_settings()
-    rpcs = [(voucher_id, _cirklo_api_call(settings, '/vouchers/' + voucher_id, 'GET')) for voucher_id in ids]
+    rpcs = [(voucher_id, _cirklo_api_call(settings, '/vouchers/' + voucher_id, urlfetch.GET)) for voucher_id in ids]
     vouchers = []  # type: List[AppVoucher]
     current_date = datetime.utcnow()
     for voucher_id, rpc in rpcs:

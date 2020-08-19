@@ -1,20 +1,15 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatSlideToggleChange } from '@angular/material/slide-toggle';
-import { MatSort } from '@angular/material/sort';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSort, Sort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { select, Store } from '@ngrx/store';
+import { TranslateService } from '@ngx-translate/core';
 import { Observable, Subject } from 'rxjs';
-import { take, takeUntil } from 'rxjs/operators';
-import { VoucherProvider, VoucherProviderId, VoucherService, VouchersServiceList } from '../vouchers';
-import { ExportVoucherServicesAction, GetServicesAction, SaveVoucherSettingsAction } from '../vouchers.actions';
+import { takeUntil } from 'rxjs/operators';
+import { VoucherService, VouchersServiceList } from '../vouchers';
+import { GetServicesAction, WhitelistVoucherServiceAction } from '../vouchers.actions';
 import { getVoucherList, getVoucherServices, voucherServicesLoading } from '../vouchers.selectors';
-
-export interface VoucherServiceDataRow extends VoucherService{
-  cirkloProvider: VoucherProvider;
-  cirklo_enabled: boolean;
-  cirklo_enable_date: string | null;
-}
+import { WhitelistDialogComponent, WhitelistDialogData, WhitelistDialogResult } from './whitelist-dialog.component';
 
 @Component({
   selector: 'oca-vouchers-page',
@@ -23,39 +18,31 @@ export interface VoucherServiceDataRow extends VoucherService{
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VouchersPageComponent implements OnInit, OnDestroy {
-  @ViewChild(MatPaginator, { static: true }) paginator: MatPaginator;
-  @ViewChild(MatSort, { static: true }) sort: MatSort;
+  @ViewChild(MatSort) sort: MatSort;
 
-  selectedOrganizationType = 1;
-  organizationTypes = [
-    { type: 1, label: 'oca.associations' },
-    { type: 2, label: 'oca.merchants' },
-    { type: 3, label: 'oca.community_services' },
-    { type: 4, label: 'oca.care' },
-  ];
-  displayedColumns: (keyof VoucherServiceDataRow)[] = ['name', 'creation_time', 'cirklo_enabled', 'cirklo_enable_date'];
-  pageIndex = 0;
-  pageSize = 50;
+  displayedColumns: (keyof VoucherService)[] = ['name', 'email', 'creation_date', 'address', 'whitelist_date', 'merchant_registered'];
   loading$: Observable<boolean>;
   voucherList$: Observable<VouchersServiceList>;
-  dataSource = new MatTableDataSource<VoucherServiceDataRow>();
+  dataSource = new MatTableDataSource<VoucherService>();
+  allServices: VoucherService[];
 
   private destroyed$ = new Subject();
 
-  constructor(private store: Store<any>) {
+  constructor(private translate: TranslateService,
+              private matDialog: MatDialog,
+              private store: Store<any>) {
   }
 
   ngOnInit(): void {
-    this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;
-    this.getServices();
     this.store.pipe(select(getVoucherServices), takeUntil(this.destroyed$)).subscribe(services => {
-      this.dataSource.data = services.map(s => {
-        const cirkloProvider = s.providers.find(p => p.provider === VoucherProviderId.CIRKLO) ?? {
-          enable_date: null, provider: VoucherProviderId.CIRKLO, can_enable: false, enabled: false};
-        return ({ ...s, cirkloProvider, cirklo_enabled: cirkloProvider.enabled, cirklo_enable_date: cirkloProvider.enable_date});
+      this.allServices = services;
+      const data = this.allServices.slice();
+      this.dataSource.data = data.sort((a, b) => {
+        return compare(a.creation_date, b.creation_date, false);
       });
     });
+    this.getServices();
     this.voucherList$ = this.store.pipe(select(getVoucherList));
     this.loading$ = this.store.pipe(select(voucherServicesLoading));
   }
@@ -65,62 +52,74 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
     this.destroyed$.complete();
   }
 
-  tabChanged(index: number) {
-    const selected = this.organizationTypes[ index ];
-    this.selectedOrganizationType = selected.type;
+  applyFilter(filterValue: string) {
+    this.dataSource.filter = filterValue.trim().toLowerCase();
+  }
+
+  refresh() {
     this.getServices();
   }
 
-  toggleProvider($event: MatSlideToggleChange, service: VoucherServiceDataRow) {
-    this.store.dispatch(new SaveVoucherSettingsAction({
-      serviceEmail: service.service_email,
-      provider: service.cirkloProvider.provider,
-      enabled: $event.checked,
-    }));
-  }
-
-  pageChanged($event: PageEvent) {
-    if ($event.pageSize === this.pageSize) {
-      // Previous does nothing, next loads the next page
-      this.pageIndex = $event.pageIndex;
-      if (($event.previousPageIndex as number) < $event.pageIndex) {
-        this.voucherList$.pipe(take(1)).subscribe(({ cursor, more }) => {
-          if (more) {
-            this.store.dispatch(new GetServicesAction({
-              organizationType: this.selectedOrganizationType,
-              cursor,
-              sort: this.sort.active,
-              pageSize: this.pageSize,
-            }));
-          }
-        });
-      }
-    } else {
-      this.pageIndex = 0;
-      this.pageSize = $event.pageSize;
-      this.getServices();
+  sortData(sort: Sort) {
+    const data = this.allServices.slice();
+    if (!sort.active || sort.direction === '') {
+      this.dataSource.data = data;
+      return;
     }
+
+    this.dataSource.data = data.sort((a, b) => {
+      const isAsc = sort.direction === 'asc';
+      switch (sort.active) {
+        case 'name':
+          return compare(a.name, b.name, isAsc);
+        case 'email':
+          return compare(a.email, b.email, isAsc);
+        case 'creation_date':
+          return compare(a.creation_date, b.creation_date, isAsc);
+        default:
+          return 0;
+      }
+    });
   }
 
-  export() {
-    this.store.dispatch(new ExportVoucherServicesAction());
-  }
+  whitelistService(row: VoucherService) {
+    const message = `${this.translate.instant('oca.reservation-name')}: ${row.name}
+  ${this.translate.instant('oca.Email')}: ${row.email}
+  ${this.translate.instant('oca.address')}: ${row.address}`;
+    const data: WhitelistDialogData = {
+      title: this.translate.instant('oca.whitelist'),
+      message,
+      yes: this.translate.instant('oca.reservation-approve'),
+      no: this.translate.instant('oca.reservation-decline'),
+      cancel: this.translate.instant('Cancel'),
+    };
+    const dialog = this.matDialog.open(WhitelistDialogComponent, { data });
+    dialog.afterClosed().subscribe((result?: WhitelistDialogResult) => {
+      if (!result?.action) {
+        return;
+      }
+      if (result.action === 'yes') {
+        this.store.dispatch(new WhitelistVoucherServiceAction({
+          id: row.id,
+          email: row.email,
+          accepted: true,
+        }));
+      } else if (result.action === 'no') {
+        this.store.dispatch(new WhitelistVoucherServiceAction({
+          id: row.id,
+          email: row.email,
+          accepted: false,
+        }));
+      }
+    });
 
-  onSorted() {
-    this.getServices();
   }
 
   private getServices() {
-    if (this.sort.active === 'name') {
-      this.sort.direction = 'asc';
-    } else {
-      this.sort.direction = 'desc';
-    }
-    this.store.dispatch(new GetServicesAction({
-      organizationType: this.selectedOrganizationType,
-      cursor: null,
-      pageSize: this.pageSize,
-      sort: this.sort.active,
-    }));
+    this.store.dispatch(new GetServicesAction());
   }
+}
+
+function compare(a: string, b: string, isAsc: boolean) {
+  return (a < b ? -1 : 1) * (isAsc ? 1 : -1);
 }

@@ -1,26 +1,24 @@
 import { initialStateResult, ResultState, stateError, stateLoading, stateSuccess } from '@oca/web-shared';
 import { updateItem } from '../shared/util';
-import { CirkloSettings, ExportVoucherServices, VouchersServiceList } from './vouchers';
+import { CirkloSettings, VouchersServiceList } from './vouchers';
 import { VouchersActions, VouchersActionTypes } from './vouchers.actions';
 
 export const vouchersFeatureKey = 'vouchers';
 
 export interface VouchersState {
   services: ResultState<VouchersServiceList>;
-  export: ResultState<ExportVoucherServices>;
   cirkloSettings: ResultState<CirkloSettings>;
 }
 
 export const initialState: VouchersState = {
   services: initialStateResult,
-  export: initialStateResult,
   cirkloSettings: initialStateResult,
 };
 
 export function vouchersReducer(state = initialState, action: VouchersActions): VouchersState {
   switch (action.type) {
     case VouchersActionTypes.GET_SERVICES:
-      return { ...state, services: stateLoading(action.payload.cursor ? state.services.result : initialState.services.result) };
+      return { ...state, services: stateLoading(initialState.services.result) };
     case VouchersActionTypes.GET_SERVICES_SUCCESS:
       return {
         ...state,
@@ -28,24 +26,18 @@ export function vouchersReducer(state = initialState, action: VouchersActions): 
       };
     case VouchersActionTypes.GET_SERVICES_FAILED:
       return { ...state, services: stateError(action.error, state.services.result) };
-    case VouchersActionTypes.SAVE_VOUCHER_PROVIDER:
+    case VouchersActionTypes.WHITELIST_VOUCHER_SERVICE:
       break;
-    case VouchersActionTypes.SAVE_VOUCHER_SETTINGS_SUCCESS:
+    case VouchersActionTypes.WHITELIST_VOUCHER_SERVICE_SUCCESS:
       return {
         ...state,
         services: stateSuccess({
           ...(state.services.result as Readonly<VouchersServiceList>),
-          results: updateItem((state.services.result as VouchersServiceList).results, action.payload.service, 'service_email'),
+          results: updateItem((state.services.result as VouchersServiceList).results, action.payload.service, 'id'),
         }),
       };
-    case VouchersActionTypes.SAVE_VOUCHER_FAILED:
+    case VouchersActionTypes.WHITELIST_VOUCHER_SERVICE_FAILED:
       return { ...state, services: stateError(action.error, state.services.result) };
-    case VouchersActionTypes.EXPORT_VOUCHER_SERVICES:
-      return { ...state, export: stateLoading(initialState.export.result) };
-    case VouchersActionTypes.EXPORT_VOUCHER_SERVICES_SUCCESS:
-      return { ...state, export: stateSuccess(action.payload) };
-    case VouchersActionTypes.EXPORT_VOUCHER_SERVICES_FAILED:
-      return { ...state, export: stateError(action.error, state.export.result) };
     case VouchersActionTypes.GET_CIRKLO_SETTINGS:
       return { ...state, cirkloSettings: stateLoading(initialState.cirkloSettings.result) };
     case VouchersActionTypes.GET_CIRKLO_SETTINGS_SUCCESS:

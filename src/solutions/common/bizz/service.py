@@ -48,13 +48,14 @@ from solutions.common.models import SolutionServiceConsent, SolutionServiceConse
 from solutions.common.to import SolutionInboxMessageTO, ProvisionResponseTO
 
 
-# signup smart emails with the countdown (seconds) they should be sent after
-# successfull registration
+# signup smart emails with the countdown (seconds) they should be sent after a successfull registration
+SMART_EMAILS_ID_COMPLETE_DASHBOARD = 'f98e0153-f295-412b-89a3-4d4cc6b95162'
+
 SMART_EMAILS = {
     '8dd5fe5f-02eb-40f9-b9fa-9a48d52952b4': 1, # 1. Proficiat + opmaak & zichtbaar
     'e6b456af-a811-4540-903c-5135cd6e4802': 2 * DAY, # 2. NWSbericht aan&opmaken
-#     'f98e0153-f295-412b-89a3-4d4cc6b95162': 2 * DAY, # Dashboard Aanvullen
-    'c87c3b2c-e1e8-4680-914e-6f81f2bd37f5': 4 * DAY, # 3. Uw eigen reservatie-systeem
+    SMART_EMAILS_ID_COMPLETE_DASHBOARD: 3 * DAY, # Dashboard Aanvullen params: {'appName': 'stringValue'}
+    #'c87c3b2c-e1e8-4680-914e-6f81f2bd37f5': 4 * DAY, # 3. Uw eigen reservatie-systeem
 }
 
 
@@ -221,9 +222,14 @@ def _send_signup_status_inbox_reply(sln_settings, parent_chat_key, approved, rea
     return inbox_message
 
 
-def _schedule_signup_smart_emails(customer_email):
+def _schedule_signup_smart_emails(customer_email, app_name=None):
     for email_id, countdown in SMART_EMAILS.iteritems():
-        deferred.defer(send_smart_email, email_id, [customer_email],
+        data = None
+        if email_id == SMART_EMAILS_ID_COMPLETE_DASHBOARD:
+            if not app_name:
+                continue
+            data = {'appName': app_name}
+        deferred.defer(send_smart_email, email_id, [customer_email], data=data,
                        _countdown=countdown,
                        _queue=SCHEDULED_QUEUE)
 

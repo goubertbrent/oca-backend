@@ -231,6 +231,13 @@ TRANSLATION_MAPPING = {
         'unlimited',
         'use_cover_photo',
         'zip_code',
+        'whitelist',
+        'merchant_registered',
+        'search',
+        'reservation-approve',
+        'reservation-decline',
+        'denied',
+        'refresh',
     },
     'web': {
         'Error',

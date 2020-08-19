@@ -365,6 +365,38 @@ def parse_facebook_url(url):
     return None
 
 
+def get_cirklo_privacy_groups(lang):
+    from markdown import Markdown
+    from solutions.common.markdown_newtab import NewTabExtension
+    groups = [
+        PrivacySettingsGroupTO(
+            page=1,
+            description='<h4>%s</h4>' % translate(lang, 'consent_share_with_city'),
+            items=[PrivacySettingsTO(
+                type=SolutionServiceConsent.TYPE_CITY_CONTACT,
+                enabled=False,
+                label=translate(lang, 'consent_city_contact')
+            )]
+        )
+    ]
+    md = Markdown(output='html', extensions=['nl2br', NewTabExtension()])
+    lines = [
+        '#### %s' % translate(lang, 'cirklo_info_title'),
+        translate(lang, 'cirklo_info_text'),
+        '',
+        translate(lang, 'cirklo_participation_text'),
+    ]
+    groups.append(PrivacySettingsGroupTO(
+        page=2,
+        description=md.convert('\n\n'.join(lines)),
+        items=[PrivacySettingsTO(
+            type=SolutionServiceConsent.TYPE_CIRKLO_SHARE,
+            enabled=False,
+            label=translate(lang, 'consent_cirklo_share')
+        )]))
+    return groups
+
+
 def get_consents_for_app(app_id, lang, user_consent_types):
     from markdown import Markdown
     from solutions.common.markdown_newtab import NewTabExtension

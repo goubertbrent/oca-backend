@@ -1,6 +1,6 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { CirkloSettings, ExportVoucherServices, VoucherProviderId, VoucherService, VouchersServiceList } from './vouchers';
+import { CirkloSettings, VoucherService, VouchersServiceList } from './vouchers';
 
 @Injectable({
   providedIn: 'root',
@@ -10,20 +10,12 @@ export class VouchersService {
   constructor(private http: HttpClient) {
   }
 
-  getServices(organizationType: number, cursor: string | null, pageSize: number, sort: string) {
-    let params = new HttpParams({ fromObject: { page_size: pageSize.toString(), sort } });
-    if (cursor) {
-      params = params.set('cursor', cursor);
-    }
-    return this.http.get<VouchersServiceList>(`/common/vouchers/services/${organizationType}`, { params });
+  getServices() {
+    return this.http.get<VouchersServiceList>(`/common/vouchers/services`);
   }
 
-  saveProvider(serviceEmail: string, provider: VoucherProviderId, enabled: boolean) {
-    return this.http.put<VoucherService>(`/common/vouchers/services/${serviceEmail}`, { provider, enabled });
-  }
-
-  exportServices() {
-    return this.http.get<ExportVoucherServices>(`/common/vouchers/export`);
+  whitelistVoucherService(id: string, email: string, accepted: boolean) {
+    return this.http.put<VoucherService>(`/common/vouchers/services/whitelist`, { id, email, accepted });
   }
 
   getCirkloSettings() {

@@ -18,10 +18,6 @@
 from webapp2 import Route
 from webapp2_extras.routes import RedirectRoute
 
-import shop.handlers
-import solutions.common.restapi
-import solutions.common.restapi.app
-import solutions.common.restapi.campaignmonitor
 from bob.handlers import SetIosAppIdHandler
 from mcfw.consts import NOT_AUTHENTICATED
 from mcfw.restapi import rest_functions
@@ -31,7 +27,8 @@ from shop.callbacks import ProspectDiscoverCallbackHandler
 from shop.handlers import ExportInvoicesHandler, ExportProductsHandler, ProspectCallbackHandler, \
     CustomerMapHandler, CustomerMapServicesHandler, CustomerSigninHandler, \
     CustomerSignupHandler, CustomerSetPasswordHandler, CustomerResetPasswordHandler, CustomerSignupPasswordHandler, \
-    CustomerCirkloAcceptHandler
+    CustomerCirkloAcceptHandler, VouchersCirkloSignupHandler
+import shop.handlers
 from solutions.common.handlers.launcher import GetOSALaucherAppsHandler, GetOSALaucherAppHandler
 from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, LoyaltyNoMobilesUnsubscribeEmailHandler, \
     LoyaltyLotteryConfirmWinnerHandler
@@ -40,8 +37,12 @@ from solutions.common.handlers.menu import ViewMenuItemImageHandler
 from solutions.common.handlers.payments import StripeHandler, StripeSuccessHandler, \
     StripeCancelHandler, StripeWebhookHandler
 from solutions.common.handlers.vcard import VCardHandler
+import solutions.common.restapi
+import solutions.common.restapi.app
+import solutions.common.restapi.campaignmonitor
 from solutions.common.restapi.rss import RssCoronavirusDotBeHandler
 from solutions.flex.handlers import FlexHomeHandler
+
 
 handlers = [
     ('/flex/', FlexHomeHandler),
@@ -79,6 +80,8 @@ handlers = [
     RedirectRoute('/customers/signup', CustomerSignupHandler, 'signup', strict_slash=True),
     RedirectRoute('/customers/signup/<app_id:[^/]+>', CustomerSignupHandler, 'signup_app', strict_slash=True),
     RedirectRoute('/customers/consent/cirklo', CustomerCirkloAcceptHandler, 'consent_cirklo_accept'),
+    RedirectRoute('/vouchers/cirklo/signup', VouchersCirkloSignupHandler, 'cirklo_signup'),
+    RedirectRoute('/vouchers/cirklo/signup/<city_id:[^/]+>', VouchersCirkloSignupHandler, 'cirklo_signup'),
     RedirectRoute('/ourcityapp', name='ourcityapp', redirect_to_name='signin', strict_slash=True),
     ('/solutions/common/public/attachment/view/(.*)', CloudStorageBlobstoreHandler),
     ('/solutions/common/public/menu/image/(.*)', ViewMenuItemImageHandler)

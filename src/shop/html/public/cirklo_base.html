@@ -9,19 +9,11 @@
     <link href="/static/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/node_modules/font-awesome/css/font-awesome.min.css">
     <link rel="stylesheet" href="/static/css/public/base.css">
-    <link rel="stylesheet" href="/static/css/public/oca-theme.css">
+    <link rel="stylesheet" href="/static/css/public/cirklo-theme.css">
     {% block css %}{% endblock %}
 </head>
 <body>
 <div id="main_container">
-    <div id="header">
-        <div id="logo"></div>
-        {%if not app_id %}
-        <a id="home-link" class="pull-right" href="{% translate language, 'http://www.ourcityapps.com' %}">
-            <h4 style="color: white;">{% translate language, "home" %}</h4>
-        </a>
-        {% endif %}
-    </div>
     <div id="body" class="container-fluid">
         {% block content %}{% endblock %}
     </div>

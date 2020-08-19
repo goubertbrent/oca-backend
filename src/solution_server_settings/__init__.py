@@ -135,10 +135,13 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     cirklo_server_url = add_meta(db.TextProperty(),
                                  doc='Cirklo server url',
                                  order=1900)
-
     cirklo_api_key = add_meta(db.TextProperty(),
                               doc='Cirklo api key',
                               order=1901)
+    cirklo_api_key_staging = add_meta(db.TextProperty(),
+                                      doc='Cirklo api key STAGING',
+                                      order=1901)
+
     holpr_api_url = add_meta(db.TextProperty(),
                              doc='Hoplr api server url',
                              order=2000)

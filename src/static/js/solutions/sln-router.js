@@ -24,7 +24,7 @@ $(document).ready(function () {
     });
 
     var hash = window.location.hash.replace('#/', '').split('/');
-    var defaultLocation = '#/functionalities';
+    var defaultLocation = DEFAULT_ROUTER_LOCATION;
 
     if (!hash) {
         window.location.hash = defaultLocation;

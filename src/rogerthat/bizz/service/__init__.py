@@ -16,15 +16,15 @@
 # @@license_version:1.7@@
 
 import base64
+from contextlib import closing
+from datetime import datetime
 import json
 import logging
 import os
+from types import NoneType
 import urllib
 import urlparse
 import uuid
-from contextlib import closing
-from datetime import datetime
-from types import NoneType
 from zipfile import ZipFile
 
 from google.appengine.api import images, search
@@ -118,7 +118,8 @@ from rogerthat.utils.service import get_service_user_from_service_identity_user,
     get_service_identity_tuple, is_valid_service_identifier, remove_slash_default
 from rogerthat.utils.transactions import run_in_transaction, run_in_xg_transaction, on_trans_committed, \
     on_trans_rollbacked
-from solutions.common.integrations.cirklo.models import VoucherSettings
+from solutions.common.integrations.cirklo.models import CirkloMerchant, VoucherProviderId
+
 
 try:
     from cStringIO import StringIO
@@ -2227,8 +2228,8 @@ def get_search_fields(service_user, service_identity_user, sc):
             tags.add(SearchTag.country(default_app.country))
         tags.add(SearchTag.app(app_id))
 
-    keys = [ServiceInfo.create_key(service_user, service_identity.identifier), VoucherSettings.create_key(service_user)]
-    service_info, voucher_settings = ndb.get_multi(keys)  # type: ServiceInfo, VoucherSettings
+    keys = [ServiceInfo.create_key(service_user, service_identity.identifier), CirkloMerchant.create_key(service_user.email())]
+    service_info, cirklo_merchant = ndb.get_multi(keys)  # type: ServiceInfo, CirkloMerchant
     if not service_info:
         logging.warn('skipping place_types in get_search_fields for service_user:%s identifier:%s', service_user, service_identity.identifier)
         return service_identity.name.lower(), list(tags), fields
@@ -2238,9 +2239,8 @@ def get_search_fields(service_user, service_identity_user, sc):
         if not place_details:
             continue
         tags.add(SearchTag.place_type(place_type))
-    if voucher_settings:
-        for mapping in voucher_settings.provider_mapping:
-            tags.add(SearchTag.vouchers(mapping.provider))
+    if cirklo_merchant and cirklo_merchant.whitelisted:
+        tags.add(SearchTag.vouchers(VoucherProviderId.CIRKLO))
 
     return service_identity.name.lower(), list(tags), fields
 

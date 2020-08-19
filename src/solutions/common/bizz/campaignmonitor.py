@@ -60,8 +60,8 @@ def get_auth_parameters():
 
 
 @returns()
-@arguments(email_id=unicode, to=[unicode], add_recipients_to_list=bool)
-def send_smart_email(email_id, to, add_recipients_to_list=True):
+@arguments(email_id=unicode, to=[unicode], add_recipients_to_list=bool, data=dict)
+def send_smart_email(email_id, to, add_recipients_to_list=True, data=None):
     """Send a smart email"""
     consent_keys = [SolutionServiceConsent.create_key(email) for email in to]
     consents = ndb.get_multi(consent_keys)  # type: list[SolutionServiceConsent]
@@ -78,8 +78,25 @@ def send_smart_email(email_id, to, add_recipients_to_list=True):
         return
 
     cs = Transactional(get_auth_parameters())
-    results = cs.smart_email_send(email_id, allowed_to, add_recipients_to_list=add_recipients_to_list)
+    results = cs.smart_email_send(email_id, allowed_to, data=data, add_recipients_to_list=add_recipients_to_list)
     rejected = [res.Recipient for res in results if res.Recipient not in allowed_to]
+    if rejected:
+        logging.error('Sending smart email of %s is rejected for %s', email_id, rejected, _suppress=False)
+
+
+@returns()
+@arguments(email_id=unicode, to=[unicode])
+def send_smart_email_without_check(email_id, to):
+    """Send a smart email"""
+    if DEBUG:
+        logging.debug('Not sending out smart email %s to %s because DEBUG=True', email_id, to)
+        return
+    if not to:
+        return
+
+    cs = Transactional(get_auth_parameters())
+    results = cs.smart_email_send(email_id, to)
+    rejected = [res.Recipient for res in results]
     if rejected:
         logging.error('Sending smart email of %s is rejected for %s', email_id, rejected, _suppress=False)
 

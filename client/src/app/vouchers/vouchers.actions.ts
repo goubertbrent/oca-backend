@@ -1,17 +1,14 @@
 import { Action } from '@ngrx/store';
 import { ErrorAction } from '@oca/web-shared';
-import { CirkloSettings, ExportVoucherServices, VoucherProviderId, VoucherService, VouchersServiceList } from './vouchers';
+import { CirkloSettings, VoucherProviderId, VoucherService, VouchersServiceList } from './vouchers';
 
 export enum VouchersActionTypes {
   GET_SERVICES = '[Vouchers] Get services',
   GET_SERVICES_SUCCESS = '[Vouchers] Get services success',
   GET_SERVICES_FAILED = '[Vouchers] Get services failed',
-  SAVE_VOUCHER_PROVIDER = '[Vouchers] Save voucher provider',
-  SAVE_VOUCHER_SETTINGS_SUCCESS = '[Vouchers] Save voucher provider success',
-  SAVE_VOUCHER_FAILED = '[Vouchers] Save voucher provider failed',
-  EXPORT_VOUCHER_SERVICES = '[Vouchers] Export voucher services',
-  EXPORT_VOUCHER_SERVICES_SUCCESS = '[Vouchers] Export voucher services success',
-  EXPORT_VOUCHER_SERVICES_FAILED = '[Vouchers] Export voucher services failed',
+  WHITELIST_VOUCHER_SERVICE = '[Vouchers] Whitelist voucher service',
+  WHITELIST_VOUCHER_SERVICE_SUCCESS = '[Vouchers] Save voucher provider success',
+  WHITELIST_VOUCHER_SERVICE_FAILED = '[Vouchers] Save voucher provider failed',
   GET_CIRKLO_SETTINGS = '[Vouchers] Get cirklo settings',
   GET_CIRKLO_SETTINGS_SUCCESS = '[Vouchers] Get cirklo settings success',
   GET_CIRKLO_SETTINGS_FAILED = '[Vouchers] Get cirklo settings failed',
@@ -22,9 +19,6 @@ export enum VouchersActionTypes {
 
 export class GetServicesAction implements Action {
   readonly type = VouchersActionTypes.GET_SERVICES;
-
-  constructor(public payload: { organizationType: number, cursor: string | null, sort: string; pageSize: number }) {
-  }
 }
 
 export class GetServicesSuccessAction implements Action {
@@ -41,40 +35,22 @@ export class GetServicesFailedAction implements ErrorAction {
   }
 }
 
-export class SaveVoucherSettingsAction implements Action {
-  readonly type = VouchersActionTypes.SAVE_VOUCHER_PROVIDER;
+export class WhitelistVoucherServiceAction implements Action {
+  readonly type = VouchersActionTypes.WHITELIST_VOUCHER_SERVICE;
 
-  constructor(public payload: { serviceEmail: string, provider: VoucherProviderId, enabled: boolean }) {
+  constructor(public payload: { id: string, email: string, accepted: boolean }) {
   }
 }
 
-export class SaveVoucherSettingsSuccessAction implements Action {
-  readonly type = VouchersActionTypes.SAVE_VOUCHER_SETTINGS_SUCCESS;
+export class WhitelistVoucherServiceSuccessAction implements Action {
+  readonly type = VouchersActionTypes.WHITELIST_VOUCHER_SERVICE_SUCCESS;
 
-  constructor(public payload: { serviceEmail: string; service: VoucherService }) {
+  constructor(public payload: { id: string; email: string, service: VoucherService }) {
   }
 }
 
-export class SaveVoucherSettingsFailedAction implements ErrorAction {
-  readonly type = VouchersActionTypes.SAVE_VOUCHER_FAILED;
-
-  constructor(public error: string) {
-  }
-}
-
-export class ExportVoucherServicesAction implements Action {
-  readonly type = VouchersActionTypes.EXPORT_VOUCHER_SERVICES;
-}
-
-export class ExportVoucherServicesSuccessAction implements Action {
-  readonly type = VouchersActionTypes.EXPORT_VOUCHER_SERVICES_SUCCESS;
-
-  constructor(public payload: ExportVoucherServices) {
-  }
-}
-
-export class ExportVoucherServicesFailedAction implements ErrorAction {
-  readonly type = VouchersActionTypes.EXPORT_VOUCHER_SERVICES_FAILED;
+export class WhitelistVoucherServiceFailedAction implements ErrorAction {
+  readonly type = VouchersActionTypes.WHITELIST_VOUCHER_SERVICE_FAILED;
 
   constructor(public error: string) {
   }
@@ -123,12 +99,9 @@ export type VouchersActions =
   GetServicesAction
   | GetServicesSuccessAction
   | GetServicesFailedAction
-  | SaveVoucherSettingsAction
-  | SaveVoucherSettingsSuccessAction
-  | SaveVoucherSettingsFailedAction
-  | ExportVoucherServicesAction
-  | ExportVoucherServicesSuccessAction
-  | ExportVoucherServicesFailedAction
+  | WhitelistVoucherServiceAction
+  | WhitelistVoucherServiceSuccessAction
+  | WhitelistVoucherServiceFailedAction
   | GetCirkloSettingsAction
   | GetCirkloSettingsCompleteAction
   | GetCirkloSettingsFailedAction

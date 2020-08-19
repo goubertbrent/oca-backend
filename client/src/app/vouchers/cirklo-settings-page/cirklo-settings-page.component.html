@@ -14,5 +14,25 @@
     <mat-label>Logo url</mat-label>
     <input formControlName="logo_url" matInput>
   </mat-form-field>
+  <mat-form-field class="full-width">
+    <mat-label>Signup Logo url</mat-label>
+    <input formControlName="signup_logo_url" matInput>
+  </mat-form-field>
+  <mat-form-field class="full-width">
+    <mat-label>Signup name NL</mat-label>
+    <input formControlName="signup_name_nl" matInput>
+  </mat-form-field>
+  <mat-form-field class="full-width">
+    <mat-label>Signup name FR</mat-label>
+    <input formControlName="signup_name_fr" matInput>
+  </mat-form-field>
+  <mat-form-field class="full-width">
+    <mat-label>Signup MAIL ID Accepted</mat-label>
+    <input formControlName="signup_mail_id_accepted" matInput>
+  </mat-form-field>
+  <mat-form-field class="full-width">
+    <mat-label>Signup MAIL ID Denied</mat-label>
+    <input formControlName="signup_mail_id_denied" matInput>
+  </mat-form-field>
   <button [disabled]="cirkloSettingsLoading$ | async" mat-stroked-button>{{ 'oca.Save' | translate }}</button>
 </form>

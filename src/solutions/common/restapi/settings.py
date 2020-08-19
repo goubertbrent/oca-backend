@@ -15,6 +15,8 @@
 #
 # @@license_version:1.7@@
 
+from datetime import datetime
+
 from mcfw.consts import REST_TYPE_TO
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments
@@ -26,7 +28,9 @@ from rogerthat.utils.service import create_service_identity_user
 from shop.bizz import get_customer_consents, update_customer_consents
 from shop.dal import get_customer
 from solutions.common.bizz.settings import get_service_info, update_service_info, get_consents_for_app
-from solutions.common.integrations.cirklo.models import VoucherSettings, VoucherProviderId
+from solutions.common.integrations.cirklo.cirklo import check_merchant_whitelisted
+from solutions.common.integrations.cirklo.models import CirkloMerchant,\
+    CirkloCity
 from solutions.common.models import SolutionServiceConsent
 from solutions.common.to.settings import ServiceInfoTO, UpdatePrivacySettingsTO, PrivacySettingsGroupTO
 
@@ -62,18 +66,33 @@ def rest_get_privacy_settings():
 @returns()
 @arguments(data=UpdatePrivacySettingsTO)
 def save_consent(data):
-    # type: (UpdatePrivacySettingsTO) -> None
+    from solutions.common.dal.cityapp import get_service_user_for_city
     customer = get_customer(users.get_current_user())
     context = u'User dashboard'
     headers = get_headers_for_consent(GenericRESTRequestHandler.getCurrentRequest())
     # User can enable the consent, but can only disable the actual voucher settings.
     # This way they can't enable themselves again when the city has disabled them
     update_customer_consents(customer.user_email, {data.type: data.enabled}, headers, context)
-    if data.type == SolutionServiceConsent.TYPE_CIRKLO_SHARE and not data.enabled:
-        voucher_settings = VoucherSettings.create_key(users.get_current_user()).get()  # type: VoucherSettings
-        if voucher_settings:
-            voucher_settings.set_provider(VoucherProviderId.CIRKLO, False)
-            voucher_settings.put()
+    if data.type == SolutionServiceConsent.TYPE_CIRKLO_SHARE:
+        service_user_email = customer.service_user.email()
+        cirklo_merchant_key = CirkloMerchant.create_key(service_user_email).delete()
+        if data.enabled:
+            cirklo_merchant = cirklo_merchant_key.get()  # type: CirkloMerchant
+            if not cirklo_merchant:
+                service_user = get_service_user_for_city(customer.default_app_id)
+                city_id = CirkloCity.get_by_service_email(service_user.email()).city_id
+                
+                cirklo_merchant = CirkloMerchant(key=cirklo_merchant_key)
+                cirklo_merchant.creation_date = datetime.utcfromtimestamp(customer.creation_time)
+                cirklo_merchant.service_user_email = service_user_email
+                cirklo_merchant.customer_id = customer.id
+                cirklo_merchant.city_id = city_id
+                cirklo_merchant.data = None
+                cirklo_merchant.whitelisted = check_merchant_whitelisted(city_id, customer.user_email)
+                cirklo_merchant.denied = False
+                cirklo_merchant.put()
+        else:
+            cirklo_merchant_key.delete()
 
         service_identity_user = create_service_identity_user(customer.service_user)
         try_or_defer(re_index_map_only, service_identity_user)

@@ -15,164 +15,183 @@
 #
 # @@license_version:1.7@@
 
-import csv
 import logging
-import urllib
 from datetime import datetime
 
-import cloudstorage
-from babel.dates import format_datetime
-from google.appengine.ext import ndb, db
-from google.appengine.ext.deferred import deferred
-from typing import List
+from google.appengine.ext import ndb, deferred
 
 from mcfw.cache import invalidate_cache
 from mcfw.consts import REST_TYPE_TO
 from mcfw.exceptions import HttpBadRequestException, HttpForbiddenException
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.service import re_index_map_only
-from rogerthat.consts import FILES_BUCKET, SCHEDULED_QUEUE, DAY
+from rogerthat.consts import FAST_QUEUE
 from rogerthat.models import ServiceIdentity
 from rogerthat.models.settings import ServiceInfo
 from rogerthat.rpc import users
 from rogerthat.rpc.users import get_current_session
-from rogerthat.translations import localize
-from rogerthat.utils import try_or_defer
 from rogerthat.utils.service import create_service_identity_user
 from shop.dal import get_customer
 from shop.models import Customer
 from solutions import translate
-from solutions.common.bizz import OrganizationType
+from solutions.common.bizz import SolutionModule
+from solutions.common.bizz.campaignmonitor import send_smart_email_without_check
 from solutions.common.dal import get_solution_settings
-from solutions.common.integrations.cirklo.cirklo import get_city_id_by_service_email
-from solutions.common.integrations.cirklo.models import VoucherSettings, VoucherProviderId, CirkloCity
-from solutions.common.integrations.cirklo.to import VoucherListTO, VoucherServiceTO, UpdateVoucherServiceTO, \
-    CirkloCityTO
-from solutions.common.models import SolutionServiceConsent
+from solutions.common.integrations.cirklo.cirklo import get_city_id_by_service_email, whitelist_merchant, \
+    list_whitelisted_merchants
+from solutions.common.integrations.cirklo.models import CirkloCity, CirkloMerchant, SignupNames, SignupMails
+from solutions.common.integrations.cirklo.to import CirkloCityTO, CirkloVoucherListTO, CirkloVoucherServiceTO, \
+    WhitelistVoucherServiceTO
 from solutions.common.restapi.services import _check_is_city
 
 
-@rest('/common/vouchers/services/<organization_type:\d>', 'get', silent_result=True)
-@returns(VoucherListTO)
-@arguments(organization_type=(int, long), sort=unicode, cursor=unicode, page_size=(int, long))
-def get_vouchers_services(organization_type, sort=None, cursor=None, page_size=50):
+def _check_permission(city_sln_settings):
+    if SolutionModule.CIRKLO_VOUCHERS not in city_sln_settings.modules:
+        raise HttpForbiddenException()
+
+    if len(city_sln_settings.modules) != 1:
+        city_customer = get_customer(city_sln_settings.service_user)
+        _check_is_city(city_sln_settings, city_customer)
+
+
+@rest('/common/vouchers/services', 'get', silent_result=True)
+@returns(CirkloVoucherListTO)
+@arguments()
+def get_cirklo_vouchers_services():
     city_service_user = users.get_current_user()
     city_sln_settings = get_solution_settings(city_service_user)
-    city_customer = get_customer(city_service_user)
-    _check_is_city(city_sln_settings, city_customer)
-    if sort == 'name':
-        service_customers_qry = Customer.list_enabled_by_organization_type_in_app(city_customer.app_id,
-                                                                                  organization_type)
-    else:
-        service_customers_qry = Customer.list_enabled_by_organization_type_in_app_by_creation_time(city_customer.app_id,
-                                                                                                   organization_type)
-    service_customers_qry.with_cursor(cursor)
-    customers = [c for c in service_customers_qry.fetch(page_size) if c.service_email]
-    keys = [VoucherSettings.create_key(customer.service_user) for customer in customers] + [
-        SolutionServiceConsent.create_key(customer.user_email) for customer in customers]
-    models = ndb.get_multi(keys)
-    all_voucher_settings = models[:len(models) / 2]
-    service_consents = models[len(models) / 2:]
-    to = VoucherListTO()
-    to.total = Customer.list_enabled_by_organization_type_in_app(city_customer.app_id, organization_type).count()
-    to.results = [VoucherServiceTO.from_models(customer, voucher_settings, consent)
-                  for customer, voucher_settings, consent in zip(customers, all_voucher_settings, service_consents)]
-    to.cursor = unicode(service_customers_qry.cursor())
-    to.more = len(to.results) > 0
+    _check_permission(city_sln_settings)
+
+    to = CirkloVoucherListTO()
+    to.total = 0
+    to.results = []
+    to.cursor = None
+    to.more = False
+
+    cirklo_city = CirkloCity.get_by_service_email(city_service_user.email())
+    if not cirklo_city:
+        return to
+
+    cirklo_merchants = list_whitelisted_merchants(cirklo_city.city_id)
+    cirklo_dict = {}
+    cirklo_emails = []
+    for m in cirklo_merchants:
+        if m['email'] in cirklo_emails:
+            logging.error('Duplicate found %s', m['email'])
+            continue
+        cirklo_emails.append(m['email'])
+        cirklo_dict[m['email']] = m
+
+    qry = CirkloMerchant.list_by_city_id(cirklo_city.city_id)
+    osa_merchants = []
+    for m in qry:
+        if m.service_user_email:
+            osa_merchants.append(m)
+        else:
+            cirklo_merchant = cirklo_dict.get(m.data['company']['email'])
+            if cirklo_merchant:
+                if m.data['company']['email'] in cirklo_emails:
+                    cirklo_emails.remove(m.data['company']['email'])
+                if not m.whitelisted:
+                    m.whitelisted = True
+                    m.put()
+            elif m.whitelisted:
+                m.whitelisted = False
+                m.put()
+
+            whitelist_date = cirklo_merchant['createdAt'] if cirklo_merchant else None
+            merchant_registered = 'shopInfo' in cirklo_merchant if cirklo_merchant else False
+            to.results.append(CirkloVoucherServiceTO.from_model(m, whitelist_date, merchant_registered, u'Cirklo signup'))
+
+    if osa_merchants:
+        customer_to_get = [m.customer_id for m in osa_merchants]
+        customers_dict = {}
+        for c in Customer.get_by_id(customer_to_get):
+            customers_dict[c.id] = c
+        info_keys = [ServiceInfo.create_key(users.User(m.service_user_email), ServiceIdentity.DEFAULT) for m in osa_merchants]
+        models = ndb.get_multi(info_keys)
+
+        for service_info, m in zip(models, osa_merchants):
+            customer = customers_dict[m.customer_id]
+            cirklo_merchant = cirklo_dict.get(customer.user_email)
+            should_save = False
+            if cirklo_merchant:
+                if customer.user_email in cirklo_emails:
+                    cirklo_emails.remove(customer.user_email)
+                if not m.whitelisted:
+                    m.whitelisted = True
+                    should_save = True
+            elif m.whitelisted:
+                m.whitelisted = False
+                should_save = True
+
+            if should_save:
+                m.put()
+                service_identity_user = create_service_identity_user(customer.service_user)
+                deferred.defer(re_index_map_only, service_identity_user)
+
+            whitelist_date = cirklo_merchant['createdAt'] if cirklo_merchant else None
+            merchant_registered = 'shopInfo' in cirklo_merchant if cirklo_merchant else False
+            service_to = CirkloVoucherServiceTO.from_model(m, whitelist_date,  merchant_registered, u'OSA signup')
+            service_to.populate_from_info(service_info, customer)
+            to.results.append(service_to)
+
+    for email in cirklo_emails:
+        cirklo_merchant = cirklo_dict[email]
+        to.results.append(CirkloVoucherServiceTO.from_cirklo_info(cirklo_merchant))
     return to
 
 
-@rest('/common/vouchers/services/<service_email:[^/]+>', 'put', type=REST_TYPE_TO)
-@returns(VoucherServiceTO)
-@arguments(service_email=unicode, data=UpdateVoucherServiceTO)
-def save_voucher_settings(service_email, data):
-    # type: (unicode, UpdateVoucherServiceTO) -> List[VoucherServiceTO]
+@rest('/common/vouchers/services/whitelist', 'put', type=REST_TYPE_TO)
+@returns(CirkloVoucherServiceTO)
+@arguments(data=WhitelistVoucherServiceTO)
+def whitelist_voucher_service(data):
     city_service_user = users.get_current_user()
     city_sln_settings = get_solution_settings(city_service_user)
-    city_customer = get_customer(city_service_user)
-    _check_is_city(city_sln_settings, city_customer)
+    _check_permission(city_sln_settings)
 
-    customer = get_customer(users.User(service_email))
-    settings_key = VoucherSettings.create_key(users.User(service_email))
-    settings, service_consent = ndb.get_multi([settings_key, SolutionServiceConsent.create_key(
-        customer.user_email)])  # type: VoucherSettings, SolutionServiceConsent
-    if data.enabled and service_consent and VoucherProviderId.CIRKLO == data.provider \
-        and SolutionServiceConsent.TYPE_CIRKLO_SHARE not in service_consent.types:
-        err = translate(customer.language, 'oca.cirklo_disabled_reason_privacy')
-        raise HttpBadRequestException(err)
-    if not settings:
-        settings = VoucherSettings(key=settings_key)  # type: VoucherSettings
-    settings.customer_id = customer.id
-    settings.app_id = city_customer.app_id
-    settings.set_provider(data.provider, data.enabled)
-    settings.put()
-    service_identity_user = create_service_identity_user(customer.service_user)
-    try_or_defer(re_index_map_only, service_identity_user)
-    return VoucherServiceTO.from_models(customer, settings, service_consent)
+    cirklo_city = CirkloCity.get_by_service_email(city_service_user.email())
+    if not cirklo_city:
+        raise HttpBadRequestException()
 
+    if not (cirklo_city.signup_mails and cirklo_city.signup_mails.accepted and cirklo_city.signup_mails.denied):
+        raise HttpBadRequestException('City settings aren\'t fully setup yet.')
 
-@rest('/common/vouchers/export', 'get')
-@returns(dict)
-@arguments()
-def export_voucher_services():
-    # type: () -> dict
-    city_service_user = users.get_current_user()
-    city_sln_settings = get_solution_settings(city_service_user)
-    city_customer = get_customer(city_service_user)
-    _check_is_city(city_sln_settings, city_customer)
+    if data.accepted:
+        whitelist_merchant(cirklo_city.city_id, data.email)
+        deferred.defer(send_smart_email_without_check, cirklo_city.signup_mails.accepted, [data.email], _countdown=1, _queue=FAST_QUEUE)
+    else:
+        deferred.defer(send_smart_email_without_check, cirklo_city.signup_mails.denied, [data.email], _countdown=1, _queue=FAST_QUEUE)
 
-    qry = VoucherSettings.list_by_provider_and_app(VoucherProviderId.CIRKLO, city_customer.app_id)
-    voucher_settings = qry.fetch(None)  # type: List[VoucherSettings]
-    customers = db.get(
-        [Customer.create_key(settings.customer_id) for settings in voucher_settings])  # type: List[Customer]
-    service_infos = ndb.get_multi([ServiceInfo.create_key(s.service_user, ServiceIdentity.DEFAULT)
-                                   for s in voucher_settings])  # type: List[ServiceInfo]
-    date = format_datetime(datetime.now(), locale='en_GB', format='medium').replace(' ', '-')
-    filename = 'vouchers-%s-%s.csv' % (city_customer.name, date)
-    gcs_path = '/%s/services/%s/export/%s' % (FILES_BUCKET, city_service_user.email(), filename)
-    org_types = {org_type: localize('en', key) for org_type, key in OrganizationType.get_translation_keys().iteritems()}
-    with cloudstorage.open(gcs_path, 'w', content_type='text/csv') as gcs_file:
-        field_names = ['Name', 'Login email', 'Phone number', 'Date created', 'Date enabled', 'Organization type',
-                       'Street', 'Street number', 'Postal code', 'Place', 'Location url']
-        writer = csv.DictWriter(gcs_file, dialect='excel', fieldnames=field_names)
-        writer.writeheader()
-        rows = []
-        missing = []
-        for voucher_setting, customer, service_info in zip(voucher_settings, customers, service_infos):
-            if not customer or not service_info:
-                missing.append((voucher_setting.service_user.email(),
-                                'Customer: %s' % (customer is None),
-                                'ServiceInfo: %s' % (service_info is None)))
-                continue
-            row = {
-                'Login email': customer.user_email,
-                'Name': service_info.name.encode('utf8') if service_info.name else '',
-                'Phone number': service_info.main_phone_number,
-                'Date created': datetime.utcfromtimestamp(customer.creation_time),
-                'Organization type': org_types[customer.organization_type],
-                'Date enabled': voucher_setting.get_provider(VoucherProviderId.CIRKLO).enable_date
-            }
-            address = service_info.addresses[0] if service_info.addresses else None
-            if address:
-                row['Street'] = address.street.encode('utf8')
-                row['Street number'] = address.street_number
-                row['Postal code'] = address.postal_code
-                row['Place'] = address.locality.encode('utf8')
-                params = {'api': '1', 'query': address.name or address.get_address_line(customer.locale)}
-                if address.google_maps_place_id:
-                    params['query_place_id'] = address.google_maps_place_id
-                row['Location url'] = 'https://www.google.com/maps/search/?%s' % urllib.urlencode(params, doseq=True)
-            logging.debug(row)
-            rows.append(row)
-        if missing:
-            logging.error('Some data was missing when exporting services: %s', missing)
-        sorted_rows = sorted(rows, key=lambda row: row['Date enabled'], reverse=True)
-        writer.writerows(sorted_rows)
+    if data.id:
+        whitelist_date = datetime.now().isoformat() + 'Z' if data.accepted else None
+        if '@' in data.id:
+            m = CirkloMerchant.create_key(data.id).get()
+            if data.accepted:
+                m.whitelisted = True
+            else:
+                m.denied = True
+            m.put()
 
-    deferred.defer(cloudstorage.delete, gcs_path, _countdown=DAY, _queue=SCHEDULED_QUEUE)
-    return {'url': get_serving_url(gcs_path), 'filename': filename}
+            service_info = ServiceInfo.create_key(users.User(m.service_user_email), ServiceIdentity.DEFAULT).get()
+            customer = Customer.get_by_id(m.customer_id)  # type: Customer
+
+            if data.accepted:
+                service_identity_user = create_service_identity_user(customer.service_user)
+                deferred.defer(re_index_map_only, service_identity_user)
+            to = CirkloVoucherServiceTO.from_model(m, whitelist_date, False, u'OSA signup')
+            to.populate_from_info(service_info, customer)
+            return to
+        else:
+            m = CirkloMerchant.get_by_id(long(data.id))
+            if data.accepted:
+                m.whitelisted = True
+            else:
+                m.denied = True
+            m.put()
+
+            return CirkloVoucherServiceTO.from_model(m, whitelist_date, False, u'Cirklo signup')
 
 
 @rest('/common/vouchers/cirklo', 'get')
@@ -208,5 +227,27 @@ def api_vouchers_save_cirklo_settings(data):
         other_city.key.delete()
     invalidate_cache(get_city_id_by_service_email, service_user.email())
     city.logo_url = data.logo_url
+    city.signup_enabled = False
+    city.signup_logo_url = data.signup_logo_url
+    city.signup_mails = None
+    city.signup_names = None
+
+    if data.signup_mail_id_accepted and data.signup_mail_id_denied:
+        city.signup_mails = SignupMails(accepted=data.signup_mail_id_accepted,
+                                        denied=data.signup_mail_id_denied)
+
+    if data.signup_name_nl and data.signup_name_fr:
+        city.signup_enabled = True
+        city.signup_names = SignupNames(nl=data.signup_name_nl,
+                                        fr=data.signup_name_fr)
+    elif data.signup_name_nl:
+        city.signup_enabled = True
+        city.signup_names = SignupNames(nl=data.signup_name_nl,
+                                        fr=data.signup_name_nl)
+    elif data.signup_name_fr:
+        city.signup_enabled = True
+        city.signup_names = SignupNames(nl=data.signup_name_fr,
+                                        fr=data.signup_name_fr)
+
     city.put()
     return CirkloCityTO.from_model(city)

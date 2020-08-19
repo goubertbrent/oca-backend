@@ -44,6 +44,7 @@ var service_user_email = '{{service_user_email}}';
 var service_identity = '{{service_identity}}';
 var isLoyaltyTablet = {% if loyalty %}true{% else %}false{% endif %};
 var CITY_APP_ID = "{{ city_app_id }}";
+var DEFAULT_ROUTER_LOCATION = '{{ default_router_location }}';
 
 $.ajaxSetup({
     headers: { 'X-Logged-In-As': service_user_email }
@@ -90,7 +91,7 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                     <ul id="topmenu" class="nav">
 
 {% if not is_layout_user %}
-    {% if functionality_modules %}
+    {% if functionality_modules and not sln_settings.ciklo_vouchers_only() %}
                         <li menu="functionalities">
                             <a href="#functionalities">
                                 {% translate language, "functionalities" %}
@@ -211,7 +212,7 @@ var DAYS_STR = { {% for day_num, day_name in days %}
     {% endif %}
 {% endif %}
 
-                        {% if not loyalty %}
+                        {% if not loyalty and not sln_settings.ciklo_vouchers_only() %}
                             <li menu="settings">
                                 <a href="#/settings">{% translate language, "Settings" %}</a>
                             </li>
@@ -219,7 +220,7 @@ var DAYS_STR = { {% for day_num, day_name in days %}
 
 
                         {% if not is_layout_user %}
-                            {% if not loyalty %}
+                            {% if not loyalty and not sln_settings.ciklo_vouchers_only() %}
                                 <li menu="statistics" class="disabled"><a
                                   href="#">{% translate language, "statistics" %}</a></li>
                                 <li menu="qanda"><a href="#">{% translate language, "qanda" %}</a></li>
