@@ -40,12 +40,19 @@ def import_place_types(path):
     _write_file(verticals_data, 'verticals.json')
 
     classification_data = {vertical: [] for vertical in verticals_data}
-    logging.info('importing classification')
+    logging.info('importing classification & categories')
+    categories_data = {}
     for index, values in classification.iterrows():  # type: [int, Series]
         key = values.get('key')
         vertical = values.get('vertical')
         if not isinstance(vertical, float):
             classification_data[vertical].append(key)
+        icon = values.get('icon')
+        if isinstance(icon, float):
+            icon = None
+        if icon:
+            categories_data[key] = {'icon': icon}
+    _write_file(categories_data, 'categories.json')
     _write_file(classification_data, 'classification.json')
 
     logging.info('importing translations')

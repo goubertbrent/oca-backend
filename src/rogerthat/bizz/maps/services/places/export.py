@@ -26,7 +26,7 @@ from xlwt import Worksheet
 
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.maps.services.places.i18n_utils import _get_translations, DEFAULT_LANGUAGE
-from rogerthat.consts import FILES_BUCKET, DAY, SCHEDULED_QUEUE
+from rogerthat.consts import FILES_BUCKET, DAY, SCHEDULED_QUEUE, FA_ICONS
 
 
 def export_place_types():
@@ -35,6 +35,7 @@ def export_place_types():
 
     verticals = _get_json_file('verticals.json')
     classification = _get_json_file('classification.json')
+    category_details = _get_json_file('categories.json')
     classicication_reverse = {}  # mapping of key: category id, value: vertical
     for vertical_key, categories in classification.iteritems():
         for category in categories:
@@ -50,16 +51,18 @@ def export_place_types():
         for vertical, data in verticals.iteritems():
             data['name'] = vertical
             rows.append(data)
-        _write_dict_sheet(book.add_sheet('verticals'),  ['name', 'icon'], rows)
+        _write_dict_sheet(book.add_sheet('verticals'), ['name', 'icon', 'color'], rows)
+        _write_dict_sheet(book.add_sheet('icons'), ['name'], [{'name': icon} for icon in FA_ICONS])
 
         # Verticals - categories mapping
         rows = []
         for category_id in translation_keys:
             vertical = classicication_reverse.get(category_id)
+            details = category_details.get(category_id, {})
             if not vertical:
                 vertical = _guess_vertical(category_id)
-            rows.append({'key': category_id, 'vertical': vertical})
-        _write_dict_sheet(book.add_sheet('classification'), ['key', 'vertical'], rows)
+            rows.append({'key': category_id, 'vertical': vertical, 'icon': details.get('icon')})
+        _write_dict_sheet(book.add_sheet('classification'), ['key', 'vertical', 'icon'], rows)
 
         # Categories translations
         key_column = 'key'

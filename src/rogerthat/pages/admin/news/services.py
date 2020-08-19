@@ -19,7 +19,7 @@ import datetime
 import json
 import logging
 import os
-d
+
 from google.appengine.ext.deferred import deferred
 from google.appengine.ext.webapp import template
 

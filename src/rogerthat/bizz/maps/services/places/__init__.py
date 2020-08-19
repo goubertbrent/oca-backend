@@ -16,6 +16,7 @@
 # @@license_version:1.7@@
 
 import json
+import logging
 import os
 
 from mcfw.properties import unicode_property
@@ -23,9 +24,9 @@ from rogerthat.bizz.maps.services.places.i18n_utils import get_dict_for_language
     translate
 from rogerthat.to import TO
 
-
-_classifications = {}
-_verticals = {}
+_classifications = None
+_verticals = None
+_categories = None
 
 
 def _get_classifications():
@@ -52,6 +53,16 @@ def _get_vertical_for_place_type(place_type):
         if place_type in place_types:
             return vertical
     return None
+
+
+def _get_categories():
+    global _categories
+    if _categories:
+        return _categories
+    with open(os.path.join(os.path.dirname(__file__), 'categories.json')) as f:
+        _categories = json.load(f)
+    return _categories
+
 
 def _get_vertical_details(vertical):
     all_verticals = _get_verticals()
@@ -90,7 +101,9 @@ def get_place_details(place_type, language):
     details = get_vertical_details_for_place_type(place_type)
     if not details:
         return None
+    categories = _get_categories()
+    icon = categories.get(place_type, {}).get('icon') or details['icon']
     return PlaceDetails(title=title,
-                        fa_icon=details['icon'],
+                        fa_icon=icon,
                         icon_color=details['color'],
-                        png_icon='{}-{}'.format(details['icon'], details['color'].replace('#', '')))
+                        png_icon='{}-{}'.format(icon, details['color'].replace('#', '')))

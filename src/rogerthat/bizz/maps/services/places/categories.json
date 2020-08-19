@@ -1,0 +1,68 @@
+{
+  "bar": {
+    "icon": "fa-coffee"
+  },
+  "bar_and_grill": {
+    "icon": "fa-coffee"
+  },
+  "bar_pmu": {
+    "icon": "fa-coffee"
+  },
+  "bar_restaurant_furniture_store": {
+    "icon": "fa-coffee"
+  },
+  "bar_stool_supplier": {
+    "icon": "fa-coffee"
+  },
+  "bar_tabac": {
+    "icon": "fa-coffee"
+  },
+  "cider_bar": {
+    "icon": "fa-coffee"
+  },
+  "cocktail_bar": {
+    "icon": "fa-coffee"
+  },
+  "cured_ham_bar": {
+    "icon": "fa-coffee"
+  },
+  "dart_bar": {
+    "icon": "fa-coffee"
+  },
+  "espresso_bar": {
+    "icon": "fa-coffee"
+  },
+  "gay_bar": {
+    "icon": "fa-coffee"
+  },
+  "girl_bar": {
+    "icon": "fa-coffee"
+  },
+  "hookah_bar": {
+    "icon": "fa-coffee"
+  },
+  "karaoke_bar": {
+    "icon": "fa-coffee"
+  },
+  "live_music_bar": {
+    "icon": "fa-coffee"
+  },
+  "piano_bar": {
+    "icon": "fa-coffee"
+  },
+  "salsa_bar": {
+    "icon": "fa-coffee"
+  },
+  "sports_bar": {
+    "icon": "fa-coffee"
+  },
+  "stand_bar": {
+    "icon": "fa-coffee"
+  },
+  "tiki_bar": {
+    "icon": "fa-coffee"
+  },
+  "wine_bar": {
+    "icon": "fa-coffee"
+  }
+}
