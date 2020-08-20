@@ -135,7 +135,7 @@ def get_map(app_user):
                                 MapFunctionality.SEARCH,
                                 MapFunctionality.SAVE]
 
-    action_place_types = ['restaurant', 'bar', 'supermarket', 'bakery', 'clothing_store', 'doctor', 'pharmacy', 'establishment_poi']
+    action_place_types = ['restaurant', 'bar', 'supermarket', 'bakery', 'butcher_shop', 'clothing_store', 'pharmacy', 'establishment_poi']
     response.action_chips = []
     for place_type in action_place_types:
         place_details = get_place_details(place_type, language)
