@@ -36,7 +36,8 @@ def import_place_types(path):
     logging.info('importing verticals')
     for index, values in verticals.iterrows():  # type: [int, Series]
         name = values.pop('name')
-        verticals_data[name] = values.to_dict()
+        values_dict = values.to_dict()
+        verticals_data[name] = {'color': values_dict['color'], 'icon': values_dict['icon']}
     _write_file(verticals_data, 'verticals.json')
 
     classification_data = {vertical: [] for vertical in verticals_data}

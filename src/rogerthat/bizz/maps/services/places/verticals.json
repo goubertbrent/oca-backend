@@ -1,106 +1,106 @@
 {
   "Arts & Entertainment": {
-    "color": "#fdf7c3",
+    "color": "#e7d856",
     "icon": "fa-paint-brush"
   },
   "Autos & Vehicles": {
-    "color": "#d3e0f3",
+    "color": "#698bbc",
     "icon": "fa-car"
   },
   "Beauty & Fitness": {
-    "color": "#f9cbd8",
+    "color": "#dc7a95",
     "icon": "fa-shower"
   },
   "Books & Literature": {
-    "color": "#dccaa6",
+    "color": "#ad9159",
     "icon": "fa-book"
   },
   "Business & Industrial": {
-    "color": "#d5dee5",
+    "color": "#63829a",
     "icon": "fa-industry"
   },
   "Computers & Electronics": {
-    "color": "#c0dee9",
+    "color": "#4899b7",
     "icon": "fa-laptop"
   },
   "Finance": {
-    "color": "#fcf6de",
+    "color": "#d5b73f",
     "icon": "fa-money"
   },
   "Food & Drink": {
-    "color": "#fdece5",
+    "color": "#e19271",
     "icon": "fa-cutlery"
   },
   "Games": {
-    "color": "#8ba1d2",
+    "color": "#4b67a3",
     "icon": "fa-gamepad"
   },
   "Health": {
-    "color": "#f9c8cb",
+    "color": "#d85962",
     "icon": "fa-stethoscope"
   },
   "Hobbies & Leisure": {
-    "color": "#f7eda6",
+    "color": "#efd835",
     "icon": "fa-star"
   },
   "Home & Garden": {
-    "color": "#c6d8a6",
+    "color": "#93b15e",
     "icon": "fa-home"
   },
   "Internet & Telecom": {
-    "color": "#c1e5db",
+    "color": "#7bc1ae",
     "icon": "fa-globe"
   },
   "Jobs & Education": {
-    "color": "#fee3c8",
+    "color": "#da9552",
     "icon": "fa-briefcase"
   },
   "Law & Government": {
-    "color": "#e8dbd5",
+    "color": "#c49e8c",
     "icon": "fa-gavel"
   },
   "News": {
-    "color": "#bbe1f8",
+    "color": "#77b6dd",
     "icon": "fa-newspaper-o"
   },
   "Online Communities": {
-    "color": "#cfeadb",
+    "color": "#61b687",
     "icon": "fa-comments"
   },
   "People & Society": {
-    "color": "#fde9e8",
+    "color": "#d97975",
     "icon": "fa-users"
   },
   "Pets & Animals": {
-    "color": "#cde5c1",
+    "color": "#6ba450",
     "icon": "fa-paw"
   },
   "Real Estate": {
-    "color": "#d2d2de",
+    "color": "#8a8abc",
     "icon": "fa-building"
   },
   "Reference": {
-    "color": "#fbd1c3",
+    "color": "#eb7bb8",
     "icon": "fa-flag"
   },
   "Science": {
-    "color": "#c09fca",
+    "color": "#915aa1",
     "icon": "fa-flask"
   },
   "Shopping": {
-    "color": "#e7d2e5",
+    "color": "#c57dbe",
     "icon": "fa-shopping-bag"
   },
   "Sports": {
-    "color": "#fccca6",
+    "color": "#ea8b3f",
     "icon": "fa-futbol-o"
   },
   "Travel": {
-    "color": "#daeef5",
+    "color": "#80b8cc",
     "icon": "fa-plane"
   },
   "World Localities": {
-    "color": "#f4eee2",
+    "color": "#dcb66b",
     "icon": "fa-map-signs"
   }
 }

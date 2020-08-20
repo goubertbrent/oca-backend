@@ -1,6 +1,9 @@
 {
+  "bakery": {
+    "icon": "fa-shopping-basket"
+  },
   "bar": {
-    "icon": "fa-coffee"
+    "icon": "fa-glass"
   },
   "bar_and_grill": {
     "icon": "fa-coffee"
@@ -17,8 +20,14 @@
   "bar_tabac": {
     "icon": "fa-coffee"
   },
+  "butcher_shop": {
+    "icon": "fa-shopping-basket"
+  },
   "cider_bar": {
     "icon": "fa-coffee"
+  },
+  "clothing_store": {
+    "icon": "fa-shopping-bag"
   },
   "cocktail_bar": {
     "icon": "fa-coffee"
@@ -47,6 +56,9 @@
   "live_music_bar": {
     "icon": "fa-coffee"
   },
+  "pharmacy": {
+    "icon": "fa-medkit"
+  },
   "piano_bar": {
     "icon": "fa-coffee"
   },
@@ -58,6 +70,9 @@
   },
   "stand_bar": {
     "icon": "fa-coffee"
+  },
+  "supermarket": {
+    "icon": "fa-shopping-cart"
   },
   "tiki_bar": {
     "icon": "fa-coffee"
