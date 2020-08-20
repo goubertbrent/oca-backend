@@ -68,7 +68,7 @@ def import_place_types(path):
 
 def _write_file(data, filename):
     current_dir = dirname(__file__)
-    complete_path = join(current_dir, '..', 'src', 'rogerthat', 'bizz', 'maps', 'services', 'places', filename)
+    complete_path = join(current_dir, '..', '..', 'src', 'rogerthat', 'bizz', 'maps', 'services', 'places', filename)
     logging.info('Writing to file: ' + complete_path)
     json.dump(data, open(complete_path, 'w'), indent=2, sort_keys=True, separators=(',', ': '))
 

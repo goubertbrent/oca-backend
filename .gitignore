@@ -11,6 +11,7 @@ setenv.sh
 .DS_Store
 js-test/gen/*
 src-tools/shop/*.xls
+src-tools/map/tmp
 .idea
 bin/
 src/solution_server_settings/consts.py
