@@ -195,12 +195,16 @@ $(function () {
     window.signupCallback = function (recaptchaToken) {
         sln.showProcessing(CommonTranslations.SUBMITTING_DOT_DOT_DOT);
         getSignupDetails(recaptchaToken).then(function (signupDetails) {
-            requests.signup(signupDetails).then(function () {
-                sln.hideProcessing();
-                $('#signup_note').hide();
-                $('#signup_box').hide();
-                $('#signup_success').show();
-            }).catch(function (error) {
+            requests.signup(signupDetails).then(function (result) {
+           		sln.hideProcessing();
+            	if (result.success) {
+            		$('#signup_note').hide();
+                	$('#signup_box').hide();
+                	$('#signup_success').show();
+            	} else {
+            		sln.alert(result.errormsg, null, CommonTranslations.ERROR);
+            	}
+            }).catch(function (error) {            	
                 sln.hideProcessing();
                 var err = error.data.responseJSON;
                 var msg = err.error;

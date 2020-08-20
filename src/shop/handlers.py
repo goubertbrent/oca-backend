@@ -812,7 +812,20 @@ class VouchersCirkloSignupHandler(PublicPageHandler):
 
         if not CirkloCity.create_key(json_data['city_id']).get():
             logging.debug('CirkloCity was invalid')
-            self.abort(400)
+            self.abort(400)            
+
+        self.response.headers['Content-Type'] = 'text/json'
+        found_in_db =  check_merchant_whitelisted(json_data['city_id'], json_data['company']['email'])
+        if found_in_db:
+            logging.debug('email found in cirklo db')
+        else:
+            cirklo_merchant = CirkloMerchant.get_by_city_id_and_email(json_data['city_id'], json_data['company']['email'])
+            if cirklo_merchant:
+                logging.debug('email found in osa db')
+                found_in_db = True
+
+        if found_in_db:
+            return self.response.out.write(json.dumps({'success': False, 'errormsg': translate(json_data['language'], 'cirklo.email_already_used')}))
 
         merchant = CirkloMerchant()
         merchant.service_user_email = None
@@ -822,6 +835,7 @@ class VouchersCirkloSignupHandler(PublicPageHandler):
             u'company': json_data['company'],
             u'language': json_data['language']
         }
+        merchant.emails = [json_data['company']['email']]
         merchant.whitelisted = check_merchant_whitelisted(json_data['city_id'], json_data['company']['email'])
         merchant.denied = False
         merchant.put()

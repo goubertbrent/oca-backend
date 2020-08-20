@@ -88,7 +88,9 @@ class CirkloVoucherServiceTO(TO):
         if m.data:
             to.name = m.data['company']['name']
             to.email = m.data['company']['email']
-            to.address = m.data['company']['address']
+            to.address = ', '.join([' '.join([m.data['company']['address_street'], m.data['company']['address_housenumber']]),
+                                    m.data['company']['address_postal_code'],
+                                    m.data['company']['address_city']])
         return to
 
     def populate_from_info(self, service_info, customer):

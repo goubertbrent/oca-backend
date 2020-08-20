@@ -130,6 +130,7 @@ class CirkloMerchant(NdbModel):
     customer_id = ndb.IntegerProperty(indexed=False)  # oca only
 
     data = ndb.JsonProperty()  # cirklo only
+    emails = ndb.StringProperty(repeated=True, indexed=True)  # cirklo only
 
     @classmethod
     def create_key(cls, service_user_email):
@@ -139,3 +140,7 @@ class CirkloMerchant(NdbModel):
     @classmethod
     def list_by_city_id(cls, city_id):
         return cls.query().filter(cls.city_id == city_id)
+
+    @classmethod
+    def get_by_city_id_and_email(cls, city_id, email):
+        return cls.query().filter(cls.city_id == city_id).filter(cls.emails == email).get()
