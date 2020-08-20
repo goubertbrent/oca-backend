@@ -596,7 +596,7 @@ def _execute_consent_actions(service_user):
         service_user = get_service_user_for_city(customer.default_app_id)
         city_id = CirkloCity.get_by_service_email(service_user.email()).city_id
 
-        service_user_email = service_user.eamil()
+        service_user_email = service_user.email()
         cirklo_merchant = CirkloMerchant(key=CirkloMerchant.create_key(service_user_email))
         cirklo_merchant.creation_date = datetime.utcfromtimestamp(customer.creation_time)
         cirklo_merchant.service_user_email = service_user_email
