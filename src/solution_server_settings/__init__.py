@@ -43,7 +43,7 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     default_email_group_members = add_meta(db.StringProperty(indexed=False),
                                            doc='Users that will be added to email groups for apps',
                                            order=4)
-    gsuite_service_account = add_meta(db.StringProperty(indexed=False),
+    gsuite_service_account = add_meta(db.TextProperty(),
                                       doc='Service account json file data for an account that has access to the gsuite domain',
                                       order=5)
     gsuite_delegated_user = add_meta(db.StringProperty(indexed=False),
