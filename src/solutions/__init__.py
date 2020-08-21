@@ -17,7 +17,7 @@
 
 import logging
 
-from google.appengine.ext import webapp
+from google.appengine.ext.webapp import template
 
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import get_python_stack_trace
@@ -26,7 +26,7 @@ from solutions.common.consts import UNIT_SYMBOLS
 from solutions.common.localizer import translations
 from solutions.flex import SOLUTION_FLEX
 
-webapp.template.register_template_library('solutions.templates.filter')
+template.register_template_library('solutions.templates.filter')
 
 
 def get_supported_languages():

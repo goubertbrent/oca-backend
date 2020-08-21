@@ -1,0 +1,16 @@
+<div class="default-component-margin">
+  <h2>{{ 'rcc.core_branding' | translate }}</h2>
+  <p>{{ 'rcc.core_branding_explanation' | translate }}</p>
+  <form #form="ngForm" (ngSubmit)="save()">
+    <div class="form-row">
+      <input type="file" name="core-branding" accept="application/zip"
+             (change)="onFilePicked($event)" required>
+    </div>
+    <rcc-api-request-status [status]="status" class="form-row"></rcc-api-request-status>
+    <div class="form-row">
+      <button mat-button mat-raised-button color="primary" [disabled]="!form.form.valid || !file">
+        {{ 'rcc.save' | translate }}
+      </button>
+    </div>
+  </form>
+</div>

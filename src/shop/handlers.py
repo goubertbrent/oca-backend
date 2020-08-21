@@ -39,6 +39,7 @@ from rogerthat.bizz.friends import user_code_by_hash, makeFriends, ORIGIN_USER_I
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.service import SERVICE_LOCATION_INDEX, re_index_map_only
 from rogerthat.bizz.session import create_session
+from rogerthat.consts import DEBUG
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
 from rogerthat.models import ProfilePointer, ServiceProfile

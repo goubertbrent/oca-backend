@@ -17,7 +17,7 @@
 
 import json
 
-from oauth2client.appengine import OAuth2Decorator
+from oauth2client.contrib.appengine import OAuth2Decorator
 import webapp2
 
 from solution_server_settings.consts import GMB_OAUTH_CLIENT_ID,\

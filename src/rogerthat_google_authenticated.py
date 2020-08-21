@@ -17,8 +17,7 @@
 
 from rogerthat.pages.admin.news import NewsHandler
 from rogerthat.pages.admin.news.groups import NewsGroupsHandler
-from rogerthat.pages.admin.news.services import SetupNewsServiceHandler, \
-    ListNewsServiceHandler
+from rogerthat.pages.admin.news.services import SetupNewsServiceHandler, ListNewsServiceHandler
 from rogerthat.wsgi import RogerthatWSGIApplication
 
 handlers = [

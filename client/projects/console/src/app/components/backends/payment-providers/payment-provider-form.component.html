@@ -1,0 +1,121 @@
+<form #form="ngForm" class="default-component-margin-full default-field-margin" *ngIf="paymentProvider"
+      fxLayout="column" fxFlex="30" fxFlex.md="50" fxFlex.sm="100" (ngSubmit)="submit()">
+  <mat-form-field>
+    <input matInput name="payment_provider_id" maxlength="50" [(ngModel)]="paymentProvider.id"
+           [placeholder]="'rcc.payment_provider_type' | translate" required #id>
+    <mat-error *ngIf="id.errors?.required">{{ 'rcc.this_field_is_required' | translate }}</mat-error>
+  </mat-form-field>
+  <mat-form-field>
+    <input matInput name="name" maxlength="50" [(ngModel)]="paymentProvider.name"
+           [placeholder]="'rcc.name' | translate" required #name>
+    <mat-error *ngIf="name.errors?.required">{{ 'rcc.this_field_is_required' | translate }}</mat-error>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-chip-list #currencyChipList>
+      <mat-chip *ngFor="let currencyCode of paymentProvider.currencies" [selectable]="true" [removable]="true"
+                (removed)="removeCurrency(currencyCode)">
+        {{ getCurrency(currencyCode) }}
+        <mat-icon matChipRemove>cancel</mat-icon>
+      </mat-chip>
+      <mat-basic-chip disabled="true">
+        <mat-autocomplete #currencyAutoComplete="matAutocomplete">
+          <mat-option *ngFor="let currency of currencies" [value]="currency.code">
+            {{ currency.currency }}
+          </mat-option>
+        </mat-autocomplete>
+      </mat-basic-chip>
+    </mat-chip-list>
+    <input matInput [placeholder]="'rcc.currencies' | translate"
+           [matChipInputFor]="currencyChipList"
+           (matChipInputTokenEnd)="addCurrency($event)"/>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-select multiple [placeholder]="'rcc.asset_types' | translate" [(ngModel)]="paymentProvider.asset_types"
+                name="asset_types">
+      <mat-option *ngFor="let assetType of assetTypes" [value]="assetType">{{ assetType }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-form-field class="full-width">
+    <textarea matInput name="custom_settings" matTextareaAutosize
+              [placeholder]="'rcc.custom_settings' | translate"
+              [value]="getSettings()" (change)="setSettings($event)"></textarea>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-select [placeholder]="'rcc.embedded_app' | translate"
+                [(ngModel)]="paymentProvider.embedded_application"
+                name="embedded_application">
+      <mat-option *ngFor="let application of embeddedApplications" [value]="application.name">
+        {{ application.name }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+  <div>
+    <mat-chip-list #appChips>
+      <mat-chip *ngFor="let appId of paymentProvider.app_ids"
+                color="primary"
+                (removed)="removeApp(appId)">
+        {{ getAppName(appId) }}
+        <mat-icon matChipRemove>cancel</mat-icon>
+      </mat-chip>
+    </mat-chip-list>
+    <mat-form-field>
+      <input matInput [placeholder]="'rcc.add_app' | translate"
+             [formControl]="appFormControl"
+             [matChipInputFor]="appChips"
+             (matChipInputTokenEnd)="addApp($event)"
+             [matAutocomplete]="appAutoComplete">
+      <mat-autocomplete #appAutoComplete="matAutocomplete">
+        <mat-option *ngFor="let app of filteredApps | async" [value]="app.id">
+          {{ app.name }}
+        </mat-option>
+      </mat-autocomplete>
+    </mat-form-field>
+  </div>
+  <div *ngIf="paymentProvider.oauth_settings">
+    <!-- todo switch to enable/disable oauth settings -->
+    <h4>{{ 'rcc.oauth_settings' | translate }}</h4>
+    <mat-form-field>
+      <input matInput name="client_id"
+             [placeholder]="'rcc.client_id' | translate"
+             [(ngModel)]="paymentProvider.oauth_settings.client_id">
+    </mat-form-field>
+    <mat-form-field>
+      <input matInput name="secret"
+             [placeholder]="'rcc.secret' | translate"
+             [(ngModel)]="paymentProvider.oauth_settings.secret">
+    </mat-form-field>
+    <mat-form-field>
+      <input matInput name="base_url"
+             [placeholder]="'rcc.base_url' | translate"
+             [(ngModel)]="paymentProvider.oauth_settings.base_url">
+    </mat-form-field>
+    <mat-form-field>
+      <input matInput name="authorize_path"
+             [placeholder]="'rcc.authorize_path' | translate"
+             [(ngModel)]="paymentProvider.oauth_settings.authorize_path">
+    </mat-form-field>
+    <mat-form-field>
+      <input matInput name="token_path"
+             [placeholder]="'rcc.token_path' | translate"
+             [(ngModel)]="paymentProvider.oauth_settings.token_path">
+    </mat-form-field>
+    <mat-form-field>
+      <input matInput name="scope"
+             [placeholder]="'rcc.scope' | translate"
+             [(ngModel)]="paymentProvider.oauth_settings.scope">
+    </mat-form-field>
+    <p>{{ 'rcc.upload_logo' | translate }}</p>
+    <input type="file" name="logo" accept="image/png" required #logo (change)="convertLogo()">
+  </div>
+  <div *ngIf="paymentProvider.logo">
+    <p>{{ 'rcc.current_logo' | translate }}</p>
+    <img [src]="paymentProvider.logo">
+  </div>
+  <p class="error-message" [textContent]="fileError"></p>
+  <rcc-api-request-status [status]="status"></rcc-api-request-status>
+  <div class="form-row">
+    <button mat-button mat-raised-button color="primary" [disabled]="!form.form.valid">
+      {{ 'rcc.save' | translate }}
+    </button>
+  </div>
+</form>

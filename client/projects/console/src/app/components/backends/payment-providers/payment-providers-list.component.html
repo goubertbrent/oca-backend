@@ -1,0 +1,20 @@
+<mat-card class="payment-provider-card" *ngFor="let provider of paymentProviders$ | async">
+  <mat-card-header>
+    <mat-card-title>{{ provider.name }}</mat-card-title>
+  </mat-card-header>
+  <img mat-card-image *ngIf="provider.logo" [src]="provider.logo">
+  <mat-card-actions fxLayoutAlign="end center">
+    <a [routerLink]="provider.id" mat-button>
+      {{ 'rcc.edit' | translate }}
+    </a>
+    <button type="button" mat-button color="warn" (click)="confirmRemove(provider)">
+      {{ 'rcc.delete' | translate }}
+    </button>
+  </mat-card-actions>
+</mat-card>
+<rcc-api-request-status [status]="status$ | async"></rcc-api-request-status>
+<div class="fab-bottom-right">
+  <a mat-fab [routerLink]="['create']">
+    <mat-icon>add</mat-icon>
+  </a>
+</div>

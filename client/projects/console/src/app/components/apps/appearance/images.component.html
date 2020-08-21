@@ -1,0 +1,24 @@
+<rcc-api-request-status [status]="status$ | async"></rcc-api-request-status>
+<mat-card class="image-card" *ngFor="let image of imagesInfo$ | async">
+
+  <mat-card-header>
+    <mat-card-title>{{ ('rcc.' + image.type) | translate }}</mat-card-title>
+  </mat-card-header>
+  <div fxLayoutAlign="center center" class="image-container">
+    <img [src]="getImageUrl(image)">
+  </div>
+  <mat-card-actions fxLayoutAlign="space-between center" fxLayout="row">
+    <button type="button" mat-button (click)="removeImage(image)" color="warn" *ngIf="image.exists">
+      {{ 'rcc.delete' | translate }}
+    </button>
+    <a [routerLink]="[image.type]" [queryParams]="{reloadImage: reloadImage}" mat-button color="primary">
+      {{ 'rcc.edit' | translate }}
+    </a>
+  </mat-card-actions>
+</mat-card>
+
+<div class="fab-bottom-right">
+  <a mat-fab [routerLink]="['generate']">
+    <mat-icon>add</mat-icon>
+  </a>
+</div>

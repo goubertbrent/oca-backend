@@ -24,7 +24,6 @@ from rogerthat.bizz.app import create_app, get_app, AppDoesNotExistException, up
     save_firebase_settings_ios
 from rogerthat.bizz.app_assets import get_app_assets, remove_app_asset, get_all_app_assets, get_app_asset, \
     remove_global_app_asset
-from rogerthat.bizz.authentication import Scopes
 from rogerthat.bizz.branding import save_core_branding
 from rogerthat.bizz.default_brandings import remove_default_branding, get_default_brandings, \
     remove_default_global_branding, get_all_default_brandings, get_default_branding
@@ -43,7 +42,7 @@ from rogerthat.to.app import AppTO, AppQRTemplateTO, CreateAppTO, CreateAppQRTem
 from rogerthat.to.branding import BrandingTO
 
 
-@rest('/restapi/apps', 'post', scopes=Scopes.APPS_CREATOR, type=REST_TYPE_TO)
+@rest('/console-api/apps', 'post', type=REST_TYPE_TO)
 @returns(AppTO)
 @arguments(data=CreateAppTO)
 def api_create_app(data):
@@ -55,7 +54,7 @@ def api_create_app(data):
         raise HttpBadRequestException('invalid_app_id', data={'app_id': exception.fields['app_id']})
 
 
-@rest('/restapi/apps', 'get', scopes=Scopes.BACKEND_EDITOR, silent_result=True)
+@rest('/console-api/apps', 'get', silent_result=True)
 @returns([AppTO])
 @arguments(app_types=[int], visible=bool)
 def api_list_apps(app_types=None, visible=True):
@@ -66,7 +65,7 @@ def api_list_apps(app_types=None, visible=True):
     return [AppTO.from_model(app) for app in apps]
 
 
-@rest('/restapi/apps/<app_id:[^/]+>', 'get', scopes=Scopes.APP_EDITOR)
+@rest('/console-api/apps/<app_id:[^/]+>', 'get')
 @returns(AppTO)
 @arguments(app_id=unicode)
 def api_get_app(app_id):
@@ -76,7 +75,7 @@ def api_get_app(app_id):
         raise HttpNotFoundException('app_not_found', data={'app_id': app_id})
 
 
-@rest('/restapi/apps/<app_id:[^/]+>', 'put', scopes=Scopes.APP_EDITOR)
+@rest('/console-api/apps/<app_id:[^/]+>', 'put')
 @returns(AppTO)
 @arguments(app_id=unicode, data=AppTO)
 def api_update_app(app_id, data):
@@ -88,17 +87,21 @@ def api_update_app(app_id, data):
         raise HttpBadRequestException('service_identity_not_found', {'service_identity': e.fields['service_identity']})
 
 
-@rest('/restapi/apps/<app_id:[^/]+>/partial', 'put', scopes=Scopes.APP_EDITOR)
-@returns(AppTO)
+@rest('/console-api/apps/<app_id:[^/]+>/partial', 'put')
+@returns(dict)
 @arguments(app_id=unicode, data=AppTO)
 def api_patch_app(app_id, data):
     try:
-        return AppTO.from_model(patch_app(app_id, data))
+        rogerthat_app, app = patch_app(app_id, data)
+        return {
+            'rogerthat_app': AppTO.from_model(rogerthat_app),
+            'app': app,
+        }
     except AppDoesNotExistException:
         raise HttpNotFoundException('app_not_found', data={'app_id': app_id})
 
 
-@rest('/restapi/apps/<app_id:[^/]+>/qr-code-templates', 'get', scopes=Scopes.APP_EDITOR)
+@rest('/console-api/apps/<app_id:[^/]+>/qr-code-templates', 'get')
 @returns([AppQRTemplateTO])
 @arguments(app_id=unicode)
 def api_get_qr_templates(app_id):
@@ -109,7 +112,7 @@ def api_get_qr_templates(app_id):
         raise HttpNotFoundException('app_not_found', data={'app_id': app_id})
 
 
-@rest('/restapi/apps/<app_id:[^/]+>/qr-code-templates', 'post', scopes=Scopes.APP_EDITOR, type=REST_TYPE_TO)
+@rest('/console-api/apps/<app_id:[^/]+>/qr-code-templates', 'post', type=REST_TYPE_TO)
 @returns(AppQRTemplateTO)
 @arguments(app_id=unicode, data=CreateAppQRTemplateTO)
 def api_add_qr_template(app_id, data):
@@ -128,7 +131,7 @@ def api_add_qr_template(app_id, data):
         raise HttpBadRequestException('service_api_error', data=e.to_dict())
 
 
-@rest('/restapi/apps/<app_id:[^/]+>/default-qr-code-template', 'post', scopes=Scopes.APP_EDITOR, type=REST_TYPE_TO)
+@rest('/console-api/apps/<app_id:[^/]+>/default-qr-code-template', 'post', type=REST_TYPE_TO)
 @returns(AppQRTemplateTO)
 @arguments(app_id=unicode, data=FileTO)
 def api_create_default_qr_template(app_id, data):
@@ -152,7 +155,7 @@ def api_create_default_qr_template(app_id, data):
         raise HttpBadRequestException('service_api_error', data=e.to_dict())
 
 
-@rest('/restapi/apps/<app_id:[^/]+>/qr-code-templates/<key_name:[^/]+>', 'get', scopes=Scopes.APP_EDITOR)
+@rest('/console-api/apps/<app_id:[^/]+>/qr-code-templates/<key_name:[^/]+>', 'get')
 @returns(AppQRTemplateTO)
 @arguments(app_id=unicode, key_name=unicode)
 def api_get_qr_template(app_id, key_name):
@@ -165,7 +168,7 @@ def api_get_qr_template(app_id, key_name):
         raise HttpNotFoundException('app_not_found', data={'app_id': app_id})
 
 
-@rest('/restapi/apps/<app_id:[^/]+>/qr-code-templates/<key_name:[^/]+>', 'delete', scopes=Scopes.APP_EDITOR)
+@rest('/console-api/apps/<app_id:[^/]+>/qr-code-templates/<key_name:[^/]+>', 'delete')
 @returns()
 @arguments(app_id=unicode, key_name=unicode)
 def api_delete_qr_template(app_id, key_name):
@@ -177,7 +180,7 @@ def api_delete_qr_template(app_id, key_name):
         raise HttpConflictException('cannot_remove_qr_template')
 
 
-@rest('/restapi/apps/<app_id:[^/]+>/core-branding', 'put', scopes=Scopes.APP_EDITOR, silent=True)
+@rest('/console-api/apps/<app_id:[^/]+>/core-branding', 'put', silent=True)
 @returns(BrandingTO)
 @arguments(app_id=unicode, data=FileTO)
 def api_save_core_branding(app_id, data):
@@ -191,63 +194,63 @@ def api_save_core_branding(app_id, data):
         raise HttpBadRequestException('invalid_branding_error', data={'message': e.message})
 
 
-@rest('/restapi/apps/<app_id:[^/]+>/assets', 'get', scopes=Scopes.APP_EDITOR)
+@rest('/console-api/apps/<app_id:[^/]+>/assets', 'get')
 @returns([AppAssetFullTO])
 @arguments(app_id=unicode)
 def api_get_app_assets(app_id):
     return [AppAssetFullTO.from_model(app_asset) for app_asset in get_app_assets(app_id)]
 
 
-@rest('/restapi/apps/<app_id:[^/]+>/assets/<asset_type:[^/]+>', 'delete', scopes=Scopes.APP_EDITOR)
+@rest('/console-api/apps/<app_id:[^/]+>/assets/<asset_type:[^/]+>', 'delete')
 @returns(UploadInfoTO)
 @arguments(app_id=unicode, asset_type=unicode)
 def api_delete_app_asset(app_id, asset_type):
     remove_app_asset(app_id, asset_type)
 
 
-@rest('/restapi/apps/<app_id:[^/]+>/default-brandings', 'get', scopes=Scopes.APP_EDITOR)
+@rest('/console-api/apps/<app_id:[^/]+>/default-brandings', 'get')
 @returns([DefaultBrandingTO])
 @arguments(app_id=unicode)
 def api_get_default_brandings(app_id):
     return [DefaultBrandingTO.from_model(branding) for branding in get_default_brandings(app_id)]
 
 
-@rest('/restapi/apps/<app_id:[^/]+>/default-brandings/<branding_type:[^/]+>', 'delete', scopes=Scopes.APP_EDITOR)
+@rest('/console-api/apps/<app_id:[^/]+>/default-brandings/<branding_type:[^/]+>', 'delete')
 @returns()
 @arguments(app_id=unicode, branding_type=unicode)
 def api_delete_default_branding(app_id, branding_type):
     remove_default_branding(app_id, branding_type)
 
 
-@rest('/restapi/apps/<app_id:[^/]+>/settings', 'get', scopes=Scopes.APP_EDITOR)
+@rest('/console-api/apps/<app_id:[^/]+>/settings', 'get')
 @returns(AppSettingsTO)
 @arguments(app_id=unicode)
 def api_get_app_settings(app_id):
     return AppSettingsTO.from_model(get_app_settings(app_id))
 
 
-@rest('/restapi/apps/<app_id:[^/]+>/settings', 'put', scopes=Scopes.APP_EDITOR)
+@rest('/console-api/apps/<app_id:[^/]+>/settings', 'put')
 @returns(AppSettingsTO)
 @arguments(app_id=unicode, data=AppSettingsTO)
 def api_update_app_settings(app_id, data):
     return AppSettingsTO.from_model(put_settings(app_id, data))
 
 
-@rest('/restapi/apps/<app_id:[^/]+>/settings/firebase-ios', 'put', scopes=Scopes.BACKEND_EDITOR, silent=True)
+@rest('/console-api/apps/<app_id:[^/]+>/settings/firebase-ios', 'put', silent=True)
 @returns(AppSettingsTO)
 @arguments(app_id=unicode, data=FileTO)
 def api_save_firebase_settings(app_id, data):
     return AppSettingsTO.from_model(save_firebase_settings_ios(app_id, data.file))
 
 
-@rest('/restapi/apps/<app_id:[^/]+>/news-settings', 'get', scopes=Scopes.APP_EDITOR)
+@rest('/console-api/apps/<app_id:[^/]+>/news-settings', 'get')
 @returns(NewsSettingsTO)
 @arguments(app_id=unicode)
 def api_get_news_settings(app_id):
     return get_news_settings(app_id)
 
 
-@rest('/restapi/apps/<app_id:[^/]+>/news-settings/<group_id:[^/]+>/background-image', 'put', scopes=Scopes.APP_EDITOR)
+@rest('/console-api/apps/<app_id:[^/]+>/news-settings/<group_id:[^/]+>/background-image', 'put')
 @returns(NewsGroupTO)
 @arguments(app_id=unicode, group_id=unicode)
 def api_upload_news_background_image(app_id, group_id):
@@ -257,7 +260,7 @@ def api_upload_news_background_image(app_id, group_id):
 
 # Default/global settings - editor permissions are needed for these calls
 
-@rest('/restapi/apps/<app_id:[^/]+>/set-default', 'post', scopes=Scopes.BACKEND_EDITOR, type=REST_TYPE_TO)
+@rest('/console-api/apps/<app_id:[^/]+>/set-default', 'post', type=REST_TYPE_TO)
 @returns(AppTO)
 @arguments(app_id=unicode, data=dict)
 def api_set_default_app(app_id, data):
@@ -267,21 +270,21 @@ def api_set_default_app(app_id, data):
         raise HttpNotFoundException('app_not_found', data={'app_id': app_id})
 
 
-@rest('/restapi/assets', 'get', scopes=Scopes.BACKEND_EDITOR)
+@rest('/console-api/assets', 'get')
 @returns([AppAssetFullTO])
 @arguments()
 def api_get_all_app_assets():
     return [AppAssetFullTO.from_model(asset) for asset in get_all_app_assets()]
 
 
-@rest('/restapi/assets/<asset_id:[^/]+>', 'get', scopes=Scopes.BACKEND_EDITOR)
+@rest('/console-api/assets/<asset_id:[^/]+>', 'get')
 @returns(AppAssetFullTO)
 @arguments(asset_id=unicode)
 def api_get_asset(asset_id):
     return AppAssetFullTO.from_model(get_app_asset(asset_id))
 
 
-@rest('/restapi/assets/<asset_id:[^/]+>', 'delete', scopes=Scopes.BACKEND_EDITOR)
+@rest('/console-api/assets/<asset_id:[^/]+>', 'delete')
 @returns()
 @arguments(asset_id=unicode)
 def api_delete_global_app_asset(asset_id):
@@ -291,14 +294,14 @@ def api_delete_global_app_asset(asset_id):
         return HttpBadRequestException(exception.message)
 
 
-@rest('/restapi/default-brandings', 'get', scopes=Scopes.BACKEND_EDITOR)
+@rest('/console-api/default-brandings', 'get')
 @returns([DefaultBrandingTO])
 @arguments()
 def api_get_brandings():
     return [DefaultBrandingTO.from_model(branding) for branding in get_all_default_brandings()]
 
 
-@rest('/restapi/default-brandings/<branding_id:[^/]+>', 'get', scopes=Scopes.BACKEND_EDITOR)
+@rest('/console-api/default-brandings/<branding_id:[^/]+>', 'get')
 @returns(DefaultBrandingTO)
 @arguments(branding_id=unicode)
 def api_get_default_branding_by_id(branding_id):
@@ -308,7 +311,14 @@ def api_get_default_branding_by_id(branding_id):
         raise HttpNotFoundException('default_branding_not_found', data={'branding_id': branding_id})
 
 
-@rest('/restapi/default-brandings/<branding_id:[^/]+>', 'delete', scopes=Scopes.BACKEND_EDITOR)
+@rest('/console-api/default-brandings/<branding_id:[^/]+>', 'delete')
+@returns()
+@arguments(branding_id=unicode)
+def api_delete_branding(branding_id):
+    remove_default_global_branding(branding_id)
+
+
+@rest('/console-api/default-brandings/<branding_id:[^/]+>', 'delete')
 @returns()
 @arguments(branding_id=unicode)
 def api_delete_branding(branding_id):

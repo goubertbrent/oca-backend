@@ -1,0 +1,69 @@
+<form #form="ngForm" (ngSubmit)="submit(form)">
+  <div fxLayout="column" fxFlex="40" fxFlex.md="60" fxFlex.xs="100">
+    <mat-form-field>
+      <mat-label>{{ 'rcc.id' | translate }}</mat-label>
+      <input matInput [(ngModel)]="embeddedApp.name" name="name" [readonly]="update">
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>{{ 'rcc.title' | translate }}</mat-label>
+      <input matInput [(ngModel)]="embeddedApp.title" name="title">
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>{{ 'rcc.description' | translate }}</mat-label>
+      <input matInput [(ngModel)]="embeddedApp.description" name="description">
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>{{ 'rcc.tags' | translate }}</mat-label>
+      <mat-select [(ngModel)]="embeddedApp.tags" name="tags" [multiple]="true">
+        <mat-option *ngFor="let type of embeddedAppTypes" [value]="type.value">{{ type.label | translate }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>{{ 'rcc.types' | translate }}</mat-label>
+      <mat-select [(ngModel)]="embeddedApp.types" name="types" [multiple]="true">
+        <mat-option *ngFor="let type of types" [value]="type.value">{{ type.label | translate }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>{{ 'rcc.app_types' | translate }}</mat-label>
+      <mat-select [(ngModel)]="embeddedApp.app_types" name="types" [multiple]="true">
+        <mat-option *ngFor="let appType of appTypes" [value]="appType.value">{{ appType.label | translate }}</mat-option>
+      </mat-select>
+      <mat-hint>{{ 'rcc.embedded_app_types_hint' | translate }}</mat-hint>
+    </mat-form-field>
+    <h3>{{ 'rcc.url_regexes' | translate }}</h3>
+    <mat-chip-list #urlRegexChips>
+      <mat-chip *ngFor="let urlRegex of embeddedApp.url_regexes"
+                color="primary"
+                (removed)="removeUrlRegex(urlRegex)">
+        {{ urlRegex }}
+        <mat-icon matChipRemove>cancel</mat-icon>
+      </mat-chip>
+    </mat-chip-list>
+    <div fxLayoutAlign="space-between center" fxLayout="row">
+      <mat-form-field fxFlex="80">
+        <mat-label>{{ 'rcc.add_url_regex' | translate }}</mat-label>
+        <input matInput
+               [formControl]="urlRegexFormControl"
+               [matChipInputFor]="urlRegexChips"
+               (matChipInputTokenEnd)="addUrlRegex($event.value)" #regexInput>
+        <mat-hint>{{ 'rcc.url_regexes_explanation' | translate }}</mat-hint>
+      </mat-form-field>
+      <div>
+        <button type="button" mat-raised-button (click)="addUrlRegex(regexInput.value)">
+          {{ 'rcc.add' | translate }}
+        </button>
+      </div>
+    </div>
+    <a *ngIf="servingUrl as url" [href]="url" target="_blank" style="margin: 16px 0;">{{ url }}</a>
+    <div style="margin: 16px 0;">
+      <button type="button" mat-raised-button (click)="fileInput.click()">{{ 'rcc.select_file' | translate }}</button>
+      <input hidden type="file" accept="application/zip" #fileInput (change)="setFile($event)" required/>
+      <span *ngIf="selectedFile"> {{ 'rcc.selected_file' | translate : { file: selectedFile.name } }}</span>
+    </div>
+    <rcc-api-request-status [status]="status"></rcc-api-request-status>
+    <div>
+      <button mat-raised-button [disabled]="status.loading">{{ 'rcc.save' | translate }}</button>
+    </div>
+  </div>
+</form>

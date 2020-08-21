@@ -1,0 +1,21 @@
+<div>
+  <mat-list>
+    <mat-list-item *ngFor="let acs of autoConnectedServices">
+      <h3 matLine>{{ acs.service_identity_email }}</h3>
+      <p matLine [innerText]="(acs.removable ? 'rcc.removable':'rcc.not_removable') | translate"></p>
+      <p matLine [innerText]="locales(acs.local)"></p>
+      <button type="button" mat-icon-button (click)="editAcs(acs)">
+        <mat-icon>edit</mat-icon>
+      </button>
+      <button type="button" mat-icon-button (click)="confirmRemoveService(acs)">
+        <mat-icon>delete</mat-icon>
+      </button>
+    </mat-list-item>
+  </mat-list>
+</div>
+<div fxLayoutAlign="center center">
+  <button mat-raised-button type="button" (click)="addAcs()">
+    <mat-icon>add</mat-icon>
+    {{ 'rcc.add_auto_connected_service' | translate }}
+  </button>
+</div>

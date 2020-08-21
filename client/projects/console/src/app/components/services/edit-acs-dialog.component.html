@@ -1,0 +1,52 @@
+<h2 matDialogTitle>{{ (isNew ? 'rcc.add_auto_connected_service': 'rcc.edit_auto_connected_service') | translate }}</h2>
+<form #form="ngForm" (submit)="submit()">
+  <mat-dialog-content>
+    <div class="form-row">
+      <mat-form-field>
+        <input matInput name="acs_service_identity_email" type="email"
+               [(ngModel)]="autoConnectedService.service_identity_email"
+               placeholder="{{ 'rcc.service_identity_email' | translate }}"
+               required
+               #acsEmail="ngModel"
+               [pattern]="serviceIdentityRegex">
+        <mat-error *ngIf="acsEmail.errors?.required">{{ 'rcc.email_is_required' | translate }}</mat-error>
+        <mat-error *ngIf="acsEmail.errors?.pattern">{{ 'rcc.invalid_email_address' | translate }}</mat-error>
+      </mat-form-field>
+    </div>
+    <div class="form-row">
+      <mat-slide-toggle name="removable" [(ngModel)]="autoConnectedService.removable">
+        {{ 'rcc.removable' | translate }}
+      </mat-slide-toggle>
+    </div>
+    <div class="form-row">
+      <p>{{ 'rcc.languages' | translate }}:</p>
+      <mat-chip-list #languageChips>
+        <mat-chip *ngFor="let lang of autoConnectedService.local"
+                  (removed)="removeLocale(lang)">
+          {{ getLanguage(lang) }}
+          <mat-icon matChipRemove>cancel</mat-icon>
+        </mat-chip>
+      </mat-chip-list>
+      <mat-form-field>
+        <input matInput [placeholder]="'rcc.add_language' | translate"
+               [formControl]="languageFormControl"
+               [matChipInputFor]="languageChips"
+               (matChipInputTokenEnd)="addLocale($event)"
+               [matAutocomplete]="langAutoComplete">
+        <mat-autocomplete #langAutoComplete="matAutocomplete">
+          <mat-option *ngFor="let language of filteredLanguages | async" [value]="language.code">
+            {{ language.name }}
+          </mat-option>
+        </mat-autocomplete>
+      </mat-form-field>
+    </div>
+  </mat-dialog-content>
+  <mat-dialog-actions>
+    <button type="button" mat-raised-button (click)="cancel()">
+      {{ 'rcc.cancel' | translate }}
+    </button>
+    <button mat-raised-button color="primary" [disabled]="!form.form.valid">
+      {{ 'rcc.save' | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>

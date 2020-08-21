@@ -21,7 +21,7 @@ from datetime import datetime, date
 
 from dateutil.relativedelta import relativedelta
 from google.appengine.ext import ndb
-from oauth2client.appengine import CredentialsNDBProperty
+from oauth2client.contrib.appengine import CredentialsNDBProperty
 from typing import Tuple, List
 
 from mcfw.utils import Enum

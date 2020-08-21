@@ -1,0 +1,28 @@
+<div fxLayout="column" fxFlex="40" fxFlex.md="60" fxFlex.xs="100">
+  <mat-list>
+    <mat-list-item *ngFor="let item of value; trackBy:trackByIndex; let i = index; let first = first; let last = last;">
+      <mat-icon fontSet="fa" [fontIcon]="item.icon" mat-list-avatar
+                [style.color]="item.color || color"></mat-icon>
+      <h4 matLine>{{ item.text }}</h4>
+      <p matLine [textContent]="getErrorMessage(i)" class="error-message"></p>
+      <button type="button" mat-icon-button (click)="move(item, true)" *ngIf="!first">
+        <mat-icon>arrow_upward</mat-icon>
+      </button>
+      <button type="button" mat-icon-button (click)="move(item, false)" *ngIf="!last">
+        <mat-icon>arrow_downward</mat-icon>
+      </button>
+      <button type="button" mat-icon-button (click)="edit(item)">
+        <mat-icon>edit</mat-icon>
+      </button>
+      <button type="button" mat-icon-button (click)="remove(item)">
+        <mat-icon>delete</mat-icon>
+      </button>
+    </mat-list-item>
+  </mat-list>
+  <div fxLayoutAlign="center center" *ngIf="!maxCount || value?.length < maxCount">
+    <button mat-button type="button" (click)="add()">
+      <mat-icon>add</mat-icon>
+      {{ 'rcc.add_item' | translate }}
+    </button>
+  </div>
+</div>

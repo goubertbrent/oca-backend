@@ -1,0 +1,29 @@
+<form #form="ngForm" (ngSubmit)="submit()" class="default-component-margin">
+  <h2>{{ 'rcc.generate_images' | translate }}</h2>
+  <p>{{ 'rcc.image_explanation_base_image' | translate }}</p>
+
+  <div class="form-row">
+    <p>
+      {{ 'rcc.upload_new_file_with_dimensions' | translate : { width: 1024, height: 1024, format: 'png' } }}
+    </p>
+    <input type="file" name="file" accept="images/png, .png" required
+           (change)="onFilePicked($event)" #file>
+  </div>
+  <div class="error-message">{{ errorMessage }}</div>
+  <rcc-api-request-status [status]="status"></rcc-api-request-status>
+  <div class="form-row">
+    <h3>{{ 'rcc.images' | translate }}</h3>
+    <rcc-check-list [(ngModel)]="imagesList" (ngModelChange)="setImages($event)" name="images"
+                    #images="ngModel"></rcc-check-list>
+    <mat-error *ngIf="!payload.types.length && images.touched">
+      {{ 'rcc.please_select_at_least_x_items' | translate : {items: 1} }}
+    </mat-error>
+  </div>
+  <rcc-api-request-status [status]="generateStatus"></rcc-api-request-status>
+  <div class="form-row">
+    <button mat-button mat-raised-button color="primary"
+            [disabled]="!form.form.valid || !!errorMessage || !file.value || !payload.types.length">
+      {{ 'rcc.save' | translate }}
+    </button>
+  </div>
+</form>

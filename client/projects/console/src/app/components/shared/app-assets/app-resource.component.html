@@ -1,0 +1,68 @@
+<div class="default-component-margin">
+  <h2 [textContent]="(edit ? 'rcc.edit_app_resource' : 'rcc.create_app_resource') | translate"></h2>
+  <form #form="ngForm" (ngSubmit)="submit()" *ngIf="asset">
+    <div class="form-row">
+      <mat-form-field>
+        <mat-select [(ngModel)]="asset.kind" name="kind" required [disabled]="edit">
+          <mat-option [value]="'ChatBackgroundImage'">{{ 'rcc.chat_background_image' | translate }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+    <div class="form-row">
+      <mat-form-field>
+        <input matInput name="scale_x" type="number" min="0.0" max="1.0" step="0.01"
+               [placeholder]="'rcc.vertical_scale' | translate"
+               [(ngModel)]="asset.scale_x"
+               #scaleX="ngModel"
+               required>
+        <mat-error *ngIf="scaleX.errors?.required">{{ 'rcc.this_field_is_required' | translate }}</mat-error>
+        <mat-error *ngIf="scaleX.errors?.min">
+          {{ 'rcc.this_value_must_be_greater_than' | translate : {value: 0} }}
+        </mat-error>
+        <mat-error *ngIf="scaleX.errors?.max">
+          {{ 'rcc.this_value_must_be_lower_than' | translate : { value: 1 } }}
+        </mat-error>
+      </mat-form-field>
+    </div>
+    <div class="form-row" *ngIf="edit || allowCreateDefault">
+      <mat-checkbox name="default" [(ngModel)]="asset.is_default">
+        {{ 'rcc.default' | translate }}
+      </mat-checkbox>
+      <p [textContent]="'rcc.default_resources_default_explanation' | translate"></p>
+    </div>
+    <div class="form-row" *ngIf="(edit || allowCreateDefault) && !asset.is_default">
+      <p>{{ 'rcc.apps' | translate }}:</p>
+      <p *ngIf="!asset.app_ids">{{ 'rcc.none_brackets' | translate }}</p>
+      <mat-chip-list #appChips>
+        <mat-chip *ngFor="let appId of asset.app_ids"
+                  color="primary"
+                  (removed)="removeApp(appId)">
+          {{ getAppName(appId) }}
+          <mat-icon matChipRemove>cancel</mat-icon>
+        </mat-chip>
+      </mat-chip-list>
+      <mat-form-field>
+        <input matInput [placeholder]="'rcc.add_app' | translate"
+               [formControl]="appFormControl"
+               [matChipInputFor]="appChips"
+               (matChipInputTokenEnd)="addApp($event)"
+               [matAutocomplete]="appAutoComplete">
+        <mat-autocomplete #appAutoComplete="matAutocomplete">
+          <mat-option *ngFor="let app of filteredApps | async" [value]="app.id">
+            {{ app.name }}
+          </mat-option>
+        </mat-autocomplete>
+      </mat-form-field>
+    </div>
+    <div class="form-row">
+      <input type="file" name="file" accept="image/png" [required]="!edit" (change)="onFilePicked($event)">
+    </div>
+    <div class="form-row">
+      <button mat-button mat-raised-button color="primary"
+              [disabled]="!form.form.valid || !(edit || asset.file)">
+        {{ 'rcc.save' | translate }}
+      </button>
+    </div>
+  </form>
+  <rcc-api-request-status [status]="status" class="form-row"></rcc-api-request-status>
+</div>

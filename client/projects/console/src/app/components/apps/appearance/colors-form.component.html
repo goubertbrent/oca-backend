@@ -1,0 +1,48 @@
+<form #form="ngForm" (ngSubmit)="submit()" *ngIf="colors" class="default-field-margin" fxLayout="column">
+  <mat-form-field>
+    <input matInput name="primary_color"
+           [placeholder]="'rcc.primary_color' | translate"
+           [(ngModel)]="colors.primary_color"
+           [cpAlphaChannel]="'disabled'"
+           [(colorPicker)]="colors.primary_color"
+           #color="ngModel"
+           required>
+    <span matSuffix class="color-preview" [style.backgroundColor]="colors.primary_color"></span>
+  </mat-form-field>
+  <mat-form-field>
+    <input matInput name="app_tint_color"
+           [placeholder]="'rcc.app_tint_color' | translate"
+           [(ngModel)]="colors.app_tint_color"
+           [cpAlphaChannel]="'disabled'"
+           [(colorPicker)]="colors.app_tint_color"
+           #color="ngModel"
+           required>
+    <span matSuffix class="color-preview" [style.backgroundColor]="colors.app_tint_color"></span>
+  </mat-form-field>
+  <mat-form-field>
+    <input matInput name="homescreen_background"
+           [placeholder]="'rcc.homescreen_background' | translate"
+           [(ngModel)]="colors.homescreen_background"
+           [cpAlphaChannel]="'disabled'"
+           [(colorPicker)]="colors.homescreen_background"
+           #color="ngModel"
+           required>
+    <span matSuffix class="color-preview" [style.backgroundColor]="colors.homescreen_background"></span>
+  </mat-form-field>
+  <mat-form-field>
+    <input matInput name="homescreen_text"
+           [placeholder]="'rcc.homescreen_text' | translate"
+           [(ngModel)]="colors.homescreen_text"
+           [cpAlphaChannel]="'disabled'"
+           [(colorPicker)]="colors.homescreen_text"
+           #color="ngModel"
+           required>
+    <span matSuffix class="color-preview" [style.backgroundColor]="colors.homescreen_text"></span>
+  </mat-form-field>
+  <rcc-api-request-status [status]="status" class="form-row"></rcc-api-request-status>
+  <div>
+    <button mat-button mat-raised-button color="primary" [disabled]="!form.form.valid">
+      {{ 'rcc.save' | translate }}
+    </button>
+  </div>
+</form>

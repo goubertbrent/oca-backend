@@ -1,0 +1,31 @@
+<form (ngSubmit)="search()" class="search-container" fxLayout="row" fxLayout.sm="column">
+  <mat-form-field class="search-field">
+    <input name="search" type="search" minlength="2"
+           matInput [placeholder]="'rcc.search_apps' | translate"
+           [(ngModel)]="searchParams.query"
+           (ngModelChange)="search()">
+  </mat-form-field>
+</form>
+<div>
+  <rcc-api-request-status [status]="appsStatus"></rcc-api-request-status>
+  <div *ngIf="!appsStatus.loading">
+    <a *ngFor="let app of apps" [routerLink]="['/apps', app.app_id]">
+      <mat-card class="app-card">
+        <mat-card-header>
+          <!--<div mat-card-avatar [style.background-image]="getImageUrl(app)" class="app-image"></div>-->
+          <mat-card-title>{{ app.title }}</mat-card-title>
+          <mat-card-subtitle>{{ app.app_id }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-actions fxLayoutAlign="end center">
+          <a mat-button [routerLink]="['/apps', app.app_id]">{{ 'rcc.edit' | translate }}</a>
+        </mat-card-actions>
+      </mat-card>
+    </a>
+  </div>
+</div>
+
+<div class="fab-bottom-right">
+  <a mat-fab [routerLink]="['/apps', 'create']">
+    <mat-icon>add</mat-icon>
+  </a>
+</div>

@@ -30,7 +30,6 @@ from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import parse_complex_value, serialize_complex_value, returns
 from mcfw.utils import chunks
-from rogerthat.bizz.authentication import decode_jwt_cached
 from rogerthat.bizz.friends import get_service_profile_via_user_code, REGISTRATION_ORIGIN_QR, ACCEPT_ID, \
     ACCEPT_AND_CONNECT_ID, REGISTRATION_ORIGIN_OAUTH, register_response_receiver
 from rogerthat.bizz.oauth import get_oauth_access_token
@@ -830,10 +829,7 @@ class RegisterMobileViaQRHandler(webapp.RequestHandler):
                 return
 
             if qr_type == "jwt":
-                # For now we only support itsyou.online
-                decoded_jwt = decode_jwt_cached(qr_content, False)
-                username = decoded_jwt.get('username', None)
-                bizz_check(username, u"Service did not provide a username")
+                raise NotImplementedError()
             else:
                 logging.error("Unknown qr_type: %s" % qr_type)
                 self.response.set_status(500)

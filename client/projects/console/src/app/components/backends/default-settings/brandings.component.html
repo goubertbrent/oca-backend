@@ -1,0 +1,12 @@
+<div class="default-component-margin">
+  <h2>{{ 'rcc.brandings' | translate }}</h2>
+  <rcc-default-branding-list [brandings]="brandings$ | async"
+                             [status]="status$ | async"
+                             [allowEdit]="true"
+                             (remove)="removeBranding($event)"></rcc-default-branding-list>
+  <div class="fab-bottom-right">
+    <a mat-fab [routerLink]="['create']">
+      <mat-icon>add</mat-icon>
+    </a>
+  </div>
+</div>

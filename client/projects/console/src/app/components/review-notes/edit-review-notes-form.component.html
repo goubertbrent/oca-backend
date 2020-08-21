@@ -1,0 +1,72 @@
+<form #form="ngForm" class="default-component-margin-full">
+  <div class="form-row">
+    <mat-form-field>
+      <input matInput name="name"
+             [placeholder]="'rcc.name' | translate"
+             [(ngModel)]="reviewNotes.name"
+             required>
+      <mat-hint>{{ 'rcc.this_is_what_users_see_when_creating_an_app' | translate }}</mat-hint>
+    </mat-form-field>
+  </div>
+  <div class="form-row">
+    <mat-form-field>
+      <input matInput name="first_name"
+             [placeholder]="'rcc.first_name' | translate"
+             [(ngModel)]="reviewNotes.first_name"
+             required>
+    </mat-form-field>
+  </div>
+  <div class="form-row">
+    <mat-form-field>
+      <input matInput name="last_name"
+             [placeholder]="'rcc.last_name' | translate"
+             [(ngModel)]="reviewNotes.last_name"
+             required>
+    </mat-form-field>
+  </div>
+  <div class="form-row">
+    <mat-form-field>
+      <input matInput name="email_address" type="email"
+             [placeholder]="'rcc.email_address' | translate"
+             [(ngModel)]="reviewNotes.email_address"
+             [email]="true"
+             required>
+    </mat-form-field>
+  </div>
+  <div class="form-row">
+    <mat-form-field>
+      <input matInput name="phone_number" type="tel"
+             [placeholder]="'rcc.phone_number' | translate"
+             [(ngModel)]="reviewNotes.phone_number"
+             required>
+    </mat-form-field>
+  </div>
+  <div class="form-row">
+    <mat-form-field>
+      <input matInput name="demo_user"
+             [placeholder]="'rcc.demo_user' | translate"
+             [(ngModel)]="reviewNotes.demo_user">
+    </mat-form-field>
+  </div>
+  <div class="form-row">
+    <mat-form-field>
+      <input matInput name="demo_password"
+             [placeholder]="'rcc.demo_password' | translate"
+             [(ngModel)]="reviewNotes.demo_password">
+    </mat-form-field>
+  </div>
+  <div class="form-row">
+    <mat-form-field class="full-width">
+      <textarea matInput matTextareaAutosize name="notes"
+                [placeholder]="'rcc.notes' | translate"
+                [(ngModel)]="reviewNotes.notes"></textarea>
+    </mat-form-field>
+  </div>
+  <rcc-api-request-status [status]="status"></rcc-api-request-status>
+
+  <div class="form-row">
+    <button type="button" (click)="submit()" mat-button mat-raised-button color="primary" [disabled]="!form.form.valid">
+      {{ 'rcc.save' | translate }}
+    </button>
+  </div>
+</form>

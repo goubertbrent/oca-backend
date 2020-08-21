@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block body %}
+    <style>
+        .container-padding {
+            padding: 0;
+        }
+
+        .navbar {
+            margin-bottom: 0;
+        }
+
+        #ng-dashboard {
+            height: calc(100vh - 42px);
+            width: 100%;
+            border: none;
+        }
+    </style>
+    <iframe id="ng-dashboard" src="{{ url }}"></iframe>
+{% endblock %}

@@ -1,0 +1,80 @@
+<rcc-api-request-status [status]="status"></rcc-api-request-status>
+<form #form="ngForm" class="default-component-margin default-field-margin" *ngIf="buildSettings && app"
+      fxLayoutGap="16px" fxLayout="column">
+  <p>{{ 'rcc.build_settings_explanation' | translate }}</p>
+  <div style="max-width: 400px;">
+    <mat-form-field>
+      <mat-select [placeholder]="'rcc.friends_caption' | translate" name="friends_caption"
+                  [(ngModel)]="buildSettings.friends_caption">
+        <mat-option *ngFor="let friendsCaption of friendsCaptions" [value]="friendsCaption.value">
+          {{ friendsCaption.label | translate }}
+        </mat-option>
+      </mat-select>
+      <mat-hint>{{ 'rcc.friends_caption_explanation' | translate }}</mat-hint>
+    </mat-form-field>
+    <mat-form-field *ngIf="isYsaaa()">
+      <input matInput name="app_service_guid"
+             [placeholder]="'rcc.app_service_guid' | translate"
+             [(ngModel)]="buildSettings.app_service_guid"
+             required>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-select [placeholder]="'rcc.registration_type' | translate" name="registration_type"
+                  [(ngModel)]="buildSettings.registration_type">
+        <mat-option *ngFor="let registrationType of registrationTypes"
+                    [value]="registrationType.value">
+          {{ registrationType.label | translate }}
+        </mat-option>
+      </mat-select>
+      <mat-hint [innerHTML]="getRegistrationTypeInfo()"></mat-hint>
+    </mat-form-field>
+    <mat-form-field *ngIf="buildSettings.registration_type === RegistrationType.FULL_OAUTH">
+      <input type="url" matInput name="registration_type_oauth_url"
+             [placeholder]="'rcc.oauth_registration_url' | translate"
+             [(ngModel)]="buildSettings.registration_type_oauth_url"
+             required
+             pattern="https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,4}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)"
+             #registrationUrl="ngModel">
+      <mat-error *ngIf="registrationUrl.errors?.required">{{ 'rcc.this_field_is_required' | translate }}</mat-error>
+      <mat-error *ngIf="registrationUrl.errors?.pattern">{{ 'rcc.invalid_url' | translate }}</mat-error>
+      <mat-hint>{{ 'rcc.oauth_registration_url_explanation' | translate }}</mat-hint>
+    </mat-form-field>
+    <mat-form-field *ngIf="buildSettings.registration_type === RegistrationType.QR">
+      <input type="url" matInput name="registration_type_qr_url"
+             [placeholder]="'rcc.oauth_registration_url' | translate"
+             [(ngModel)]="buildSettings.registration_type_qr_url"
+             required
+             pattern="https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,4}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)"
+             #registrationQRUrl="ngModel">
+      <mat-error *ngIf="registrationQRUrl.errors?.required">{{ 'rcc.this_field_is_required' | translate }}</mat-error>
+      <mat-error *ngIf="registrationQRUrl.errors?.pattern">{{ 'rcc.invalid_url' | translate }}</mat-error>
+      <mat-hint>{{ 'rcc.oauth_registration_qr_explanation' | translate }}</mat-hint>
+    </mat-form-field>
+    <mat-form-field *ngIf="buildSettings.registration_type === RegistrationType.OAUTH">
+      <input matInput name="registration_type_oauth_domain"
+             [placeholder]="'rcc.oauth_registration_domain' | translate"
+             [(ngModel)]="buildSettings.registration_type_oauth_domain"
+             required>
+      <mat-hint>{{ 'rcc.oauth_registration_domain_explanation' | translate }}</mat-hint>
+    </mat-form-field>
+  </div>
+  <div>
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-description>{{ 'rcc.app_translations_explanation' | translate }}</mat-panel-description>
+        <mat-panel-title>{{ 'rcc.app_translations' | translate }}</mat-panel-title>
+      </mat-expansion-panel-header>
+      <rcc-translations-editor [(ngModel)]="buildSettings.translations"
+                               [allowedLanguages]="languages"
+                               [defaultLanguage]="app.main_language"
+                               [ngModelOptions]="{ standalone: true }"></rcc-translations-editor>
+    </mat-expansion-panel>
+    <rcc-api-request-status [status]="updateStatus"></rcc-api-request-status>
+  </div>
+  <div>
+    <button type="button" (click)="submit()" mat-button mat-raised-button color="primary"
+            [disabled]="!form.form.valid">
+      {{ 'rcc.save' | translate }}
+    </button>
+  </div>
+</form>

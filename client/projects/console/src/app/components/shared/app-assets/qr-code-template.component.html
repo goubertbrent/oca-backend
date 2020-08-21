@@ -1,0 +1,41 @@
+<h2>{{ 'rcc.create_qr_code_template' | translate }}</h2>
+<form #form="ngForm" (ngSubmit)="submit()">
+  <div class="form-row">
+    <mat-form-field>
+      <input matInput name="description"
+             [placeholder]="'rcc.description' | translate"
+             [(ngModel)]="qrCodeTemplate.description"
+             required>
+    </mat-form-field>
+  </div>
+  <div class="form-row">
+    <mat-form-field>
+      <input matInput name="color"
+             [placeholder]="'rcc.color' | translate"
+             [(ngModel)]="qrCodeTemplate.body_color"
+             [cpAlphaChannel]="'disabled'"
+             [(colorPicker)]="qrCodeTemplate.body_color"
+             #color="ngModel"
+             required>
+      <span matSuffix class="color-preview" [style.backgroundColor]="qrCodeTemplate.body_color"></span>
+    </mat-form-field>
+  </div>
+  <div class="form-row">
+    <mat-checkbox name="default" [(ngModel)]="qrCodeTemplate.is_default">
+      {{ 'rcc.default' | translate }}
+    </mat-checkbox>
+    <p>{{ 'rcc.qr_code_template_default_explanation' | translate }}</p>
+  </div>
+  <div class="form-row">
+    <input type="file" name="core-branding" accept="image/png"
+           (change)="onFilePicked($event)" required>
+  </div>
+  <rcc-api-request-status [status]="status" class="form-row"></rcc-api-request-status>
+  <rcc-api-request-status [status]="createStatus" class="form-row"></rcc-api-request-status>
+  <div class="form-row">
+    <button mat-button mat-raised-button color="primary"
+            [disabled]="!form.form.valid || !qrCodeTemplate.file">
+      {{ 'rcc.save' | translate }}
+    </button>
+  </div>
+</form>

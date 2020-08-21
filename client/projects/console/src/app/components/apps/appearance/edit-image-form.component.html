@@ -1,0 +1,24 @@
+<form #form="ngForm" (ngSubmit)="submit()" class="default-component-margin" *ngIf="imageInfo">
+  <h2>{{ ('rcc.' + imageInfo.type) | translate }}</h2>
+  <p>{{ 'rcc.image_explanation_' + imageInfo.type | translate }}</p>
+  <div *ngIf="imageInfo.exists">
+    <p>Current image</p>
+    <img [src]="getImageUrl()" style="max-height: 200px;"/>
+  </div>
+  <div class="form-row">
+    <p>
+      {{ 'rcc.upload_new_file_with_dimensions' | translate : { width: imageInfo.width, height: imageInfo.height, format:
+      imageInfo.format } }}
+    </p>
+    <input type="file" name="file" [accept]="'images/' + imageInfo.format + ', .' + imageInfo.format" required
+           (change)="onFilePicked($event)" #file>
+  </div>
+  <rcc-api-request-status [status]="status"></rcc-api-request-status>
+  <div class="error-message">{{ errorMessage }}</div>
+  <div class="form-row">
+    <button mat-button mat-raised-button color="primary"
+            [disabled]="!form.form.valid || errorMessage || !file.value">
+      {{ 'rcc.save' | translate }}
+    </button>
+  </div>
+</form>

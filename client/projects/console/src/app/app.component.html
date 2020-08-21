@@ -1,0 +1,29 @@
+<mat-toolbar class="mat-elevation-z6 root-toolbar" color="primary">
+  <button (click)="sideNav.toggle()" mat-icon-button>
+    <mat-icon>menu</mat-icon>
+  </button>
+  <span>{{ toolbarTitle | translate }}</span>
+  <div fxFlex fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="16px">
+    <toolbar-items fxLayout="row"></toolbar-items>
+  </div>
+</mat-toolbar>
+<mat-sidenav-container class="root-nav-container">
+  <!-- This unfortunately cannot be put in a separate component else the backdrop of the sidenav isn't showing -->
+  <mat-sidenav #sideNav mode="over" opened="false">
+    <mat-nav-list class="no-icon-padding">
+      <a (click)="sideNav.close()"
+         *ngFor="let item of sidebarItems$ | async"
+         [routerLinkActiveOptions]="{exact:!item.route}"
+         [routerLinkActive]="['router-link-active']"
+         [routerLink]="item.route"
+         [title]="(item.description ? item.description : item.label) | translate"
+         mat-list-item>
+        <mat-icon *ngIf=" item.icon" mat-list-icon>{{ item.icon }}</mat-icon>
+        <p matLine>{{ item.label | translate }}</p>
+      </a>
+    </mat-nav-list>
+  </mat-sidenav>
+  <mat-sidenav-content class="main-content">
+    <router-outlet></router-outlet>
+  </mat-sidenav-content>
+</mat-sidenav-container>

@@ -1,0 +1,112 @@
+<div class="default-component-margin  default-field-margin">
+  <form (submit)="submit()" #form="ngForm" *ngIf="app.id" fxLayout="column" fxFlex="40" fxFlex.md="60" fxFlex.xs="100">
+    <mat-form-field>
+      <input matInput name="name"
+             [placeholder]="'rcc.app_name' | translate"
+             [(ngModel)]="app.title"
+             required>
+    </mat-form-field>
+    <div fxLayout="row" fxLayoutGap="16px">
+      <mat-form-field>
+        <input matInput name="appstore_name"
+               [placeholder]="'rcc.appstore_name' | translate"
+               [(ngModel)]="app.appstore_name"
+               maxlength="30">
+      </mat-form-field>
+      <mat-form-field>
+        <input matInput name="playstore_name"
+               [placeholder]="'rcc.playstore_name' | translate"
+               [(ngModel)]="app.playstore_name"
+               maxlength="30">
+      </mat-form-field>
+    </div>
+    <div fxLayout="row" fxLayoutGap="16px">
+      <mat-form-field>
+        <mat-select [placeholder]="'rcc.app_store_category' | translate"
+                    [(ngModel)]="app.appstore_category" name="app_store_category"
+                    required>
+          <mat-option *ngFor="let category of appStoreCategories" [value]="category">
+            {{ category }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field>
+        <mat-select [placeholder]="'rcc.play_store_category' | translate"
+                    [(ngModel)]="app.playstore_category" name="playstore_category"
+                    required>
+          <mat-option *ngFor="let category of playStoreCategories" [value]="category.code">
+            {{ category.name }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+    <mat-form-field>
+      <mat-select [placeholder]="'rcc.android_developer_account' | translate"
+                  [(ngModel)]="app.android_developer_account"
+                  name="android_developer_account" required>
+        <mat-option *ngFor="let account of androidDeveloperAccounts"
+                    [value]="account.id">{{ account.name }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-select [placeholder]="'rcc.ios_developer_account' | translate" [(ngModel)]="app.ios_developer_account"
+                  name="ios_developer_account">
+        <mat-option *ngFor="let account of iosDeveloperAccounts" [value]="account.id">{{ account.name }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-select [placeholder]="'rcc.contact' | translate" [(ngModel)]="app.contact" name="contact" required>
+        <mat-option *ngFor="let contact of contacts" [value]="contact.id">
+          {{ contact.first_name }} {{ contact.last_name }} ({{ contact.email }})
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-select [placeholder]="'rcc.review_notes' | translate" [(ngModel)]="app.review_notes" name="review_notes"
+                  required>
+        <mat-option *ngFor="let reviewNotes of reviewNotes" [value]="reviewNotes.id"
+                    [innerText]="reviewNotes.name"></mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-select [placeholder]="'rcc.main_language' | translate" [(ngModel)]="app.main_language" name="main_language"
+                  required>
+        <mat-option *ngFor="let language of languages" [value]="language.code"
+                    [innerText]="language.name"></mat-option>
+      </mat-select>
+      <mat-hint>{{ 'rcc.main_language_explanation' | translate }}</mat-hint>
+    </mat-form-field>
+    <p>{{ 'rcc.other_languages' | translate }}:</p>
+    <mat-chip-list #languageChips matPrefix [selectable]="false">
+      <mat-chip *ngFor="let langCode of app.other_languages"
+                color="primary"
+                [removable]="true"
+                (removed)="removeLanguage(langCode)">
+        {{ getLanguage(langCode) }}
+        <mat-icon matChipRemove>cancel</mat-icon>
+      </mat-chip>
+    </mat-chip-list>
+    <mat-form-field>
+      <input matInput [placeholder]="'rcc.add_other_language' | translate"
+             [formControl]="languageFormControl"
+             [matChipInputFor]="languageChips"
+             (matChipInputTokenEnd)="addLocale($event)"
+             [matAutocomplete]="langAutoComplete">
+      <mat-autocomplete #langAutoComplete="matAutocomplete">
+        <mat-option *ngFor="let language of filteredLanguages | async" [value]="language.code">
+          {{ language.name }}
+        </mat-option>
+      </mat-autocomplete>
+      <mat-hint>{{ 'rcc.other_languages_explanation' | translate }}</mat-hint>
+    </mat-form-field>
+    <rcc-api-request-status [status]="updateAppStatus"></rcc-api-request-status>
+    <div class="form-row">
+      <button mat-raised-button color="primary" type="button"
+              (click)="submit()"
+              [disabled]="!form.form.valid">
+        {{ 'rcc.save' | translate }}
+      </button>
+    </div>
+  </form>
+</div>

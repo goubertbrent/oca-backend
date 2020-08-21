@@ -1,0 +1,81 @@
+<form #form="ngForm" class="default-component-margin-full">
+  <div class="form-row">
+    <mat-form-field>
+      <input matInput name="first_name"
+             [placeholder]="'rcc.first_name' | translate"
+             [(ngModel)]="contact.first_name"
+             required>
+    </mat-form-field>
+    <mat-form-field>
+      <input matInput name="last_name"
+             [placeholder]="'rcc.last_name' | translate"
+             [(ngModel)]="contact.last_name"
+             required>
+    </mat-form-field>
+  </div>
+  <div class="form-row">
+    <mat-form-field>
+      <input matInput name="address"
+             [placeholder]="'rcc.address_line_1' | translate"
+             [(ngModel)]="contact.address_line_1"
+             required>
+    </mat-form-field>
+  </div>
+  <div class="form-row">
+    <mat-form-field>
+      <input matInput name="postal_code"
+             [placeholder]="'rcc.postal_code' | translate"
+             [(ngModel)]="contact.postal_code"
+             required>
+    </mat-form-field>
+  </div>
+  <div class="form-row">
+    <mat-form-field>
+      <input matInput name="city"
+             [placeholder]="'rcc.city' | translate"
+             [(ngModel)]="contact.city"
+             required>
+    </mat-form-field>
+  </div>
+  <div class="form-row">
+    <mat-form-field>
+      <input matInput name="country"
+             [placeholder]="'rcc.country' | translate"
+             [(ngModel)]="contact.country"
+             required>
+    </mat-form-field>
+  </div>
+  <div class="form-row">
+    <mat-form-field>
+      <input matInput name="email_address" type="email"
+             [placeholder]="'rcc.email_address' | translate"
+             [(ngModel)]="contact.email"
+             [email]="true"
+             required>
+    </mat-form-field>
+  </div>
+  <div class="form-row">
+    <mat-form-field>
+      <input matInput name="support_email" type="email"
+             [placeholder]="'rcc.support_email' | translate"
+             [(ngModel)]="contact.support_email"
+             [email]="true"
+             required>
+    </mat-form-field>
+  </div>
+  <div class="form-row">
+    <mat-form-field>
+      <input matInput name="phone_number" type="tel"
+             [placeholder]="'rcc.phone_number' | translate"
+             [(ngModel)]="contact.phone_number"
+             required>
+    </mat-form-field>
+  </div>
+  <rcc-api-request-status [status]="status"></rcc-api-request-status>
+
+  <div class="form-row">
+    <button type="button" (click)="submit()" mat-button mat-raised-button color="primary" [disabled]="!form.form.valid">
+      {{ 'rcc.save' | translate }}
+    </button>
+  </div>
+</form>

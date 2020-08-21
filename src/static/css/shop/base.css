@@ -15,6 +15,11 @@
  *
  * @@license_version:1.7@@
  */
+html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
 
 .shop-home-background {
     position: absolute;
@@ -119,7 +124,7 @@ span.comment {
     min-height: 250px;
 }
 
-#customer_form .tab-content{
+#customer_form .tab-content {
     max-height: 315px;
 }
 
@@ -146,7 +151,7 @@ span.comment {
         max-height: 475px;
     }
 
-    #customer_form .tab-content{
+    #customer_form .tab-content {
         max-height: 425px;
     }
 }
@@ -155,7 +160,8 @@ span.comment {
     #customer_form .modal-body {
         max-height: 565px;
     }
-    #customer_form .tab-content{
+
+    #customer_form .tab-content {
         max-height: 515px;
     }
 }
@@ -164,7 +170,8 @@ span.comment {
     #customer_form .modal-body {
         max-height: 665px;
     }
-    #customer_form .tab-content{
+
+    #customer_form .tab-content {
         max-height: 615px;
     }
 }
@@ -173,7 +180,8 @@ span.comment {
     #customer_form .modal-body {
         max-height: 765px;
     }
-    #customer_form .tab-content{
+
+    #customer_form .tab-content {
         max-height: 615px;
     }
 }
@@ -215,19 +223,20 @@ pre.formatted {
     overflow-y: auto;
 }
 
-#create_service_form .form-horizontal .control-group{
+#create_service_form .form-horizontal .control-group {
     margin-bottom: 10px;
 }
 
-#create_service_form .form-horizontal .control-label{
+#create_service_form .form-horizontal .control-label {
     width: 120px;
     text-align: left;
 }
-#create_service_form .form-horizontal .controls{
+
+#create_service_form .form-horizontal .controls {
     margin-left: 120px;
 }
 
-#create_service_form ul.nav-pills{
+#create_service_form ul.nav-pills {
     margin: 0 auto;
     width: 260px;
     margin-bottom: 15px;
@@ -336,10 +345,11 @@ pre.formatted {
 /* end loading spinnner */
 
 /* new order styles */
-.sub-buttons{
+.sub-buttons {
     margin: 15px 0 0;
 }
-.sub-buttons button{
+
+.sub-buttons button {
     transition: all 300ms
 }
 
@@ -363,15 +373,15 @@ pre.formatted {
     margin-bottom: 0;
 }
 
-.prospect-comment{
-    margin:10px 0;
+.prospect-comment {
+    margin: 10px 0;
     background-color: #f9f9f9;
     border: 1px solid #dddddd;
     padding: 5px 10px;
     border-radius: 5px;
 }
 
-.container-padding{
+.container-padding {
     padding: 0 10px 10px;
 }
 
@@ -391,8 +401,8 @@ label.control-label {
     font-weight: bold;
 }
 
-.datepicker{
-    z-index:9999;
+.datepicker {
+    z-index: 9999;
 }
 
 .pointer {

@@ -1,0 +1,45 @@
+<form #form="ngForm" (ngSubmit)="submit()" *ngIf="sidebar" class="default-field-margin" fxLayout="column">
+  <mat-form-field>
+    <input matInput name="app_tint_color"
+           [placeholder]="'rcc.sidebar_items_color' | translate"
+           [(ngModel)]="sidebar.color"
+           [cpAlphaChannel]="'disabled'"
+           [(colorPicker)]="sidebar.color"
+           required>
+    <span matSuffix class="color-preview" [style.backgroundColor]="sidebar.color"></span>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-select name="style" [placeholder]="'rcc.start_screen' | translate"
+                [(ngModel)]="sidebar.style" required>
+      <mat-option *ngFor="let val of homescreenStyles" [value]="val">{{ val }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <div *ngIf="is3x3()">
+    <mat-slide-toggle name="footer" [(ngModel)]="sidebar.footer">{{ 'rcc.show_footer' | translate }}</mat-slide-toggle>
+  </div>
+  <mat-form-field *ngIf="is3x3()">
+    <mat-select name="footer_alignment" [placeholder]="'rcc.footer_alignment' | translate"
+                [(ngModel)]="sidebar.footer_alignment" [required]="sidebar.footer">
+      <mat-option *ngFor="let val of FOOTER_ALIGNMENTS" [value]="val">{{ val }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <h3>{{ 'rcc.navigation_items' | translate }}</h3>
+  <rcc-navigation-item-list name="sidebar_items" [value]="sidebar.items" (update)="sidebar.items = $event"
+                            [errors]="status.error?.data?.items"
+                            [color]="sidebar.color"
+                            [buildSettings]="buildSettings"></rcc-navigation-item-list>
+  <h3>{{ 'rcc.toolbar_items' | translate }}</h3>
+  <rcc-navigation-item-list name="toolbar_items" [value]="sidebar.toolbar.items"
+                            (update)="sidebar.toolbar.items = $event"
+                            [color]="sidebar.color"
+                            [errors]="status.error?.data?.toolbar?.items"
+                            [maxCount]="4"
+                            [buildSettings]="buildSettings"></rcc-navigation-item-list>
+
+  <rcc-api-request-status [status]="status" class="form-row"></rcc-api-request-status>
+  <div>
+    <button mat-button mat-raised-button color="primary" [disabled]="!form.form.valid">
+      {{ 'rcc.save' | translate }}
+    </button>
+  </div>
+</form>

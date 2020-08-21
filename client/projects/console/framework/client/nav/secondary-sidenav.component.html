@@ -1,0 +1,30 @@
+<mat-sidenav-container>
+  <mat-sidenav [opened]="sidebarItems.length > 0" class="secondary-sidenav" mode="side">
+    <mat-toolbar *ngIf="sidebarTitle" class="secondary-toolbar-header">
+      <span fxLayout="row" fxLayoutAlign="center center">
+        <mat-icon *ngIf="sidebarTitle.icon">
+          {{ sidebarTitle.icon }}
+        </mat-icon>
+        <img *ngIf="sidebarTitle.imageUrl" [src]="sidebarTitle.imageUrl"/>
+        <h2 *ngIf="sidebarTitle.isTranslation">{{ sidebarTitle.label | translate }}</h2>
+        <h2 *ngIf="!sidebarTitle.isTranslation">{{ sidebarTitle.label }}</h2>
+      </span>
+    </mat-toolbar>
+    <mat-divider></mat-divider>
+    <mat-nav-list class="no-icon-padding">
+      <a *ngFor="let item of sidebarItems"
+         [routerLinkActive]="['secondary-router-link-active']"
+         [routerLink]="item.route"
+         [title]="(item.description ? item.description : item.label) | translate"
+         mat-list-item>
+        <mat-icon *ngIf="item.icon" mat-list-icon>
+          {{ item.icon }}
+        </mat-icon>
+        <h2 matLine>{{ item.label | translate }}</h2>
+      </a>
+    </mat-nav-list>
+  </mat-sidenav>
+  <mat-sidenav-content class="main-content">
+    <router-outlet></router-outlet>
+  </mat-sidenav-content>
+</mat-sidenav-container>

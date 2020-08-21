@@ -1,0 +1,95 @@
+<h2 matDialogTitle>{{ 'rcc.edit_navigation_item' | translate }}</h2>
+<form (submit)="submit()" #form="ngForm">
+  <mat-dialog-content fxLayout="column" class="default-field-margin">
+    <mat-form-field>
+      <mat-select name="action_type" [placeholder]="'rcc.action_type' | translate"
+                  [(ngModel)]="navigationItem.action_type">
+        <mat-option *ngFor="let actionType of NAVIGATION_ACTION_TYPES" [value]="actionType.value">
+          {{ actionType.label | translate }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field>
+      <input matInput name="action" [placeholder]="'rcc.action' | translate" [(ngModel)]="navigationItem.action"
+             [matAutocomplete]="actionTypeComplete" [formControl]="actionTypeControl" required
+             (ngModelChange)="actionChanged()">
+    </mat-form-field>
+    <mat-autocomplete #actionTypeComplete="matAutocomplete">
+      <mat-option *ngFor="let actionType of filteredActionTypes | async" [value]="actionType.value">
+        {{ actionType.label | translate }} ({{ actionType.value }})
+      </mat-option>
+    </mat-autocomplete>
+    <ng-container *ngIf="isOpenApp()">
+      <mat-form-field>
+        <input matInput name="android_app_id" [placeholder]="'rcc.android_app_id' | translate"
+               [(ngModel)]="navigationItem.params.android_app_id" required>
+      </mat-form-field>
+      <mat-form-field>
+        <input matInput name="android_scheme" [placeholder]="'rcc.android_scheme' | translate"
+               [(ngModel)]="navigationItem.params.android_scheme">
+      </mat-form-field>
+      <mat-form-field>
+        <input matInput name="ios_app_id" [placeholder]="'rcc.ios_app_id' | translate"
+               [(ngModel)]="navigationItem.params.ios_app_id" required>
+      </mat-form-field>
+      <mat-form-field>
+        <input matInput name="ios_scheme" [placeholder]="'rcc.ios_scheme' | translate"
+               [(ngModel)]="navigationItem.params.ios_scheme">
+      </mat-form-field>
+    </ng-container>
+    <div *ngIf="isCollapsible()">
+      <mat-slide-toggle name="collapse" [(ngModel)]="navigationItem.params.collapse">
+        {{ 'rcc.go_to_first_item_instead_of_showing_list' | translate }}
+      </mat-slide-toggle>
+    </div>
+    <div>
+      <mat-slide-toggle name="enableColor" [(ngModel)]="useGlobalColor" (ngModelChange)="useGlobalColorChanged($event)">
+        {{ 'rcc.use_global_color' | translate }}
+      </mat-slide-toggle>
+    </div>
+    <mat-form-field *ngIf="!useGlobalColor">
+      <input matInput
+             name="color"
+             [placeholder]="'rcc.color' | translate"
+             [(ngModel)]="navigationItem.color"
+             [cpAlphaChannel]="'disabled'"
+             [(colorPicker)]="navigationItem.color"
+             required>
+      <span matSuffix class="color-preview" [style.backgroundColor]="navigationItem.color"></span>
+    </mat-form-field>
+    <mat-form-field>
+      <input matInput name="text" [placeholder]="'rcc.text' | translate" [(ngModel)]="navigationItem.text"
+             [matAutocomplete]="textComplete" [formControl]="textControl" required>
+      <mat-hint>{{ 'rcc.sidebar_item_text_hint' | translate }}</mat-hint>
+    </mat-form-field>
+    <mat-autocomplete #textComplete="matAutocomplete">
+      <mat-option *ngFor="let text of filteredText | async" [value]="text">
+        {{ text }}
+      </mat-option>
+    </mat-autocomplete>
+    <mat-form-field>
+      <span matPrefix><mat-icon [fontSet]="'fa'" [fontIcon]="getIcon()"></mat-icon></span>
+      <mat-label for="input-icon">{{ 'rcc.icon' | translate }}</mat-label>
+      <input matInput id="input-icon" name="icon" [(ngModel)]="navigationItem.icon"
+             [matAutocomplete]="iconComplete" [formControl]="iconControl" required style="padding-left: 6px;">
+      <mat-error *ngIf="iconControl.errors?.icon">{{ 'rcc.invalid_icon' | translate }}</mat-error>
+      <mat-hint>
+        <a href="https://fontawesome.com/v4.7.0/icons" target="_blank">{{ 'rcc.icons_info' | translate }}</a>
+      </mat-hint>
+    </mat-form-field>
+    <mat-autocomplete #iconComplete="matAutocomplete">
+      <mat-option *ngFor="let icon of filteredIcons | async" [value]="icon.icon">
+        <mat-icon fontSet="fa" [fontIcon]="icon.icon"></mat-icon>
+        {{ icon.icon }} {{ icon.v ? '(v' + icon.v + ')' : '' }}
+      </mat-option>
+      <mat-option *ngFor="let icon of HARDCODED_ICONS" [value]="icon">{{ icon }}</mat-option>
+    </mat-autocomplete>
+  </mat-dialog-content>
+  <mat-dialog-actions>
+    <button mat-button type="button" (click)="cancel()">{{ 'rcc.cancel' | translate }}</button>
+    <button mat-button
+            [disabled]="form.invalid || actionTypeControl.invalid || textControl.invalid || iconControl.invalid">
+      {{ 'rcc.save' | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>

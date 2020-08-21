@@ -35,7 +35,7 @@ from mcfw.cache import CachedModelMixIn, invalidate_cache
 from mcfw.properties import azzert
 from mcfw.serialization import deserializer, ds_model, serializer, s_model, register
 from mcfw.utils import chunks, Enum
-from oauth2client.appengine import CredentialsProperty
+from oauth2client.contrib.appengine import CredentialsProperty
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.consts import DAY
 from rogerthat.models import ServiceProfile

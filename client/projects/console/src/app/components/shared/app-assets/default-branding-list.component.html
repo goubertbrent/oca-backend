@@ -1,0 +1,21 @@
+<mat-card class="default-branding-card" *ngFor="let branding of brandings">
+  <mat-card-header>
+    <mat-card-title [textContent]="typeStrings[branding.branding_type] | translate "></mat-card-title>
+    <mat-card-subtitle>
+      <span *ngIf="branding.is_default">{{ 'rcc.default_branding' | translate }}</span>
+      <span *ngIf="!branding.is_default">{{ branding.app_ids }}</span>
+    </mat-card-subtitle>
+  </mat-card-header>
+  <mat-card-actions fxLayoutAlign="end center">
+    <a mat-icon-button color="primary" [href]="getDownloadUrl(branding)" download>
+      <mat-icon>file_download</mat-icon>
+    </a>
+    <a mat-icon-button color="primary" [routerLink]="[branding.id]" *ngIf="allowEdit">
+      <mat-icon>edit</mat-icon>
+    </a>
+    <button mat-icon-button color="warn" (click)="confirmDelete(branding)" *ngIf="remove">
+      <mat-icon>delete</mat-icon>
+    </button>
+  </mat-card-actions>
+</mat-card>
+<rcc-api-request-status [status]="status"></rcc-api-request-status>

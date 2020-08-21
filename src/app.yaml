@@ -206,19 +206,12 @@ handlers:
     script: rogerthat_unauthenticated.app
     secure: always
 
-  - url: /restapi.*
-    script: rogerthat_unauthenticated.app
-    secure: always
-
-  - url: /images.*
-    script: rogerthat_unauthenticated.app
-    secure: always
-
-  - url: /uploads.*
-    script: rogerthat_unauthenticated.app
-    secure: always
-
   - url: /internal/.*
+    script: main_google_authenticated.app
+    login: required
+    secure: always
+
+  - url: /console.*
     script: main_google_authenticated.app
     login: required
     secure: always
@@ -243,7 +236,7 @@ handlers:
   - url: /customers/.*
     script: main_unauthenticated.app
     secure: always
-    
+
   - url: /vouchers/.*
     script: main_unauthenticated.app
     secure: always

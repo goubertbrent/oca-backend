@@ -34,7 +34,21 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     bob_api_secret = add_meta(db.StringProperty(indexed=False),
                               doc="The secret used for incoming api request",
                               order=2)
-
+    appcfg_server_url = add_meta(db.StringProperty(indexed=False),
+                                 doc='App configurator server url',
+                                 order=2)
+    gsuite_domain = add_meta(db.StringProperty(indexed=False),
+                             doc="Gsuite domain to create a group when creating new apps.",
+                             order=3)
+    default_email_group_members = add_meta(db.StringProperty(indexed=False),
+                                           doc='Users that will be added to email groups for apps',
+                                           order=4)
+    gsuite_service_account = add_meta(db.StringProperty(indexed=False),
+                                      doc='Service account json file data for an account that has access to the gsuite domain',
+                                      order=5)
+    gsuite_delegated_user = add_meta(db.StringProperty(indexed=False),
+                                     doc='User email that will be used to create new groups/add users to the group',
+                                     order=6)
 
     shop_reply_to_email = add_meta(db.StringProperty(indexed=False),
                                    doc="The email address that is used as reply-to in all e-mails.",

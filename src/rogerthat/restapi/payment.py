@@ -18,14 +18,13 @@
 from mcfw.consts import REST_TYPE_TO
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.authentication import Scopes
 from rogerthat.bizz.payment import create_payment_provider, update_payment_provider, delete_payment_provider
 from rogerthat.dal.payment import get_payment_providers, get_payment_provider
 from rogerthat.settings import get_server_settings
 from rogerthat.to.payment import PaymentProviderTO
 
 
-@rest('/restapi/payment/providers', 'get', scopes=Scopes.BACKEND_EDITOR)
+@rest('/console-api/payment/providers', 'get')
 @returns([PaymentProviderTO])
 @arguments()
 def api_list_payment_providers():
@@ -33,7 +32,7 @@ def api_list_payment_providers():
     return [PaymentProviderTO.from_model(base_url, provider) for provider in get_payment_providers()]
 
 
-@rest('/restapi/payment/providers', 'post', scopes=Scopes.BACKEND_EDITOR, type=REST_TYPE_TO)
+@rest('/console-api/payment/providers', 'post', type=REST_TYPE_TO)
 @returns(PaymentProviderTO)
 @arguments(data=PaymentProviderTO)
 def api_create_payment_provider(data):
@@ -46,7 +45,7 @@ def api_create_payment_provider(data):
     return PaymentProviderTO.from_model(base_url, payment_provider)
 
 
-@rest('/restapi/payment/providers/<provider_id:[^/]+>', 'get', scopes=Scopes.BACKEND_EDITOR)
+@rest('/console-api/payment/providers/<provider_id:[^/]+>', 'get')
 @returns(PaymentProviderTO)
 @arguments(provider_id=unicode)
 def api_get_payment_provider(provider_id):
@@ -54,7 +53,7 @@ def api_get_payment_provider(provider_id):
     return PaymentProviderTO.from_model(base_url, get_payment_provider(provider_id))
 
 
-@rest('/restapi/payment/providers/<provider_id:[^/]+>', 'put', scopes=Scopes.BACKEND_EDITOR, type=REST_TYPE_TO)
+@rest('/console-api/payment/providers/<provider_id:[^/]+>', 'put', type=REST_TYPE_TO)
 @returns(PaymentProviderTO)
 @arguments(provider_id=unicode, data=PaymentProviderTO)
 def api_update_payment_providers(provider_id, data):
@@ -68,7 +67,7 @@ def api_update_payment_providers(provider_id, data):
     return PaymentProviderTO.from_model(base_url, pp)
 
 
-@rest('/restapi/payment/providers/<provider_id:[^/]+>', 'delete', scopes=Scopes.BACKEND_ADMIN, type=REST_TYPE_TO)
+@rest('/console-api/payment/providers/<provider_id:[^/]+>', 'delete', type=REST_TYPE_TO)
 @returns()
 @arguments(provider_id=unicode)
 def api_delete_payment_provider(provider_id):

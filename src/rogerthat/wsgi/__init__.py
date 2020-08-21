@@ -15,9 +15,9 @@
 #
 # @@license_version:1.7@@
 
-from Cookie import BaseCookie
 import logging
 import time
+from Cookie import BaseCookie
 from urllib import urlencode
 
 import google.appengine.api.users

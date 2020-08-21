@@ -22,10 +22,13 @@ import webapp2
 from rogerthat.bizz.system import qrcode
 from rogerthat.models import QRTemplate
 from rogerthat.settings import get_server_settings
+from shop.view import authorize_manager
 
 
 class AppQRTemplateHandler(webapp2.RequestHandler):
     def get(self, app_id, description):
+        if not authorize_manager():
+            self.abort(403)
         key_name = QRTemplate.create_key_name(app_id, description)
         template = QRTemplate.get_by_key_name(key_name)
         if not template:

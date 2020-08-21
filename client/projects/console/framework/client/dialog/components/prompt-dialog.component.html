@@ -1,0 +1,20 @@
+<h2 matDialogTitle>{{ data.title }}</h2>
+<mat-dialog-content>
+  <p [innerHTML]="data.message"></p>
+  <!-- todo allow custom template, see MatTab.templateLabel -->
+  <mat-form-field style="width: 100%;">
+    <input *ngIf="inputType !== 'textarea'" [(ngModel)]="input" [type]="inputType" matInput name="input" required>
+    <textarea *ngIf="inputType === 'textarea'" [(ngModel)]="input" matInput matTextareaAutosize name="input"
+              required></textarea>
+  </mat-form-field>
+</mat-dialog-content>
+<mat-dialog-actions>
+  <div>
+    <button (click)="submit(false)" color="primary" mat-raised-button>
+      {{ data.cancel }}
+    </button>
+    <button (click)="submit(true)" [disabled]="!input && !!data.required" color="primary" mat-raised-button>
+      {{ data.ok }}
+    </button>
+  </div>
+</mat-dialog-actions>

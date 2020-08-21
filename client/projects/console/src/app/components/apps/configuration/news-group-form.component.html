@@ -1,0 +1,13 @@
+<form #form="ngForm" (ngSubmit)="submit()" class="default-component-margin">
+  <div class="form-row">
+    <input type="file" name="file" [accept]="'image/png,image/jpeg'" required
+           (change)="onFilePicked($event)" #file>
+  </div>
+  <div class="error-message">{{ errorMessage }}</div>
+  <div class="form-row">
+    <button mat-button mat-raised-button color="primary"
+            [disabled]="!form.form.valid || errorMessage || !file.value">
+      {{ 'rcc.save' | translate }}
+    </button>
+  </div>
+</form>

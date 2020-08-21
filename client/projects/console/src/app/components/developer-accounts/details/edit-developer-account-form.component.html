@@ -1,0 +1,57 @@
+<form #form="ngForm" class="default-component-margin-full default-field-margin" *ngIf="developerAccount"
+      fxLayout="column" fxFlex="40" fxFlex.md="60" fxFlex.xs="100">
+  <mat-form-field>
+    <mat-select name="type" [(ngModel)]="developerAccount.type" [placeholder]="'rcc.type' | translate" disabled>
+      <mat-option value="ios">{{ 'rcc.platform_ios' | translate }}</mat-option>
+      <mat-option value="android">{{ 'rcc.platform_android' | translate }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-form-field>
+    <input matInput name="name" maxlength="50" [(ngModel)]="developerAccount.name"
+           [placeholder]="'rcc.name' | translate" required>
+  </mat-form-field>
+  <mat-form-field>
+    <input matInput name="account_email" type="email"
+           [placeholder]="'rcc.account_email' | translate"
+           [(ngModel)]="developerAccount.account_email"
+           [email]="true"
+           required>
+    <mat-error>{{ 'rcc.invalid_email_address' | translate }}</mat-error>
+  </mat-form-field>
+  <mat-form-field *ngIf="isIos()">
+    <input matInput name="ios_dev_team"
+           [placeholder]="'rcc.ios_dev_team' | translate"
+           [(ngModel)]="developerAccount.ios_dev_team"
+           maxlength="10">
+  </mat-form-field>
+  <mat-form-field *ngIf="isIos()">
+    <input matInput name="iphone_developer"
+           [placeholder]="'rcc.iphone_developer' | translate"
+           [(ngModel)]="developerAccount.iphone_developer"
+           [required]="!!developerAccount.ios_dev_team"
+           maxlength="64">
+  </mat-form-field>
+  <mat-form-field *ngIf="isIos()">
+    <input matInput name="iphone_distribution"
+           [placeholder]="'rcc.iphone_distribution' | translate"
+           [(ngModel)]="developerAccount.iphone_distribution"
+           [required]="!!developerAccount.ios_dev_team"
+           maxlength="64">
+  </mat-form-field>
+  <mat-form-field *ngIf="!isIos()">
+    <textarea matInput name="google_credentials_json"
+              [placeholder]="'rcc.google_credentials_json' | translate"
+              [(ngModel)]="developerAccount.google_credentials_json"
+              rows="4"
+              required
+              matTextareaAutosize></textarea>
+    <mat-hint>{{ 'rcc.google_credentials_json_explanation' | translate }}</mat-hint>
+  </mat-form-field>
+  <rcc-api-request-status [status]="status"></rcc-api-request-status>
+  <div>
+    <button type="button" (click)="submit()" mat-button mat-raised-button color="primary"
+            [disabled]="!form.form.touched || !form.form.valid">
+      {{ 'rcc.save' | translate }}
+    </button>
+  </div>
+</form>

@@ -1,0 +1,14 @@
+<div class="default-component-margin">
+  <h2>{{ 'rcc.qr_templates' | translate }}</h2>
+  <p>{{ 'rcc.qr_templates_explanation' | translate }}</p>
+  <rcc-qr-code-template-list
+    [app]="app$ | async"
+    (remove)="removeTemplate($event)"
+    [qrCodeTemplates]="qrCodeTemplates$ | async"></rcc-qr-code-template-list>
+  <rcc-api-request-status [status]="status$ | async"></rcc-api-request-status>
+</div>
+<div class="fab-bottom-right">
+  <a mat-fab [routerLink]="['create']">
+    <mat-icon>add</mat-icon>
+  </a>
+</div>

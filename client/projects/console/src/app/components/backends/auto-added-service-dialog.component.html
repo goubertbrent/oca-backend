@@ -1,0 +1,29 @@
+<h3 mat-dialog-title>{{ 'rcc.auto_added_service' | translate }}</h3>
+<mat-dialog-content>
+  <form #serviceForm="ngForm">
+    <div class="form-row">
+      <mat-form-field>
+        <input matInput name="service_email" [(ngModel)]="data.service.service_email"
+               [placeholder]="'rcc.service_email' | translate"
+               [pattern]="serviceEmailRegex" #serviceEmail="ngModel" type="email" required>
+        <mat-error *ngIf="serviceEmail.errors?.pattern">{{ 'rcc.invalid_email_address' | translate }}</mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field>
+        <input matInput name="app_id_pattern" [(ngModel)]="data.service.app_id_pattern"
+               [placeholder]="'rcc.app_id_pattern' | translate"
+               required/>
+      </mat-form-field>
+    </div>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions>
+  <button mat-raised-button (click)="cancel()">
+    {{ 'rcc.cancel' | translate }}
+  </button>
+  <button mat-raised-button color="primary" (click)="submit()" [disabled]="!serviceForm.form.valid">
+    {{ 'rcc.save' | translate }}
+  </button>
+</mat-dialog-actions>

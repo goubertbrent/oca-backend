@@ -1,0 +1,15 @@
+<mat-card class="qr-code-card" *ngFor="let template of qrCodeTemplates">
+  <mat-card-header>
+    <mat-card-title>{{ template.description }}</mat-card-title>
+    <mat-card-subtitle>
+      {{ 'rcc.body_color' | translate }}
+      <span class="color-preview" [style.backgroundColor]="'#' + template.body_color"></span> #{{ template.body_color }}
+    </mat-card-subtitle>
+  </mat-card-header>
+  <img mat-card-image [src]="getImageUrl(template)">
+  <mat-card-actions fxLayoutAlign="end center">
+    <button mat-button color="warn" (click)="confirmDelete(template)">
+      {{ 'rcc.delete' | translate }}
+    </button>
+  </mat-card-actions>
+</mat-card>

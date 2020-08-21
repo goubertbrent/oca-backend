@@ -335,6 +335,129 @@
           }
         }
       }
+    },
+    "console": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "projects/console",
+      "sourceRoot": "projects/console/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:browser",
+          "options": {
+            "outputPath": "../src/static/console",
+            "index": "projects/console/src/index.html",
+            "main": "projects/console/src/main.ts",
+            "polyfills": "projects/console/src/polyfills.ts",
+            "tsConfig": "projects/console/tsconfig.app.json",
+            "aot": true,
+            "assets": [
+              "projects/console/src/favicon.ico",
+              "projects/console/src/assets"
+            ],
+            "styles": [
+              "projects/console/src/styles/styles.scss"
+            ],
+            "scripts": []
+          },
+          "configurations": {
+            "production": {
+              "fileReplacements": [
+                {
+                  "replace": "projects/console/src/environments/environment.ts",
+                  "with": "projects/console/src/environments/environment.prod.ts"
+                }
+              ],
+              "optimization": true,
+              "outputHashing": "all",
+              "sourceMap": false,
+              "extractCss": true,
+              "namedChunks": false,
+              "extractLicenses": true,
+              "vendorChunk": false,
+              "buildOptimizer": true,
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "2mb",
+                  "maximumError": "5mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb",
+                  "maximumError": "10kb"
+                }
+              ]
+            }
+          }
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "browserTarget": "console:build",
+            "proxyConfig": "proxy.conf.js",
+            "port": 4199
+          },
+          "configurations": {
+            "production": {
+              "browserTarget": "console:build:production"
+            }
+          }
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "browserTarget": "console:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "projects/console/src/test.ts",
+            "polyfills": "projects/console/src/polyfills.ts",
+            "tsConfig": "projects/console/tsconfig.spec.json",
+            "karmaConfig": "projects/console/karma.conf.js",
+            "assets": [
+              "projects/console/src/favicon.ico",
+              "projects/console/src/assets"
+            ],
+            "styles": [
+              "projects/console/src/styles.scss"
+            ],
+            "scripts": []
+          }
+        },
+        "lint": {
+          "builder": "@angular-devkit/build-angular:tslint",
+          "options": {
+            "tsConfig": [
+              "projects/console/tsconfig.app.json",
+              "projects/console/tsconfig.spec.json",
+              "projects/console/e2e/tsconfig.json"
+            ],
+            "exclude": [
+              "**/node_modules/**"
+            ]
+          }
+        },
+        "e2e": {
+          "builder": "@angular-devkit/build-angular:protractor",
+          "options": {
+            "protractorConfig": "projects/console/e2e/protractor.conf.js",
+            "devServerTarget": "console:serve"
+          },
+          "configurations": {
+            "production": {
+              "devServerTarget": "console:serve:production"
+            }
+          }
+        }
+      }
     }
   },
   "defaultProject": "oca-dashboard",

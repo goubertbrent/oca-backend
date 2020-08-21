@@ -1,0 +1,81 @@
+<div class="default-component-margin default-field-margin">
+  <rcc-api-request-status [status]="status"></rcc-api-request-status>
+  <form (ngSubmit)="submit()" #form="ngForm" fxLayout="column" fxFlex.lg="30" fxFlex.md="50" fxFlex="100"
+        *ngIf="status.success">
+    <p>{{ 'rcc.app_settings_explanation' | translate }}</p>
+    <div class="form-row">
+      <mat-slide-toggle name="birthday_message_enabled" [(ngModel)]="appSettings.birthday_message_enabled">
+        {{ 'rcc.send_birthday_messages' | translate }}
+      </mat-slide-toggle>
+    </div>
+    <mat-form-field>
+      <input matInput name="birthday_message" [placeholder]="'rcc.birthday_message' | translate"
+             [(ngModel)]="appSettings.birthday_message"
+             [disabled]="!appSettings.birthday_message_enabled"
+             required>
+      <mat-hint>{{ 'rcc.birthday_message_explanation' | translate }}</mat-hint>
+    </mat-form-field>
+    <div class="form-row">
+      <mat-slide-toggle name="wifi_only_downloads" [(ngModel)]="appSettings.wifi_only_downloads">
+        {{ 'rcc.wifi_only_downloads' | translate }}
+      </mat-slide-toggle>
+    </div>
+    <h4>{{ 'rcc.firebase_settings' | translate }} (iOS)</h4>
+    <p *ngIf="appSettings.ios_firebase_project_id">{{ appSettings.ios_firebase_project_id }}</p>
+    <a *ngIf="!appSettings.ios_firebase_project_id" mat-button color="primary" [routerLink]="['firebase-ios']">{{ 'rcc.create' | translate }}</a>
+
+    <h4>{{ 'rcc.oauth_settings' | translate }}</h4>
+    <p>{{ 'rcc.oauth_settings_explanation' | translate }}</p>
+    <mat-form-field>
+      <input type="url" matInput name="url" [placeholder]="'rcc.base_url' | translate"
+             [(ngModel)]="appSettings.oauth.url">
+    </mat-form-field>
+    <mat-form-field>
+      <input matInput name="authorize_path" [placeholder]="'rcc.authorize_path' | translate"
+             [(ngModel)]="appSettings.oauth.authorize_path">
+    </mat-form-field>
+    <mat-form-field>
+      <input matInput name="token_path" [placeholder]="'rcc.token_path' | translate"
+             [(ngModel)]="appSettings.oauth.token_path">
+    </mat-form-field>
+    <mat-form-field>
+      <input matInput name="scopes" [placeholder]="'rcc.scopes' | translate"
+             [(ngModel)]="appSettings.oauth.scopes">
+    </mat-form-field>
+    <mat-form-field>
+      <input matInput name="client_id" [placeholder]="'rcc.client_id' | translate"
+             [(ngModel)]="appSettings.oauth.client_id">
+    </mat-form-field>
+    <mat-form-field>
+      <input matInput name="secret" [placeholder]="'rcc.secret' | translate"
+             [(ngModel)]="appSettings.oauth.secret">
+    </mat-form-field>
+    <mat-form-field>
+      <input matInput name="domain" [placeholder]="'rcc.domain' | translate"
+             [(ngModel)]="appSettings.oauth.domain">
+    </mat-form-field>
+    <mat-form-field>
+      <textarea matInput name="domain" [placeholder]="'rcc.public_key' | translate" matTextareaAutosize
+                [(ngModel)]="appSettings.oauth.public_key" matTextareaAutosize></textarea>
+    </mat-form-field>
+    <mat-form-field>
+      <input matInput name="domain" [placeholder]="'rcc.jwt_audience' | translate"
+             [(ngModel)]="appSettings.oauth.jwt_audience">
+    </mat-form-field>
+    <mat-form-field>
+      <input matInput name="domain" [placeholder]="'rcc.jwt_issuer' | translate"
+             [(ngModel)]="appSettings.oauth.jwt_issuer">
+    </mat-form-field>
+    <mat-form-field>
+      <input type="email" matInput name="service_identity_email"
+             [placeholder]="'rcc.service_identity_email' | translate"
+             [(ngModel)]="appSettings.oauth.service_identity_email">
+    </mat-form-field>
+    <rcc-api-request-status [status]="updateStatus"></rcc-api-request-status>
+    <div>
+      <button mat-button mat-raised-button color="primary" [disabled]="!form.form.valid || updateStatus.loading">
+        {{ 'rcc.save' | translate }}
+      </button>
+    </div>
+  </form>
+</div>

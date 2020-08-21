@@ -95,6 +95,9 @@ class ServerSettings(CachedModelMixIn, db.Model):
 
     registrationMainSignature = add_meta(db.StringProperty(indexed=False),
                                          doc="baee64 version of main registration signature", order=80)
+    emailHashEncryptionKey = add_meta(db.StringProperty(indexed=False),
+                                          doc='Email hash encryption key. Only used for creating apps. No idea why this is needed.',
+                                          order=80)
     registrationEmailSignature = add_meta(db.StringProperty(indexed=False),
                                           doc="baee64 version of email registration signature", order=81)
     registrationPinSignature = add_meta(db.StringProperty(indexed=False),
@@ -127,15 +130,6 @@ class ServerSettings(CachedModelMixIn, db.Model):
     ysaaaMapping = add_meta(db.StringListProperty(indexed=False),
                             doc="YSAAA mapping  (2 entries per combination. eg: - hash - test@example.com)",
                             order=94)
-
-    rootOrganization = add_meta(db.StringProperty(indexed=False),
-                                doc='Root organization for itsyou.online authenticated rest api calls',
-                                order=95)
-    backendOrganization = add_meta(db.StringProperty(indexed=False),
-                                   doc='Organization which represents this server, only for itsyou.online'
-                                       ' authenticated rest api calls.'
-                                       ' This is a suborganization of the rootOrganization.backends organization.',
-                                   order=96)
 
     signupUrl = add_meta(db.StringProperty(indexed=False),
                          doc="Signup URL (e.g. https://example.com/signup)",
@@ -218,6 +212,7 @@ register(ServerSettings, s_ss, ds_ss)
 @returns(ServerSettings)
 @arguments()
 def get_server_settings():
+    # type: () -> ServerSettings
     @db.non_transactional
     def get():
         ss = ServerSettings.get_by_key_name("MainSettings")

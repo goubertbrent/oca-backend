@@ -1,0 +1,16 @@
+<mat-chip-list #adminServicesChips selectable="false">
+  <mat-chip *ngFor="let adminService of adminServices"
+            color="primary"
+            (removed)="confirmRemoveService(adminService)">
+    {{ adminService }}
+    <mat-icon matChipRemove>cancel</mat-icon>
+  </mat-chip>
+</mat-chip-list>
+<mat-form-field>
+  <input matInput name="new_admin_service" type="email"
+         [formControl]="adminServiceFormControl"
+         placeholder="{{ 'rcc.new_admin_service' | translate }}"
+         [matChipInputFor]="adminServicesChips"
+         (matChipInputTokenEnd)="addAdminService($event)"/>
+  <mat-error *ngIf="adminServiceFormControl.errors?.pattern">{{ 'rcc.invalid_email_address' | translate }}</mat-error>
+</mat-form-field>

@@ -22,9 +22,11 @@ from base64 import b64encode
 
 from google.appengine.api import urlfetch
 
+from mcfw.exceptions import HttpException
 from mcfw.restapi import GenericRESTRequestHandler
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_service_identity
+from rogerthat.handlers.proxy import _exec_request
 from rogerthat.restapi.service_panel import generate_api_key
 from rogerthat.utils.service import create_service_identity_user
 from solution_server_settings import get_solution_server_settings
@@ -136,11 +138,15 @@ def update_settings(service_user, data):
     return json.loads(_participation_request(model.secret, url, 'PUT', data).content)
 
 
-def register_app(app_id, ios_dev_team):
-    # type: (unicode, unicode) -> None
+def register_app(app_id, ios_developer_account_id):
+    # type: (unicode, long) -> None
+    response = _exec_request('/api/developer-accounts/%s' % ios_developer_account_id, urlfetch.POST, {}, None, True)
+    if response.status_code != 200:
+        raise HttpException.from_urlfetchresult(response)
+    dev_acc = json.loads(response.content)
     url = '/cities/%s/register' % app_id
     data = {
-        'ios_dev_team': ios_dev_team,
+        'ios_dev_team': dev_acc['ios_dev_team'],
     }
     secret = get_solution_server_settings().participation_server_secret
     _participation_request(secret, url, 'POST', data)

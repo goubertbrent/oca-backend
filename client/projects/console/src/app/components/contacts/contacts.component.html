@@ -1,0 +1,21 @@
+<mat-card class="contact-card" *ngFor="let contact of contacts$ | async">
+  <mat-card-header>
+    <mat-card-title>{{ contact.first_name }} {{ contact.last_name }}</mat-card-title>
+    <mat-card-subtitle>{{ contact.email }}</mat-card-subtitle>
+  </mat-card-header>
+  <mat-card-actions fxLayoutAlign="end center">
+    <a [routerLink]="contact.id" mat-button>
+      {{ 'rcc.edit' | translate }}
+    </a>
+    <button type="button" mat-button color="warn" (click)="confirmRemoveContact(contact)">
+      {{ 'rcc.delete' | translate }}
+    </button>
+  </mat-card-actions>
+</mat-card>
+<rcc-api-request-status [status]="status$ | async"></rcc-api-request-status>
+<div class="fab-bottom-right">
+  <a mat-fab [routerLink]="['create']">
+    <mat-icon>add</mat-icon>
+  </a>
+</div>
+

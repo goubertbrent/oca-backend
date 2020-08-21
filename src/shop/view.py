@@ -16,18 +16,19 @@
 # @@license_version:1.7@@
 
 import base64
-from cgi import FieldStorage
-from collections import namedtuple
 import csv
-from datetime import date, timedelta
 import datetime
 import json
 import logging
 import os
 import re
-from types import NoneType
 import urllib
+from cgi import FieldStorage
+from collections import namedtuple
+from datetime import date, timedelta
+from types import NoneType
 
+import webapp2
 from PIL.Image import Image  # @UnresolvedImport
 from babel import Locale
 from babel.dates import format_date
@@ -35,7 +36,6 @@ from google.appengine.api import urlfetch, users as gusers
 from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
 from oauth2client.client import HttpAccessTokenRefreshError
-import webapp2
 
 from add_1_monkey_patches import DEBUG, APPSCALE
 from mcfw.cache import cached
@@ -126,7 +126,6 @@ from solutions.common.to import ProvisionReturnStatusTO
 from solutions.common.to.hints import SolutionHintTO
 from solutions.common.to.loyalty import LoyaltySlideTO, LoyaltySlideNewOrderTO
 from solutions.common.utils import get_extension_for_content_type
-
 
 try:
     from cStringIO import StringIO
@@ -2333,3 +2332,23 @@ def rest_import_customers(import_id, app_id, file_data):
         )
 
     return ImportCustomersReturnStatusTO.create(True, customer_count=customer_count)
+
+
+class ConsoleHandler(BizzManagerHandler):
+    def get(self, route=''):
+        if DEBUG:
+            url = 'http://localhost:4199' + route
+        else:
+            url = '/console' + route
+        path = os.path.join(os.path.dirname(__file__), 'html', 'console.html')
+        context = get_shop_context(url=url)
+        self.response.out.write(template.render(path, context))
+
+
+class ConsoleIndexHandler(webapp2.RequestHandler):
+    def get(self, route=''):
+        path = os.path.join(os.path.dirname(__file__), 'html', 'console-index.html')
+        html = template.render(path, {}) \
+            .replace('href="styles', 'href="/static/console/styles') \
+            .replace('src="', 'src="/static/console/')
+        self.response.out.write(html)

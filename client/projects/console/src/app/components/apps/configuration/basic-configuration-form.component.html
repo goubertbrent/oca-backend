@@ -1,0 +1,97 @@
+<rcc-api-request-status [status]="status"></rcc-api-request-status>
+<div class="default-component-margin " *ngIf="app && rogerthatApp">
+  <form novalidate (submit)="submit()" #form="ngForm">
+    <div class="form-row">
+      <mat-form-field>
+        <input matInput name="name"
+               [placeholder]="'rcc.name' | translate"
+               [(ngModel)]="app.title"
+               required>
+      </mat-form-field>
+    </div>
+    <div class="form-row">
+      <mat-form-field>
+        <mat-select [placeholder]="'rcc.type' | translate" [(ngModel)]="app.app_type" name="app_type" required>
+          <mat-option *ngFor="let type of appTypes" [value]="type.value"
+                      [innerText]="type.label | translate"></mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+    <div class="form-row">
+      <mat-slide-toggle name="secure_app"
+                        [(ngModel)]="rogerthatApp.secure">
+        {{ 'rcc.secure' | translate }}
+      </mat-slide-toggle>
+      <p class="hint-text">{{ 'rcc.secure_app_explanation' | translate }}</p>
+    </div>
+    <div class="form-row">
+      <mat-form-field>
+        <input matInput type="email" name="main_service"
+               [placeholder]="'rcc.main_service_email' | translate"
+               [(ngModel)]="app.main_service"
+               [email]="!!app.main_service"
+               [required]="isMainServiceRequired()"
+               #mainService="ngModel">
+        <mat-hint>{{ 'rcc.main_service_email_explanation' | translate }}</mat-hint>
+        <mat-error *ngIf="mainService.errors?.required">{{ 'rcc.email_is_required' | translate }}</mat-error>
+        <mat-error *ngIf="mainService.errors?.email">{{ 'rcc.invalid_email_address' | translate }}</mat-error>
+      </mat-form-field>
+    </div>
+    <div class="form-row">
+      <label>{{ 'rcc.playstore_track' | translate }}</label>
+      <mat-radio-group class="radio-group" name="track"
+                       [(ngModel)]="app.playstore_track" required>
+        <mat-radio-button class="radio-button"
+                          *ngFor="let track of trackTypes"
+                          [value]="track">
+          {{ ('rcc.track_' + track) | translate }}
+        </mat-radio-button>
+      </mat-radio-group>
+    </div>
+    <div class="form-row">
+      <mat-slide-toggle name="chat_payments_enabled" [(ngModel)]="app.chat_payments_enabled">
+        {{ 'rcc.chat_payments_enabled' | translate }}
+      </mat-slide-toggle>
+    </div>
+    <h4>{{ 'rcc.facebook_settings' | translate }}</h4>
+    <div class="form-row">
+      <mat-slide-toggle name="facebook_registration" [(ngModel)]="app.facebook_registration">
+        {{ 'rcc.facebook_registration' | translate }}
+      </mat-slide-toggle>
+    </div>
+    <div class="form-row" *ngIf="app.facebook_registration">
+      <p [innerHTML]="fbUrl | async"></p>
+      <mat-form-field>
+        <input matInput name="facebook_app_id" type="number"
+               [placeholder]="'rcc.client_id' | translate"
+               [(ngModel)]="rogerthatApp.facebook_app_id">
+      </mat-form-field>
+      <mat-form-field>
+        <input matInput name="facebook_app_secret"
+               [placeholder]="'rcc.client_secret' | translate"
+               [(ngModel)]="rogerthatApp.facebook_app_secret">
+      </mat-form-field>
+    </div>
+    <div class="form-row" *ngIf="app.facebook_registration">
+      <button type="button" mat-raised-button (click)="updateFacebook()" [disabled]="!rogerthatApp.facebook_app_id">
+        {{ 'rcc.update_facebook' | translate }}
+      </button>
+      <span class="hint-text">{{ 'rcc.update_facebook_explanation' | translate }}</span>
+      <rcc-api-request-status [status]="updateFacebookStatus$ | async"></rcc-api-request-status>
+    </div>
+    <div class="form-row" *ngIf="app.facebook_registration">
+      <button type="button" mat-raised-button (click)="requestFacebookReview()"
+              [disabled]="!rogerthatApp.facebook_app_id">{{ 'rcc.request_review' | translate }}
+      </button>
+      <span class="hint-text">{{ 'rcc.request_facebook_review_explanation' | translate }}</span>
+      <rcc-api-request-status [status]="requestFacebookReviewStatus$ | async"></rcc-api-request-status>
+    </div>
+    <rcc-api-request-status [status]="updateStatus"></rcc-api-request-status>
+    <div class="form-row">
+      <button mat-button mat-raised-button color="primary" [disabled]="!form.form.valid">
+        {{ 'rcc.save' | translate }}
+      </button>
+    </div>
+  </form>
+</div>
+

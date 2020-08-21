@@ -21,7 +21,6 @@ from mcfw.cache import CachedModelMixIn
 from mcfw.consts import MISSING
 from mcfw.restapi import register_postcall_hook, INJECTED_FUNCTIONS
 from mcfw.rpc import serialize_value, get_type_details
-from rogerthat.bizz.authentication import get_user_scopes_from_request
 from rogerthat.rpc import users
 from rogerthat.utils import OFFLOAD_TYPE_WEB, offload
 from rogerthat.utils.transactions import on_trans_committed
@@ -54,7 +53,6 @@ def log_restapi_call_result(function, success, kwargs, result_or_error):
 
 register_postcall_hook(log_restapi_call_result)
 INJECTED_FUNCTIONS.get_current_session = users.get_current_session
-INJECTED_FUNCTIONS.get_user_scopes_from_request = get_user_scopes_from_request
 
 del log_restapi_call_result
 

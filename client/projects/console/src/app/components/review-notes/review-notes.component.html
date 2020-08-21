@@ -1,0 +1,21 @@
+<mat-card class="review-notes-card" *ngFor="let notes of reviewNotes$ | async">
+  <mat-card-header>
+    <mat-card-title>{{ notes.name }}</mat-card-title>
+    <mat-card-subtitle>{{ notes.first_name }} {{ notes.last_name }}</mat-card-subtitle>
+  </mat-card-header>
+  <mat-card-actions fxLayoutAlign="end center">
+    <a [routerLink]="notes.id" mat-button>
+      {{ 'rcc.edit' | translate }}
+    </a>
+    <button type="button" mat-button color="warn" (click)="confirmRemoveReviewNotes(notes)">
+      {{ 'rcc.delete' | translate }}
+    </button>
+  </mat-card-actions>
+</mat-card>
+<rcc-api-request-status [status]="status$ | async"></rcc-api-request-status>
+<div class="fab-bottom-right">
+  <a mat-fab [routerLink]="['create']">
+    <mat-icon>add</mat-icon>
+  </a>
+</div>
+

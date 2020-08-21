@@ -1,0 +1,13 @@
+<div class="default-component-margin">
+  <mat-card *ngFor="let project of firebaseProjects$| async">
+    <mat-card-header>
+      <mat-card-title>{{ project.project_id }}</mat-card-title>
+    </mat-card-header>
+  </mat-card>
+  <rcc-api-request-status [status]="listStatus$ | async"></rcc-api-request-status>
+  <div class="fab-bottom-right">
+    <a mat-fab [routerLink]="['create']">
+      <mat-icon>add</mat-icon>
+    </a>
+  </div>
+</div>

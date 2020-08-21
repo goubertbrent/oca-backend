@@ -1,0 +1,43 @@
+@import 'node_modules/@angular/material/theming';
+
+$oca-color: #3abb9e;
+
+// Styles for the app that are based on the current theme.
+@mixin material-console-app-theme($theme) {
+  $primary: map-get($theme, primary);
+  $accent: map-get($theme, accent);
+  $warn: map-get($theme, warn);
+  $background: map-get($theme, background);
+  $foreground: map-get($theme, foreground);
+
+  &.console-app-background {
+    background: mat-color($background, background);
+  }
+
+  a {
+    color: $oca-color;
+  }
+
+}
+
+$oca-theme: (
+  100: #b2ebf2,
+  500: $oca-color,
+  700: #0097a7,
+  contrast: (
+    100: $dark-primary-text,
+    500: $light-primary-text,
+    700: $light-primary-text,
+  )
+);
+
+// Default (light) theme
+$console-app-primary: mat-palette($oca-theme);
+$console-app-accent: mat-palette($mat-deep-purple, A200, A100, A400);
+
+$theme: mat-light-theme($console-app-primary, $console-app-accent);
+
+$web-dark-app-primary: mat-palette($oca-theme);
+$web-dark-app-accent: mat-palette($mat-deep-purple, A200, A100, A400);
+
+$dark-theme: mat-dark-theme($web-dark-app-primary, $web-dark-app-accent);

@@ -1,0 +1,51 @@
+<mat-form-field>
+  <mat-select [placeholder]="'rcc.select_language' | translate" [(ngModel)]="selectedLang"
+              (ngModelChange)="languageChanged()" name="selected_language">
+    <mat-option *ngFor="let language of languages; trackBy:trackByCode" [value]="language">
+      {{ language.name }}
+    </mat-option>
+  </mat-select>
+</mat-form-field>
+<table mat-table [dataSource]="dataSource" [trackBy]="trackByName">
+
+  <ng-container matColumnDef="name">
+    <mat-header-cell *matHeaderCellDef>{{ 'rcc.translation_key' | translate }}</mat-header-cell>
+    <mat-cell *matCellDef="let row"> {{ row.name }}</mat-cell>
+  </ng-container>
+
+  <ng-container matColumnDef="value">
+    <mat-header-cell *matHeaderCellDef>{{ 'rcc.translation' | translate }}</mat-header-cell>
+    <mat-cell *matCellDef="let row"> {{ row.value }}</mat-cell>
+  </ng-container>
+
+  <ng-container matColumnDef="remove">
+    <mat-header-cell *matHeaderCellDef>{{ 'rcc.delete' | translate }}</mat-header-cell>
+    <mat-cell *matCellDef="let row">
+      <button type="button" mat-icon-button>
+        <mat-icon (click)="removeTranslation(row)">close</mat-icon>
+      </button>
+    </mat-cell>
+  </ng-container>
+
+  <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+  <mat-row *matRowDef="let row; columns: displayedColumns"></mat-row>
+
+</table>
+
+<div class="form-row" *ngIf="selectedLang">
+  <h3>{{ 'rcc.add_translation' | translate }}</h3>
+  <mat-form-field>
+    <input matInput [(ngModel)]="newTranslation.name" [placeholder]="'rcc.translation_key' | translate"
+           #nameInput
+           #translationKey="ngModel"
+           (keyup.enter)="addTranslation()"
+           pattern="^[a-zA-z_]+$">
+    <mat-error *ngIf="translationKey.errors?.pattern">{{ 'rcc.invalid_translation_key_error' | translate }}</mat-error>
+  </mat-form-field>
+  <mat-form-field>
+    <input matInput [(ngModel)]="newTranslation.value" [placeholder]="'rcc.translation' | translate"
+           #translationValue="ngModel"
+           (keyup.enter)="addTranslation()">
+  </mat-form-field>
+  <button type="button" mat-button color="primary" (click)="addTranslation()">{{ 'rcc.add' | translate }}</button>
+</div>

@@ -1,0 +1,14 @@
+<h2 matDialogTitle>{{ data.title }}</h2>
+<mat-dialog-content>
+  <p [innerHTML]="data.message"></p>
+</mat-dialog-content>
+<mat-dialog-actions>
+  <div>
+    <button (click)="dialogRef.close(false)" color="primary" mat-raised-button>
+      {{ data.cancel }}
+    </button>
+    <button (click)="dialogRef.close(true)" color="primary" mat-raised-button>
+      {{ data.ok }}
+    </button>
+  </div>
+</mat-dialog-actions>

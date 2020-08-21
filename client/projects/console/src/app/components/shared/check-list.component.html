@@ -1,0 +1,19 @@
+<div class="row">
+  <button mat-button (click)="setAll(true)" [disabled]="allChecked">
+    <mat-icon>done</mat-icon>
+    {{ 'rcc.select_all' | translate }}
+  </button>
+  <button mat-button (click)="setAll(false)" [disabled]="allUnchecked">
+    <mat-icon>clear</mat-icon>
+    {{ 'rcc.deselect_all' | translate }}
+  </button>
+</div>
+<mat-list>
+  <mat-list-item *ngFor="let item of items">
+    <mat-checkbox matLine name="item" value="item.value" [(ngModel)]="item.checked"
+                  (ngModelChange)="onModelChange($event)">
+      {{ item.label | async }}
+    </mat-checkbox>
+    <mat-error matLine *ngIf="item.error">{{ item.error }}</mat-error>
+  </mat-list-item>
+</mat-list>

@@ -1,0 +1,73 @@
+<div class="default-component-margin">
+  <h2 translate [translateParams]="{ app_id: appId }">rcc.new_app_build</h2>
+  <form novalidate (submit)="checkPendingChanges()" #createForm="ngForm">
+    <div class="form-row">
+      <label>{{ 'rcc.platform' | translate }}</label>
+      <mat-radio-group class="radio-group"
+                       [(ngModel)]="buildOptions.type"
+                       name="platform" required>
+        <mat-radio-button class="radio-button"
+                          *ngFor="let type of buildTypes"
+                          [value]="type">
+          {{ getBuildTypeString(type) | translate }}
+        </mat-radio-button>
+      </mat-radio-group>
+    </div>
+    <div class="form-row">
+      <mat-slide-toggle name="submit"
+                        [(ngModel)]="buildOptions.release"
+                        (ngModelChange)="releaseChanged()">
+        {{ 'rcc.release_build' | translate }}
+      </mat-slide-toggle>
+      <p>{{ 'rcc.release_build_information' | translate }}</p>
+    </div>
+    <div class="form-row" *ngIf="!isAndroid()">
+      <mat-slide-toggle name="submit_for_review"
+                        [(ngModel)]="buildOptions.submit_for_review"
+                        [disabled]="!buildOptions.release">
+        {{ 'rcc.submit_for_review' | translate }}
+      </mat-slide-toggle>
+      <p>{{ 'rcc.submit_for_review_information' | translate }}</p>
+    </div>
+    <div class="form-row" *ngIf="isAndroid()">
+      <mat-slide-toggle name="debug"
+                        [(ngModel)]="buildOptions.debug"
+                        [disabled]="buildOptions.release">
+        {{ 'rcc.debug_mode' | translate }}
+      </mat-slide-toggle>
+      <p>{{ 'rcc.debug_build_information' | translate }}</p>
+    </div>
+    <div class="form-row">
+      <mat-slide-toggle name="generate_screenshots"
+                        [(ngModel)]="buildOptions.generate_screenshots"
+                        [disabled]="!buildOptions.release">
+        {{ 'rcc.generate_screenshots' | translate }}
+      </mat-slide-toggle>
+    </div>
+    <div class="form-row" *ngIf="isAndroid()">
+      <label>{{ 'rcc.playstore_track' | translate }}</label>
+      <mat-radio-group class="radio-group" name="track"
+                       [(ngModel)]="buildOptions.track"
+                       [disabled]="!buildOptions.release || buildOptions.type == 2"
+                       [required]="buildOptions.release || buildOptions.type == 2">
+        <mat-radio-button class="radio-button"
+                          *ngFor="let track of trackTypes"
+                          [value]="track">
+          {{ ('rcc.track_' + track) | translate }}
+        </mat-radio-button>
+      </mat-radio-group>
+    </div>
+    <mat-form-field>
+      <mat-label>{{ 'rcc.branch' | translate }}</mat-label>
+      <input matInput type="text" [(ngModel)]="buildOptions.branch" name="branch">
+    </mat-form-field>
+    <rcc-api-request-status [status]="status$ | async"></rcc-api-request-status>
+    <div class="submit-button">
+      <button mat-button mat-raised-button color="primary"
+              [disabled]="!createForm.form.valid || (status$ | async)?.loading">
+        {{ 'rcc.start_build' | translate }}
+      </button>
+    </div>
+  </form>
+
+</div>

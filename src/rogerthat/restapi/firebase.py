@@ -17,20 +17,19 @@
 
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.authentication import Scopes
 from rogerthat.bizz.firebase import create_firebase_project, \
     get_firebase_projects
 from rogerthat.to import FileTO
 
 
-@rest('/restapi/firebase-projects', 'get', scopes=Scopes.BACKEND_EDITOR)
+@rest('/console-api/firebase-projects', 'get')
 @returns([dict])
 @arguments()
 def api_get_firebase_projects():
     return get_firebase_projects()
 
 
-@rest('/restapi/firebase-projects', 'put', scopes=Scopes.BACKEND_EDITOR, silent=True)
+@rest('/console-api/firebase-projects', 'put', silent=True)
 @returns(dict)
 @arguments(data=FileTO)
 def api_create_firebase_project(data):

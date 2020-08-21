@@ -16,35 +16,34 @@
 # @@license_version:1.7@@
 
 import base64
-from collections import OrderedDict
-from contextlib import closing
 import csv
 import datetime
-from functools import partial
 import hashlib
 import json
 import logging
 import os
-from types import NoneType
 import urllib
 import urlparse
+from collections import OrderedDict
+from contextlib import closing
+from functools import partial
+from types import NoneType
 
-from babel.dates import format_datetime, get_timezone, format_date
 import cloudstorage
-from dateutil.relativedelta import relativedelta
-from google.appengine.api import search, images, users as gusers, urlfetch
-from google.appengine.ext import deferred, db, ndb
 import httplib2
-from oauth2client.appengine import OAuth2Decorator
+from babel.dates import format_datetime, get_timezone, format_date
+from dateutil.relativedelta import relativedelta
+from google.appengine.api import images, users as gusers, urlfetch
+from google.appengine.ext import deferred, db, ndb
 from oauth2client.client import HttpAccessTokenRefreshError
+from oauth2client.contrib.appengine import OAuth2Decorator
 from typing import Tuple, Union, List
 
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
-from mcfw.utils import normalize_search_string
 from rogerthat.bizz.app import get_app
-from rogerthat.bizz.elasticsearch import create_index, get_elasticsearch_config,\
+from rogerthat.bizz.elasticsearch import create_index, get_elasticsearch_config, \
     delete_index, es_request, index_doc
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
@@ -114,7 +113,6 @@ from solutions.common.models.hints import SolutionHint
 from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
-
 
 try:
     from cStringIO import StringIO
@@ -201,7 +199,7 @@ def search_customer(search_string, app_ids, team_id, limit=20):
                 'fuzziness': '1'
             }
         })
-    
+
     if team_id:
         if not search_string.strip():
             return []
@@ -211,7 +209,7 @@ def search_customer(search_string, app_ids, team_id, limit=20):
                 'tags': tag
             }
         })
-    
+
     if app_ids:
         if not search_string.strip():
             return []
@@ -228,9 +226,9 @@ def search_customer(search_string, app_ids, team_id, limit=20):
                     'tags': tag
                 }
             })
-    
+
         qry['query']['bool']['must'].append(app_tags_filter)
-        
+
     config = get_elasticsearch_config()
     path = '/%s/_search' % config.shop_customers_index
     result_data = es_request(path, urlfetch.POST, qry)
@@ -240,7 +238,7 @@ def search_customer(search_string, app_ids, team_id, limit=20):
             continue
         customer_id = long(hit['_id'])
         customer_keys.append(Customer.create_key(customer_id))
-        
+
     tmp_customers = Customer.get(customer_keys)
     customers = []
     missing_customer_keys = set()
@@ -261,7 +259,7 @@ def search_customer(search_string, app_ids, team_id, limit=20):
 def re_index_customer(customer_key):
     customer = Customer.get(customer_key)
     bizz_check(customer)
-    
+
     uid = unicode(customer.id)
     doc = {
         'full_matches': [],
@@ -271,38 +269,38 @@ def re_index_customer(customer_key):
         'address': [],
         'tags': []
     }
-    
+
     doc['full_matches'].append(str(customer_key.id()))
     doc['customer'].append(customer.name)
- 
+
     doc['address'].append(" ".join([customer.address1 or '', customer.address2 or '']))
     doc['address'].append(customer.zip_code)
     doc['address'].append(customer.city)
-     
+
     for contact in Contact.list(customer):
         doc['full_matches'].append(contact.phone_number)
         doc['full_matches'].append(contact.email)
         doc['contact'].append("%s %s" % (contact.first_name, contact.last_name))
-     
+
     doc['tags'].append('team_id#%s' % unicode(customer.team_id))
-     
+
     if customer.service_email:
         si = get_default_service_identity(users.User(customer.service_email))
         doc['service'].append(si.name)
         doc['full_matches'].append(customer.user_email)
         doc['full_matches'].append(customer.service_email)
- 
+
         for app_id in si.appIds:
             tag = 'app_id#%s' % app_id
             doc['tags'].append(tag)
-        
-    txt = set()  
+
+    txt = set()
     for k, v in doc.iteritems():
         if k in ('full_matches', 'tags'):
             continue
         for text in v:
             txt.add(text)
-            
+
     doc['txt'] = list(txt)
 
     config = get_elasticsearch_config()

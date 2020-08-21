@@ -124,15 +124,6 @@ class ServerSettings(CachedModelMixIn, db.Model):
                             doc="YSAAA mapping  (2 entries per combination. eg: - hash - test@example.com)",
                             order=94)
 
-    rootOrganization = add_meta(db.StringProperty(indexed=False),
-                                doc='Root organization for itsyou.online authenticated rest api calls',
-                                order=95)
-    backendOrganization = add_meta(db.StringProperty(indexed=False),
-                                   doc='Organization which represents this server, only for itsyou.online'
-                                       ' authenticated rest api calls.'
-                                       ' This is a suborganization of the rootOrganization.backends organization.',
-                                   order=96)
-
     signupUrl = add_meta(db.StringProperty(indexed=False),
                          doc="Signup URL (e.g. https://example.com/signup)",
                          order=100)
@@ -169,7 +160,7 @@ class ServerSettings(CachedModelMixIn, db.Model):
     mobileFirebaseCredentials = add_meta(db.TextProperty(),
                                          doc='Credentials json file for firebase storage on android and ios',
                                          order=400)
-    
+
     worker_service_url = add_meta(db.StringProperty(indexed=False),
                                                     doc='Worker service url',
                                                     order=500)

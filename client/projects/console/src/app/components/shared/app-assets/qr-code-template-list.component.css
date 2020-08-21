@@ -1,0 +1,11 @@
+.qr-code-card {
+  display: inline-block;
+  width: 200px;
+  margin: 16px;
+}
+
+.color-preview {
+  height: 12px;
+  width: 12px;
+  display: inline-block;
+}

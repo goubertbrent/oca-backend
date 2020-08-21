@@ -16,20 +16,24 @@
 # @@license_version:1.7@@
 
 import base64
+import json
 import logging
 import re
 
 import cloudstorage
+from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
+from typing import Tuple
 
 from mcfw.cache import cached, invalidate_cache
 from mcfw.consts import MISSING
-from mcfw.exceptions import HttpBadRequestException, HttpNotFoundException
+from mcfw.exceptions import HttpBadRequestException, HttpNotFoundException, HttpException
 from mcfw.properties import get_members
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.embedded_applications import send_update_all_embedded_apps
 from rogerthat.bizz.friend_helper import FriendHelper
 from rogerthat.bizz.gcs import get_serving_url
+from rogerthat.bizz.gsuite import create_app_group
 from rogerthat.bizz.job import run_job, hookup_with_default_services
 from rogerthat.bizz.service import ServiceWithEmailDoesNotExistsException, ServiceIdentityDoesNotExistException, \
     InvalidAppIdException, schedule_add_app_id_to_services
@@ -43,6 +47,7 @@ from rogerthat.dal.mobile import get_mobile_settings_cached
 from rogerthat.dal.profile import get_user_profile_keys_by_app_id, get_user_profiles_by_app_id
 from rogerthat.dal.service import get_service_identities_by_service_identity_users, get_service_identity
 from rogerthat.exceptions.app import DuplicateAppIdException
+from rogerthat.handlers.proxy import _exec_request
 from rogerthat.models import App, AppSettings, UserProfile, ServiceIdentity, \
     AppTranslations, AppNameMapping
 from rogerthat.models.apps import EmbeddedApplication
@@ -54,15 +59,15 @@ from rogerthat.rpc import users
 from rogerthat.rpc.models import Mobile
 from rogerthat.rpc.rpc import logError
 from rogerthat.rpc.service import ServiceApiException
+from rogerthat.settings import get_server_settings
 from rogerthat.to.app import AppSettingsTO, AppTO, CreateAppTO, NewsSettingsTO, \
-    NewsGroupTO
+    NewsGroupTO, PatchAppTO
 from rogerthat.to.friends import FRIEND_TYPE_SERVICE
 from rogerthat.to.statistics import AppServiceStatisticsTO
 from rogerthat.to.system import UpdateSettingsRequestTO, SettingsTO
 from rogerthat.utils import now, read_file_in_chunks, random_string
 from rogerthat.utils.service import add_slash_default
 from rogerthat.utils.transactions import run_in_xg_transaction, on_trans_committed
-
 
 try:
     from cStringIO import StringIO
@@ -345,6 +350,9 @@ def is_valid_app_id(app_id):
 def create_app(data):
     # type: (CreateAppTO) -> App
     from rogerthat.bizz.news.groups import setup_news_stream_app
+    from solutions.common.bizz.location_data_import import import_location_data
+    from solutions.common.bizz.participation.proxy import register_app
+
     if not is_valid_app_id(data.app_id):
         raise InvalidAppIdException(data.app_id)
 
@@ -352,11 +360,12 @@ def create_app(data):
         app_key = App.create_key(create_app_to.app_id)
         if App.get(app_key):
             raise DuplicateAppIdException(create_app_to.app_id)
-        embedded_app_ids = [key.id().decode('utf-8') for key in EmbeddedApplication.list_by_app_type(data.type).fetch(keys_only=True)]
+        embedded_app_ids = [key.id().decode('utf-8')
+                            for key in EmbeddedApplication.list_by_app_type(data.app_type).fetch(keys_only=True)]
         app = App(
             key=app_key,
-            type=data.type,
-            name=create_app_to.name,
+            type=data.app_type,
+            name=create_app_to.title,
             is_default=False,
             android_app_id=u'com.mobicage.rogerthat.%s' % create_app_to.app_id.replace('-', '.'),
             dashboard_email_address=data.dashboard_email_address,
@@ -369,7 +378,31 @@ def create_app(data):
         db.put((app, app_settings))
 
         deferred.defer(setup_news_stream_app, create_app_to.app_id, news_stream=data.news_stream, _transactional=True)
-
+        deferred.defer(register_app, create_app_to.app_id, data.ios_developer_account, _transactional=True)
+        deferred.defer(create_app_group, create_app_to.app_id)
+        if data.official_id:
+            deferred.defer(import_location_data, app.app_id, app.country, data.official_id, _transactional=True)
+        appcfg_data = create_app_to.to_dict()
+        server_settings = get_server_settings()
+        appcfg_data['app_constants'] = {
+            'EMAIL_HASH_ENCRYPTION_KEY': server_settings.emailHashEncryptionKey,
+            'REGISTRATION_EMAIL_SIGNATURE': server_settings.registrationEmailSignature,
+            'REGISTRATION_MAIN_SIGNATURE': server_settings.registrationMainSignature,
+            'REGISTRATION_PIN_SIGNATURE': server_settings.registrationPinSignature,
+            'GOOGLE_MAPS_KEY': server_settings.googleMapsKey,
+        }
+        appcfg_data['cloud_constants'] = {
+            'HTTPS_BASE_URL': server_settings.baseUrl,
+            'HTTPS_PORT': 443,
+            'HTTP_BASE_URL': server_settings.baseUrl,  # TODO: probably can/should be removed
+            'USE_TRUSTSTORE': False,
+            'XMPP_DOMAIN': 'rogerth.at',
+        }
+        response = _exec_request('/api/apps', urlfetch.POST, {'Content-Type': 'application/json'},
+                                 json.dumps(appcfg_data), True)
+        if response.status_code != 200:
+            logging.debug(response.content)
+            raise HttpException.from_urlfetchresult(response)
         return app
 
     app = run_in_xg_transaction(trans, data)
@@ -508,26 +541,26 @@ def validate_can_delete_app(app):
                                                               service_identities]})
 
 
+@db.transactional()
 @returns(App)
-@arguments(app_id=unicode, data=AppTO)
+@arguments(app_id=unicode, data=PatchAppTO)
 def patch_app(app_id, data):
-    """
-    Args:
-        app_id (unicode)
-        data(AppTO)
-    Returns:
-        App
-    """
+    # type: (str, PatchAppTO) -> Tuple[App, dict]
     app = get_app(app_id)
-    app.name = data.name
-    app.type = data.type
-    app.beta = data.beta
+    app.name = data.title
+    app.type = data.app_type
+    app.beta = data.playstore_track != 'production'
     app.main_service = data.main_service
     app.facebook_app_id = data.facebook_app_id
     app.facebook_app_secret = data.facebook_app_secret
     app.secure = data.secure
     app.put()
-    return app
+    path = '/api/apps/%s/partial' % app_id
+    body = json.dumps(data.to_dict())
+    result = _exec_request(path, 'put', {'Content-Type': 'application/json'}, body, True)
+    if result.status_code != 200:
+        raise HttpException.from_urlfetchresult(result)
+    return app, json.loads(result.content)
 
 
 def set_default_app(app_id):

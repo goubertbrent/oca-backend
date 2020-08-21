@@ -29,7 +29,6 @@ import webapp2
 from mcfw.consts import AUTHENTICATED, NOT_AUTHENTICATED, REST_TYPE_NORMAL, REST_TYPE_TO
 from mcfw.exceptions import HttpException, HttpBadRequestException, HttpInternalServerErrorException, \
     HttpForbiddenException
-from mcfw.properties import simple_types
 from mcfw.rpc import run, parse_parameters, serialize_complex_value, ErrorResponse, parse_complex_value, \
     MissingArgumentException
 from rogerthat.consts import DEBUG
@@ -43,7 +42,6 @@ class InjectedFunctions(object):
 
     def __init__(self):
         self._get_session_function = None
-        self._get_user_scopes_from_request = None
 
     @property
     def get_current_session(self):
@@ -52,14 +50,6 @@ class InjectedFunctions(object):
     @get_current_session.setter
     def get_current_session(self, function):
         self._get_session_function = function
-
-    @property
-    def get_user_scopes_from_request(self):
-        return self._get_user_scopes_from_request
-
-    @get_user_scopes_from_request.setter
-    def get_user_scopes_from_request(self, function):
-        self._get_user_scopes_from_request = function
 
 
 INJECTED_FUNCTIONS = InjectedFunctions()
@@ -74,13 +64,9 @@ def register_postcall_hook(callable_):
     _postcall_hooks.append(callable_)
 
 
-def rest(uri, method, authenticated=True, silent=False, silent_result=False, read_only_access=False, scopes=None, type=None):
+def rest(uri, method, authenticated=True, silent=False, silent_result=False, read_only_access=False, type=None):
     if method not in ('get', 'post', 'put', 'delete'):
         ValueError('method')
-    if scopes is None:
-        scopes = []
-    if isinstance(scopes, str):
-        scopes = [scopes]
     if type not in (REST_TYPE_NORMAL, REST_TYPE_TO,):
         type = REST_TYPE_NORMAL
 
@@ -97,7 +83,7 @@ def rest(uri, method, authenticated=True, silent=False, silent_result=False, rea
 
         wrapped.__name__ = f.__name__
         wrapped.meta = {"rest": True, "uri": uri, "method": method, "authenticated": authenticated, "silent": silent,
-                        "silent_result": silent_result, "read_only_access": read_only_access, 'scopes': scopes, 'flavor': type}
+                        "silent_result": silent_result, "read_only_access": read_only_access, 'flavor': type}
         if hasattr(f, "meta"):
             wrapped.meta.update(f.meta)
         return wrapped
@@ -114,17 +100,6 @@ class ResponseTracker(threading.local):
 
 _current_reponse_tracker = ResponseTracker()
 del ResponseTracker
-
-
-def validate_request_authentication(request, required_scopes, scope_kwargs):
-    scopes = set()
-    for scope in required_scopes:
-        scopes.add(scope.format(**scope_kwargs))
-    user_scopes = INJECTED_FUNCTIONS.get_user_scopes_from_request(request)
-    if not any(scope in scopes for scope in user_scopes):
-        logging.debug('Required scopes: %s', scopes)
-        logging.debug('Available scopes: %s', user_scopes)
-        request.abort(httplib.FORBIDDEN)
 
 
 class GenericRESTRequestHandler(webapp2.RequestHandler):
@@ -279,28 +254,21 @@ class GenericRESTRequestHandler(webapp2.RequestHandler):
                 self.abort(httplib.UNAUTHORIZED)
                 return
         if f.meta['authenticated']:
-            if f.meta['scopes']:
-                simple_kwargs = {}
-                for kwarg in kwargs:
-                    if type(kwargs[kwarg]) in simple_types:
-                        simple_kwargs[kwarg] = kwargs[kwarg]
-                validate_request_authentication(self, f.meta['scopes'], simple_kwargs)
-            else:
-                session = INJECTED_FUNCTIONS.get_current_session()
-                if session and session.read_only and not f.meta["read_only_access"]:
-                    self.abort(httplib.UNAUTHORIZED)
-                    return
-                service_email = self.request.headers.get('X-Logged-In-As')
-                if service_email:
-                    if session.service_identity_user:
-                        current_user_email = session.service_identity_user.email()
-                    else:
-                        current_user_email = session.user.email()
-                    if '/' in current_user_email:
-                        current_user_email = current_user_email.split('/')[0]
-                    if service_email != current_user_email:
-                        logging.warning('X-Logged-In-As: %s != %s', service_email, current_user_email)
-                        return ErrorResponse(HttpForbiddenException('You are logged in as another user'))
+            session = INJECTED_FUNCTIONS.get_current_session()
+            if session and session.read_only and not f.meta["read_only_access"]:
+                self.abort(httplib.UNAUTHORIZED)
+                return
+            service_email = self.request.headers.get('X-Logged-In-As')
+            if service_email:
+                if session.service_identity_user:
+                    current_user_email = session.service_identity_user.email()
+                else:
+                    current_user_email = session.user.email()
+                if '/' in current_user_email:
+                    current_user_email = current_user_email.split('/')[0]
+                if service_email != current_user_email:
+                    logging.warning('X-Logged-In-As: %s != %s', service_email, current_user_email)
+                    return ErrorResponse(HttpForbiddenException('You are logged in as another user'))
         for hook in _precall_hooks:
             hook(f, *args, **kwargs)
         try:

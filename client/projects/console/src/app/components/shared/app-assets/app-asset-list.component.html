@@ -1,0 +1,17 @@
+<mat-card class="asset-card" *ngFor="let asset of assets">
+  <mat-card-header>
+    <mat-card-title>{{ typeStrings[asset.kind] | translate }}</mat-card-title>
+    <mat-card-subtitle>
+      <span *ngIf="asset.is_default">{{ 'rcc.default_asset' | translate }}</span>
+      <span *ngIf="!asset.is_default">{{ asset.app_ids }}</span>
+    </mat-card-subtitle>
+  </mat-card-header>
+  <img *ngIf="asset.content_type?.startsWith('image')" mat-card-image [src]="asset.url">
+  <mat-card-actions fxLayoutAlign="end center">
+    <a mat-button [routerLink]="[asset.id]" *ngIf="allowEdit">{{ 'rcc.edit' | translate }}</a>
+    <button mat-button color="warn" (click)="confirmDelete(asset)" *ngIf="!asset.is_default">
+      {{ 'rcc.delete' | translate }}
+    </button>
+  </mat-card-actions>
+</mat-card>
+<rcc-api-request-status [status]="status"></rcc-api-request-status>

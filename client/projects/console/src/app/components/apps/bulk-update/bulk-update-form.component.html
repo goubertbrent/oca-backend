@@ -1,0 +1,70 @@
+<div class="default-component-margin">
+  <h2 translate>rcc.create_multiple_builds</h2>
+  <form novalidate #buildsForm="ngForm">
+    <div class="form-row">
+      <h3>{{ 'rcc.platform' | translate }}</h3>
+      <rcc-check-list [(ngModel)]="buildTypeList" (ngModelChange)="setBuildTypes($event)" #buildTypes="ngModel"
+                      name="build_types"></rcc-check-list>
+      <mat-error *ngIf="!bulkUpdateOptions.types.length && buildTypes.touched">
+        {{ 'rcc.please_select_at_least_x_items' | translate : {items: 1} }}
+      </mat-error>
+    </div>
+    <div class="form-row">
+      <mat-slide-toggle name="generate_screenshots"
+                        [(ngModel)]="bulkUpdateOptions.generate_screenshots"
+                        [disabled]="!bulkUpdateOptions.release">
+        {{ 'rcc.generate_screenshots' | translate }}
+      </mat-slide-toggle>
+    </div>
+    <div class="form-row">
+      <h3>{{ 'rcc.apps' | translate }}</h3>
+      <rcc-api-request-status [status]="appsStatus"></rcc-api-request-status>
+      <rcc-check-list [(ngModel)]="appList" (ngModelChange)="setApps($event)" name="app_ids"
+                      #appIds="ngModel"></rcc-check-list>
+      <mat-error *ngIf="!bulkUpdateOptions.app_ids.length && appIds.touched">
+        {{ 'rcc.please_select_at_least_x_items' | translate : {items: 1} }}
+      </mat-error>
+      <p>
+        <!--TODO get this error from server instead-->
+        <mat-error *ngIf="!appList.length && !appsStatus.loading">
+          {{ 'rcc.no_production_apps' | translate }}
+        </mat-error>
+      </p>
+    </div>
+    <div *ngIf="currentMetadata">
+      <h3>{{ 'rcc.release_notes' | translate }}</h3>
+      <rcc-api-request-status [status]="defaultMetaDataStatus"></rcc-api-request-status>
+      <div class="form-row">
+        <mat-form-field>
+          <mat-select name="language"
+                      [placeholder]="'rcc.select_language' | translate"
+                      [(ngModel)]="currentMetadata"
+                      required>
+            <mat-option *ngFor="let metadata of bulkUpdateOptions.metadata" [value]="metadata"
+                        [innerText]="getLanguageName(metadata.language)"></mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div class="form-row">
+        <mat-form-field class="full-width">
+            <textarea matInput name="release_notes" #release_notes matTextareaAutosize
+                      [placeholder]="'rcc.release_notes' | translate"
+                      [(ngModel)]="currentMetadata.release_notes"
+                      (ngModelChange)="currentMetadataChanged($event)"
+                      rows="2"
+                      maxlength="500"
+                      required></textarea>
+          <mat-hint align="end">{{ release_notes.value?.length || 0 }} / 500</mat-hint>
+        </mat-form-field>
+      </div>
+    </div>
+    <rcc-api-request-status [status]="updateStatus"></rcc-api-request-status>
+    <div class="submit-button">
+      <button mat-button mat-raised-button color="primary"
+              (click)="startBuilds()"
+              [disabled]="!buildsForm.form.valid || !bulkUpdateOptions.app_ids?.length || !bulkUpdateOptions.types?.length || updateStatus.loading">
+        {{ 'rcc.start_builds' | translate }}
+      </button>
+    </div>
+  </form>
+</div>

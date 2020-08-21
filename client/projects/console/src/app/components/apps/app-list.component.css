@@ -1,0 +1,23 @@
+.search-container {
+  margin-left: 16px;
+  margin-right: 16px;
+  margin-top: 16px;
+}
+
+.search-field {
+  width: 200px;
+}
+
+.app-card {
+  width: 200px;
+  display: inline-block;
+  margin: 16px;
+}
+
+.app-image {
+  background-size: cover;
+}
+
+a {
+  text-decoration: none;
+}

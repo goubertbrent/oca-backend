@@ -1,0 +1,54 @@
+<div class="default-component-margin">
+  <h2>{{ (edit ? 'rcc.edit_branding': 'rcc.create_branding') | translate }}</h2>
+  <form #form="ngForm" (ngSubmit)="submit()">
+    <div class="form-row">
+      <mat-form-field>
+        <mat-select name="asset_type" required
+                    [(ngModel)]="branding.branding_type"
+                    [placeholder]="'rcc.branding_type' | translate">
+          <mat-option *ngFor="let brandingType of BRANDING_TYPES" [value]="brandingType.value">
+            {{ brandingType.label | translate }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+    <p *ngIf="getHint() as hint" [textContent]="hint | translate"></p>
+    <div class="form-row">
+      <mat-checkbox name="default" [(ngModel)]="branding.is_default">
+        {{ 'rcc.default' | translate }}
+      </mat-checkbox>
+    </div>
+    <div class="form-row" *ngIf="(edit || allowCreateDefault) && !branding.is_default">
+      <mat-chip-list #appChips>
+        <mat-chip *ngFor="let appId of branding.app_ids"
+                  color="primary"
+                  (removed)="removeApp(appId)">
+          {{ getAppName(appId) }}
+          <mat-icon matChipRemove>cancel</mat-icon>
+        </mat-chip>
+      </mat-chip-list>
+      <mat-form-field>
+        <input matInput [placeholder]="'rcc.add_app' | translate"
+               [formControl]="appFormControl"
+               [matChipInputFor]="appChips"
+               (matChipInputTokenEnd)="addApp($event)"
+               [matAutocomplete]="appAutoComplete">
+        <mat-autocomplete #appAutoComplete="matAutocomplete">
+          <mat-option *ngFor="let app of filteredApps | async" [value]="app.id">
+            {{ app.name }}
+          </mat-option>
+        </mat-autocomplete>
+      </mat-form-field>
+    </div>
+    <div class="form-row">
+      <input type="file" name="file" accept="application/zip" [required]="!edit" (change)="onFilePicked($event)">
+    </div>
+    <rcc-api-request-status [status]="status" class="form-row"></rcc-api-request-status>
+    <div class="form-row">
+      <button mat-button mat-raised-button color="primary"
+              [disabled]="!form.form.valid || !(edit || branding.file)">
+        {{ 'rcc.save' | translate }}
+      </button>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,167 @@
+@import 'node_modules/@angular/material/theming';
+@import './theme';
+@import './control-center';
+// Plus imports for other components in your app.
+
+// Include the common styles for Angular Material. We include this here so that you only
+// have to load a single css file for Angular Material in your app.
+// **Be sure that you only ever include this mixin once!**
+@include mat-core();
+
+// Default theme
+.light-theme {
+  @include angular-material-theme($theme);
+  @include material-console-app-theme($theme);
+}
+
+.dark-theme {
+  @include angular-material-theme($dark-theme);
+  @include material-console-app-theme($dark-theme);
+}
+
+html, body {
+  font-family: Roboto, sans-serif;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+.main-content {
+  height: calc(100vh - 56px) !important;
+  box-sizing: border-box;
+}
+
+.mat-toolbar.root-toolbar {
+  flex-direction: row;
+  box-sizing: border-box;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  // Else on desktop it is 64px
+  height: 56px !important;
+}
+
+.root-nav-container {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  top: 56px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.router-link-active, .secondary-router-link-active {
+  background-color: rgba(0, 0, 0, 0.10);
+}
+
+lang-switcher {
+  .mat-form-field {
+    min-width: auto;
+    font-size: 0.9em;
+  }
+}
+
+.secondary-sidenav.mat-sidenav {
+  width: 256px;
+  box-shadow: 3px 0 6px rgba(0, 0, 0, .24);
+
+  h2 {
+    margin-left: 16px;
+    margin-right: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 400;
+    letter-spacing: .005em;
+    font-size: 18px;
+    line-height: 20px;
+    max-width: 160px;
+  }
+
+  img {
+    max-height: 40px;
+  }
+
+}
+
+.secondary-toolbar-header {
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .mat-icon {
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+  }
+}
+
+.no-icon-padding .mat-icon {
+  padding: 0 !important;
+}
+
+.mat-nav-list a {
+  outline: none;
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px
+}
+
+::-webkit-scrollbar-button {
+  height: 0;
+  width: 0
+}
+
+::-webkit-scrollbar-button:start:decrement,
+::-webkit-scrollbar-button:end:increment {
+  display: block
+}
+
+::-webkit-scrollbar-button:vertical:start:increment,
+::-webkit-scrollbar-button:vertical:end:decrement,
+::-webkit-scrollbar-button:horizontal:start:increment,
+::-webkit-scrollbar-button:horizontal:end:decrement {
+  display: none
+}
+
+::-webkit-scrollbar-track:vertical,
+::-webkit-scrollbar-track:horizontal {
+  border-right: 0 solid transparent;
+  border-left: 0 solid transparent;
+  background-clip: border-box
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  background-clip: border-box;
+  border: solid transparent;
+  border-width: 1.1px 1.1px 1.1px 6px;
+  min-height: 28px;
+  padding: 0 0 0;
+  box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.07)
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.25);
+  -webkit-box-shadow: inset 1px 1px 1px rgba(0, 0, 0, 0.25)
+}
+
+::-webkit-scrollbar-thumb:active {
+  -webkit-box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.35);
+  background-color: rgba(0, 0, 0, 0.3)
+}
+
+::-webkit-scrollbar-thumb:vertical,
+::-webkit-scrollbar-thumb:horizontal {
+  border: 0 solid transparent;
+}
+
+::-webkit-scrollbar-corner {
+  border: solid transparent;
+}

@@ -74,6 +74,18 @@ class CreateAppQRTemplateTO(AppQRTemplateTO):
     file = unicode_property('5')
 
 
+class PatchAppTO(TO):
+    title = unicode_property('title')
+    app_type = long_property('app_type')
+    playstore_track = unicode_property('playstore_track')
+    main_service = unicode_property('main_service')
+    secure = bool_property('secure')
+    facebook_registration = bool_property('facebook_registration')
+    facebook_app_id = long_property('facebook_app_id')
+    facebook_app_secret = unicode_property('facebook_app_secret')
+    chat_payments_enabled = bool_property('chat_payments_enabled')
+
+
 class AppTO(TO):
     id = unicode_property('id')
     name = unicode_property('name')
@@ -147,14 +159,18 @@ class NewsStreamTO(object):
     type = unicode_property('1')
 
 
-class CreateAppTO(object):
+class CreateAppTO(TO):
     app_id = unicode_property('1')
-    name = unicode_property('2')
-    type = long_property('3')
+    title = unicode_property('title')
+    app_type = long_property('app_type')
     dashboard_email_address = unicode_property('4')
-    auto_added_services = unicode_list_property('5', default=[])
+    main_language = unicode_property('main_language')
+    auto_added_services = unicode_list_property('auto_added_services', default=[])
     news_stream = typed_property('6', NewsStreamTO, False, default=None)
     country = unicode_property('country')
+    official_id = long_property('official_id')
+    ios_developer_account = long_property('ios_developer_account')
+    review_notes = long_property('review_notes')
 
 
 class AppUserRelationTO(object):

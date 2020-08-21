@@ -7,6 +7,7 @@ const PROXY_CONFIG = [
       '/admin/api',
       '/api',
       '/unauthenticated',
+      '/console-api',
     ],
     target: "http://localhost:8080",
     secure: false

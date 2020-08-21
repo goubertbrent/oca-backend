@@ -21,19 +21,19 @@ import json
 import webapp2
 
 from mcfw.exceptions import HttpBadRequestException, HttpNotFoundException, HttpException
-from mcfw.restapi import validate_request_authentication
 from mcfw.rpc import serialize_complex_value, ErrorResponse
 from rogerthat.bizz.app_assets import process_uploaded_assets
-from rogerthat.bizz.authentication import Scopes
 from rogerthat.bizz.default_brandings import save_default_branding
 from rogerthat.exceptions.app_assets import AppAssetNotFoundException
 from rogerthat.rpc.service import BusinessException
 from rogerthat.to.app import AppAssetFullTO, DefaultBrandingTO
+from shop.view import authorize_manager
 
 
 class UploadAppAssetHandler(webapp2.RequestHandler):
     def post(self, app_id, asset_type):
-        validate_request_authentication(self, Scopes.APP_EDITOR, {'app_id': app_id})
+        if not authorize_manager():
+            self.abort(403)
         scale_x = float(self.request.get('scale_x'))
         file_data = self.request.POST.get('file')
         self.response.headers['Content-Type'] = 'application/json'
@@ -49,7 +49,8 @@ class UploadAppAssetHandler(webapp2.RequestHandler):
 
 class UploadDefaultBrandingHandler(webapp2.RequestHandler):
     def post(self, app_id, branding_type):
-        validate_request_authentication(self, Scopes.APP_EDITOR, {'app_id': app_id})
+        if not authorize_manager():
+            self.abort(403)
         file_data = self.request.POST.get('file')
         self.response.headers['Content-Type'] = 'application/json'
         if file_data is None:
@@ -74,7 +75,8 @@ class UploadDefaultBrandingHandler(webapp2.RequestHandler):
 
 class UploadGlobalAppAssetHandler(webapp2.RequestHandler):
     def handle(self, asset_id):
-        validate_request_authentication(self, Scopes.BACKEND_EDITOR, {})
+        if not authorize_manager():
+            self.abort(403)
         scale_x = float(self.request.get('scale_x'))
         app_ids = [a for a in self.request.get('app_ids', '').split(',') if a]
         default = self.request.get('is_default') == 'true'
@@ -102,7 +104,8 @@ class UploadGlobalAppAssetHandler(webapp2.RequestHandler):
 
 class UploadGlobalBrandingHandler(webapp2.RequestHandler):
     def handle(self, branding_id):
-        validate_request_authentication(self, Scopes.BACKEND_EDITOR, {})
+        if not authorize_manager():
+            self.abort(403)
         default = self.request.get('is_default') == 'true'
         app_ids = [a for a in self.request.get('app_ids', '').split(',') if a]
         file_data = self.request.POST.get('file')

@@ -1,0 +1,60 @@
+<form #form="ngForm" class="default-component-margin-full default-field-margin" *ngIf="developerAccount"
+      fxLayout="column" fxFlex="40" fxFlex.md="60" fxFlex.xs="100" (ngSubmit)="submit()">
+  <mat-form-field>
+    <mat-select name="type" [(ngModel)]="developerAccount.type" [placeholder]="'rcc.type' | translate">
+      <mat-option value="ios">{{ 'rcc.platform_ios' | translate }}</mat-option>
+      <mat-option value="android">{{ 'rcc.platform_android' | translate }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-form-field *ngIf="!isIos()">
+    <input matInput name="name" maxlength="50" [(ngModel)]="developerAccount.name"
+           [placeholder]="'rcc.name' | translate" required>
+  </mat-form-field>
+  <mat-form-field>
+    <input matInput name="account_email" type="email"
+           [placeholder]="'rcc.account_email' | translate"
+           [(ngModel)]="developerAccount.account_email"
+           [email]="true"
+           required>
+    <mat-error>{{ 'rcc.invalid_email_address' | translate }}</mat-error>
+    <mat-hint>{{ 'rcc.apple_account_email_for_itunes_connect' | translate }}</mat-hint>
+  </mat-form-field>
+  <ng-container *ngIf="isIos()">
+    <mat-form-field>
+      <mat-label>{{ 'rcc.apple_account_password' | translate }}</mat-label>
+      <input matInput type="password" name="account_password" autocomplete="off"
+             [(ngModel)]="developerAccount.account_password" required>
+    </mat-form-field>
+    <p>Open a terminal and execute the following commands and (press <b>y</b>
+      when asked to copy the cookie):</p>
+    <pre>export LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 FASTLANE_PASSWORD='{{ developerAccount.account_password }}'
+fastlane spaceauth -u {{ developerAccount.account_email }}</pre>
+    <ul>
+      <li>Enter <b>sms</b> when asked for a 6 digit code</li>
+      <li>Select phone number <b>+32 •••• •• •• 39</b></li>
+      <li>Enter the 6 digit code received on the phone</li>
+      <li>Press <b>y</b> when asked to copy the result</li>
+      <li>Paste the result in the textfield below</li>
+    </ul>
+    <mat-form-field>
+      <mat-label>{{ 'rcc.fastlane_session' | translate }}</mat-label>
+      <textarea matInput type="text" name="fastlane_session" [(ngModel)]="developerAccount.fastlane_session"
+                required></textarea>
+    </mat-form-field>
+  </ng-container>
+  <mat-form-field *ngIf="!isIos()">
+  <textarea matInput name="google_credentials_json"
+            [placeholder]="'rcc.google_credentials_json' | translate"
+            [(ngModel)]="developerAccount.google_credentials_json"
+            rows="4"
+            required
+            matTextareaAutosize></textarea>
+    <mat-hint>{{ 'rcc.google_credentials_json_explanation' | translate }}</mat-hint>
+  </mat-form-field>
+  <rcc-api-request-status [status]="status"></rcc-api-request-status>
+  <div>
+    <button mat-button mat-raised-button color="primary" [disabled]="!form.form.touched || !form.form.valid">
+      {{ 'rcc.create' | translate }}
+    </button>
+  </div>
+</form>

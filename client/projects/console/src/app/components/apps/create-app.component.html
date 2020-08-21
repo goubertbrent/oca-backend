@@ -1,0 +1,120 @@
+<form #form="ngForm" (ngSubmit)="create()" class="default-component-margin default-field-margin"
+      fxLayout="column" fxFlex="30"
+      fxFlex.md="50" fxFlex.sm="100">
+  <h3>{{ 'rcc.create_app' | translate }}</h3>
+  <mat-form-field>
+    <mat-select [placeholder]="'rcc.android_developer_account' | translate" [(ngModel)]="app.android_developer_account"
+                name="android_developer_account" required #android="ngModel">
+      <mat-option *ngFor="let account of androidDeveloperAccounts$ | async"
+                  [value]="account.id">{{ account.name }}
+      </mat-option>
+    </mat-select>
+    <mat-error *ngIf="android.errors?.required">{{ 'rcc.this_field_is_required' | translate }}</mat-error>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-select [placeholder]="'rcc.ios_developer_account' | translate" [(ngModel)]="app.ios_developer_account"
+                name="ios_developer_account" #ios="ngModel">
+      <mat-option *ngFor="let account of iosDeveloperAccounts$ | async"
+                  [value]="account.id">{{ account.name }}
+      </mat-option>
+    </mat-select>
+    <mat-error *ngIf="ios.errors?.required">{{ 'rcc.this_field_is_required' | translate }}</mat-error>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-select [placeholder]="'rcc.contact' | translate" [(ngModel)]="app.contact" name="contact" required
+                #contact="ngModel">
+      <mat-option *ngFor="let contact of contacts$ | async" [value]="contact.id">
+        {{ contact.first_name }} {{ contact.last_name }} ({{ contact.email }})
+      </mat-option>
+    </mat-select>
+    <mat-error *ngIf="contact.errors?.required">{{ 'rcc.this_field_is_required' | translate }}</mat-error>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-select [placeholder]="'rcc.review_notes' | translate" [(ngModel)]="app.review_notes" name="review_notes"
+                required
+                #reviewNotesElem="ngModel">
+      <mat-option *ngFor="let reviewNotes of reviewNotes$ | async" [value]="reviewNotes.id">
+        {{ reviewNotes.name}}
+      </mat-option>
+    </mat-select>
+    <mat-error *ngIf="reviewNotesElem.errors?.required">{{ 'rcc.this_field_is_required' | translate }}</mat-error>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-select [placeholder]="'rcc.type' | translate" [(ngModel)]="app.app_type" name="app_type" required
+                (selectionChange)="setAppId(); setDashboardEmail()" #appType="ngModel">
+      <mat-option *ngFor="let type of appTypes" [value]="type.value" [innerText]="type.label | translate"></mat-option>
+    </mat-select>
+    <mat-error *ngIf="appType.errors?.required">{{ 'rcc.this_field_is_required' | translate }}</mat-error>
+  </mat-form-field>
+  <mat-form-field>
+    <input name="app_name" matInput maxlength="30" [(ngModel)]="app.title" (keyup)="setAppId(); setDashboardEmail()"
+           [placeholder]="'rcc.app_name' | translate" required #appTitle>
+    <mat-hint align="end">{{ appTitle.value?.length || 0 }} / 30</mat-hint>
+  </mat-form-field>
+  <mat-form-field>
+    <input matInput name="dashboard_email_address"
+           [placeholder]="'rcc.dashboard_email_address' | translate"
+           [email]="!!app.dashboard_email_address"
+           [(ngModel)]="app.dashboard_email_address"
+           #dashboardMail="ngModel"
+           required>
+    <mat-error *ngIf="dashboardMail.errors?.required">{{ 'rcc.this_field_is_required' | translate }}</mat-error>
+    <mat-error *ngIf="dashboardMail.errors?.email">{{ 'rcc.invalid_email_address' | translate }}</mat-error>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-select [(ngModel)]="app.main_language" name="main_language" [placeholder]="'rcc.main_language' | translate"
+                (selectionChange)="setAppId()">
+      <mat-option *ngFor="let lang of languages" [value]="lang.code">{{ lang.name }}</mat-option>
+    </mat-select>
+    <mat-hint>{{ 'rcc.main_language_explanation' | translate }}</mat-hint>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-select [(ngModel)]="app.country" name="country" [placeholder]="'rcc.country' | translate"
+                (selectionChange)="setAppId()">
+      <mat-option *ngFor="let country of countries" [value]="country.code">{{ country.name }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-form-field *ngIf="app.country === 'BE'">
+    <mat-label>NIS code</mat-label>
+    <input matInput type="number" name="official_id" [(ngModel)]="app.official_id" required>
+    <mat-hint>
+      <a href="https://statbel.fgov.be/nl/over-statbel/methodologie/classificaties/geografie">Info</a>
+    </mat-hint>
+  </mat-form-field>
+  <mat-form-field>
+    <input matInput name="app_id"
+           #appId="ngModel"
+           [(ngModel)]="app.app_id"
+           [placeholder]="'rcc.app_id' | translate"
+           required pattern="^([a-z\-0-9]+)$" minlength="3" maxlength="50">
+    <mat-error *ngIf="appId.errors?.required">{{ 'rcc.this_field_is_required' | translate }}</mat-error>
+    <mat-error *ngIf="appId.errors?.pattern">{{ 'rcc.invalid_app_id_error' | translate }}</mat-error>
+    <mat-error *ngIf="appId.errors?.minlength">
+      {{ 'rcc.please_enter_at_least_x_characters' | translate : {characters: 3} }}
+    </mat-error>
+    <mat-error *ngIf="appId.errors?.maxlength">
+      {{ 'rcc.please_enter_no_more_than_x_characters' | translate : { characters: 50 } }}
+    </mat-error>
+  </mat-form-field>
+  <div class="default-component-margin">
+    <mat-slide-toggle name="news_stream"
+                      [checked]="app.news_stream !== null" (change)="toggleNewsStream($event)">
+          {{ 'rcc.news_stream' | translate }}
+    </mat-slide-toggle>
+  </div>
+  <mat-form-field *ngIf="app.news_stream !== null">
+    <mat-select [placeholder]="'rcc.news_stream_type' | translate" [(ngModel)]="app.news_stream.type" name="news_stream_type">
+      <mat-option *ngFor="let type of newsStreamTypes" [value]="type.value" [innerText]="type.label | translate"></mat-option>
+    </mat-select>
+  </mat-form-field>
+  <rcc-api-request-status [status]="createAppStatus$ | async"></rcc-api-request-status>
+  <div fxLayoutAlign="space-between">
+    <button type="button" mat-button mat-raised-button color="secondary" (click)="cancel()">
+      {{ 'rcc.cancel' | translate }}
+    </button>
+    <button mat-button mat-raised-button color="primary"
+            [disabled]="(createAppStatus$ | async)?.loading || form.invalid">
+      {{ 'rcc.create' | translate }}
+    </button>
+  </div>
+</form>

@@ -24,8 +24,6 @@ from rogerthat.consts import DEBUG
 from rogerthat.handlers.apple import AppleAppSiteAssociationHandler
 from rogerthat.handlers.image_handlers import AppQRTemplateHandler
 from rogerthat.handlers.itsme import ItsmeAuthorizeHandler, ItsmeLoginHandler, ItsmeAuthorizedHandler, ItsmeJWKsHandler
-from rogerthat.handlers.upload_handlers import UploadAppAssetHandler, UploadDefaultBrandingHandler, \
-    UploadGlobalAppAssetHandler, UploadGlobalBrandingHandler
 from rogerthat.pages import ViewImageHandler
 from rogerthat.pages.account import AccountLogoutHandler, AccountDeleteHandler, \
     AccountDataDownloadHandler, AccountConsentHandler
@@ -61,7 +59,7 @@ from rogerthat.pages.settings import ForwardLog, DebugLog
 from rogerthat.pages.shortner import ShortUrlHandler
 from rogerthat.pages.unsubscribe_reminder_service import UnsubscribeReminderHandler, UnsubscribeBroadcastHandler, \
     UnsubscribeDeactivateHandler
-from rogerthat.restapi import user, srv, service_map, news, apps, payment, logger, embedded_apps, firebase, build_api
+from rogerthat.restapi import user, srv, service_map, news, payment, logger, embedded_apps, firebase, build_api
 from rogerthat.restapi.admin import ApplePushFeedbackHandler, ServerTimeHandler, ApplePushCertificateDownloadHandler
 from rogerthat.rpc.http import JSONRPCRequestHandler, UserAuthenticationHandler, \
     InstantJSONRPCRequestHandler
@@ -158,13 +156,6 @@ handlers = [
     ('/payments/login/app', PaymentLoginAppHandler),
     ('/apple-app-site-association', AppleAppSiteAssociationHandler),
     ('/.well-known/apple-app-site-association', AppleAppSiteAssociationHandler),
-    webapp2.Route('/images/apps/<app_id:[^/]+>/qr-templates/<description:[^/]+>', AppQRTemplateHandler),
-    webapp2.Route('/uploads/apps/<app_id:[^/]+>/assets/<asset_type:[^/]+>', UploadAppAssetHandler),
-    webapp2.Route('/uploads/assets', UploadGlobalAppAssetHandler),
-    webapp2.Route('/uploads/assets/<asset_id:[^/]+>', UploadGlobalAppAssetHandler),
-    webapp2.Route('/uploads/apps/<app_id:[^/]+>/default-brandings/<branding_type:[^/]+>', UploadDefaultBrandingHandler),
-    webapp2.Route('/uploads/default-brandings', UploadGlobalBrandingHandler),
-    webapp2.Route('/uploads/default-brandings/<branding_id:[^/]+>', UploadGlobalBrandingHandler),
     webapp2.Route('/firebase/token', FirebaseTokenHandler),
     webapp2.Route('/oauth/itsme/authorize', ItsmeAuthorizeHandler),
     webapp2.Route('/oauth/itsme/login', ItsmeLoginHandler, 'itsme_login'),
@@ -178,9 +169,6 @@ handlers.extend(rest_functions(user))
 handlers.extend(rest_functions(srv))
 handlers.extend(rest_functions(news))
 handlers.extend(rest_functions(service_map))
-handlers.extend(rest_functions(apps))
-handlers.extend(rest_functions(embedded_apps))
-handlers.extend(rest_functions(payment))
 handlers.extend(rest_functions(logger))
 handlers.extend(rest_functions(firebase))
 handlers.extend(rest_functions(rogerthat.web_client.api.app))
