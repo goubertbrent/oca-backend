@@ -121,7 +121,6 @@ POKE_TAGS = {
     SolutionModule.BILLING: None,
     SolutionModule.BULK_INVITE: None,
     SolutionModule.CITY_APP: None,
-    SolutionModule.CITY_VOUCHERS: None,
     SolutionModule.DISCUSSION_GROUPS: POKE_TAG_DISCUSSION_GROUPS,
     SolutionModule.GROUP_PURCHASE: POKE_TAG_GROUP_PURCHASE,
     SolutionModule.LOYALTY: POKE_TAG_LOYALTY,
@@ -461,7 +460,7 @@ def create_app_data(sln_settings, service_identity, service_info, default_app_na
         start = t.activates
 
     locale = sln_settings.locale
-    
+
     address_url = None
     address_str = None
     if service_info.addresses:
@@ -581,12 +580,6 @@ def get_app_data_sandwich_bar(sln_settings, service_identity, default_app_id):
             'leap_time_enabled': sandwich_settings.leap_time_enabled
         }
     }
-
-
-@returns(dict)
-@arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
-def get_app_data_city_vouchers(sln_settings, service_identity, default_app_id):
-    return {'currency': sln_settings.currency_symbol}
 
 
 def _configure_inbox_qr_code_if_needed(sln_settings, main_branding):
@@ -1917,7 +1910,6 @@ def _default_delete(sln_settings, current_coords, service_menu=None):
 
 MODULES_GET_APP_DATA_FUNCS = {
     SolutionModule.BROADCAST: get_app_data_broadcast,
-    SolutionModule.CITY_VOUCHERS: get_app_data_city_vouchers,
     SolutionModule.GROUP_PURCHASE: get_app_data_group_purchase,
     SolutionModule.LOYALTY: get_app_data_loyalty,
     SolutionModule.SANDWICH_BAR: get_app_data_sandwich_bar
@@ -1933,7 +1925,6 @@ MODULES_PUT_FUNCS = {
     SolutionModule.BULK_INVITE: _dummy_put,
     SolutionModule.DISCUSSION_GROUPS: put_discussion_groups,
     SolutionModule.CITY_APP: _dummy_put,
-    SolutionModule.CITY_VOUCHERS: _dummy_put,
     SolutionModule.GROUP_PURCHASE: put_group_purchase,
     SolutionModule.LOYALTY: put_loyalty,
     SolutionModule.MENU: put_menu,
@@ -1965,7 +1956,6 @@ MODULES_DELETE_FUNCS = {
     SolutionModule.BROADCAST: delete_broadcast,
     SolutionModule.BULK_INVITE: _default_delete,
     SolutionModule.CITY_APP: _default_delete,
-    SolutionModule.CITY_VOUCHERS: _default_delete,
     SolutionModule.DISCUSSION_GROUPS: delete_discussion_groups,
     SolutionModule.GROUP_PURCHASE: _default_delete,
     SolutionModule.LOYALTY: _default_delete,

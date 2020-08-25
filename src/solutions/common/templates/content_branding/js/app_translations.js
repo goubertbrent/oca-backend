@@ -48,12 +48,10 @@ var Translations = {
     REDEEMING_LOYALTY_POINTS : "{% translate language, 'Redeeming loyalty points' %}",
     REDEEMING_STAMPS : "{% translate language, 'Redeeming stamps' %}",
     REDEEMING_VOUCHER : "{% translate language, 'Redeeming voucher' %}",
-    REMAINING_VALUE : "{% translate language, 'Remaining value' %}",
     REQUIRED_FIELDS_MISSING : "{% translate language, 'required' %}",
     SAVING_DOT_DOT_DOT : "{% translate language, 'saving-dot-dot-dot' %}",
     TNX_LOYALTY_LOTTERY_VISIT : "{% translate language, 'tnx-loyalty-lottery-visit' %}",  // REPLACE %(name)s $(date)s
     TNX_LOYALTY_LOTTERY_VISIT_NO_DATE : "{% translate language, 'tnx-loyalty-lottery-visit-no-date' %}",  // REPLACE %(name)s
-    TRANSACTION_SUCCESSFUL : "{% translate language, 'Transaction successful' %}",
     UNKNOWN_QR_CODE_SCANNED : "{% translate language, 'Unknown QR code scanned' %}",
     VALIDATING : "{% translate language, 'Validating' %}",
     WELCOME : "{% translate language, 'Welcome' %}",

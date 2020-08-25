@@ -43,7 +43,6 @@
 var service_user_email = '{{service_user_email}}';
 var service_identity = '{{service_identity}}';
 var isLoyaltyTablet = {% if loyalty %}true{% else %}false{% endif %};
-var CITY_APP_ID = "{{ city_app_id }}";
 var DEFAULT_ROUTER_LOCATION = '{{ default_router_location }}';
 
 $.ajaxSetup({
@@ -206,9 +205,6 @@ var DAYS_STR = { {% for day_num, day_name in days %}
             <li menu="loyalty"><a href="#/loyalty">{% translate language, "oca-loyalty" %}<span
               class="badge badge-important sln-loyalty-badge"></span></a></li>
         {% endif %}
-    {% endif %}
-    {% if city_app_id and SolutionModule.CITY_VOUCHERS in sln_settings.modules and not loyalty %}
-        <li menu="city_vouchers"><a href="#">{% translate language, "Vouchers" %}</a></li>
     {% endif %}
 {% endif %}
 
@@ -380,9 +376,6 @@ var DAYS_STR = { {% for day_num, day_name in days %}
     {% if not loyalty %}
         {%- include 'loyalty.tmpl' %}
     {% endif %}
-    {% if city_app_id and SolutionModule.CITY_VOUCHERS in sln_settings.modules %}
-        {%- include 'city_vouchers/city_vouchers.tmpl' %}
-    {% endif %}
 {% endif %}
                 {% if not loyalty %}
     {% if not is_layout_user %}
@@ -448,9 +441,6 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                             {% endif %} -->
                             {% if not is_layout_user and (SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules) %}
                                 <li section="section_loyalty"><a href="#/settings/loyalty">{% translate language, "oca-loyalty" %}</a></li>
-                            {% endif %}
-                            {% if city_app_id and SolutionModule.CITY_VOUCHERS in sln_settings.modules %}
-                                <li section="section_city-vouchers"><a href="#/settings/city-vouchers">{% translate language, "Vouchers" %}</a></li>
                             {% endif %}
                             {% if not is_layout_user and SolutionModule.QR_CODES in sln_settings.modules %}
                                 <li section="section_qr-codes"><a href="#/settings/qr-codes">{% translate language, "settings-qr-codes" %}</a></li>
@@ -567,9 +557,6 @@ var DAYS_STR = { {% for day_num, day_name in days %}
 
         {% if not is_layout_user and SolutionModule.QR_CODES in sln_settings.modules %}
                             {%- include 'qr_codes.tmpl' %}
-        {% endif %}
-        {% if city_app_id and SolutionModule.CITY_VOUCHERS in sln_settings.modules %}
-                        {%- include 'city_vouchers/city_vouchers_settings.tmpl' %}
         {% endif %}
         {% if not is_layout_user and SolutionModule.BULK_INVITE in sln_settings.modules %}
                             {%- include 'bulk_invite.tmpl' %}

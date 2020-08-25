@@ -117,7 +117,6 @@ class SolutionModule(Enum):
     BROADCAST = u'broadcast'
     BULK_INVITE = u'bulk_invite'
     CITY_APP = u'city_app'
-    CITY_VOUCHERS = u'city_vouchers'
     DISCUSSION_GROUPS = u'discussion_groups'
     GROUP_PURCHASE = u'group_purchase'
     LOYALTY = u'loyalty'

@@ -58,8 +58,7 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import _format_date, _format_time, timezone_offset, \
     SolutionModule, create_news_publisher
 from solutions.common.bizz.appointment import appointment_asked
-from solutions.common.bizz.city_vouchers import solution_voucher_resolve, solution_voucher_activate, \
-    solution_voucher_redeem, solution_voucher_confirm_redeem, solution_voucher_pin_activate
+from solutions.common.bizz.city_vouchers import solution_voucher_resolve
 from solutions.common.bizz.coupons import API_METHOD_SOLUTION_COUPON_REDEEM, solution_coupon_redeem, \
     solution_coupon_resolve, API_METHOD_SOLUTION_COUPON_RESOLVE
 from solutions.common.bizz.customer_signups import deny_signup
@@ -927,10 +926,6 @@ API_METHOD_MAPPING = {
     API_METHOD_SOLUTION_LOYALTY_LOTTERY_CHANCE: solution_loyalty_lottery_chance,
     API_METHOD_SOLUTION_LOYALTY_COUPLE: solution_loyalty_couple,
     API_METHOD_SOLUTION_VOUCHER_RESOLVE: solution_voucher_resolve,
-    API_METHOD_SOLUTION_VOUCHER_PIN_ACTIVATE: solution_voucher_pin_activate,
-    API_METHOD_SOLUTION_VOUCHER_ACTIVATE: solution_voucher_activate,
-    API_METHOD_SOLUTION_VOUCHER_REDEEM: solution_voucher_redeem,
-    API_METHOD_SOLUTION_VOUCHER_CONFIRM_REDEEM: solution_voucher_confirm_redeem,
     API_METHOD_SOLUTION_COUPON_REDEEM: solution_coupon_redeem,
     API_METHOD_SOLUTION_COUPON_RESOLVE: solution_coupon_resolve,
     qmatic.API_METHOD_APPOINTMENTS: qmatic.handle_method,

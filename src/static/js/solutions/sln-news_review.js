@@ -25,9 +25,6 @@ $(function () {
         sln.call({
             url: '/common/news/reviews',
             type: 'get',
-            data: {
-                app_id: CITY_APP_ID,
-            },
             success: function (data) {
                 reviewMessages = {};
                 $.each(data, function (i, review) {

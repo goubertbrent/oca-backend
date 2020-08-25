@@ -101,10 +101,6 @@ cron:
   url: /admin/cron/rpc/city_association_statistics
   schedule: every day 00:30
 
-- description: Expired vouchers reminder
-  url: /admin/cron/rpc/solution_expired_vouchers_reminder
-  schedule: every day 02:00
-
 - description: Daily statistics
   url: /cron/daily_statistics
   schedule: every day 04:00
@@ -124,7 +120,7 @@ cron:
 - description: Solution events cleanup
   url: /admin/cron/rpc/cleanup_solution_events
   schedule: every day 08:00
-  
+
 - description: Cleanup web sessions
   url: /cron/web-cleanup-sessions
   schedule: every day 10:00
@@ -161,10 +157,6 @@ cron:
 - description: Map notifications
   url: /cron/maps/notifications
   schedule: every sunday 18:00
-
-- description: Loyalty export
-  url: /admin/cron/rpc/solution_city_vouchers
-  schedule: 1 of month 8:00
 
 - description: Reindex all periodic events
   url: /admin/cron/rpc/re_index_periodic_events

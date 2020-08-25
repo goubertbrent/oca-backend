@@ -32,8 +32,7 @@ from shop.view import BizzAdminHandler, OrdersHandler, OrderPdfHandler, ChargesH
     OpenInvoicesHandler, TasksHandler, LoginAsCustomerHandler, RegioManagersHandler, ExportEmailAddressesHandler, \
     LoyaltySlidesNewOrderHandler, UploadLoyaltySlideNewOrderHandler, CustomersHandler, HintsHandler, \
     SalesStatisticsHandler, SignupAppsHandler, shopOauthDecorator, ShopLogoutHandler, \
-    ExpiredSubscriptionsHandler, LegalEntityHandler, CityVouchersHandler, CustomersImportHandler, ConsoleHandler, \
-    ConsoleIndexHandler
+    ExpiredSubscriptionsHandler, LegalEntityHandler, CustomersImportHandler, ConsoleHandler, ConsoleIndexHandler
 
 handlers = [
     ('/internal/shop/?', BizzAdminHandler),
@@ -55,7 +54,6 @@ handlers = [
     ('/internal/shop/loyalty/slides/new_order', LoyaltySlidesNewOrderHandler),
     ('/internal/shop/loyalty/slide/upload', UploadLoyaltySlideHandler),
     ('/internal/shop/loyalty/slide/new_order/upload', UploadLoyaltySlideNewOrderHandler),
-    ('/internal/shop/city/vouchers', CityVouchersHandler),
     ('/internal/shop/login_as', LoginAsCustomerHandler),
     ('/internal/shop/contacts_export', ExportEmailAddressesHandler),
     ('/internal/shop/customers', CustomersHandler),

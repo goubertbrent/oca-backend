@@ -111,8 +111,6 @@ from shop.to import CustomerTO, ContactTO, OrderItemTO, CompanyTO, CustomerServi
     LegalEntityReturnStatusTO, CustomerChargesTO, ImportCustomersReturnStatusTO, QuotationTO
 from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz import SolutionModule, get_all_existing_broadcast_types
-from solutions.common.bizz.city_vouchers import put_city_voucher_settings, put_city_voucher_user, \
-    delete_city_voucher_user
 from solutions.common.bizz.locations import create_new_location
 from solutions.common.bizz.loyalty import update_all_user_data_admins
 from solutions.common.bizz.qanda import re_index_question
@@ -120,7 +118,6 @@ from solutions.common.consts import CURRENCIES, get_currency_name
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.cityapp import get_service_user_for_city, invalidate_service_user_for_city
 from solutions.common.dal.hints import get_all_solution_hints, get_solution_hints
-from solutions.common.models.city_vouchers import SolutionCityVoucherSettings
 from solutions.common.models.qanda import Question, QuestionReply
 from solutions.common.to import ProvisionReturnStatusTO
 from solutions.common.to.hints import SolutionHintTO
@@ -2150,59 +2147,6 @@ class UploadLoyaltySlideNewOrderHandler(BizzManagerHandler):
 
         self.response.out.write(broadcast_via_iframe_result(
             u"rogerthat.internal.shop.loyalty.slide.new_order.post_result"))
-
-
-class CityVouchersHandler(BizzManagerHandler):
-
-    def get(self):
-        current_user = gusers.get_current_user()
-        if not is_admin(current_user):
-            self.abort(403)
-        path = os.path.join(os.path.dirname(__file__), 'html', 'city_vouchers.html')
-        context = get_shop_context(city_voucher_settings=SolutionCityVoucherSettings.all())
-        self.response.out.write(template.render(path, context))
-
-
-@rest("/internal/shop/rest/city/vouchers/settings/put", "post")
-@returns(ReturnStatusTO)
-@arguments(app_id=unicode)
-def rest_put_city_vouchers_settings(app_id):
-    try:
-        if is_admin(users.get_current_user()):
-            put_city_voucher_settings(app_id)
-        else:
-            raise NoPermissionException('put city voucher settings')
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, exception:
-        return ReturnStatusTO.create(False, exception.message)
-
-
-@rest("/internal/shop/rest/city/vouchers/user/put", "post")
-@returns(ReturnStatusTO)
-@arguments(app_id=unicode, username=unicode, pincode=unicode)
-def rest_put_city_vouchers_user(app_id, username, pincode):
-    try:
-        if is_admin(users.get_current_user()):
-            put_city_voucher_user(app_id, username, pincode)
-        else:
-            raise NoPermissionException('put city voucher users')
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, exception:
-        return ReturnStatusTO.create(False, exception.message)
-
-
-@rest("/internal/shop/rest/city/vouchers/user/delete", "post")
-@returns(ReturnStatusTO)
-@arguments(app_id=unicode, username=unicode)
-def rest_delete_city_vouchers_user(app_id, username):
-    try:
-        if is_admin(users.get_current_user()):
-            delete_city_voucher_user(app_id, username)
-        else:
-            raise NoPermissionException('delete city voucher users')
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, exception:
-        return ReturnStatusTO.create(False, exception.message)
 
 
 @rest("/internal/shop/log_error", "post")

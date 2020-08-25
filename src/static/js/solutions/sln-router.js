@@ -52,7 +52,6 @@ function routingHandler(hash) {
             			switch (hash[1]) {
             			case 'export':
             				loadLoyaltyExportList();
-            				loadVoucherExportList();
             				break;
             			default:
             				renderLoyaltyPage();

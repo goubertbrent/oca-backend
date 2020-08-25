@@ -26,6 +26,7 @@ from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.dal import put_and_invalidate_cache, parent_key_unsafe
 from rogerthat.dal.profile import get_profile_infos
+from rogerthat.dal.service import get_service_identity
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
@@ -33,6 +34,7 @@ from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import now
 from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.channel import send_message
+from rogerthat.utils.service import add_slash_default
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import loyalty as loyalty_bizz, broadcast_updates_pending, get_app_info_cached, \
@@ -593,11 +595,10 @@ def rest_request_loyalty_device(source=MISSING):
 
 @rest("/common/city_wide_lottery/customer_points/load", "get", read_only_access=True)
 @returns(BaseLoyaltyCustomersTO)
-@arguments(city_app_id=unicode, cursor=unicode)
-def load_city_wide_lottery_customer_points(city_app_id, cursor=None):
-
-    result_dict = dict()
-    qry = SolutionCityWideLotteryVisit.load(city_app_id)
+@arguments(cursor=unicode)
+def load_city_wide_lottery_customer_points(cursor=None):
+    si = get_service_identity(add_slash_default(users.get_current_user()))
+    qry = SolutionCityWideLotteryVisit.load(si.app_id)
     qry.with_cursor(cursor)
     visits = qry.fetch(10)
     cursor_ = qry.cursor()
@@ -607,6 +608,7 @@ def load_city_wide_lottery_customer_points(city_app_id, cursor=None):
         if len(qry.fetch(1)) > 0:
             has_more = True
 
+    result_dict = {}
     for visit in visits:
         saved_points = result_dict.get(visit.app_user)
         if not saved_points:
@@ -641,10 +643,11 @@ def load_city_wide_lottery_customer_points(city_app_id, cursor=None):
 
 @rest("/common/city_wide_lottery/customer_points/detail", "get", read_only_access=True)
 @returns(LoyaltyCustomerPointsTO)
-@arguments(city_app_id=unicode, email=unicode, app_id=unicode)
-def load_city_wide_lottery_detail_customer_points(city_app_id, email, app_id):
+@arguments(email=unicode, app_id=unicode)
+def load_city_wide_lottery_detail_customer_points(email, app_id):
+    si = get_service_identity(add_slash_default(users.get_current_user()))
     app_user = create_app_user_by_email(email, app_id)
-    visits = get_solution_city_wide_lottery_loyalty_visits_for_user(city_app_id, app_user)
+    visits = get_solution_city_wide_lottery_loyalty_visits_for_user(si.app_id, app_user)
     r = LoyaltyCustomerPointsTO()
 
     # XXX: don't use get_profile_infos
@@ -661,18 +664,21 @@ def load_city_wide_lottery_detail_customer_points(city_app_id, email, app_id):
 
 @rest("/common/city_wide_lottery/chance", "get", read_only_access=True)
 @returns(LoyaltyLotteryChanceTO)
-@arguments(city_app_id=unicode, email=unicode, app_id=unicode)
-def load_city_wide_lottery_chance_user(city_app_id, email, app_id):
+@arguments(email=unicode, app_id=unicode)
+def load_city_wide_lottery_chance_user(email, app_id):
+    si = get_service_identity(add_slash_default(users.get_current_user()))
     app_user = create_app_user_by_email(email, app_id)
     r = LoyaltyLotteryChanceTO()
-    r.total_visits, r.my_visits, r.chance = calculate_city_wide_lottery_chance_for_user(city_app_id, app_user)
+    r.total_visits, r.my_visits, r.chance = calculate_city_wide_lottery_chance_for_user(si.app_id, app_user)
     return r
 
 
 @rest("/common/city_wide_lottery/add", "post")
 @returns(ReturnStatusTO)
-@arguments(city_app_id=unicode, winnings=unicode, date=TimestampTO, x_winners=(int, long))
-def add_city_wide_lottery_info(city_app_id, winnings, date, x_winners):
+@arguments(winnings=unicode, date=TimestampTO, x_winners=(int, long))
+def add_city_wide_lottery_info(winnings, date, x_winners):
+    si = get_service_identity(add_slash_default(users.get_current_user()))
+    city_app_id = si.app_id
     service_user = users.get_current_user()
     sln_settings = get_solution_settings(service_user)
     try:
@@ -782,23 +788,25 @@ def close_city_wide_lottery_info(key):
                      service_identity=ll_info.service_identity)
 
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         sln_settings = get_solution_settings(service_user)
         return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, e.message))
 
 
 @rest("/common/city_wide_lottery/load", "get", read_only_access=True)
 @returns([CityWideLotteryInfoTO])
-@arguments(city_app_id=unicode)
-def load_city_wide_lottery_info(city_app_id):
-    return [CityWideLotteryInfoTO.fromModel(ll_info) for ll_info in SolutionCityWideLottery.load_all(city_app_id)]
+@arguments()
+def load_city_wide_lottery_info():
+    si = get_service_identity(add_slash_default(users.get_current_user()))
+    return [CityWideLotteryInfoTO.fromModel(ll_info) for ll_info in SolutionCityWideLottery.load_all(si.app_id)]
 
 
 @rest("/common/city/postal_codes", "get")
 @returns([unicode])
-@arguments(app_id=unicode)
-def restapi_get_city_postal_codes(app_id):
-    return get_or_create_city_postal_codes(app_id).postal_codes
+@arguments()
+def restapi_get_city_postal_codes():
+    si = get_service_identity(add_slash_default(users.get_current_user()))
+    return get_or_create_city_postal_codes(si.app_id).postal_codes
 
 
 def can_edit_city_postal_codes():
@@ -811,11 +819,12 @@ def can_edit_city_postal_codes():
 
 @rest("/common/city/postal_codes/add", "post")
 @returns(ReturnStatusTO)
-@arguments(app_id=unicode, postal_code=unicode)
-def restapi_add_city_postal_code(app_id, postal_code):
+@arguments(postal_code=unicode)
+def restapi_add_city_postal_code(postal_code):
     try:
+        si = get_service_identity(add_slash_default(users.get_current_user()))
         sln_settings = can_edit_city_postal_codes()
-        add_city_postal_code(app_id, postal_code)
+        add_city_postal_code(si.app_id, postal_code)
         return RETURNSTATUS_TO_SUCCESS
     except ValueError:
         return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, u'invlid_postal_code'))
@@ -825,11 +834,12 @@ def restapi_add_city_postal_code(app_id, postal_code):
 
 @rest("/common/city/postal_codes/remove", "post")
 @returns(ReturnStatusTO)
-@arguments(app_id=unicode, postal_code=unicode)
-def restapi_remove_city_postal_codes(app_id, postal_code):
+@arguments(postal_code=unicode)
+def restapi_remove_city_postal_codes(postal_code):
     try:
+        si = get_service_identity(add_slash_default(users.get_current_user()))
         can_edit_city_postal_codes()
-        remove_city_postal_code(app_id, postal_code)
+        remove_city_postal_code(si.app_id, postal_code)
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)

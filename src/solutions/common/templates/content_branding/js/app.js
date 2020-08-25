@@ -32,10 +32,6 @@ var solutionsLoyaltyPutGuid = null;
 var solutionsLoyaltyRedeemGuid = null;
 var solutionsLoyaltyCoupleGuid = null;
 var solutionsVoucherResolveGuid = null;
-var solutionsVoucherPinActivateGuid = null;
-var solutionsVoucherActivateGuid = null;
-var solutionsVoucherRedeemGuid = null;
-var solutionsVoucherConfirmRedeemGuid = null;
 var modules = {};
 
 window.onload = function() {
@@ -242,16 +238,7 @@ var onRogerthatReady = function() {
                 	currentScannedInfo = r;
                     if (r.type == 'custom_loyalty_card' || r.type == 'unknown') {
                         userScanned(r, Math.floor(Date.now() / 1000));
-                    } else if (r.type == 'city_voucher') {
-                           hideLoading();
-	                	if (r.status == 1) {
-	                		showRedeemVoucherPopupOverlay();
-	                	} else if (r.status == 2) {
-	                		showPinActivateVoucherPopupOverlay();
-	                	} else {
-	                		showErrorPopupOverlay(Translations.ERROR_OCCURED_UNKNOWN);
-	                	}
-                	} else {
+                    } else {
                 		hideLoading();
                 		showErrorPopupOverlay(Translations.ERROR_OCCURED_UNKNOWN);
                 	}
@@ -264,90 +251,6 @@ var onRogerthatReady = function() {
                     console.log("solutions.voucher.resolve Did timeout");
                 } else {
                     console.log("solutions.voucher.resolve Did not match tag");
-                }
-            }
-        } else if (method == "solutions.voucher.activate.pin") {
-            if (solutionsVoucherPinActivateGuid == null || tag == null) {
-                return;
-            }
-            if (tag == solutionsVoucherPinActivateGuid) {
-            	solutionsVoucherPinActivateGuid = null;
-                hideLoading();
-                if (result) {
-                	var r = JSON.parse(result);
-                	currentScannedInfo.username = r.username;
-                	showActivateVoucherPopupOverlay();
-                } else {
-                    showErrorPopupOverlay(error);
-                }
-            } else {
-                if (solutionsVoucherPinActivateGuid == null) {
-                    console.log("solutions.voucher.activate.pin Did timeout");
-                } else {
-                    console.log("solutions.voucher.activate.pin Did not match tag");
-                }
-            }
-        } else if (method == "solutions.voucher.activate") {
-            if (solutionsVoucherActivateGuid == null || tag == null) {
-                return;
-            }
-            if (tag == solutionsVoucherActivateGuid) {
-            	solutionsVoucherActivateGuid = null;
-                hideLoading();
-                if (result) {
-                	startScanningForQRCode();
-                } else {
-                    showErrorPopupOverlay(error);
-                }
-            } else {
-                if (solutionsVoucherActivateGuid == null) {
-                    console.log("solutions.voucher.activate Did timeout");
-                } else {
-                    console.log("solutions.voucher.activate Did not match tag");
-                }
-            }
-        } else if (method == "solutions.voucher.redeem") {
-            if (solutionsVoucherRedeemGuid == null || tag == null) {
-                return;
-            }
-            if (tag == solutionsVoucherRedeemGuid) {
-            	solutionsVoucherRedeemGuid = null;
-                hideLoading();
-                if (result) {
-                	var r = JSON.parse(result);
-                	currentScannedInfo = r;
-                	showConfirmRedeemVoucherPopupOverlay();
-                } else {
-                    showErrorPopupOverlay(error);
-                }
-            } else {
-                if (solutionsVoucherRedeemGuid == null) {
-                    console.log("solutions.voucher.redeem Did timeout");
-                } else {
-                    console.log("solutions.voucher.redeem Did not match tag");
-                }
-            }
-        } else if (method == "solutions.voucher.redeem.confirm") {
-            if (solutionsVoucherConfirmRedeemGuid == null || tag == null) {
-                return;
-            }
-            if (tag == solutionsVoucherConfirmRedeemGuid) {
-            	solutionsVoucherConfirmRedeemGuid = null;
-                hideLoading();
-                if (result) {
-                	var r = JSON.parse(result);
-                    showTextPopupOverlay(r.title, null, r.content);
-                    setTimeout(function(){
-                        hideTextPopupOverlay(startScanningForQRCode);
-                    }, 5000);
-                } else {
-                    showErrorPopupOverlay(error);
-                }
-            } else {
-                if (solutionsVoucherConfirmRedeemGuid == null) {
-                    console.log("solutions.voucher.redeem.confirm Did timeout");
-                } else {
-                    console.log("solutions.voucher.redeem.confirm Did not match tag");
                 }
             }
         } else if (method === 'solutions.coupons.resolve') {

@@ -18,8 +18,6 @@
 
 var loyaltyExports = [];
 var loyaltyExportsCursor;
-var voucherExports = [];
-var voucherExportsCursor;
 var HAS_LOYALTY = MODULES.indexOf('loyalty') !== -1;
 var HAS_CITY_WIDE_LOTTERY = MODULES.indexOf('hidden_city_wide_lottery') !== -1;
 var LOYALTY_TYPE_REVENUE_DISCOUNT = 1;
@@ -96,7 +94,6 @@ $(function() {
         var params = {loyalty_type: loyalty_type, cursor: cursor};
         if (HAS_CITY_WIDE_LOTTERY) {
             url = "/common/city_wide_lottery/customer_points/load";
-            params.city_app_id = CITY_APP_ID;
         }
         sln.call({
             url : url,
@@ -912,7 +909,6 @@ $(function() {
         var params = {};
         if (HAS_CITY_WIDE_LOTTERY) {
             url = "/common/city_wide_lottery/load";
-            params.city_app_id = CITY_APP_ID
         }
         sln.call({
             url : url,
@@ -1069,7 +1065,6 @@ $(function() {
             } else {
                 if (HAS_CITY_WIDE_LOTTERY) {
                     url = "/common/city_wide_lottery/add";
-                    params.city_app_id = CITY_APP_ID
                     params.x_winners = parseInt($('#lottery-x-winners-val', html).val());
                 } else {
                     url = "/common/loyalty/lottery/add";
@@ -1161,7 +1156,6 @@ $(function() {
             var params = {loyalty_type: currentLoyaltyType, email: email, app_id: appId};
             if (HAS_CITY_WIDE_LOTTERY) {
                 url = "/common/city_wide_lottery/customer_points/detail";
-                params.city_app_id = CITY_APP_ID
             }
             sln.call({
                 url : url,
@@ -1232,7 +1226,6 @@ $(function() {
                         var params = {email: email, app_id: appId}
                         if (HAS_CITY_WIDE_LOTTERY) {
                             url = "/common/city_wide_lottery/chance";
-                            params.city_app_id = CITY_APP_ID
                         }
                         sln.call({
                             url : url,
@@ -1341,9 +1334,6 @@ $(function() {
         sln.call({
             url: '/common/city/postal_codes',
             type: 'get',
-            data: {
-                app_id: CITY_APP_ID
-            },
             success: function(codes) {
                 $.each(codes, function(i, code) {
                     addPostalCodeRow(code);
@@ -1362,7 +1352,6 @@ $(function() {
             url: '/common/city/postal_codes/' + operation,
             type: 'post',
             data: {
-                app_id: CITY_APP_ID,
                 postal_code: code
             },
             success: function(result) {
@@ -1434,52 +1423,6 @@ function loadMoreLoyaltyExports() {
             loyaltyExportsCursor = data.cursor;
             loyaltyExports.push.apply(loyaltyExports, data.list);
             renderLoyaltyExportList(data.list.length === 10);
-        }
-    });
-}
-
-function loadVoucherExportList() {
-    renderVoucherExportList(false);
-    if (!voucherExports.length) {
-        $('#voucher-export-list').html(TMPL_LOADING_SPINNER);
-        sln.call({
-            url: '/common/city-vouchers/export/list',
-            success: function (data) {
-                voucherExports = data.list;
-                voucherExportsCursor = data.cursor;
-                renderVoucherExportList(data.list.length === 10);
-            },
-            error: function () {
-                window.location.hash = '#/loyalty';
-            }
-        });
-    }
-}
-
-function renderVoucherExportList(hasMore) {
-    if (voucherExports.length == 0) {
-        $("#loyalty_export_vouchers").hide();
-    } else {
-        $("#loyalty_export_vouchers").show();
-        var html = $.tmpl(templates['voucher_export'], {
-            exports: voucherExports,
-            t: CommonTranslations
-        });
-        $('#voucher-export-list').html(html);
-        $('#load-more-voucher-exports').toggle(hasMore).unbind('click').click(loadMoreVoucherExports);
-    }
-}
-
-function loadMoreVoucherExports() {
-    sln.call({
-        url: '/common/city-vouchers/export/list',
-        data: {
-            cursor: voucherExportsCursor
-        },
-        success: function (data) {
-            voucherExportsCursor = data.cursor;
-            voucherExports.push.apply(voucherExports, data.list);
-            renderVoucherExportList(data.list.length === 10);
         }
     });
 }

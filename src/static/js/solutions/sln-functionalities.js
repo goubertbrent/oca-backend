@@ -23,7 +23,6 @@ $(function() {
         appointment: 'appointments',
         ask_question: 'inbox',
         broadcast: 'broadcast',
-        city_vouchers: 'city-vouchers',
         discussion_groups: 'discussion-groups',
         group_purchase: 'group-purchase',
         order: 'order',

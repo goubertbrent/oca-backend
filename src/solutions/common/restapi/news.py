@@ -27,6 +27,7 @@ from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.consts import DEBUG
 from rogerthat.dal.app import get_app_by_id
+from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity
 from rogerthat.models.jobs import JobOffer
 from rogerthat.models.news import NewsGroup, MediaType
@@ -38,7 +39,7 @@ from rogerthat.service.api.news import list_groups, get_basic_statistics
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.to.news import NewsItemTO, NewsItemListResultTO, NewsActionButtonTO, NewsItemTimeStatisticsTO, \
     NewsItemBasicStatisticsTO
-from rogerthat.utils.service import create_service_identity_user
+from rogerthat.utils.service import create_service_identity_user, add_slash_default
 from shop.exceptions import BusinessException
 from shop.models import ShopApp
 from solutions import translate as common_translate
@@ -143,9 +144,10 @@ def rest_delete_news(news_id):
 
 @rest('/common/news/reviews', 'get')
 @returns([NewsReviewTO])
-@arguments(app_id=unicode)
-def rest_get_news_reviews(app_id):
-    city_service = get_service_user_for_city(app_id)
+@arguments()
+def rest_get_news_reviews():
+    si = get_service_identity(add_slash_default(users.get_current_user()))
+    city_service = get_service_user_for_city(si.app_id)
     azzert(city_service == users.get_current_user())
     return map(NewsReviewTO.from_model, get_news_reviews(city_service))
 

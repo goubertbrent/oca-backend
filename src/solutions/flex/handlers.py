@@ -54,7 +54,6 @@ from solutions.common.consts import UNITS, UNIT_SYMBOLS, UNIT_PIECE, UNIT_LITER,
     UNIT_MINUTE, ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_PLATTER, UNIT_SESSION, UNIT_PERSON, UNIT_DAY, CURRENCIES
 from solutions.common.dal import get_solution_settings, get_restaurant_menu, get_solution_email_settings, \
     get_solution_settings_or_identity_settings
-from solutions.common.dal.city_vouchers import get_city_vouchers_settings
 from solutions.common.dal.cityapp import get_cityapp_profile, get_service_user_for_city
 from solutions.common.models import SolutionQR, SolutionServiceConsent
 from solutions.common.models.properties import MenuItem
@@ -122,12 +121,6 @@ MODULES_JS_TEMPLATE_MAPPING = {
         'settings/app_settings',
         'settings/paddle'
     ],
-    SolutionModule.CITY_VOUCHERS: [
-        'city_vouchers/city_vouchers_list',
-        'city_vouchers/city_vouchers_transactions',
-        'city_vouchers/city_vouchers_qrcode_export_list',
-        'city_vouchers/city_vouchers_export_list'
-    ],
     SolutionModule.DISCUSSION_GROUPS: [
         'discussion_groups/discussion_groups_list',
         'discussion_groups/discussion_groups_put'
@@ -148,8 +141,7 @@ MODULES_JS_TEMPLATE_MAPPING = {
         'loyalty_customer_visits_detail',
         'loyalty_customer_visit',
         'loyalty_lottery_history',
-        'loyalty_export',
-        'voucher_export'
+        'loyalty_export'
     ],
     SolutionModule.MENU: [
         'menu',
@@ -320,8 +312,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
                 city_app_id = customer.app_id
         else:
             city_app_id = None
-            logging.info('Getting app ids from service identity since no customer exists for user %s', service_user)
-            service_identity_user = create_service_identity_user(service_user, service_identity)
 
         locale = Locale.parse(lang)
         currency_symbols = {currency: locale.currency_symbols.get(currency, currency) for currency in CURRENCIES}
@@ -369,15 +359,11 @@ class FlexHomeHandler(webapp2.RequestHandler):
                                                                                             sln_settings.activated_modules,
                                                                                             shop_app))
 
-        vouchers_settings = None
-        if city_app_id and SolutionModule.CITY_VOUCHERS in sln_settings.modules:
-            vouchers_settings = get_city_vouchers_settings(city_app_id)
-
         city_service_user = get_service_user_for_city(city_app_id)
         is_city = service_user == city_service_user
         city_app_profile = city_service_user and get_cityapp_profile(city_service_user)
         news_review_enabled = city_app_profile and city_app_profile.review_news or True
-        
+
         default_router_location = u'#/functionalities'
         if sln_settings.ciklo_vouchers_only():
             default_router_location = u'#/vouchers'
@@ -408,7 +394,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'week_days': week_days,
                   'customer': customer,
                   'loyalty': True if loyalty_version else False,
-                  'city_app_id': city_app_id,
                   'functionality_modules': functionality_modules,
                   'functionality_info': functionality_info,
                   'email_settings': json.dumps(serialize_complex_value(
@@ -428,7 +413,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'translations': json.dumps(all_translations),
                   'organization_types': organization_types,
                   'organization_types_json': json.dumps(dict(organization_types)),
-                  'vouchers_settings': vouchers_settings,
                   'is_city': is_city,
                   'news_review_enabled': news_review_enabled,
                   'can_edit_paddle': is_city and session_.shop,

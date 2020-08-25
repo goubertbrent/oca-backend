@@ -20,7 +20,6 @@ from rogerthat.consts import DATASWITCH_QUEUE
 from shop.jobs.prospects import re_index_all_prospects
 from shop.jobs.re_index_questions import re_index_all_questions
 from shop.migrations import re_index_all_customers
-from solutions.common.bizz.city_vouchers import re_index_all_vouchers_all_apps
 
 
 def re_index_everything():
@@ -33,4 +32,3 @@ def re_index_everything():
     re_index_all_prospects(DATASWITCH_QUEUE)
     re_index_all_customers(DATASWITCH_QUEUE)
     re_index_all_questions(DATASWITCH_QUEUE)
-    re_index_all_vouchers_all_apps(DATASWITCH_QUEUE)

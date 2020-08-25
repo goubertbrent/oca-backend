@@ -182,7 +182,6 @@ TRANSLATION_MAPPING = {
         'jobs',
         'like',
         'message',
-        'merchant',
         'merchants',
         'name-attachment',
         'news_action_button_explanation',

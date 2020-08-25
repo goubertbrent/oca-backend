@@ -79,7 +79,6 @@ DEFAULT_COORDS = {
     },
     SolutionModule.BULK_INVITE: None,
     SolutionModule.CITY_APP: None,
-    SolutionModule.CITY_VOUCHERS: None,
     SolutionModule.DISCUSSION_GROUPS: {
         POKE_TAG_DISCUSSION_GROUPS: {
             "preferred_page": 0,

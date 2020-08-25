@@ -15,9 +15,9 @@
 #
 # @@license_version:1.7@@
 
+import solutions.common.integrations.cirklo.api as vouchers_api
 import solutions.common.jobs.api
 import solutions.common.restapi.billing
-import solutions.common.restapi.city_vouchers
 import solutions.common.restapi.cityapp
 import solutions.common.restapi.discussion_groups
 import solutions.common.restapi.forms
@@ -38,13 +38,10 @@ import solutions.common.restapi.services
 import solutions.common.restapi.settings
 import solutions.common.restapi.statistics
 import solutions.common.restapi.store
-import solutions.common.integrations.cirklo.api as vouchers_api
 from mcfw.restapi import rest_functions
 from rogerthat.wsgi import AuthenticatedRogerthatWSGIApplication
 from solutions.common.handlers import ImageViewerHandler, SolutionMainBrandingHandler, InvoicePdfHandler, \
     OrderPdfHandler, UploadStaticContentPDFHandler, FlowStatisticsExportHandler
-from solutions.common.handlers.city_vouchers import CityVouchersDownloadHandler, CityVoucherExportHandler, \
-    ExportVoucherHandler
 from solutions.common.handlers.discussion_groups import DiscussionGroupsPdfHandler
 from solutions.common.handlers.events import EventsGoogleOauth2callbackHandler
 from solutions.common.handlers.loyalty import UploadLoyaltySlideHandler, LoyaltySlidePreviewHandler, \
@@ -67,11 +64,8 @@ handlers = [
     ('/common/loyalty/slide/overlay', LoyaltySlideOverlayHandler),
     ('/common/statistics/flows/export', FlowStatisticsExportHandler),
     ('/common/loyalty/export', ExportLoyaltyHandler),
-    ('/common/city-vouchers/export', ExportVoucherHandler),
     ('/common/events/google/oauth2callback', EventsGoogleOauth2callbackHandler),
     ('/common/discussion_groups/(\d+)/pdf', DiscussionGroupsPdfHandler),
-    ('/common/city/vouchers/qr/download/(\d+)', CityVouchersDownloadHandler),
-    ('/common/city_vouchers/export', CityVoucherExportHandler),
     ('/common/restaurant/menu/export', ExportMenuHandler),
     ('/terms', TermsAndConditionsHandler),
 ]
@@ -81,7 +75,6 @@ modules = [
     solutions.common.restapi.services,
     solutions.common.restapi.billing,
     solutions.common.restapi.cityapp,
-    solutions.common.restapi.city_vouchers,
     solutions.common.restapi.discussion_groups,
     solutions.common.restapi.forms,
     solutions.common.restapi.hints,
