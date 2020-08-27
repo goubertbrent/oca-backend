@@ -304,6 +304,23 @@ DEPRECATED_API_CALLS = [
     'com.mobicage.api.news.getNews',
     'com.mobicage.api.news.getNewsItems',
     'com.mobicage.api.news.saveNewsGroupFilters',
+    'com.mobicage.api.activity.logCall',
+    'com.mobicage.api.activity.logLocations',
+    'com.mobicage.api.location.getFriendLocation',
+    'com.mobicage.api.location.getFriendLocations',
+    'com.mobicage.api.friends.getFriends',
+    'com.mobicage.api.friends.shareLocation',
+    'com.mobicage.api.friends.requestShareLocation'
+]
+
+DEPRECATED_API_CALLS_ANDROID = [
+    'com.mobicage.api.activity.reportObjectionableContent'
+]
+
+DEPRECATED_CAPI_CALLS = [
+    'com.mobicage.capi.location.getLocation',
+    'com.mobicage.capi.location.locationResult',
+    'com.mobicage.capi.location.trackLocation'
 ]
 
 
@@ -311,6 +328,12 @@ def generate(target, mapping, client_mapping, max_argument_count=1):
     print 'Generating %s' % target
     for method in DEPRECATED_API_CALLS:
         del mapping[method]
+    if target == 'android':
+        for method in DEPRECATED_API_CALLS_ANDROID:
+            del mapping[method]
+    for method in DEPRECATED_CAPI_CALLS:
+        del client_mapping[method]
+
     render(generate_TOs(mapping, client_mapping, max_argument_count),
            generate_API_packages(mapping, max_argument_count),
            generate_CAPI_packages(client_mapping, max_argument_count),
