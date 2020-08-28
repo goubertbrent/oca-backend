@@ -75,7 +75,7 @@ def save_consent(data):
     update_customer_consents(customer.user_email, {data.type: data.enabled}, headers, context)
     if data.type == SolutionServiceConsent.TYPE_CIRKLO_SHARE:
         service_user_email = customer.service_user.email()
-        cirklo_merchant_key = CirkloMerchant.create_key(service_user_email).delete()
+        cirklo_merchant_key = CirkloMerchant.create_key(service_user_email)
         if data.enabled:
             cirklo_merchant = cirklo_merchant_key.get()  # type: CirkloMerchant
             if not cirklo_merchant:
