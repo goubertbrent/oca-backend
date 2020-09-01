@@ -81,9 +81,9 @@ def get_vertical_details_for_place_type(place_type):
 
 class PlaceDetails(TO):
     title = unicode_property('title', default=None)
-    fa_icon = unicode_property('fa_icon', default='fa-map-marker')
-    icon_color = unicode_property('icon_color', default='#fbd1c3')
-    png_icon = unicode_property('png_icon', default='fa-flag-fbd1c3')
+    fa_icon = unicode_property('fa_icon', default='fa-flag')
+    icon_color = unicode_property('icon_color', default='#eb7bb8')
+    png_icon = unicode_property('png_icon', default='fa-flag-eb7bb8')
 
 
 def get_place_types(language):
