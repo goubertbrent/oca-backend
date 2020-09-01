@@ -145,6 +145,7 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
   editImage(value: Value, index: number) {
     const config: MatDialogConfig<UploadFileDialogConfig> = {
       data: {
+        fileType: 'image',
         uploadPrefix: 'forms',
         reference: { type: 'form', id: this.formId },
         croppedCanvasOptions: { maxWidth: 720 },

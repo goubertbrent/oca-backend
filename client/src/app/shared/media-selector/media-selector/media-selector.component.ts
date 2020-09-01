@@ -53,6 +53,7 @@ export class MediaSelectorComponent implements OnChanges, ControlValueAccessor {
   showImageDialog() {
     const config: MatDialogConfig<UploadFileDialogConfig> = {
       data: {
+        fileType: 'image',
         uploadPrefix: 'news',
         title: this.translate.instant('oca.image'),
         gallery: { prefix: 'logo' },

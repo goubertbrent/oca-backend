@@ -141,6 +141,7 @@ export class EditFormSectionComponent implements ControlValueAccessor {
   openHeaderImageDialog() {
     const config: MatDialogConfig<UploadFileDialogConfig> = {
       data: {
+        fileType: 'image',
         uploadPrefix: 'forms',
         reference: { type: 'form', id: this.formId },
         title: this._translate.instant('oca.add_header_image'),

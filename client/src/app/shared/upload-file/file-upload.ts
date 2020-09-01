@@ -26,6 +26,8 @@ export type UploadFileReference = UploadFormFileReference | UploadEventFileRefer
 
 export interface UploadFileDialogConfig {
   reference?: UploadFileReference;
+  // Set to 'image' to only allow uploading images
+  fileType?: 'image';
   croppedImageType?: 'image/jpeg' | 'image/png';
   uploadPrefix: string;
   title: string;

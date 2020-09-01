@@ -1,7 +1,7 @@
 import { HttpClient, HttpErrorResponse, HttpEventType } from '@angular/common/http';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnDestroy, ViewChild } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { ProgressSpinnerMode } from '@angular/material/progress-spinner';
+import { ProgressBarMode } from '@angular/material/progress-bar/progress-bar';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -32,7 +32,7 @@ export class UploadFileDialogComponent implements OnDestroy {
   selectedImageUrl: string | null = null;
   showProgress = false;
   uploadPercent = 0;
-  progressMode: ProgressSpinnerMode = 'indeterminate';
+  progressMode: ProgressBarMode = 'indeterminate';
   uploadError: string | null = null;
   selectedFile: File | null = null;
   readonly images$: Observable<GcsFile[]>;
@@ -40,6 +40,7 @@ export class UploadFileDialogComponent implements OnDestroy {
   readonly showGallery: boolean;
 
   private destroyed$ = new Subject();
+  private readonly supportedFileType: 'image' | undefined;
 
   constructor(@Inject(MAT_DIALOG_DATA) public data: UploadFileDialogConfig,
               private dialogRef: MatDialogRef<UploadFileDialogComponent>,
@@ -52,6 +53,7 @@ export class UploadFileDialogComponent implements OnDestroy {
       this.galleryImages$ = this.uploadFileService.getGalleryFiles(data.gallery.prefix);
     }
     this.images$ = this.uploadFileService.getFiles(data.listPrefix);
+    this.supportedFileType = data.fileType;
     data.accept = data.accept || 'image/*';
     data.cropOptions = {
       viewMode: 1,
@@ -85,7 +87,7 @@ export class UploadFileDialogComponent implements OnDestroy {
     if (target.files && target.files.length) {
       const file = target.files[ 0 ];
       this.selectedFile = file;
-      if (this.data.croppedImageType || file.type.startsWith('image')) {
+      if (this.supportedFileType === 'image' || this.data.croppedImageType || file.type.startsWith('image')) {
         this.showProgress = true;
         reader.readAsDataURL(file);
         reader.onload = () => {
@@ -117,6 +119,9 @@ export class UploadFileDialogComponent implements OnDestroy {
   }
 
   save() {
+    if (this.uploadError) {
+      return;
+    }
     this.showProgress = true;
     this.progressMode = 'indeterminate';
     this.getFile().then(async blob => {

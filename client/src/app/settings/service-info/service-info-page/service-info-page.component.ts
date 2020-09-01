@@ -163,7 +163,7 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
   }
 
   updateAvatar() {
-    const dialog = this.updateImage(250, 250, '/common/settings/avatar', {
+    const dialog = this.updateImage(250, 250, {
       title: this.translate.instant('oca.Change logo'),
       uploadPrefix: 'branding/avatar',
       listPrefix: 'branding/avatar',
@@ -177,7 +177,7 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
   }
 
   updateLogo() {
-    const dialog = this.updateImage(1440, 540, '/common/settings/logo', {
+    const dialog = this.updateImage(1440, 540, {
       title: this.translate.instant('oca.change_cover_photo'),
       uploadPrefix: 'branding/logo',
       listPrefix: 'branding/logo',
@@ -191,10 +191,11 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  updateImage(width: number, height: number, uploadUrl: string,
+  updateImage(width: number, height: number,
               partialConfig: Pick<UploadFileDialogConfig, 'title' | 'uploadPrefix' | 'listPrefix' | 'gallery'| 'croppedImageType'>) {
     const config: MatDialogConfig<UploadFileDialogConfig> = {
       data: {
+        fileType: 'image',
         cropOptions: {
           dragMode: 'crop',
           rotatable: true,
