@@ -180,6 +180,10 @@ def login_hoplr_user(settings, service_user, app_user, params):
                     lang = get_solution_settings(service_user).main_language
                     msg = translate(lang, 'hoplr_neighbourhood_not_supported')
                     raise TranslatedException(msg)
+                elif response_data.get('error_description') == 'use_facebook_account':
+                    lang = get_solution_settings(service_user).main_language
+                    msg = translate(lang, 'hoplr_error_facebook_set_password_on_hoplr')
+                    raise TranslatedException(msg)
             raise e
     info = get_user_information(settings, hoplr_user)
     return _return_user_information(info)
