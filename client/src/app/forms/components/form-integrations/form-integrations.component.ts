@@ -62,7 +62,7 @@ export class FormIntegrationsComponent implements OnChanges {
       integration: null,
     },
     [ FormIntegrationProvider.EMAIL ]: {
-      enabled: true,
+      enabled: false,
       visible: true,
       integration: null,
     },
