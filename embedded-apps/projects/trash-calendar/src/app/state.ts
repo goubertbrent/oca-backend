@@ -2,7 +2,15 @@ import { ActionReducerMap, createFeatureSelector, createSelector, MetaReducer } 
 import { rogerthatReducer, RogerthatState } from '@oca/rogerthat';
 import { CallStateType, ResultState } from '@oca/shared';
 import { environment } from '../environments/environment';
-import { GetStreetsResult, TrashActivity, TrashCollection, TrashHouseNumber, UITrashCollection } from './trash';
+import {
+  GetStreetsResult,
+  supportedIcons,
+  TrashActivity,
+  TrashCollection,
+  TrashHouseNumber,
+  UITrashCollection,
+  unknownIcon,
+} from './trash';
 import { trashReducer } from './trash-reducer';
 
 export interface TrashUserDataValue {
@@ -78,7 +86,11 @@ export const getCollections = createSelector(getTrashUserdata, s => {
     if (date > today0) {
       const epoch = date.getTime();
       const uiCollection = collectionMap.get(epoch) ?? { date, epoch, activities: [] };
-      uiCollection.activities.push({ name: collection.activity.name, iconUrl: `/assets/images/${collection.activity.icon}.png` });
+      let icon = collection.activity.icon;
+      if (!supportedIcons.includes(icon)) {
+        icon = unknownIcon;
+      }
+      uiCollection.activities.push({ name: collection.activity.name, iconUrl: `/assets/images/${icon}.png` });
       collectionMap.set(epoch, uiCollection);
     }
   }

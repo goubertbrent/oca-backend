@@ -57,3 +57,7 @@ export interface UITrashCollection {
   epoch: number;
   activities: UiTrashActivity[];
 }
+
+// From assets/images/*.png
+export const supportedIcons = ['gft', 'grofvuil', 'huisvuil', 'kerstboom', 'metaal', 'mixed_plastics', 'papier', 'pmd', 'textiel', 'tuin'];
+export const unknownIcon = 'unknown';
