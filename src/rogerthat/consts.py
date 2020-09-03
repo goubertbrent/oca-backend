@@ -41,16 +41,6 @@ MIGRATION_QUEUE6 = "migration-queue6"
 MIGRATION_QUEUE7 = "migration-queue7"
 MIGRATION_QUEUE8 = "migration-queue8"
 MIGRATION_QUEUE9 = "migration-queue9"
-MIGRATION_QUEUE10 = "migration-queue10"
-MIGRATION_QUEUE11 = "migration-queue11"
-MIGRATION_QUEUE12 = "migration-queue12"
-MIGRATION_QUEUE13 = "migration-queue13"
-MIGRATION_QUEUE14 = "migration-queue14"
-MIGRATION_QUEUE15 = "migration-queue15"
-MIGRATION_QUEUE16 = "migration-queue16"
-MIGRATION_QUEUE17 = "migration-queue17"
-MIGRATION_QUEUE18 = "migration-queue18"
-MIGRATION_QUEUE19 = "migration-queue19"
 ALL_MIGRATION_QUEUES = [MIGRATION_QUEUE2,
                         MIGRATION_QUEUE3,
                         MIGRATION_QUEUE4,
@@ -58,17 +48,7 @@ ALL_MIGRATION_QUEUES = [MIGRATION_QUEUE2,
                         MIGRATION_QUEUE6,
                         MIGRATION_QUEUE7,
                         MIGRATION_QUEUE8,
-                        MIGRATION_QUEUE9,
-                        MIGRATION_QUEUE10,
-                        MIGRATION_QUEUE11,
-                        MIGRATION_QUEUE12,
-                        MIGRATION_QUEUE13,
-                        MIGRATION_QUEUE14,
-                        MIGRATION_QUEUE15,
-                        MIGRATION_QUEUE16,
-                        MIGRATION_QUEUE17,
-                        MIGRATION_QUEUE18,
-                        MIGRATION_QUEUE19]
+                        MIGRATION_QUEUE9]
 STATS_QUEUE = "stats"
 HIGH_LOAD_CONTROLLER_QUEUE = "highload-controller-queue"
 HIGH_LOAD_WORKER_QUEUE = "highload-worker-queue"
