@@ -38,7 +38,7 @@ const rogerthat = {
     },
   },
   user: {
-    language: 'en',
+    language: 'nl_BE',
     firstName: 'FirstName',
     lastName: 'LastName',
     data: {},

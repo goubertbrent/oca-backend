@@ -7,7 +7,7 @@ import { Platform } from '@ionic/angular';
 import { Actions } from '@ngrx/effects';
 import { TranslateService } from '@ngx-translate/core';
 import { RogerthatService } from '@oca/rogerthat';
-import { DEFAULT_LOCALE, getLanguage } from '@oca/shared';
+import { DEFAULT_LOCALE, getLanguage, setColor } from '@oca/shared';
 
 
 @Component({
@@ -28,41 +28,39 @@ export class AppComponent {
               private actions$: Actions,
               private location: Location,
               private router: Router) {
-    this.initializeApp();
+    this.initializeApp().catch(err => console.error(err));
   }
 
-  initializeApp() {
+  async initializeApp() {
     this.translate.setDefaultLang(DEFAULT_LOCALE);
-    this.platform.ready().then(() => {
-      // @ts-ignore
-      const hasCordova = typeof cordova !== 'undefined';
-      if (hasCordova) {
-        this.splashScreen.hide();
-        this.platform.backButton.subscribe(() => {
-          if (this.shouldExitApp()) {
-            this.exit();
-          }
-        });
+    this.splashScreen.hide();
+    this.platform.backButton.subscribe(async () => {
+      if (this.shouldExitApp()) {
+        this.exit();
       }
+    });
+    await this.platform.ready();
+    rogerthat.callbacks.ready(() => {
+      this.ngZone.run(() => {
+        this.rogerthatService.initialize();
+          this.translate.use(getLanguage(rogerthat.user.language));
+        if (rogerthat.system.colors) {
+          setColor('primary', rogerthat.system.colors.primary);
+          if (rogerthat.system.os === 'ios') {
+            this.statusBar.styleDefault();
+          } else {
+            this.statusBar.backgroundColorByHexString(rogerthat.system.colors.primaryDark);
+          }
+        } else {
+          this.statusBar.styleDefault();
+        }
+      });
       if (rogerthat.system.debug) {
         this.actions$.subscribe(action => {
           const { type, ...rest } = action;
           return console.log(`${type} - ${JSON.stringify(rest)}`);
         });
       }
-      rogerthat.callbacks.ready(() => {
-        this.ngZone.run(() => {
-          this.translate.use(getLanguage(rogerthat.user.language));
-          if (hasCordova) {
-            if (rogerthat.system.os === 'ios') {
-              this.statusBar.styleDefault();
-            } else {
-              this.statusBar.backgroundColorByHexString(rogerthat.system.colors.primaryDark);
-            }
-          }
-          this.rogerthatService.initialize();
-        });
-      });
     });
   }
 

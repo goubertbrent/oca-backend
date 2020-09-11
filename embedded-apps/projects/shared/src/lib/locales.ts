@@ -16,6 +16,7 @@ export const SUPPORTED_LANGUAGES = ['en', 'nl'];
 export const DEFAULT_LANGUAGE = 'nl';
 
 export function getLocaleFromLanguage(language: string) {
+  language = language.replace('_', '-');
   const split = language.split('-');
   for (const locale of SUPPORTED_LOCALES) {
     if (locale.startsWith(language) || split[ 0 ] === locale.split('-')[ 0 ]) {
@@ -26,6 +27,7 @@ export function getLocaleFromLanguage(language: string) {
 }
 
 export function getLanguage(language: string) {
+  language = language.replace('_', '-')
   const split = language.split('-');
   for (const lang of SUPPORTED_LANGUAGES) {
     if (lang.startsWith(language) || split[ 0 ] === language) {
