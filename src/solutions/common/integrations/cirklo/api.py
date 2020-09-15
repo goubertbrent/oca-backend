@@ -22,7 +22,7 @@ from google.appengine.ext import ndb, deferred
 
 from mcfw.cache import invalidate_cache
 from mcfw.consts import REST_TYPE_TO
-from mcfw.exceptions import HttpBadRequestException, HttpForbiddenException
+from mcfw.exceptions import HttpBadRequestException, HttpForbiddenException, HttpNotFoundException
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.service import re_index_map_only
@@ -40,7 +40,8 @@ from solutions.common.bizz.campaignmonitor import send_smart_email_without_check
 from solutions.common.dal import get_solution_settings
 from solutions.common.integrations.cirklo.cirklo import get_city_id_by_service_email, whitelist_merchant, \
     list_whitelisted_merchants
-from solutions.common.integrations.cirklo.models import CirkloCity, CirkloMerchant, SignupNames, SignupMails
+from solutions.common.integrations.cirklo.models import CirkloCity, CirkloMerchant, SignupLanguageProperty, \
+    SignupMails
 from solutions.common.integrations.cirklo.to import CirkloCityTO, CirkloVoucherListTO, CirkloVoucherServiceTO, \
     WhitelistVoucherServiceTO
 from solutions.common.restapi.services import _check_is_city
@@ -151,47 +152,55 @@ def whitelist_voucher_service(data):
     city_sln_settings = get_solution_settings(city_service_user)
     _check_permission(city_sln_settings)
 
-    cirklo_city = CirkloCity.get_by_service_email(city_service_user.email())
+    cirklo_city = CirkloCity.get_by_service_email(city_service_user.email())  # type: CirkloCity
     if not cirklo_city:
-        raise HttpBadRequestException()
-
-    if not (cirklo_city.signup_mails and cirklo_city.signup_mails.accepted and cirklo_city.signup_mails.denied):
-        raise HttpBadRequestException('City settings aren\'t fully setup yet.')
-
-    if data.accepted:
-        whitelist_merchant(cirklo_city.city_id, data.email)
-        deferred.defer(send_smart_email_without_check, cirklo_city.signup_mails.accepted, [data.email], _countdown=1, _queue=FAST_QUEUE)
+        raise HttpNotFoundException('No cirklo settings found.')
+    is_cirklo_only_merchant = '@' not in data.id
+    if is_cirklo_only_merchant:
+        merchant = CirkloMerchant.get_by_id(long(data.id)).get()  # type: CirkloMerchant
+        language = merchant.get_language()
     else:
-        deferred.defer(send_smart_email_without_check, cirklo_city.signup_mails.denied, [data.email], _countdown=1, _queue=FAST_QUEUE)
+        merchant = CirkloMerchant.create_key(data.id).get()
+        language = get_solution_settings(users.User(merchant.service_user_email)).main_language
+    if data.accepted:
+        email_id = cirklo_city.get_signup_accepted_mail(language)
+        if not email_id:
+            raise HttpBadRequestException('City settings aren\'t fully setup yet.')
+        whitelist_merchant(cirklo_city.city_id, data.email)
+        deferred.defer(send_smart_email_without_check, email_id, [data.email], _countdown=1,
+                       _queue=FAST_QUEUE)
+    else:
+        email_id = cirklo_city.get_signup_accepted_mail(language)
+        if not email_id:
+            raise HttpBadRequestException('City settings aren\'t fully setup yet.')
+        deferred.defer(send_smart_email_without_check, email_id, [data.email], _countdown=1,
+                       _queue=FAST_QUEUE)
 
-    if data.id:
-        whitelist_date = datetime.now().isoformat() + 'Z' if data.accepted else None
-        if '@' in data.id:
-            m = CirkloMerchant.create_key(data.id).get()
-            if data.accepted:
-                m.whitelisted = True
-            else:
-                m.denied = True
-            m.put()
-
-            service_info = ServiceInfo.create_key(users.User(m.service_user_email), ServiceIdentity.DEFAULT).get()
-            customer = Customer.get_by_id(m.customer_id)  # type: Customer
-
-            if data.accepted:
-                service_identity_user = create_service_identity_user(customer.service_user)
-                deferred.defer(re_index_map_only, service_identity_user)
-            to = CirkloVoucherServiceTO.from_model(m, whitelist_date, False, u'OSA signup')
-            to.populate_from_info(service_info, customer)
-            return to
+    whitelist_date = datetime.now().isoformat() + 'Z' if data.accepted else None
+    if not is_cirklo_only_merchant:
+        if data.accepted:
+            merchant.whitelisted = True
         else:
-            m = CirkloMerchant.get_by_id(long(data.id))
-            if data.accepted:
-                m.whitelisted = True
-            else:
-                m.denied = True
-            m.put()
+            merchant.denied = True
+        merchant.put()
 
-            return CirkloVoucherServiceTO.from_model(m, whitelist_date, False, u'Cirklo signup')
+        service_info = ServiceInfo.create_key(users.User(merchant.service_user_email), ServiceIdentity.DEFAULT).get()
+        customer = Customer.get_by_id(merchant.customer_id)  # type: Customer
+
+        if data.accepted:
+            service_identity_user = create_service_identity_user(customer.service_user)
+            deferred.defer(re_index_map_only, service_identity_user)
+        to = CirkloVoucherServiceTO.from_model(merchant, whitelist_date, False, u'OSA signup')
+        to.populate_from_info(service_info, customer)
+        return to
+    else:
+        if data.accepted:
+            merchant.whitelisted = True
+        else:
+            merchant.denied = True
+        merchant.put()
+
+        return CirkloVoucherServiceTO.from_model(merchant, whitelist_date, False, u'Cirklo signup')
 
 
 @rest('/common/vouchers/cirklo', 'get')
@@ -227,27 +236,20 @@ def api_vouchers_save_cirklo_settings(data):
         other_city.key.delete()
     invalidate_cache(get_city_id_by_service_email, service_user.email())
     city.logo_url = data.logo_url
-    city.signup_enabled = False
+    city.signup_enabled = data.signup_enabled
     city.signup_logo_url = data.signup_logo_url
-    city.signup_mails = None
     city.signup_names = None
-
-    if data.signup_mail_id_accepted and data.signup_mail_id_denied:
-        city.signup_mails = SignupMails(accepted=data.signup_mail_id_accepted,
-                                        denied=data.signup_mail_id_denied)
+    city.signup_mail = SignupMails.from_to(data.signup_mail)
 
     if data.signup_name_nl and data.signup_name_fr:
-        city.signup_enabled = True
-        city.signup_names = SignupNames(nl=data.signup_name_nl,
-                                        fr=data.signup_name_fr)
+        city.signup_names = SignupLanguageProperty(nl=data.signup_name_nl,
+                                                   fr=data.signup_name_fr)
     elif data.signup_name_nl:
-        city.signup_enabled = True
-        city.signup_names = SignupNames(nl=data.signup_name_nl,
-                                        fr=data.signup_name_nl)
+        city.signup_names = SignupLanguageProperty(nl=data.signup_name_nl,
+                                                   fr=data.signup_name_nl)
     elif data.signup_name_fr:
-        city.signup_enabled = True
-        city.signup_names = SignupNames(nl=data.signup_name_fr,
-                                        fr=data.signup_name_fr)
+        city.signup_names = SignupLanguageProperty(nl=data.signup_name_fr,
+                                                   fr=data.signup_name_fr)
 
     city.put()
     return CirkloCityTO.from_model(city)

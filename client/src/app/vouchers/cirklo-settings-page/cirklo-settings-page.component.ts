@@ -12,14 +12,24 @@ import { areCirkloSettingsLoading, getCirkloSettings } from '../vouchers.selecto
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CirkloSettingsPageComponent implements OnInit, OnDestroy {
+  languages = ['nl', 'fr'];
   formGroup = new FormGroup({
     city_id: new FormControl(null),
     logo_url: new FormControl(null),
+    signup_enabled: new FormControl(false),
     signup_logo_url: new FormControl(null),
     signup_name_nl: new FormControl(null),
     signup_name_fr: new FormControl(null),
-    signup_mail_id_accepted: new FormControl(null),
-    signup_mail_id_denied: new FormControl(null),
+    signup_mail: new FormGroup({
+      accepted: new FormGroup({
+        nl: new FormControl(null),
+        fr: new FormControl(null)
+      }),
+      denied: new FormGroup({
+        nl: new FormControl(null),
+        fr: new FormControl(null)
+      }),
+    }),
   });
   cirkloSettingsLoading$: Observable<boolean>;
   destroyed$ = new Subject();

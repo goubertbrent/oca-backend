@@ -17,12 +17,24 @@ export interface VouchersServiceList {
   results: VoucherService[];
 }
 
+export interface SignupLanguageProperty {
+  nl: string | null;
+  fr: string | null;
+}
+
+export interface SignupMails {
+  accepted: SignupLanguageProperty | null;
+  denied: SignupLanguageProperty | null;
+}
+
 export interface CirkloSettings {
   city_id: string | null;
   logo_url: string | null;
+  signup_enabled: boolean;
   signup_logo_url: string | null;
   signup_name_nl: string | null;
   signup_name_fr: string | null;
+  signup_mail: SignupMails | null;
   signup_mail_id_accepted: string | null;
   signup_mail_id_denied: string | null;
 }

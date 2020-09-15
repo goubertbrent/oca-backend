@@ -81,7 +81,7 @@ def save_consent(data):
             if not cirklo_merchant:
                 service_user = get_service_user_for_city(customer.default_app_id)
                 city_id = CirkloCity.get_by_service_email(service_user.email()).city_id
-                
+
                 cirklo_merchant = CirkloMerchant(key=cirklo_merchant_key)
                 cirklo_merchant.creation_date = datetime.utcfromtimestamp(customer.creation_time)
                 cirklo_merchant.service_user_email = service_user_email

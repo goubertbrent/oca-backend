@@ -151,14 +151,24 @@ class AppVoucherList(TO):
     main_city_id = unicode_property('main_city_id')
 
 
+class SignupLanguagePropertyTO(TO):
+    nl = unicode_property('nl', default=None)
+    fr = unicode_property('fr', default=None)
+
+
+class SignupMailsTO(TO):
+    accepted = typed_property('accepted', SignupLanguagePropertyTO)
+    denied = typed_property('denied', SignupLanguagePropertyTO)
+
+
 class CirkloCityTO(TO):
     city_id = unicode_property('city_id', default=None)
     logo_url = unicode_property('logo_url', default=None)
+    signup_enabled = bool_property('signup_enabled')
     signup_logo_url = unicode_property('signup_logo_url', default=None)
     signup_name_nl = unicode_property('signup_name_nl', default=None)
     signup_name_fr = unicode_property('signup_name_fr', default=None)
-    signup_mail_id_accepted = unicode_property('signup_mail_id_accepted', default=None)
-    signup_mail_id_denied = unicode_property('signup_mail_id_denied', default=None)
+    signup_mail = typed_property('signup_mail', SignupMailsTO)  # type: SignupMailsTO
 
     @classmethod
     def from_model(cls, model):
@@ -167,9 +177,14 @@ class CirkloCityTO(TO):
             return to
         to.city_id = model.city_id
         to.logo_url = model.logo_url
+        to.signup_enabled = model.signup_enabled
         to.signup_logo_url = model.signup_logo_url
         to.signup_name_nl = model.signup_names.nl if model.signup_names else None
         to.signup_name_fr = model.signup_names.fr if model.signup_names else None
-        to.signup_mail_id_accepted = model.signup_mails.accepted if model.signup_mails else None
-        to.signup_mail_id_denied = model.signup_mails.denied if model.signup_mails else None
+        to.signup_mail = SignupMailsTO()
+        to.signup_mail.accepted = SignupLanguagePropertyTO()
+        to.signup_mail.denied = SignupLanguagePropertyTO()
+        if model.signup_mail:
+            to.signup_mail.accepted = SignupLanguagePropertyTO.from_model(model.signup_mail.accepted)
+            to.signup_mail.denied = SignupLanguagePropertyTO.from_model(model.signup_mail.denied)
         return to

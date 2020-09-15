@@ -78,24 +78,38 @@ class CirkloUserVouchers(NdbModel):
         return ndb.Key(cls, app_user.email(), parent=parent_ndb_key(app_user))
 
 
-class SignupNames(NdbModel):
+class SignupLanguageProperty(NdbModel):
     nl = ndb.TextProperty()
     fr = ndb.TextProperty()
 
 
+class OldSignupMails(NdbModel):
+    accepted = ndb.TextProperty(default=None)
+    denied = ndb.TextProperty(default=None)
+
+
 class SignupMails(NdbModel):
-    accepted = ndb.TextProperty()
-    denied = ndb.TextProperty()
+    accepted = ndb.StructuredProperty(SignupLanguageProperty)  # type: SignupLanguageProperty
+    denied = ndb.StructuredProperty(SignupLanguageProperty)  # type: SignupLanguageProperty
+
+    @classmethod
+    def from_to(cls, signup_mail):
+        model = cls()
+        model.accepted = SignupLanguageProperty(**signup_mail.accepted.to_dict())
+        model.denied = SignupLanguageProperty(**signup_mail.denied.to_dict())
+        return model
 
 
 class CirkloCity(NdbModel):
     service_user_email = ndb.StringProperty()
     logo_url = ndb.TextProperty()
 
-    signup_enabled = ndb.BooleanProperty()
+    signup_enabled = ndb.BooleanProperty(default=False)
     signup_logo_url = ndb.TextProperty()
-    signup_names = ndb.LocalStructuredProperty(SignupNames)
-    signup_mails = ndb.LocalStructuredProperty(SignupMails)
+    signup_names = ndb.LocalStructuredProperty(SignupLanguageProperty)
+    # TODO remove after migration
+    signup_mails = ndb.LocalStructuredProperty(OldSignupMails)  # type: OldSignupMails
+    signup_mail = ndb.StructuredProperty(SignupMails)  # type: SignupMails
 
     @property
     def city_id(self):
@@ -118,6 +132,19 @@ class CirkloCity(NdbModel):
     def list_signup_enabled(cls):
         return cls.query().filter(cls.signup_enabled == True)
 
+    def get_signup_accepted_mail(self, language):
+        return self.signup_mail and getattr(self.signup_mail.accepted, self.get_supported_language(language))
+
+    def get_signup_denied_mail(self, language):
+        return self.signup_mail and getattr(self.signup_mail.denied, self.get_supported_language(language))
+
+    @staticmethod
+    def get_supported_language(language):
+        for lang in ['en', 'nl']:
+            if language.startswith(lang):
+                return lang
+        return 'nl'
+
 
 class CirkloMerchant(NdbModel):
     creation_date = ndb.DateTimeProperty(indexed=False, auto_now_add=True)
@@ -131,6 +158,9 @@ class CirkloMerchant(NdbModel):
 
     data = ndb.JsonProperty()  # cirklo only
     emails = ndb.StringProperty(repeated=True, indexed=True)  # cirklo only
+
+    def get_language(self):
+        return self.data.get('language')
 
     @classmethod
     def create_key(cls, service_user_email):
