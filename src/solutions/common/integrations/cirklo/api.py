@@ -157,7 +157,7 @@ def whitelist_voucher_service(data):
         raise HttpNotFoundException('No cirklo settings found.')
     is_cirklo_only_merchant = '@' not in data.id
     if is_cirklo_only_merchant:
-        merchant = CirkloMerchant.get_by_id(long(data.id)).get()  # type: CirkloMerchant
+        merchant = CirkloMerchant.create_key(long(data.id)).get()  # type: CirkloMerchant
         language = merchant.get_language()
     else:
         merchant = CirkloMerchant.create_key(data.id).get()
