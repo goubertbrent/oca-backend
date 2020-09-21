@@ -468,7 +468,9 @@ class ServiceIdentityInfoTO(TO):
     def fromServiceIdentity(cls, service_identity):
         from rogerthat.utils.service import remove_slash_default
         apps = [a for a in get_apps_by_id(service_identity.appIds) if a]
-        meta = [e.strip() for e in service_identity.metaData.split(',') if e.strip()]
+        meta = []
+        if service_identity.metaData:
+            meta = [e.strip() for e in service_identity.metaData.split(',') if e.strip()]
         return ServiceIdentityInfoTO(
             name=service_identity.name,
             email=remove_slash_default(service_identity.user).email(),
@@ -477,7 +479,7 @@ class ServiceIdentityInfoTO(TO):
             default_app=service_identity.defaultAppId,
             app_ids=[app.app_id for app in apps],
             app_names=[app.name for app in apps],
-            admin_emails=[] if service_identity.metaData is None else meta,
+            admin_emails=meta,
         )
 
 
