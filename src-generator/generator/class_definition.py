@@ -51,6 +51,10 @@ class ClassDefinition(object):
     def full_name(self):
         return "%s.%s" % (self.package, self.name)
 
+    @property
+    def super_interface(self):
+        return '.'.join((self.super_class.package, 'I' + self.super_class.name)) if self.super_class else None
+
     def __str__(self):
         return self.full_name
 
@@ -69,7 +73,7 @@ def key_type(factory):
 
 class AttrDefinition(object):
 
-    def __init__(self, name=None, type_=None, collection_type=None, doc=None, default=MISSING, subtype=None):
+    def __init__(self, name=None, type_=None, collection_type=None, doc=None, default=MISSING, subtype=None, required=False):
         self.name = name
         if type_.startswith('rogerthat.'):
             type_ = type_.replace('rogerthat.', 'com.mobicage.', 1)
@@ -78,6 +82,7 @@ class AttrDefinition(object):
         self.doc = doc
         self.default = default
         self.subtype = subtype
+        self.required = required
 
     def __str__(self):
         return "%s %s" % (self.type, self.name)

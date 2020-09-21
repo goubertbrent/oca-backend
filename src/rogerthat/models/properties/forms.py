@@ -262,7 +262,7 @@ class Pay(Widget):
     auto_submit = bool_property('4', default=True)
     test_mode = bool_property('5', default=False)
     embedded_app_id = unicode_property('6', default=None)
-    base_method = typed_property('7', BasePaymentMethod, default=None)  # type: BasePaymentMethod
+    base_method = typed_property('7', BasePaymentMethod, default=None, required=False)  # type: BasePaymentMethod
 
 
 def _serialize_choice(stream, c):
@@ -903,8 +903,8 @@ class SignWidgetResult(WidgetResult):
 
     def get_value(self):
         return self
-    
-    
+
+
 class PayWidgetResult(WidgetResult):
     TYPE = WidgetResult.TYPE_PAY
     transaction_id = unicode_property('50')

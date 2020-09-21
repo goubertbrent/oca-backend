@@ -1,0 +1,89 @@
+mobicage-android-client/rogerthat/src/main/java/{{ to.package|common_replace_dots }}/{{ to.name }}.kt
+{{ LICENSE|safe  }}
+
+package {{ to.package }}
+
+import com.mobicage.rpc.IJSONable
+import com.mobicage.rpc.IncompleteMessageException
+{% if to | needs_linked_hashmap_import %}
+import java.util.LinkedHashMap
+{%- endif %}
+import java.util.Map
+
+interface I{{ to.name }}: IJSONable{% if to.super_class %}, {{ to.super_interface }}{% endif %} {
+{%- for field in to.fields %}{% if field|common_is_object_factory %}{% continue %}{% endif %}
+    val {{field.name}}: {{ field|kotlin_map_type(field.collection_type) }}{% endfor %}
+}
+@Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
+{% if to.fields %}data {% endif %}class {{ to.name }}({% for field in to.fields %}{% if field|common_is_object_factory %}{% continue %}{% endif %}
+        @JvmField override val {{field.name}}: {{ field|kotlin_map_type(field.collection_type) }}
+        {%- if field.default != MISSING %} = {{ field | kotlin_default_value }}{%- endif -%}
+        ,{% endfor %}{% if to.super_class %}
+        private val base: {{ to.super_interface }},{%- endif %}
+) : {% if to.super_class %}{{ to.super_interface }} by base, {% endif %}I{{ to.name }} {
+    companion object { {%- if to|java_has_complex_field %}
+        @SuppressWarnings("unchecked"){% endif %}
+        @Throws(IncompleteMessageException::class)
+        fun fromJSONMap(json: Map<String, Any?>): {{ to.name }} {
+    {%- for field in to.fields %}{% if field|common_is_object_factory %}{% continue %}{% endif %}
+            val {{ field.name }}: {{ field | kotlin_map_type(field.collection_type) }}
+            if (json.containsKey("{{ field.name }}")) { {%- if field.collection_type %}
+                val valueArray = json["{{ field.name }}"] as org.json.simple.JSONArray
+                {{ field.name }} = valueArray.map {
+                {%- if field.type|common_is_simple_type %}{% if field.type == "float" %}
+                    (it as Number).toFloat(){% elif field.type == 'unicode' %}
+                    it as String{% else %}
+                    it as {{ field | kotlin_map_type(false) }}{% endif %}{% else %} {# Non simple type #}
+                    val item = it as Map<String, Any?>
+                    {% if field.subtype %}if (item.containsKey("{{ field.subtype.type.subtype_attr_name }}")) {
+                        when (item["{{ field.subtype.type.subtype_attr_name }}"] as {{field.subtype.key_type | kotlin_subtype }}){
+                            {% for key in field.subtype.type.subtype_mapping %}{{ key | literal_value }} -> {{ field.subtype.subtype_name(key) }}.fromJSONMap(item)
+                            {% endfor %}else -> {{ field.type }}.fromJSONMap(item)
+                        } as {{ field.type }}
+                    } else {
+                        throw IncompleteMessageException("{{ field.type }} is missing field '{{ field.subtype.type.subtype_attr_name  }}'")
+                    }{% else %}{{ field.type }}.fromJSONMap(item){% endif %}{% endif %}
+                }
+                {% else %}
+                {% if field.type|common_is_simple_type %}val tmpVal = json["{{ field.name }}"]{% if field.type == "float" %}
+                {{ field.name }} = (tmpVal as Number).toFloat()
+                {% else %}{% if field.type == "int" or field.type == "long" %}
+                {{ field.name }} = (tmpVal as Number).toLong(){% else %}
+                {{ field.name }} = tmpVal as {{ field | kotlin_map_type(false)}}
+                {%- endif %}{% endif %}{% else %}val tmpVal = json["{{ field.name }}"] as Map<String, Any?>{% if not field.required %}?{% endif %}
+                {% if field.subtype %}{{ field.name }} = if ({% if not field.required %}tmpVal != null && {% endif %}tmpVal.containsKey("{{ field.subtype.type.subtype_attr_name }}")) {
+                    when (tmpVal["{{ field.subtype.type.subtype_attr_name }}"] as {{field.subtype.key_type | kotlin_subtype }}){
+                        {% for key in field.subtype.type.subtype_mapping %}{{ key | literal_value }} -> {{ field.subtype.subtype_name(key) }}.fromJSONMap(tmpVal)
+                        {% endfor %}else -> {{ field.type }}.fromJSONMap(tmpVal)
+                    } as {{ field.type }}
+                } else {
+                    throw IncompleteMessageException("{{ field.type }} is missing field '{{ field.subtype.type.subtype_attr_name  }}'")
+                }{% else %}{{ field.name }} = {% if not field.required %}if (tmpVal == null) null else {% endif %}{{ field.type }}.fromJSONMap(tmpVal){% endif %}{% endif %}{% endif %}
+            } else { {%- if field.default != MISSING %}
+                {{ field.name }} = {{ field | kotlin_default_value | safe }}{% else %}
+                throw IncompleteMessageException("{{ to.full_name }} is missing field '{{ field.name }}'"){% endif %}
+            }{% endfor %}
+            {%- if to.super_class %}
+            val base = {{ to.super_class }}.fromJSONMap(json){% endif %}
+            return {{ to.name }}(
+                {% for field in to.fields %}{{ field.name }},{% if not loop.last or to.super_class %}
+                {% endif %}{% endfor %}{% if to.super_class -%}base,{% endif %}
+            )
+        }
+    }
+    {% if to|java_has_list_field %}
+    @SuppressWarnings("unchecked"){% endif %}
+    override fun toJSONMap(): LinkedHashMap<String, Any?> {
+        val obj = {% if to.super_class %}base.toJSONMap(){% else %}LinkedHashMap<String, Any?>(){% endif %}
+        {%- for field in to.fields %}
+        {%- if field|common_is_object_factory %}{% continue %}{% endif %}
+        {%- if field.collection_type %}
+        obj["{{ field.name }}"] = org.json.simple.JSONArray().apply{
+            {{ field.name }}.mapTo(this) { {%- if field.type|common_is_simple_type %}it{% else %}it.toJSONMap(){% endif %} }
+        }{% else %}{% if field.type|common_is_simple_type %}
+        obj["{{ field.name }}"] = {{ field.name }}{% else %}
+        obj["{{ field.name }}"] = {{ field.name }}{% if not field.required %}?{% endif %}.toJSONMap(){% endif %}{% endif %}{% endfor %}
+        return obj
+    }
+
+}

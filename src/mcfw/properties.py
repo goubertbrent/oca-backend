@@ -88,7 +88,7 @@ class object_factory(object):
 class typed_property(object):
 
     def __init__(self, name, type_, list_=False, doc=None, subtype_attr_name=None, subtype_mapping=None,
-                 default=MISSING, hash_serializer=str):
+                 default=MISSING, hash_serializer=str, required=None):
         self.type = type_
         self.list = list_
         self.attr_name = u"_%s" % name
@@ -109,6 +109,15 @@ class typed_property(object):
                        "None not allowed for %s properties" % self.type)
 
         self.default = default
+        if default is None:
+            if required is True:
+                raise Exception('default cannot be None when required is True')
+            else:
+                # When setting 'default' to None, set 'required' to False automatically
+                required = False
+        if required is None:
+            required = True
+        self.required = required
         self.__name__ = name
 
     def __doc__(self):
@@ -161,7 +170,7 @@ class typed_property(object):
         return subtype
 
 
-unicode_property = unicode_list_property = None
+unicode_list_property = None
 bool_property = bool_list_property = None
 long_property = long_list_property = None
 float_property = float_list_property = None
@@ -179,8 +188,9 @@ def _generate_properties():
             (bool, False, "bool_property", str),
             (bool, True, "bool_list_property", str)):
         def wrap(t, l):
-            def init(self, name, doc=None, default=MISSING, hash_serializer=hash_serializer):
-                typed_property.__init__(self, name, t, l, doc, default=default, hash_serializer=hash_serializer)
+            def init(self, name, doc=None, default=MISSING, hash_serializer=hash_serializer, required=True):
+                typed_property.__init__(self, name, t, l, doc, default=default, hash_serializer=hash_serializer,
+                                        required=required)
 
             return init
 
@@ -194,9 +204,9 @@ del _this_mod
 
 class unicode_property(typed_property):
 
-    def __init__(self, name, doc=None, empty_string_is_null=False, default=MISSING):
+    def __init__(self, name, doc=None, empty_string_is_null=False, default=MISSING, required=False):
         typed_property.__init__(self, name, unicode, False, doc, default=default,
-                                hash_serializer=lambda x: __none__ if x is None else x.encode('utf8'))
+                                hash_serializer=lambda x: __none__ if x is None else x.encode('utf8'), required=required)
         self._empty_string_is_null = empty_string_is_null
 
     def __get__(self, instance, owner):

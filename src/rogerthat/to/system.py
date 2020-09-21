@@ -230,8 +230,8 @@ class GetIdentityResponseTO(object):
     shortUrl = unicode_property('2')
 
 
-class ForwardLogsRequestTO(object):
-    jid = unicode_property('1')
+class ForwardLogsRequestTO(TO):
+    jid = unicode_property('1', required=True)
 
 
 class ForwardLogsResponseTO(object):

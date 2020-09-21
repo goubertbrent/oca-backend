@@ -185,7 +185,7 @@ class JobCriteriaGeoLocationTO(TO):
 
 class JobCriteriaLocationTO(TO):
     address = unicode_property('1')
-    geo = typed_property('2', JobCriteriaGeoLocationTO)  # type: JobCriteriaGeoLocationTO
+    geo = typed_property('2', JobCriteriaGeoLocationTO, required=False)  # type: JobCriteriaGeoLocationTO
     distance = long_property('3')
 
 

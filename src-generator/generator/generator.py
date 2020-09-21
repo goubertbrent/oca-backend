@@ -73,7 +73,8 @@ def populate_class_def_fields(class_def, type_, prop, name):
                               collection_type=collection,
                               doc=prop.doc,
                               default=prop.default,
-                              subtype=_get_subtype(class_def, name))
+                              subtype=_get_subtype(class_def, name),
+                              required=prop.required)
     class_def.fields.append(attr_def)
 
 

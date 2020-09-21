@@ -25,9 +25,41 @@ JAVA_TYPE_MAPPING = {
     'long': 'long'
 }
 
+KOTLIN_TYPE_MAPPING = {
+    'unicode': 'String',
+    'bool': 'Boolean',
+    'float': 'Float',
+    'int': 'Long',
+    'long': 'Long'
+}
+
 
 def java_map_type(value):
     return JAVA_TYPE_MAPPING.get(value, value)
+
+
+def kotlin_map_type(field, is_array, interface=False):
+    value = field.type
+    type_ = KOTLIN_TYPE_MAPPING.get(value, value)
+    if interface and value not in KOTLIN_TYPE_MAPPING:
+        split = type_.split('.')
+        split[-1] = 'I' + split[-1]
+        type_ = '.'.join(split)
+    if is_array:
+        return 'List<%s>' % type_
+    if type_ == 'String' or value not in KOTLIN_TYPE_MAPPING:
+        if field.required:
+            return type_
+        return type_ + '?'
+    return type_
+
+
+def kotlin_subtype(value):
+    if value in ('int', 'long'):
+        return 'Int'
+    elif value == 'unicode':
+        return 'String'
+    raise Exception('unsupported subtype ' + value)
 
 
 def java_parcel_read(field):
@@ -101,6 +133,27 @@ def java_default_value(field):
         return '"%s"' % field.default
     if field.type == 'bool':
         return 'true' if field.default else 'false'
+    return field.default
+
+
+def kotlin_default_value(field):
+    if field.default is MISSING:
+        raise Exception("There is no default value (field: %s)" % field.name)
+
+    if field.default is None:
+        return 'null'
+    if field.collection_type:
+        return "mutableListOf()"
+
+    if field.type not in JAVA_TYPE_MAPPING:
+        raise Exception("field.type (%s) not in JAVA_TYPE_MAPPING" % field.type)
+
+    if field.type == 'unicode':
+        return '"%s"' % field.default
+    if field.type == 'bool':
+        return 'true' if field.default else 'false'
+    if field.type == 'float':
+        return '%sf' % field.default
     return field.default
 
 
