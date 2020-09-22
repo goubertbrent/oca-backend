@@ -377,7 +377,7 @@ class Customer(db.Model):
 
     @property
     def service_user(self):
-        return users.User(self.service_email)
+        return users.User(self.service_email) if self.service_email else None
 
     @property
     def country_str(self):

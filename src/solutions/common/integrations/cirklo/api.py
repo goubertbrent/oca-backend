@@ -18,7 +18,8 @@
 import logging
 from datetime import datetime
 
-from google.appengine.ext import ndb, deferred
+from google.appengine.ext import ndb, deferred, db
+from typing import List
 
 from mcfw.cache import invalidate_cache
 from mcfw.consts import REST_TYPE_TO
@@ -77,64 +78,64 @@ def get_cirklo_vouchers_services():
     cirklo_merchants = list_whitelisted_merchants(cirklo_city.city_id)
     cirklo_dict = {}
     cirklo_emails = []
-    for m in cirklo_merchants:
-        if m['email'] in cirklo_emails:
-            logging.error('Duplicate found %s', m['email'])
+    for merchant in cirklo_merchants:
+        if merchant['email'] in cirklo_emails:
+            logging.error('Duplicate found %s', merchant['email'])
             continue
-        cirklo_emails.append(m['email'])
-        cirklo_dict[m['email']] = m
+        cirklo_emails.append(merchant['email'])
+        cirklo_dict[merchant['email']] = merchant
 
-    qry = CirkloMerchant.list_by_city_id(cirklo_city.city_id)
+    qry = CirkloMerchant.list_by_city_id(cirklo_city.city_id)  # type: List[CirkloMerchant]
     osa_merchants = []
-    for m in qry:
-        if m.service_user_email:
-            osa_merchants.append(m)
+    for merchant in qry:
+        if merchant.service_user_email:
+            osa_merchants.append(merchant)
         else:
-            cirklo_merchant = cirklo_dict.get(m.data['company']['email'])
+            cirklo_merchant = cirklo_dict.get(merchant.data['company']['email'])
             if cirklo_merchant:
-                if m.data['company']['email'] in cirklo_emails:
-                    cirklo_emails.remove(m.data['company']['email'])
-                if not m.whitelisted:
-                    m.whitelisted = True
-                    m.put()
-            elif m.whitelisted:
-                m.whitelisted = False
-                m.put()
+                if merchant.data['company']['email'] in cirklo_emails:
+                    cirklo_emails.remove(merchant.data['company']['email'])
+                if not merchant.whitelisted:
+                    merchant.whitelisted = True
+                    merchant.put()
+            elif merchant.whitelisted:
+                merchant.whitelisted = False
+                merchant.put()
 
             whitelist_date = cirklo_merchant['createdAt'] if cirklo_merchant else None
             merchant_registered = 'shopInfo' in cirklo_merchant if cirklo_merchant else False
-            to.results.append(CirkloVoucherServiceTO.from_model(m, whitelist_date, merchant_registered, u'Cirklo signup'))
+            to.results.append(
+                CirkloVoucherServiceTO.from_model(merchant, whitelist_date, merchant_registered, u'Cirklo signup'))
 
     if osa_merchants:
-        customer_to_get = [m.customer_id for m in osa_merchants]
-        customers_dict = {}
-        for c in Customer.get_by_id(customer_to_get):
-            customers_dict[c.id] = c
-        info_keys = [ServiceInfo.create_key(users.User(m.service_user_email), ServiceIdentity.DEFAULT) for m in osa_merchants]
+        customer_to_get = [Customer.create_key(merchant.customer_id) for merchant in osa_merchants]
+        customers_dict = {customer.id: customer for customer in db.get(customer_to_get)}
+        info_keys = [ServiceInfo.create_key(users.User(merchant.service_user_email), ServiceIdentity.DEFAULT)
+                     for merchant in osa_merchants]
         models = ndb.get_multi(info_keys)
 
-        for service_info, m in zip(models, osa_merchants):
-            customer = customers_dict[m.customer_id]
+        for service_info, merchant in zip(models, osa_merchants):
+            customer = customers_dict[merchant.customer_id]
             cirklo_merchant = cirklo_dict.get(customer.user_email)
             should_save = False
             if cirklo_merchant:
                 if customer.user_email in cirklo_emails:
                     cirklo_emails.remove(customer.user_email)
-                if not m.whitelisted:
-                    m.whitelisted = True
+                if not merchant.whitelisted:
+                    merchant.whitelisted = True
                     should_save = True
-            elif m.whitelisted:
-                m.whitelisted = False
+            elif merchant.whitelisted:
+                merchant.whitelisted = False
                 should_save = True
 
             if should_save:
-                m.put()
+                merchant.put()
                 service_identity_user = create_service_identity_user(customer.service_user)
                 deferred.defer(re_index_map_only, service_identity_user)
 
             whitelist_date = cirklo_merchant['createdAt'] if cirklo_merchant else None
             merchant_registered = 'shopInfo' in cirklo_merchant if cirklo_merchant else False
-            service_to = CirkloVoucherServiceTO.from_model(m, whitelist_date,  merchant_registered, u'OSA signup')
+            service_to = CirkloVoucherServiceTO.from_model(merchant, whitelist_date, merchant_registered, u'OSA signup')
             service_to.populate_from_info(service_info, customer)
             to.results.append(service_to)
 

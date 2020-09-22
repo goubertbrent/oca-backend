@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
-
+import logging
 from datetime import datetime
 
 from mcfw.consts import REST_TYPE_TO
@@ -70,8 +70,6 @@ def save_consent(data):
     customer = get_customer(users.get_current_user())
     context = u'User dashboard'
     headers = get_headers_for_consent(GenericRESTRequestHandler.getCurrentRequest())
-    # User can enable the consent, but can only disable the actual voucher settings.
-    # This way they can't enable themselves again when the city has disabled them
     update_customer_consents(customer.user_email, {data.type: data.enabled}, headers, context)
     if data.type == SolutionServiceConsent.TYPE_CIRKLO_SHARE:
         service_user_email = customer.service_user.email()
@@ -91,6 +89,7 @@ def save_consent(data):
                 cirklo_merchant.whitelisted = check_merchant_whitelisted(city_id, customer.user_email)
                 cirklo_merchant.denied = False
                 cirklo_merchant.put()
+                logging.debug('Creating cirklo merchant: %s', cirklo_merchant)
         else:
             cirklo_merchant_key.delete()
 

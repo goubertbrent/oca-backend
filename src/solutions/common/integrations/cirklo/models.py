@@ -164,7 +164,7 @@ class CirkloMerchant(NdbModel):
 
     @classmethod
     def create_key(cls, service_user_email):
-        # this is only used for normal customers that want to use cirklo
+        # this is only used for normal customers that kgawant to use cirklo
         return ndb.Key(cls, service_user_email)
 
     @classmethod

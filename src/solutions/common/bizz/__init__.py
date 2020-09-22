@@ -598,8 +598,8 @@ def _execute_consent_actions(service_user):
     consents = get_customer_consents(customer.user_email)
     # If consent was given, automatically allow cirklo data to be shared instead of requiring city to toggle this
     if consents.TYPE_CIRKLO_SHARE in consents.types:
-        service_user = get_service_user_for_city(customer.default_app_id)
-        city_id = CirkloCity.get_by_service_email(service_user.email()).city_id
+        city_service_user = get_service_user_for_city(customer.default_app_id)
+        city_id = CirkloCity.get_by_service_email(city_service_user.email()).city_id
 
         service_user_email = service_user.email()
         cirklo_merchant = CirkloMerchant(key=CirkloMerchant.create_key(service_user_email))
@@ -611,6 +611,7 @@ def _execute_consent_actions(service_user):
         cirklo_merchant.whitelisted = check_merchant_whitelisted(city_id, customer.user_email)
         cirklo_merchant.denied = False
         cirklo_merchant.put()
+        logging.info('Created cirklo merchant: %s', cirklo_merchant)
 
 
 def get_default_cover_media(organization_type):

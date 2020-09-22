@@ -705,7 +705,7 @@ class CustomerCirkloAcceptHandler(PublicPageHandler):
         from solutions.common.dal.cityapp import get_service_user_for_city
         try:
             customer_id = self.request.get('cid')
-            customer = Customer.get_by_id(long(customer_id))
+            customer = Customer.get_by_id(long(customer_id))  # type: Customer
             if not customer:
                 raise Exception('Customer not found')
         except:
@@ -733,6 +733,7 @@ class CustomerCirkloAcceptHandler(PublicPageHandler):
             if not cirklo_merchant:
                 cirklo_merchant = CirkloMerchant(key=cirklo_merchant_key)  # type: CirkloMerchant
                 cirklo_merchant.denied = False
+                logging.debug('Creating new cirklo merchant')
             cirklo_merchant.creation_date = datetime.datetime.utcfromtimestamp(customer.creation_time)
             cirklo_merchant.service_user_email = service_user_email
             cirklo_merchant.customer_id = customer.id
@@ -740,9 +741,12 @@ class CustomerCirkloAcceptHandler(PublicPageHandler):
             cirklo_merchant.data = None
             cirklo_merchant.whitelisted = check_merchant_whitelisted(city_id, customer.user_email)
             cirklo_merchant.put()
+            logging.debug('Saving cirklo merchant: %s', cirklo_merchant)
 
             service_identity_user = create_service_identity_user(customer.service_user)
             try_or_defer(re_index_map_only, service_identity_user)
+        else:
+            logging.debug('Not saving cirklo merchant, consents:', consents)
 
         self.redirect(self.get_url(customer))
 
@@ -813,10 +817,10 @@ class VouchersCirkloSignupHandler(PublicPageHandler):
 
         if not CirkloCity.create_key(json_data['city_id']).get():
             logging.debug('CirkloCity was invalid')
-            self.abort(400)            
+            self.abort(400)
 
         self.response.headers['Content-Type'] = 'text/json'
-        found_in_db =  check_merchant_whitelisted(json_data['city_id'], json_data['company']['email'])
+        found_in_db = check_merchant_whitelisted(json_data['city_id'], json_data['company']['email'])
         if found_in_db:
             logging.debug('email found in cirklo db')
         else:
