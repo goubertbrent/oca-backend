@@ -148,7 +148,10 @@ def _3_migrate_customers():
     communities = _get_default_communities()
     to_put = []
     for customer in Customer.all():  # type: Customer
-        customer.community_id = communities[customer.app_id]
+        if customer.app_id in communities:
+            customer.community_id = communities[customer.app_id]
+        else:
+            customer.community_id = 0
         to_put.append(customer)
     put_in_chunks(to_put)
     re_index_all_customers()
@@ -173,9 +176,13 @@ def _get_service_profiles():
 def _set_community_id_on_user_profiles(profile_keys, communities):
     # type: (List[db.Key], Dict[str, int]) -> None
     profiles = db.get(profile_keys)  # type: List[UserProfile]
+    to_put = []
     for profile in profiles:
+        if not profile:
+            continue
         profile.community_id = communities[profile.app_id]
-    put_and_invalidate_cache(*profiles)
+        to_put.append(profile)
+    put_and_invalidate_cache(*to_put)
 
 
 def _set_community_id_on_service_profiles(profile_keys, communities):
@@ -204,15 +211,12 @@ def _fetch_all_news():
 
 def _migrate_news_items(keys, community_mappings):
     # type: (List[ndb.Key], Dict[str, int]) -> None
+    skipped_app_ids = [u'em-mobietrain', u'em-be-mobietrain-demo2', u'be-wielsbeke-leeft']
     news_items = ndb.get_multi(keys)  # type: List[NewsItem]
     for news_item in news_items:
-        if DEBUG:
-            news_item.community_ids = [community_mappings[app_id] for app_id in news_item.app_ids]
-        else:
-            news_item.community_ids = [community_mappings[app_id] for app_id in news_item.app_ids
-                                       if app_id not in BLACKLISTED_APP_IDS]
+        news_item.community_ids = [community_mappings[app_id] for app_id in news_item.app_ids if app_id not in skipped_app_ids]
         if not news_item.community_ids:
-            logging.warning('News item has no communities: %s', news_item.id)
+            logging.warning('News item has no communities:%s', news_item.id)
     ndb.put_multi(news_items)
 
 
@@ -229,8 +233,6 @@ def _7_migrate_rss():
             for app_id in link.app_ids:
                 if DEBUG and app_id not in communities:
                     continue
-                if app_id in BLACKLISTED_APP_IDS:
-                    continue
                 link.community_ids.append(communities[app_id])
         to_put.append(rss_settings)
     ndb.put_multi(to_put)
@@ -246,6 +248,8 @@ def _8_migrate_events(dry_run=True):
         events, start_cursor, has_more = Event.query().fetch_page(500, start_cursor=start_cursor)
         total_updated += len(events)
         for event in events:
+            if not event.app_ids:
+                continue
             app_id = event.app_ids[0]
             event.community_id = communities[app_id]
         if not dry_run:
