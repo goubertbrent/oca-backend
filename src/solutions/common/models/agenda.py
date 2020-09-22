@@ -99,6 +99,7 @@ class Event(NdbModel):
     SOURCE_GOOGLE_CALENDAR = 2
 
     app_ids = ndb.StringProperty(indexed=True, repeated=True)
+    community_id = ndb.IntegerProperty() # todo communities
     organization_type = ndb.IntegerProperty(indexed=True)
     calendar_id = ndb.IntegerProperty(indexed=True)
     source = ndb.IntegerProperty(indexed=True, default=SOURCE_CMS)

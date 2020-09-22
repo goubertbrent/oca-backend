@@ -77,10 +77,14 @@ def setup_default_groups_app(app_id):
     to_put = [ns]
 
     app = get_app_by_id(app_id)
+    
+    azzert(len(app.community_ids) == 1, "Community was NOT provided but len(app.community_ids) != 1")
+    community_id = app.community_ids[0]
 
     ng1 = NewsGroup(key=NewsGroup.create_key(guid()))
     ng1.name = u'%s CITY' % app.name
     ng1.app_id = app.app_id
+    ng1.community_id = community_id
     ng1.group_type = NewsGroup.TYPE_CITY
     ng1.regional = False
     ng1.default_order = 10
@@ -91,6 +95,7 @@ def setup_default_groups_app(app_id):
     ng2 = NewsGroup(key=NewsGroup.create_key(guid()))
     ng2.name = u'%s PROMOTIONS' % app.name
     ng2.app_id = app.app_id
+    ng2.community_id = community_id
     ng2.group_type = NewsGroup.TYPE_PROMOTIONS
     ng2.regional = False
     ng2.default_order = 20
@@ -101,6 +106,7 @@ def setup_default_groups_app(app_id):
     ng3 = NewsGroup(key=NewsGroup.create_key(guid()))
     ng3.name = u'%s PROMOTIONS (regional)' % app.name
     ng3.app_id = app.app_id
+    ng3.community_id = community_id
     ng3.group_type = NewsGroup.TYPE_PROMOTIONS
     ng3.regional = True
     ng3.default_order = 20
@@ -110,6 +116,7 @@ def setup_default_groups_app(app_id):
     ng4 = NewsGroup(key=NewsGroup.create_key(guid()))
     ng4.name = u'%s EVENTS' % app.name
     ng4.app_id = app.app_id
+    ng4.community_id = community_id
     ng4.group_type = NewsGroup.TYPE_EVENTS
     ng4.regional = False
     ng4.default_order = 30
@@ -120,6 +127,7 @@ def setup_default_groups_app(app_id):
     ng5 = NewsGroup(key=NewsGroup.create_key(guid()))
     ng5.name = u'%s TRAFFIC' % app.name
     ng5.app_id = app.app_id
+    ng5.community_id = community_id
     ng5.group_type = NewsGroup.TYPE_TRAFFIC
     ng5.regional = False
     ng5.default_order = 40
@@ -130,6 +138,7 @@ def setup_default_groups_app(app_id):
     ng6 = NewsGroup(key=NewsGroup.create_key(guid()))
     ng6.name = u'%s PRESS' % app.name
     ng6.app_id = app.app_id
+    ng6.community_id = community_id
     ng6.group_type = NewsGroup.TYPE_PRESS
     ng6.regional = False
     ng6.default_order = 50
@@ -141,6 +150,7 @@ def setup_default_groups_app(app_id):
     ng7 = NewsGroup(key=NewsGroup.create_key(guid()))
     ng7.name = u'%s POLLS' % app.name
     ng7.app_id = app.app_id
+    ng7.community_id = community_id
     ng7.send_notifications = False
     ng7.group_type = NewsGroup.TYPE_POLLS
     ng7.regional = False

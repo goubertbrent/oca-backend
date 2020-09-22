@@ -64,6 +64,9 @@ def create_news_index(config):
                 'app_ids': {
                     'type': 'keyword'
                 },
+                'community_ids': {
+                    'type': 'keyword'
+                },
                 'txt': {
                     'type': 'text'
                 },
@@ -111,6 +114,7 @@ def re_index_news_item(news_item):
     timestamp = news_item.scheduled_at if news_item.scheduled_at else news_item.timestamp
     doc = {
         'app_ids': news_item.app_ids,
+        'community_ids': news_item.community_ids,
         'timestamp': datetime.utcfromtimestamp(timestamp).isoformat() + 'Z',
         'txt': txt
     }

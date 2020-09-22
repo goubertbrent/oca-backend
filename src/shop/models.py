@@ -337,6 +337,7 @@ class Customer(db.Model):
     prospect_id = db.StringProperty()
     default_app_id = db.StringProperty()
     app_ids = db.StringListProperty()
+    community_id = db.IntegerProperty() # todo communities
     subscription_type = db.IntegerProperty(indexed=False, default=-1)
     has_loyalty = db.BooleanProperty(indexed=False, default=False)
     team_id = db.IntegerProperty(indexed=False)

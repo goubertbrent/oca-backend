@@ -104,14 +104,21 @@ def get_device_names_of_my_mobiles(human_user, language, app_id, device_id):
 @arguments(human_user=users.User, name=unicode, first_name=unicode, last_name=unicode, app_id=unicode, use_xmpp_kick_channel=bool, 
            gcm_registration_id=unicode, language=unicode, ysaaa=bool, firebase_registration_id=unicode, 
            hardware_model=unicode, sim_carrier_name=unicode, tos_version=(int, long, types.NoneType),
-           consent_push_notifications_shown=bool, anonymous_account=unicode)
+           consent_push_notifications_shown=bool, anonymous_account=unicode, community_id=(int, long))
 def register_mobile(human_user, name=None, first_name=None, last_name=None, app_id=App.APP_ID_ROGERTHAT, use_xmpp_kick_channel=True,
                     gcm_registration_id=None, language=None, ysaaa=False, firebase_registration_id=None,
                     hardware_model=None, sim_carrier_name=None, tos_version=None,
-                    consent_push_notifications_shown=False, anonymous_account=None):
+                    consent_push_notifications_shown=False, anonymous_account=None, community_id=0):
     if anonymous_account:
         anonymous_mobile = get_mobile_by_account(anonymous_account)
         azzert(anonymous_mobile)
+        
+    app = get_app_by_id(app_id)
+    if community_id == 0:
+        azzert(len(app.community_ids) == 1, "Community was NOT provided but len(app.community_ids) != 1")
+        community_id = app.community_ids[0]
+    else:
+        azzert(community_id in app.community_ids, "Community was provided but not found in app.community_ids")
 
     # First unregister currently registered mobiles
     app_user = create_app_user(human_user, app_id)
@@ -153,7 +160,6 @@ def register_mobile(human_user, name=None, first_name=None, last_name=None, app_
         try_or_defer(create_jabber_account, account, mobile.key())
 
     age_and_gender_set = False
-    app = get_app_by_id(app_id)
     owncloud_password = unicode(uuid.uuid4()) if app.owncloud_base_uri else None
 
     # Create profile for user if needed
@@ -166,7 +172,7 @@ def register_mobile(human_user, name=None, first_name=None, last_name=None, app_
                 app_user, app.owncloud_base_uri, app.owncloud_admin_username, app.owncloud_admin_password, owncloud_password)
 
         reactivate_user_profile(
-            deactivated_user_profile, app_user, owncloud_password, tos_version, consent_push_notifications_shown)
+            deactivated_user_profile, app_user, owncloud_password, tos_version, consent_push_notifications_shown, community_id=community_id)
         ActivationLog(timestamp=now(), email=app_user.email(), mobile=mobile,
                       description="Reactivate user account by registering a mobile").put()
 
@@ -174,7 +180,8 @@ def register_mobile(human_user, name=None, first_name=None, last_name=None, app_
         user_profile = get_user_profile(app_user)
         if not user_profile:
             create_user_profile(app_user, name or human_user.email()[:40], language, ysaaa, owncloud_password, tos_version=tos_version,
-                                consent_push_notifications_shown=consent_push_notifications_shown, first_name=first_name, last_name=last_name)
+                                consent_push_notifications_shown=consent_push_notifications_shown, first_name=first_name, last_name=last_name,
+                                community_id=community_id)
             if owncloud_password:
                 create_owncloud_account(
                     app_user, app.owncloud_base_uri, app.owncloud_admin_username, app.owncloud_admin_password, owncloud_password)
@@ -193,6 +200,10 @@ def register_mobile(human_user, name=None, first_name=None, last_name=None, app_
 
             if tos_version:
                 user_profile.tos_version = tos_version
+                should_put = True
+                
+            if not user_profile.community_id or community_id != user_profile.community_id:
+                user_profile.community_id = community_id
                 should_put = True
 
             if should_put:

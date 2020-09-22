@@ -18,27 +18,28 @@
 from __future__ import unicode_literals
 
 import base64
-import json
-import logging
 from cgi import FieldStorage
 from datetime import datetime, timedelta
+import json
+import logging
 from types import NoneType
 
-import dateutil.parser
-import httplib2
-import pytz
-from babel.dates import format_datetime
-from dateutil.relativedelta import relativedelta
 from google.appengine.ext import deferred, ndb
-from icalendar import Calendar, Event as ICalenderEvent, vText, vCalAddress
+import httplib2
 from oauth2client import client
 from oauth2client.client import HttpAccessTokenRefreshError
 
+from babel.dates import format_datetime
+import dateutil.parser
+from dateutil.relativedelta import relativedelta
+from icalendar import Calendar, Event as ICalenderEvent, vText, vCalAddress
 from mcfw.consts import MISSING
 from mcfw.rpc import returns, arguments
+import pytz
 from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_ndb_key
 from rogerthat.dal.app import get_app_by_id
+from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import App
 from rogerthat.models.utils import ndb_allocate_ids
@@ -64,6 +65,7 @@ from solutions.common.models.agenda import SolutionCalendar, SolutionGoogleCrede
 from solutions.common.models.cityapp import CityAppProfile
 from solutions.common.to import EventItemTO, SolutionGoogleCalendarStatusTO, SolutionGoogleCalendarTO, \
     CreateEventItemTO
+
 
 try:
     from cStringIO import StringIO
@@ -219,6 +221,7 @@ def update_events_from_google(service_user, calendar_id):
 def put_google_events(service_user, calendar_id, solution, google_events, language):
     to_put = []
     no_title_text = common_translate(language, '(No title)')
+    community_id = get_service_profile(service_user).community_id
     for google_event in google_events:
         google_event_id = google_event['id']
         try:
@@ -238,6 +241,7 @@ def put_google_events(service_user, calendar_id, solution, google_events, langua
             else:
                 event.deleted = False
             event.app_ids = [get_default_app_id(service_user)]
+            event.community_id = community_id
             event.organization_type = get_organization_type(service_user)
             event.title = google_event.get('summary', no_title_text)
             event.place = google_event.get("location", u"").replace(u"\n", u" ")
@@ -280,8 +284,8 @@ def put_google_events(service_user, calendar_id, solution, google_events, langua
 @ndb.transactional(xg=True)
 @returns(Event)
 @arguments(sln_settings=SolutionSettings, new_event=CreateEventItemTO, default_app_id=unicode,
-           organization_type=(int, long))
-def put_event(sln_settings, new_event, default_app_id, organization_type):
+           organization_type=(int, long), community_id=(int, long))
+def put_event(sln_settings, new_event, default_app_id, organization_type, community_id=0):
     # type: (SolutionSettings, CreateEventItemTO, str, int) -> Event
     service_user = sln_settings.service_user
 
@@ -335,6 +339,7 @@ def put_event(sln_settings, new_event, default_app_id, organization_type):
     periods = sorted(periods, key=lambda p: p.start.datetime)
     event.calendar_type = EventCalendarType.MULTIPLE if len(periods) > 1 else EventCalendarType.SINGLE
     event.app_ids = [default_app_id]
+    event.community_id = community_id
     event.organization_type = organization_type
     event.title = new_event.title
     event.place = new_event.place

@@ -15,20 +15,20 @@
 #
 # @@license_version:1.7@@
 
-import json
-import logging
 from collections import defaultdict
 from datetime import datetime
+import json
+import logging
 
-import dateutil
-import webapp2
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred, ndb
-from typing import Dict, List
+import webapp2
 
+import dateutil
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_ndb_key
+from rogerthat.dal.profile import get_service_profile
 from rogerthat.utils import now
 from shop.constants import MAPS_QUEUE
 from solutions.common.bizz import get_default_app_id, get_organization_type
@@ -40,6 +40,7 @@ from solutions.common.models.agenda import Event, EventMedia, EventMediaType, Ev
     EventOpeningPeriod, EventDate
 from solutions.common.models.cityapp import UitdatabankSettings
 from solutions.common.utils import html_to_markdown
+from typing import Dict, List
 
 
 class CityAppSolutionEventsUitdatabank(webapp2.RequestHandler):
@@ -76,13 +77,15 @@ def _process_cityapp_uitdatabank_events(uitdatabank_settings_key, page):
             uitdatabank_settings.put()
 
         sln_settings = get_solution_settings(uitdatabank_settings.service_user)
+        service_profile = get_service_profile(sln_settings.service_user)
         to_put = []
 
         result_count = 0
         updated_events_count = 0
         for external_id in result:
             result_count += 1
-            updated_events = _populate_uit_events(sln_settings, uitdatabank_settings, external_id, uitdatabank_actors)
+            updated_events = _populate_uit_events(sln_settings, uitdatabank_settings, external_id, uitdatabank_actors,
+                                                  service_profile.community_id)
             if updated_events:
                 updated_events_count += 1
                 to_put.extend(updated_events)
@@ -102,7 +105,7 @@ def _process_cityapp_uitdatabank_events(uitdatabank_settings_key, page):
         logging.exception(str(e), _suppress=False)
 
 
-def _populate_uit_events(sln_settings, uitdatabank_settings, external_id, uitdatabank_actors):
+def _populate_uit_events(sln_settings, uitdatabank_settings, external_id, uitdatabank_actors, community_id):
     logging.debug("process event with id: %s", external_id)
     detail_success, detail_result = _get_uitdatabank_events_detail(uitdatabank_settings, external_id)
     if not detail_success:
@@ -112,14 +115,14 @@ def _populate_uit_events(sln_settings, uitdatabank_settings, external_id, uitdat
     if DEBUG:
         logging.debug("detail result: %s", detail_result)
 
-    return _populate_uit_events_v3(sln_settings, external_id, detail_result, uitdatabank_actors)
+    return _populate_uit_events_v3(sln_settings, external_id, detail_result, uitdatabank_actors, community_id)
 
 
 def filtered_join(sep, parts):
     return sep.join(filter(bool, parts))  # filtering None and empty strings
 
 
-def get_event(sln_settings, external_id):
+def get_event(sln_settings, external_id, community_id):
     event_parent_key = parent_ndb_key(sln_settings.service_user, sln_settings.solution)
     event = Event.list_by_source_and_id(event_parent_key, Event.SOURCE_UITDATABANK_BE, external_id).get()
     if not event:
@@ -128,6 +131,7 @@ def get_event(sln_settings, external_id):
                       external_id=external_id)
 
     event.app_ids = [get_default_app_id(sln_settings.service_user)]
+    event.community_id = community_id
     event.organization_type = get_organization_type(sln_settings.service_user)
     event.calendar_id = sln_settings.default_calendar
     return event
@@ -143,7 +147,7 @@ def get_organizer_settings(uitdatabank_actors, keys):
     return db.get(organizer_settings_keys) if organizer_settings_keys else []
 
 
-def get_organizer_events(service_user, external_id, organizer_settings):
+def get_organizer_events(service_user, external_id, organizer_settings, community_id):
     events = []
     logging.debug("organizer_settings: %s", map(repr, organizer_settings))
     for organizer_sln_settings in organizer_settings:
@@ -157,13 +161,14 @@ def get_organizer_events(service_user, external_id, organizer_settings):
                                     external_id=external_id)
 
         organizer_event.app_ids = [get_default_app_id(service_user)]
+        organizer_event.community_id = community_id
         organizer_event.organization_type = get_organization_type(organizer_sln_settings.service_user)
         organizer_event.calendar_id = organizer_sln_settings.default_calendar
         events.append(organizer_event)
     return events
 
 
-def _populate_uit_events_v3(sln_settings, external_url, detail_result, uitdatabank_actors):
+def _populate_uit_events_v3(sln_settings, external_url, detail_result, uitdatabank_actors, community_id):
     # type: (SolutionSettings, str, dict, Dict[str, db.Key]) -> List[Event]
     # https://documentatie.uitdatabank.be/content/json-ld-crud-api/latest/events.html
     lang = 'nl'
@@ -173,7 +178,7 @@ def _populate_uit_events_v3(sln_settings, external_url, detail_result, uitdataba
         return []
 
     external_id = external_url.rsplit('/', 1)[1]
-    event = get_event(sln_settings, external_id)
+    event = get_event(sln_settings, external_id, community_id)
 
     uitdatabank_created_by = detail_result.get("creator")
     uitdatabank_organizer_name = uitdatabank_organizer_cdbid = None
@@ -204,7 +209,7 @@ def _populate_uit_events_v3(sln_settings, external_url, detail_result, uitdataba
         organizer_settings = get_organizer_settings(uitdatabank_actors, [uitdatabank_created_by,
                                                                          uitdatabank_organizer_name,
                                                                          uitdatabank_organizer_cdbid])
-        events.extend(get_organizer_events(sln_settings.service_user, external_id, organizer_settings))
+        events.extend(get_organizer_events(sln_settings.service_user, external_id, organizer_settings, community_id))
 
     event_title = detail_result['name'][lang]
     event_description = None

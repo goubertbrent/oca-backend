@@ -16,20 +16,19 @@
 # @@license_version:1.7@@
 
 import base64
+from datetime import datetime
 import imghdr
 import json
 import logging
 import random
+from types import NoneType
 import urllib2
 import urlparse
-from datetime import datetime
-from types import NoneType
 
 from google.appengine.api import urlfetch, images, taskqueue
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
 from google.appengine.ext.ndb.query import Cursor
-from typing import List, Dict, Tuple, Iterable
 
 from mcfw.consts import MISSING
 from mcfw.rpc import returns, arguments
@@ -50,7 +49,7 @@ from rogerthat.bizz.service import _validate_roles
 from rogerthat.capi.news import disableNews, createNotification
 from rogerthat.consts import SCHEDULED_QUEUE, DEBUG, NEWS_STATS_QUEUE, NEWS_MATCHING_QUEUE
 from rogerthat.dal import put_in_chunks
-from rogerthat.dal.app import get_app_by_id
+from rogerthat.dal.app import get_app_by_id, get_apps_by_id
 from rogerthat.dal.mobile import get_mobile_key_by_account
 from rogerthat.dal.profile import get_user_profile, get_service_profile, get_service_profiles, \
     get_service_visible_non_transactional
@@ -93,6 +92,8 @@ from rogerthat.utils.iOS import construct_push_notification
 from rogerthat.utils.service import add_slash_default, get_service_user_from_service_identity_user, \
     remove_slash_default, get_service_identity_tuple
 from rogerthat.web_client.models import WebClientSession
+from typing import List, Dict, Tuple, Iterable
+
 
 _DEFAULT_LIMIT = 100
 ALLOWED_NEWS_BUTTON_ACTIONS = list(ALLOWED_BUTTON_ACTIONS) + ['poke']
@@ -105,9 +106,11 @@ def create_default_news_settings(service_user, organization_type):
     if nss:
         return
 
+    sp = get_service_profile(service_user)
     si = get_default_service_identity(service_user)
     nss = NewsSettingsService(key=nss_key)
     nss.default_app_id = si.app_id
+    nss.community_id = sp.community_id
     nss.groups = []
     ns = NewsStream.create_key(nss.default_app_id).get()
     if organization_type and organization_type == ServiceProfile.ORGANIZATION_TYPE_CITY:
@@ -970,6 +973,13 @@ def put_news(sender, sticky, sticky_until, title, message, image, news_type, new
                                              app_ids=list(set(app_ids)) if app_ids and app_ids is not MISSING else [],
                                              news_item=existing_news_item)
 
+    send_to_app_ids = set(app_ids) if app_ids and app_ids is not MISSING else set()
+    app_models = get_apps_by_id(list(send_to_app_ids))
+    send_to_community_ids = set()
+    for app_model in app_models:
+        for community_id in app_model.community_ids:
+            send_to_community_ids.add(community_id)
+
     # noinspection PyShadowingNames
     @ndb.transactional(xg=True)
     def trans(news_item_id, news_type):
@@ -987,7 +997,6 @@ def put_news(sender, sticky, sticky_until, title, message, image, news_type, new
                 news_item_image = NewsItemImage(key=NewsItemImage.create_key(news_item_image_id),
                                                 image=decoded_image)
                 to_put.append(news_item_image)
-        send_to_app_ids = set(app_ids) if app_ids and app_ids is not MISSING else set()
 
         order_timestamp = max(scheduled_at, now())
         if news_item:
@@ -1018,6 +1027,7 @@ def put_news(sender, sticky, sticky_until, title, message, image, news_type, new
                                  sticky_until=sticky_until if sticky else 0,
                                  sender=sender,
                                  app_ids=list(send_to_app_ids),
+                                 community_ids=list(send_to_community_ids),
                                  timestamp=now() if is_empty(timestamp) else timestamp,
                                  type=news_type,
                                  version=1,

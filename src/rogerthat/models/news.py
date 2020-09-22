@@ -100,6 +100,7 @@ class NewsItem(NdbModel):
 
     sender = ndb.UserProperty(indexed=True, required=True)  # service identity user
     app_ids = ndb.StringProperty(indexed=True, repeated=True)
+    community_ids = ndb.IntegerProperty(repeated=True)  # type: List[long] # todo communities
     timestamp = ndb.IntegerProperty(indexed=True, required=True)  # type: long
     update_timestamp = ndb.IntegerProperty(indexed=True, default=0)
     order_timestamp = ndb.IntegerProperty(indexed=True, default=0)
@@ -420,6 +421,7 @@ class NewsGroup(NdbModel):
 
     name = ndb.StringProperty(indexed=False)  # not visible to users/customers
     app_id = ndb.StringProperty()
+    community_id = ndb.IntegerProperty() # todo communities
     send_notifications = ndb.BooleanProperty(indexed=False, default=True)
     visible_until = ndb.DateTimeProperty(indexed=True)
 
@@ -467,6 +469,7 @@ class NewsSettingsService(NdbModel):
     # 999 skipped
 
     default_app_id = ndb.StringProperty()
+    community_id = ndb.IntegerProperty() # todo communities
     setup_needed_id = ndb.IntegerProperty()
     groups = ndb.LocalStructuredProperty(NewsSettingsServiceGroup, repeated=True)  # type: List[NewsSettingsServiceGroup]
     duplicate_in_city_news = ndb.BooleanProperty(indexed=False, default=False)  # type: bool

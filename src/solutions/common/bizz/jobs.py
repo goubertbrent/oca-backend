@@ -66,6 +66,7 @@ def _reset_customer_model(service_user):
         customer.service_email = None
         customer.default_app_id = None
         customer.app_ids = []
+        customer.community_id = 0
         customer.put()
 
         re_index_customer(customer.key())

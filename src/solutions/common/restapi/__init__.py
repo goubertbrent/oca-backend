@@ -18,20 +18,20 @@
 from __future__ import unicode_literals
 
 import base64
-import logging
-import re
 from collections import defaultdict
 from datetime import datetime
+import logging
+import re
 from types import NoneType
 
-import cloudstorage
-from babel import Locale
-from babel.numbers import format_currency
-from dateutil.relativedelta import relativedelta
 from google.appengine.api import urlfetch
 from google.appengine.api.taskqueue import taskqueue
 from google.appengine.ext import db, deferred, ndb
 
+from babel import Locale
+from babel.numbers import format_currency
+import cloudstorage
+from dateutil.relativedelta import relativedelta
 from mcfw.consts import MISSING, REST_TYPE_TO
 from mcfw.exceptions import HttpBadRequestException, HttpForbiddenException
 from mcfw.properties import azzert, get_members
@@ -44,7 +44,8 @@ from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
 from rogerthat.consts import DEBUG, SCHEDULED_QUEUE
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks, parent_ndb_key
-from rogerthat.dal.profile import get_user_profile, get_profile_key
+from rogerthat.dal.profile import get_user_profile, get_profile_key,\
+    get_service_profile
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity
 from rogerthat.rpc import users
@@ -924,7 +925,9 @@ def put_event(data):
         service_user = users.get_current_user()
         sln_settings = get_solution_settings(service_user)
         org_type = get_organization_type(service_user)
-        event = put_event_bizz(sln_settings, data, get_default_app_id(service_user), org_type)
+        service_profile = get_service_profile(service_user)
+        community_id = service_profile.community_id
+        event = put_event_bizz(sln_settings, data, get_default_app_id(service_user), org_type, community_id=community_id)
         return EventItemTO.from_model(event, get_server_settings().baseUrl, destination_app=False)
     except BusinessException as e:
         raise HttpBadRequestException(e.message)

@@ -94,6 +94,13 @@ class ArchivedModel(object):
         add_meta(prop, skip_on_archive=True)
 
 
+class AppServiceFilter(Enum):
+    # Searching by services filters by country of the app
+    COUNTRY = 0
+    # Searching by services filters by 'community_ids' property of the app
+    COMMUNITIES = 1
+
+
 class App(CachedModelMixIn, db.Model):
     APP_ID_ROGERTHAT = u"rogerthat"
     APP_ID_OSA_LOYALTY = u"osa-loyalty"
@@ -148,6 +155,11 @@ class App(CachedModelMixIn, db.Model):
     disabled = db.BooleanProperty(default=False)
     country = db.StringProperty(indexed=True)  # 2 letter country code
     default_app_name_mapping = db.TextProperty()
+    # These ids are used to limit the communities the user can choose when using this app.
+    # They may also be used to filter the services the user can view, depending on the value of service_filter_type.
+    community_ids = db.ListProperty(long, default=[])  # type: List[int]
+    service_filter_type = db.IntegerProperty(indexed=False, default=AppServiceFilter.COUNTRY,
+                                             choices=AppServiceFilter.all())
 
     def invalidateCache(self):
         logging.info("App '%s' removed from cache." % self.app_id)
@@ -636,10 +648,10 @@ class Profile(BaseProfile, polymodel.PolyModel):
     timezone = db.StringProperty(indexed=False)
     timezoneDeltaGMT = db.IntegerProperty(indexed=False)
     tos_version = db.IntegerProperty(indexed=True, default=0)
+    community_id = db.IntegerProperty() # todo communities
 
     @classmethod
     def createKey(cls, user):
-        from rogerthat.dal import parent_key
         return db.Key.from_path(cls.kind(), user.email(), parent=parent_key(user))
 
     @property
@@ -659,6 +671,7 @@ class NdbProfile(BaseProfile, NdbPolyModel):
     timezone = ndb.StringProperty(indexed=False)
     timezoneDeltaGMT = ndb.IntegerProperty(indexed=False)
     tos_version = ndb.IntegerProperty(indexed=True, default=0)
+    community_id = ndb.IntegerProperty() # todo communities
 
     @classmethod
     def createKey(cls, user):

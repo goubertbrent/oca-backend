@@ -387,7 +387,7 @@ def _save_job_offer(job_offer, new_job=False, should_create_matches=False):
         job_offer.invisible_reason = JobOffer.INVISIBLE_REASON_STATUS
     elif is_dubble:
         job_offer.visible = False
-        job_offer.invisible_reason = JobOffer.INVISIBLE_REASON_DUBBLE
+        job_offer.invisible_reason = JobOffer.INVISIBLE_REASON_DOUBLE
     elif not address:
         job_offer.visible = False
         job_offer.invisible_reason = JobOffer.INVISIBLE_REASON_LOCATION_MISSING

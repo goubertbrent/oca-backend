@@ -18,19 +18,19 @@
 import base64
 import datetime
 import hashlib
+from httplib import HTTPException
 import json
 import logging
 import os
 import re
-import types
-from httplib import HTTPException
 from types import NoneType
+import types
 
-import facebook
 from google.appengine.api import images, urlfetch, search
 from google.appengine.api.urlfetch_errors import DeadlineExceededError
 from google.appengine.ext import db, deferred
 
+import facebook
 from mcfw.cache import invalidate_cache
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
@@ -45,7 +45,7 @@ from rogerthat.bizz.user import reactivate_user_profile
 from rogerthat.capi.system import identityUpdate
 from rogerthat.consts import MC_DASHBOARD
 from rogerthat.dal import parent_key, put_and_invalidate_cache, app
-from rogerthat.dal.app import get_app_name_by_id, get_app_by_user
+from rogerthat.dal.app import get_app_name_by_id, get_app_by_user, get_app_by_id
 from rogerthat.dal.broadcast import get_broadcast_settings_flow_cache_keys_of_user
 from rogerthat.dal.friend import get_friends_map
 from rogerthat.dal.profile import get_avatar_by_id, get_existing_profiles_via_facebook_ids, \
@@ -68,12 +68,14 @@ from rogerthat.to.messaging import ButtonTO, UserMemberTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.to.system import IdentityUpdateRequestTO
 from rogerthat.translations import localize, DEFAULT_LANGUAGE
-from rogerthat.utils import now, urlencode, is_clean_app_user_email, get_epoch_from_datetime
+from rogerthat.utils import now, urlencode, is_clean_app_user_email, get_epoch_from_datetime,\
+    get_python_stack_trace
 from rogerthat.utils.app import get_app_id_from_app_user, create_app_user, get_human_user_from_app_user, \
     get_app_user_tuple, create_app_user_by_email
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.service import create_service_identity_user, remove_slash_default
 from rogerthat.utils.transactions import on_trans_committed, run_in_transaction
+
 
 try:
     from cStringIO import StringIO
@@ -544,10 +546,22 @@ def _create_new_avatar(user, image=None):
 
 @returns(UserProfile)
 @arguments(app_user=users.User, name=unicode, language=unicode, ysaaa=bool, owncloud_password=unicode, image=unicode,
-           tos_version=(int, long, NoneType), consent_push_notifications_shown=bool, first_name=unicode, last_name=unicode)
+           tos_version=(int, long, NoneType), consent_push_notifications_shown=bool, first_name=unicode, last_name=unicode,
+           community_id=(int, long))
 def create_user_profile(app_user, name, language=None, ysaaa=False, owncloud_password=None, image=None,
-                        tos_version=None, consent_push_notifications_shown=False, first_name=None, last_name=None):
+                        tos_version=None, consent_push_notifications_shown=False, first_name=None, last_name=None,
+                        community_id=0):
     name = _validate_name(name)
+
+    app_id = get_app_id_from_app_user(app_user)
+    app_model = get_app_by_id(app_id)
+    if community_id == 0:
+        stack_stace = get_python_stack_trace(short=False)
+        logging.error("create_user_profile community_id was not provided %s", stack_stace)
+        azzert(len(app_model.community_ids) == 1, "Community was NOT provided but len(app.community_ids) != 1")
+        community_id = app_model.community_ids[0]
+    else:
+        azzert(community_id in app_model.community_ids, "Community was provided but not found in app.community_ids")
 
     def trans_create(avatar_image):
         azzert(not get_user_profile(app_user, cached=False))
@@ -571,6 +585,7 @@ def create_user_profile(app_user, name, language=None, ysaaa=False, owncloud_pas
             user_profile.tos_version = tos_version
         if consent_push_notifications_shown:
             user_profile.consent_push_notifications_shown = True
+        user_profile.community_id = community_id
         _calculateAndSetAvatarHash(user_profile, image)
 
         put_and_invalidate_cache(user_profile, ProfilePointer.create(app_user), ProfileHashIndex.create(app_user))
@@ -612,14 +627,14 @@ def put_loyalty_user(service_user, url, email):
         si = si or get_default_service_identity(service_user)
         app_id = si.app_id
         app_user = put_loyalty_user_profile(email.strip(), app_id, user_code, su.key().id(),
-                                            service_profile.defaultLanguage)
+                                            service_profile.defaultLanguage, service_profile.community_id)
 
     return url, app_user
 
 
 @returns(users.User)
-@arguments(email=unicode, app_id=unicode, user_code=unicode, short_url_id=(int, long), language=unicode)
-def put_loyalty_user_profile(email, app_id, user_code, short_url_id, language):
+@arguments(email=unicode, app_id=unicode, user_code=unicode, short_url_id=(int, long), language=unicode, community_id=(int, long))
+def put_loyalty_user_profile(email, app_id, user_code, short_url_id, language, community_id=0):
     app_user = create_app_user(users.User(email), app_id)
     name = _validate_name(email)
 
@@ -634,7 +649,7 @@ def put_loyalty_user_profile(email, app_id, user_code, short_url_id, language):
         if not user_profile:
             deactivated_user_profile = get_deactivated_user_profile(app_user)
             if deactivated_user_profile:
-                deferred.defer(reactivate_user_profile, deactivated_user_profile, app_user, _transactional=True)
+                deferred.defer(reactivate_user_profile, deactivated_user_profile, app_user, community_id=community_id, _transactional=True)
                 ActivationLog(timestamp=now(), email=app_user.email(), mobile=None,
                               description="Reactivate user account by registering a paper loyalty card").put()
             else:
@@ -648,6 +663,7 @@ def put_loyalty_user_profile(email, app_id, user_code, short_url_id, language):
                 user_profile.language = language
                 user_profile.avatarId = avatar.key().id()
                 user_profile.app_id = app_id
+                user_profile.community_id = community_id
                 _calculateAndSetAvatarHash(user_profile, image)
 
         pp = ProfilePointer(key=db.Key.from_path(ProfilePointer.kind(), user_code))
@@ -666,8 +682,8 @@ def put_loyalty_user_profile(email, app_id, user_code, short_url_id, language):
 
 
 @returns(tuple)
-@arguments(service_user=users.User, name=unicode, update_func=types.FunctionType, supported_app_ids=[unicode])
-def create_service_profile(service_user, name, update_func=None, supported_app_ids=None):
+@arguments(service_user=users.User, name=unicode, update_func=types.FunctionType, supported_app_ids=[unicode], community_id=(int, long))
+def create_service_profile(service_user, name, update_func=None, supported_app_ids=None, community_id=0):
     from rogerthat.bizz.service import create_default_qr_templates
     from rogerthat.bizz.news import create_default_news_settings
 
@@ -679,6 +695,16 @@ def create_service_profile(service_user, name, update_func=None, supported_app_i
         supported_app_ids = [default_app_id]
     else:
         default_app_id = supported_app_ids[0]
+
+    app_model = get_app_by_id(default_app_id)
+    if community_id == 0:
+        stack_stace =  get_python_stack_trace(short=False)
+        logging.error("create_service_profile community_id was not provided %s", stack_stace)
+        azzert(len(app_model.community_ids) == 1, "Community was NOT provided but len(app.community_ids) != 1")
+        community_id = app_model.community_ids[0]
+    else:
+        azzert(community_id in app_model.community_ids, "Community was provided but not found in app.community_ids")
+
 
     def trans_prepare_create():
         avatar, image = _create_new_avatar(service_user)
@@ -694,6 +720,7 @@ def create_service_profile(service_user, name, update_func=None, supported_app_i
 
         profile = ServiceProfile(parent=parent_key(service_user), key_name=service_user.email())
         profile.avatarId = avatar.key().id()
+        profile.community_id = community_id
         _calculateAndSetAvatarHash(profile, image)
 
         service_identity_user = create_service_identity_user(service_user, ServiceIdentity.DEFAULT)

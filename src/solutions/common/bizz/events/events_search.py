@@ -84,6 +84,9 @@ def create_events_index():
                 'app_ids': {
                     'type': 'keyword',
                 },
+                'community_id': {
+                    'type': 'keyword',
+                },
                 'service': {
                     'type': 'keyword',
                 },
@@ -123,6 +126,7 @@ def _index_event(event):
         # every occurrence of an event, which is not great.
         doc = {
             'app_ids': event.app_ids,
+            'community_id': event.community_id,
             'service': event.service_user.email(),
             'title': event.title,
             'description': event.description,

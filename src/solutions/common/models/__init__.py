@@ -672,6 +672,7 @@ class SolutionRssLink(NdbModel):
     dry_runned = ndb.BooleanProperty(default=False)
     group_type = ndb.StringProperty(default=None, indexed=False)
     app_ids = ndb.StringProperty(repeated=True, indexed=False)
+    community_ids = ndb.IntegerProperty(repeated=True, indexed=False) # todo communities
 
 
 class SolutionRssScraperSettings(NdbModel):

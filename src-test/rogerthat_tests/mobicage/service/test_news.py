@@ -251,6 +251,7 @@ class NewsTest(mc_unittest.TestCase):
         ng1 = NewsGroup(key=NewsGroup.create_key('be-testing-city'))
         ng1.name = u'%s CITY' % app_id
         ng1.app_id = app_id
+        ng1.community_id = 0
         ng1.group_type = NewsGroup.TYPE_CITY
         ng1.regional = False
         ng1.default_order = 10
@@ -261,6 +262,7 @@ class NewsTest(mc_unittest.TestCase):
         ng2 = NewsGroup(key=NewsGroup.create_key('be-testing-events'))
         ng2.name = u'%s EVENTS' % app_id
         ng2.app_id = app_id
+        ng2.community_id = 0
         ng2.group_type = NewsGroup.TYPE_EVENTS
         ng2.regional = False
         ng2.default_order = 30
@@ -271,6 +273,7 @@ class NewsTest(mc_unittest.TestCase):
         ng4 = NewsGroup(key=NewsGroup.create_key('be-testing-promo'))
         ng4.name = u'%s PROMOTIONS' % app_id
         ng4.app_id = app_id
+        ng4.community_id = 0
         ng4.group_type = NewsGroup.TYPE_PROMOTIONS
         ng4.regional = False
         ng4.default_order = 70
@@ -281,6 +284,7 @@ class NewsTest(mc_unittest.TestCase):
         ng5 = NewsGroup(key=NewsGroup.create_key('be-testing-promo-regional'))
         ng5.name = u'%s PROMOTIONS (regional)' % app_id
         ng5.app_id = app_id
+        ng5.community_id = 0
         ng5.group_type = NewsGroup.TYPE_PROMOTIONS
         ng5.regional = True
         ng5.default_order = 70
@@ -291,6 +295,7 @@ class NewsTest(mc_unittest.TestCase):
         ng6 = NewsGroup(key=NewsGroup.create_key('be-testing-traffic'))
         ng6.name = u'%s TRAFFIC' % app_id
         ng6.app_id = app_id
+        ng6.community_id = 0
         ng6.group_type = NewsGroup.TYPE_TRAFFIC
         ng6.regional = False
         ng6.default_order = 50
@@ -300,6 +305,7 @@ class NewsTest(mc_unittest.TestCase):
 
         nss = NewsSettingsService(key=NewsSettingsService.create_key(self.user))
         nss.default_app_id = app_id
+        nss.community_id = 0
         nss.setup_needed_id = 0
         nss.groups = [
             NewsSettingsServiceGroup(group_type=NewsGroup.TYPE_CITY),

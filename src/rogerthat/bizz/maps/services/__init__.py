@@ -80,6 +80,10 @@ class SearchTag(object):
     @staticmethod
     def app(app_id):
         return 'app_id#%s' % app_id
+    
+    @staticmethod
+    def community(community_id):
+        return 'community_id#%s' % community_id
 
     @staticmethod
     def country(country_code):

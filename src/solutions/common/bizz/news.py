@@ -22,11 +22,10 @@ import json
 import logging
 from types import NoneType
 
-from babel.dates import format_datetime, get_timezone
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
-from typing import List
 
+from babel.dates import format_datetime, get_timezone
 from mcfw.consts import MISSING
 from mcfw.exceptions import HttpForbiddenException
 from mcfw.properties import azzert
@@ -34,6 +33,7 @@ from mcfw.rpc import arguments, returns
 from rogerthat.bizz.app import get_app
 from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_ndb_key
+from rogerthat.dal.app import get_apps_by_id
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import App, Image
 from rogerthat.models.news import NewsItem
@@ -58,6 +58,7 @@ from solutions.common.models.budget import Budget
 from solutions.common.models.news import NewsCoupon, SolutionNewsItem, NewsSettings, NewsSettingsTags, NewsReview, \
     CityAppLocations
 from solutions.common.to.news import NewsStatsTO
+from typing import List
 
 
 class AllNewsSentToReviewWarning(BusinessException):
@@ -121,7 +122,7 @@ def get_regional_apps_of_item(news_item, default_app_id):
 
 
 @ndb.transactional()
-def create_regional_news_item(news_item, regional_apps, service_user, service_identity, paid=False):
+def create_regional_news_item(news_item, regional_apps, service_user, service_identity, paid=False, community_ids=None):
     # type: (NewsItem, List[unicode], users.User, unicode, bool) -> SolutionNewsItem
     sln_item_key = SolutionNewsItem.create_key(news_item.id, service_user)
     settings_key = NewsSettings.create_key(service_user, service_identity)
@@ -136,6 +137,7 @@ def create_regional_news_item(news_item, regional_apps, service_user, service_id
 
     sln_item.publish_time = publish_time
     sln_item.app_ids = regional_apps
+    sln_item.community_ids = community_ids or []
     sln_item.service_identity = service_identity
     if paid or news_settings and NewsSettingsTags.FREE_REGIONAL_NEWS in news_settings.tags:
         sln_item.paid = True
@@ -179,8 +181,14 @@ def publish_item(service_identity_user, app_id, is_free_regional_news, coupon, s
             if not news_id and not is_free_regional_news:
                 # check for budget on creation only
                 check_budget(service_user, identity)
+            
+            app_models = get_apps_by_id(regional_apps)
+            community_ids = set()
+            for app_model in app_models:
+                for community_id in app_model.community_ids:
+                    community_ids.add(community_id)
             deferred.defer(create_regional_news_item, news_item, regional_apps, service_user, identity,
-                           paid=is_free_regional_news, _transactional=True)
+                           paid=is_free_regional_news, community_ids=list(community_ids), _transactional=True)
         return news_item
 
     try:
@@ -237,11 +245,12 @@ def send_news_review_message(sln_settings, sender_service, review_key, image_url
     return unicode(message.key())
 
 
-def send_news_for_review(city_service, service_identity_user, app_id, is_free_regional_news, coupon, **kwargs):
+def send_news_for_review(city_service, service_identity_user, app_id, community_id, is_free_regional_news, coupon, **kwargs):
     key = NewsReview.create_key(city_service)
     review = key.get() or NewsReview(key=key)
     review.service_identity_user = service_identity_user
     review.app_id = app_id
+    review.community_id = community_id
     review.is_free_regional_news = is_free_regional_news
     review.coupon_id = coupon and coupon.id
     review.data = kwargs
@@ -414,7 +423,12 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
     new_app_ids = list(app_ids)
     if not news_id:
         # check for city-enabled news review
-        for app_id in app_ids:
+        app_models = get_apps_by_id(app_ids)
+        for app_model in app_models:
+            app_id = app_model.app_id
+            azzert(len(app_model.community_ids) == 1, "Community was NOT provided but len(app.community_ids) != 1")
+            community_id = app_model.community_ids[0]
+            
             city_service = get_service_user_for_city(app_id)
             if city_service and city_service != service_user:
                 city_app_profile = get_cityapp_profile(city_service)
@@ -422,7 +436,8 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
                     # create a city review for this app
                     city_kwargs = kwargs.copy()
                     city_kwargs['app_ids'] = [app_id]
-                    send_news_for_review(city_service, service_identity_user, app_id, is_free_regional_news,
+                    city_kwargs['community_ids'] = [community_id]
+                    send_news_for_review(city_service, service_identity_user, app_id, community_id, is_free_regional_news,
                                          coupon, **city_kwargs)
                     # remove from current feed
                     new_app_ids.remove(app_id)

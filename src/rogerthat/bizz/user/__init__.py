@@ -196,9 +196,9 @@ def delete_location_message(location_msg_key):
 
 @returns(NoneType)
 @arguments(profile=(UserProfileArchive, FacebookUserProfileArchive), app_user=users.User, owncloud_password=unicode,
-           tos_version=(int, long, NoneType), consent_push_notifications_shown=bool)
+           tos_version=(int, long, NoneType), consent_push_notifications_shown=bool, community_id=(int, long))
 def reactivate_user_profile(profile, app_user, owncloud_password=None, tos_version=None,
-                            consent_push_notifications_shown=False):
+                            consent_push_notifications_shown=False, community_id=0):
 
     def trans():
 
@@ -218,6 +218,7 @@ def reactivate_user_profile(profile, app_user, owncloud_password=None, tos_versi
             new_user_profile.tos_version = tos_version
         if consent_push_notifications_shown:
             new_user_profile.consent_push_notifications_shown = True
+        new_user_profile.community_id = community_id
         new_user_profile.invalidateCache()
 
         db.put(models_to_restore)

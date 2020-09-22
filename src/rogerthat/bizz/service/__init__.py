@@ -2196,6 +2196,7 @@ def get_search_fields(service_user, service_identity_user, sc):
               search.TextField(name='description', value=service_identity.description),
               search.TextField(name='keywords', value=sc.keywords),
               search.TextField(name='app_ids', value=" ".join(service_identity.appIds)),
+              search.AtomField(name='community_id', value=str(service_profile.community_id)),
               search.TextField(name='action_labels', value=' - '.join(service_menu_item_labels)),
               search.TextField(name='action_tags', value=' '.join(service_menu_item_hashed_tags)),
               search.NumberField(name='organization_type', value=service_profile.organizationType)
@@ -2227,6 +2228,8 @@ def get_search_fields(service_user, service_identity_user, sc):
         if default_app.country:
             tags.add(SearchTag.country(default_app.country))
         tags.add(SearchTag.app(app_id))
+        
+    tags.add(SearchTag.community(service_profile.community_id))
 
     keys = [ServiceInfo.create_key(service_user, service_identity.identifier), CirkloMerchant.create_key(service_user.email())]
     service_info, cirklo_merchant = ndb.get_multi(keys)  # type: ServiceInfo, CirkloMerchant
@@ -2998,9 +3001,11 @@ def validate_app_admin(service_user, app_ids):
 @returns(tuple)
 @arguments(email=unicode, name=unicode, password=unicode, languages=[unicode], solution=unicode, category_id=unicode,
            organization_type=int, fail_if_exists=bool, supported_app_ids=[unicode],
-           callback_configuration=ServiceCallbackConfigurationTO, owner_user_email=unicode, tos_version=(int, long, NoneType))
+           callback_configuration=ServiceCallbackConfigurationTO, owner_user_email=unicode, tos_version=(int, long, NoneType),
+           community_id=(int, long))
 def create_service(email, name, password, languages, solution, category_id, organization_type, fail_if_exists=True,
-                   supported_app_ids=None, callback_configuration=None, owner_user_email=None, tos_version=None):
+                   supported_app_ids=None, callback_configuration=None, owner_user_email=None, tos_version=None,
+                   community_id=0):
     service_email = email
     new_service_user = users.User(service_email)
 
@@ -3024,6 +3029,7 @@ def create_service(email, name, password, languages, solution, category_id, orga
         service_profile.category_id = category_id
         service_profile.organizationType = organization_type
         service_profile.version = 1
+        service_profile.community_id = community_id
         if tos_version:
             service_profile.tos_version = tos_version
 
@@ -3115,7 +3121,7 @@ def create_service(email, name, password, languages, solution, category_id, orga
 
         validate_supported_apps()
 
-    sik, api_key = create_service_profile(new_service_user, name, update, supported_app_ids=supported_app_ids)[2]
+    sik, api_key = create_service_profile(new_service_user, name, update, supported_app_ids=supported_app_ids, community_id=community_id)[2]
 
     return sik, api_key
 

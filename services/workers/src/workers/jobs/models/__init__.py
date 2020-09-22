@@ -93,7 +93,7 @@ class JobOffer(NdbModel):
     INVISIBLE_REASON_LOCATION_COUNTRY = 'location_country'
     INVISIBLE_REASON_LOCATION_LATLON = 'location_latlon'
     INVISIBLE_REASON_DESCRIPTION = 'description'
-    INVISIBLE_REASON_DUBBLE = 'dubble'
+    INVISIBLE_REASON_DOUBLE = 'double'
 
     created = ndb.DateTimeProperty(auto_now_add=True, indexed=False)
     updated = ndb.DateTimeProperty(auto_now=True)

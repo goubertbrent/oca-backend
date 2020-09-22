@@ -234,10 +234,10 @@ def provision(service_user, friends=None, transactional=True):
 @arguments(email=unicode, name=unicode, phone_number=unicode, languages=[unicode], currency=unicode,
            modules=[unicode], broadcast_types=[unicode], apps=[unicode], allow_redeploy=bool, organization_type=int,
            search_enabled=bool, broadcast_to_users=[users.User], websites=[SyncedNameValue], password=unicode,
-           tos_version=(int, long, NoneType))
+           tos_version=(int, long, NoneType), community_id=(int, long))
 def create_flex_service(email, name, phone_number, languages, currency, modules, broadcast_types, apps,
                         allow_redeploy, organization_type=OrganizationType.PROFIT, search_enabled=False,
-                        broadcast_to_users=None, websites=None, password=None, tos_version=None):
+                        broadcast_to_users=None, websites=None, password=None, tos_version=None, community_id=0):
     from rogerthat.bizz.rtemail import EMAIL_REGEX
 
     redeploy = allow_redeploy and get_solution_settings(users.User(email)) is not None
@@ -253,7 +253,8 @@ def create_flex_service(email, name, phone_number, languages, currency, modules,
                                              phone_number, languages, currency, redeploy, organization_type, modules,
                                              broadcast_types, apps, owner_user_email=owner_user_email,
                                              search_enabled=search_enabled, broadcast_to_users=broadcast_to_users,
-                                             websites=websites, password=password, tos_version=tos_version)
+                                             websites=websites, password=password, tos_version=tos_version,
+                                             community_id=community_id)
 
 
 @returns(AssociationStatistic)

@@ -45,6 +45,17 @@ def remove_job_offer_matches(job_id):
            "Got response status code %s and response content: %s" % (response.status_code, response.content))
 
 
+def re_index_job_offers():
+    server_settings = get_server_settings()
+    if not server_settings.worker_service_url:
+        logging.error('re_index_job_offers skipped no worker_service_url')
+        return
+    url = '{}/jobs/v1/reindex'.format(server_settings.worker_service_url)
+    response = urlfetch.fetch(url, method=urlfetch.PUT, deadline=5, follow_redirects=False)
+    azzert(response.status_code == 200,
+           "Got response status code %s and response content: %s" % (response.status_code, response.content))
+
+
 def re_index_job_offer(job_id):
     server_settings = get_server_settings()
     if not server_settings.worker_service_url:

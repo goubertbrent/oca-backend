@@ -16,37 +16,37 @@
 # @@license_version:1.7@@
 
 import base64
+from collections import OrderedDict
+from contextlib import closing
 import csv
 import datetime
+from functools import partial
 import hashlib
 import json
 import logging
 import os
+from types import NoneType
 import urllib
 import urlparse
-from collections import OrderedDict
-from contextlib import closing
-from functools import partial
-from types import NoneType
 
-import cloudstorage
-import httplib2
-from babel.dates import format_datetime, get_timezone, format_date
-from dateutil.relativedelta import relativedelta
 from google.appengine.api import images, users as gusers, urlfetch
 from google.appengine.ext import deferred, db, ndb
+import httplib2
 from oauth2client.client import HttpAccessTokenRefreshError
-from oauth2client.contrib.appengine import OAuth2Decorator
-from typing import Tuple, Union, List
 
+from babel.dates import format_datetime, get_timezone, format_date
+import cloudstorage
+from dateutil.relativedelta import relativedelta
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
+from oauth2client.contrib.appengine import OAuth2Decorator
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.elasticsearch import create_index, get_elasticsearch_config, \
     delete_index, es_request, index_doc
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
+from rogerthat.bizz.maps.services import SearchTag
 from rogerthat.bizz.profile import update_password_hash, create_user_profile, get_service_profile
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.consts import WEEK, SCHEDULED_QUEUE, FAST_QUEUE, OFFICIALLY_SUPPORTED_COUNTRIES, DEBUG, EXPORTS_BUCKET
@@ -65,7 +65,7 @@ from rogerthat.settings import get_server_settings
 from rogerthat.to.messaging import AnswerTO
 from rogerthat.translations import DEFAULT_LANGUAGE, localize
 from rogerthat.utils import bizz_check, now, channel, generate_random_key, get_epoch_from_datetime, send_mail, \
-    get_server_url
+    get_server_url, get_python_stack_trace
 from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.crypto import encrypt, decrypt, sha256_hex
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException, \
@@ -113,6 +113,8 @@ from solutions.common.models.hints import SolutionHint
 from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
+from typing import Tuple, Union, List
+
 
 try:
     from cStringIO import StringIO
@@ -251,7 +253,7 @@ def search_customer(search_string, app_ids, team_id, limit=20):
             continue
         customers.append(c)
     if missing_customer_keys:
-        logging.error('Customer index not up to date... %s', missing_customer_keys)
+        logging.error('Found customer(s) in search index that cannot be found in database: %s', missing_customer_keys)
     return customers
 
 
@@ -294,6 +296,8 @@ def re_index_customer(customer_key):
             tag = 'app_id#%s' % app_id
             doc['tags'].append(tag)
 
+        doc['tags'].append(SearchTag.community(customer.community_id))
+
     txt = set()
     for k, v in doc.iteritems():
         if k in ('full_matches', 'tags'):
@@ -311,10 +315,10 @@ def re_index_customer(customer_key):
 @arguments(current_user=users.User, customer_id=(int, long, NoneType), vat=unicode, name=unicode, address1=unicode,
            address2=unicode, zip_code=unicode, city=unicode, country=unicode, language=unicode,
            organization_type=(int, long), prospect_id=unicode, force=bool, team_id=(int, long, NoneType),
-           website=unicode, facebook_page=unicode, app_id=unicode)
+           website=unicode, facebook_page=unicode, app_id=unicode, community_id=(int, long))
 def create_or_update_customer(current_user, customer_id, vat, name, address1, address2, zip_code, city, country,
                               language, organization_type, prospect_id, force=False, team_id=None,
-                              website=None, facebook_page=None, app_id=None):
+                              website=None, facebook_page=None, app_id=None, community_id=0):
     is_in_transaction = db.is_in_transaction()
     name = name.strip()
     if not name:
@@ -354,6 +358,9 @@ def create_or_update_customer(current_user, customer_id, vat, name, address1, ad
         customer = Customer(creation_time=now(),
                             team_id=customer_team_id,
                             manager=current_user)
+
+    if community_id:
+        customer.community_id = community_id
 
     if not force:
         @db.non_transactional
@@ -644,11 +651,16 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
                 websites.append(site)
     else:
         websites = None
+
+    app_model = get_app_by_id(service.apps[0]) # todo communities
+    azzert(len(app_model.community_ids) == 1, "Community was NOT provided but len(app.community_ids) != 1")
+    community_id = app_model.community_ids[0]
+
     r = create_flex_service(customer.service_email if redeploy else service.email, customer.name,
                             service.phone_number, [service.language], u'EUR', modules,
                             service.broadcast_types, service.apps, redeploy, service.organization_type,
                             search_enabled, broadcast_to_users=broadcast_to_users, websites=websites, password=password,
-                            tos_version=tos_version)
+                            tos_version=tos_version, community_id=community_id)
 
     r.auto_login_url = customer.auto_login_url
     send_login_information = False if tos_version else True
@@ -670,6 +682,10 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
         broadcast_to_users (list of users.User)
         user_exists (bool)
     """
+
+    app_model = get_app_by_id(app_ids[0])
+    azzert(len(app_model.community_ids) == 1, "Community was NOT provided but len(app.community_ids) != 1")
+    community_id = app_model.community_ids[0]
 
     def trans():
         customer = Customer.get(customer_key)
@@ -695,6 +711,10 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
                     to_put.append(app_settings)
             customer.default_app_id = new_default_app_id
             customer.app_ids = app_ids
+            updated = True
+
+        if not customer.community_id or customer.community_id != community_id:
+            customer.community_id = community_id
             updated = True
 
         if not customer.service_email:
@@ -2241,6 +2261,11 @@ def put_customer_with_service(service, name, address1, address2, zip_code, city,
                               organization_type, vat, team_id, product_code, customer_id=None,
                               website=None, facebook_page=None, force=False):
     # type: (CustomerServiceTO, str, str, str, str, str, str, str, str, str, int, str, int, str, str, bool) -> Tuple[Customer, bool, bool]
+
+    app_model = get_app_by_id(service.apps[0]) # todo communities
+    azzert(len(app_model.community_ids) == 1, "Community was NOT provided but len(app.community_ids) != 1")
+    community_id = app_model.community_ids[0]
+
     def trans1():
         email_has_changed = False
         is_new = False
@@ -2249,7 +2274,7 @@ def put_customer_with_service(service, name, address1, address2, zip_code, city,
                                              country=country, language=language, city=city,
                                              organization_type=organization_type, prospect_id=None,
                                              force=force, team_id=team_id, website=website, facebook_page=facebook_page,
-                                             app_id=service.apps[0])
+                                             app_id=service.apps[0], community_id=community_id)
 
         customer.put()
         if customer_id:
@@ -2476,7 +2501,6 @@ def validate_customer_url_data(email, data):
 @returns()
 @arguments(email=unicode, data=str, service_email=unicode)
 def complete_customer_signup(email, data, service_email=None):
-    
     @run_after_transaction
     def send_smart_emails(email, app_id):
         app_name = get_app_name_by_id(app_id)
@@ -2488,7 +2512,7 @@ def complete_customer_signup(email, data, service_email=None):
         signup.inbox_message_key = _send_new_customer_signup_message(service_user, signup)
         signup.service_email = service_email
         signup.put()
-        
+
         city_customer = signup.city_customer
         if city_customer.language == 'nl':
             send_smart_emails(signup.customer_email, city_customer.app_id)

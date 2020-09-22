@@ -61,6 +61,8 @@ class SolutionNewsItem(NdbModel):
     publish_time = ndb.IntegerProperty()
     reach = ndb.IntegerProperty(default=0, indexed=False)
     app_ids = ndb.StringProperty(indexed=False, repeated=True)  # contains only regional apps (not rogerthat/main app)
+    # contains only regional communities (not service_profile.community_id)
+    community_ids = ndb.IntegerProperty(indexed=False, repeated=True) # todo communities
     service_identity = ndb.StringProperty()
 
     @property
@@ -87,6 +89,7 @@ class NewsSettings(NdbModel):
 class NewsReview(NdbModel):
     service_identity_user = ndb.UserProperty()
     app_id = ndb.StringProperty(indexed=False)
+    community_id = ndb.IntegerProperty() # todo communities
     is_free_regional_news = ndb.BooleanProperty(indexed=False)
     coupon_id = ndb.IntegerProperty(indexed=False)
     image_id = ndb.IntegerProperty(indexed=False)
