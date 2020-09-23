@@ -1407,7 +1407,7 @@ def put_customer(customer_id, name, address1, address2, zip_code, city, country,
     try:
         customer = create_or_update_customer(gusers.get_current_user(), customer_id, vat, name, address1, address2,
                                              zip_code, city, country, language, organization_type, prospect_id, force,
-                                             team_id) # todo communities set community_id
+                                             team_id)
         audit_log(customer.id, u"Save Customer.", prospect_id=prospect_id)
     except DuplicateCustomerNameException, ex:
         return CustomerReturnStatusTO.create(False, warning=ex.message)

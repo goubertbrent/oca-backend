@@ -14,19 +14,23 @@
 # limitations under the License.
 #
 # @@license_version:1.5@@
-
 from __future__ import unicode_literals
-
 from google.appengine.ext import ndb
+from typing import List
 
 from mcfw.utils import Enum
-from rogerthat.models.common import NdbModel
+from rogerthat.models import NdbModel
 from rogerthat.rpc import users
+from rogerthat.utils.service import create_service_identity_user
 
 
 class CommunityAutoConnectedService(NdbModel):
     service_email = ndb.StringProperty()
     removable = ndb.BooleanProperty(indexed=False, default=True)
+
+    @property
+    def service_identity_email(self):
+        return create_service_identity_user(self.service_email).email()
 
 
 class AppFeatures(Enum):
@@ -45,7 +49,7 @@ class AppFeatures(Enum):
 
 
 
-class Community(NdbModel): # todo communities
+class Community(NdbModel):
     auto_connected_services = ndb.StructuredProperty(CommunityAutoConnectedService,
                                                      repeated=True)  # type: List[CommunityAutoConnectedService]
     country = ndb.StringProperty()  # 2 letter country code

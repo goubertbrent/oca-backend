@@ -552,7 +552,7 @@ def create_user_profile(app_user, name, language=None, ysaaa=False, owncloud_pas
                         tos_version=None, consent_push_notifications_shown=False, first_name=None, last_name=None,
                         community_id=0):
     name = _validate_name(name)
-    
+
     # todo communities remove after testing
     app_id = get_app_id_from_app_user(app_user)
     app_model = get_app_by_id(app_id)
@@ -687,14 +687,14 @@ def create_service_profile(service_user, name, update_func=None, community_id=0)
     from rogerthat.bizz.news import create_default_news_settings
 
     name = _validate_name(name)
-    
+
     if community_id:
         community = get_community(community_id)
         default_app_id = community.default_app
     else:
         default_app = app.get_default_app()
         default_app_id = default_app.app_id if default_app else App.APP_ID_ROGERTHAT
-    
+
         # todo communities remove after testing
         stack_stace =  get_python_stack_trace(short=False)
         logging.error("create_service_profile community_id was not provided %s", stack_stace)

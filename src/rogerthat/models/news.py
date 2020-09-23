@@ -22,6 +22,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from google.appengine.ext import ndb
 from google.appengine.ext.ndb.query import QueryOptions
+from typing import List, Optional
 
 from mcfw.utils import Enum
 from rogerthat.bizz.communities.models import Community
@@ -100,7 +101,7 @@ class NewsItem(NdbModel):
 
     sender = ndb.UserProperty(indexed=True, required=True)  # service identity user
     app_ids = ndb.StringProperty(indexed=True, repeated=True)  # TODO communities: remove after migration
-    community_ids = ndb.IntegerProperty(repeated=True)  # type: List[long] # todo communities
+    community_ids = ndb.IntegerProperty(repeated=True)  # type: List[long] # todo communities pre-migration
     timestamp = ndb.IntegerProperty(indexed=True, required=True)  # type: long
     update_timestamp = ndb.IntegerProperty(indexed=True, default=0)
     order_timestamp = ndb.IntegerProperty(indexed=True, default=0)
@@ -415,7 +416,7 @@ class NewsGroup(NdbModel):
 
     name = ndb.StringProperty(indexed=False)  # not visible to users/customers
     app_id = ndb.StringProperty()
-    community_id = ndb.IntegerProperty() # todo communities
+    community_id = ndb.IntegerProperty() # todo communities pre-migration
     send_notifications = ndb.BooleanProperty(indexed=False, default=True)
     visible_until = ndb.DateTimeProperty(indexed=True)
 
@@ -472,7 +473,7 @@ class NewsSettingsService(NdbModel):
     # 999 skipped
 
     default_app_id = ndb.StringProperty()  # TODO communities: remove after migration
-    community_id = ndb.IntegerProperty() # todo communities
+    community_id = ndb.IntegerProperty() # todo communities pre-migration
     setup_needed_id = ndb.IntegerProperty()
     groups = ndb.LocalStructuredProperty(NewsSettingsServiceGroup,
                                          repeated=True)  # type: List[NewsSettingsServiceGroup]

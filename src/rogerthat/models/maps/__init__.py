@@ -23,6 +23,7 @@ from rogerthat.models.common import NdbModel, TOProperty
 from rogerthat.rpc import users
 from rogerthat.to.maps import MapButtonTO, MapListSectionItemTO
 from rogerthat.to.news import BaseMediaTO
+from rogerthat.utils.service import get_service_user_from_service_identity_user
 
 
 class MapSettings(NdbModel):
@@ -128,6 +129,10 @@ class MapService(NdbModel):
     @property
     def service_identity_email(self):
         return self.key.id()
+
+    @property
+    def service_user(self):
+        return get_service_user_from_service_identity_user(users.User(self.service_identity_email))
 
     @classmethod
     def create_key(cls, service_identity_email):

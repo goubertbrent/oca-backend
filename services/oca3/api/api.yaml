@@ -1,0 +1,139 @@
+openapi: 3.0.0
+info:
+  title: Our City App
+  description: Our City App internal apis
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 0.0.1
+servers:
+  - url: https://localhost:8333/api
+security:
+  - AppengineAuth: [ ]
+paths:
+  /homescreen/{communityId}:
+    post:
+      summary: Saves the homescreen for a community
+      operationId: updateHomeScreen
+      parameters:
+        - name: communityId
+          in: path
+          description: The id of the community to which this homescreen belongs
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HomeScreen'
+      responses:
+        "204":
+          description: Request was successful
+components:
+  securitySchemes:
+    AppengineAuth:
+      description: This header is enforced by appengine, if the imcoming request doesn't actually come from an appengine application this header will be removed
+      type: apiKey
+      in: header
+      name: X-Appengine-Inbound-Appid
+  schemas:
+    HomeScreen:
+      type: object
+      required: [ content, bottom_navigation, bottom_sheet, default_language, translations ]
+      properties:
+        content:
+          $ref: '#/components/schemas/HomescreenContent'
+        bottom_navigation:
+          $ref: '#/components/schemas/HomescreenBottomNavigation'
+        bottom_sheet:
+          $ref: '#/components/schemas/HomescreenBottomSheet'
+        default_language:
+          description: Language to use when the user his language is not one of the available ones in the translation mapping
+          type: string
+          example: en
+        translations:
+          type: object
+          description: Translations for any string which could be translated on the homescreen. Properties that should be translated should contain a $ prefix. For example, label -> $trash_calendar
+          additionalProperties:
+            description: Translation keys
+            type: object
+            additionalProperties:
+              description: Translated strings
+              type: string
+          example:
+            en:
+              news: News
+              trash_calendar: Trash calendar
+            nl:
+              news: Nieuws
+              trash_calendar: Afvalkalender
+    HomescreenContent:
+      # Unfortunately the kotlin generator doesn't support anyOf, and the java generator is all kinds of broken.
+      required: [ type ]
+      description: Content of the homescreen, native or an embedded app
+      properties:
+        type:
+          type: string
+          enum:
+            - native
+            - embedded_app
+        embedded_app:
+          type: string
+          description: Only set when 'type' is embedded_app
+    HomescreenBottomNavigation:
+      description: Content of the bottom navigation bar
+      example:
+        buttons:
+          - badge_key: messages
+            icon: fa-envelope
+            action: action
+            label: Messages
+          - badge_key: null
+            icon: fa-external-link
+            action: https://google.com
+            label: Google
+      properties:
+        buttons:
+          type: array
+          items:
+            $ref: '#/components/schemas/HomescreenNavigationButton'
+    HomescreenNavigationButton:
+      description: A button shown in the bottom navigation of the app
+      type: object
+      required: [ icon, label, action ]
+      properties:
+        icon:
+          type: string
+        label:
+          type: string
+        action:
+          type: string
+        badge_key:
+          type: string
+          nullable: true
+    HomescreenBottomSheet:
+      type: object
+      required: [ header, rows ]
+      properties:
+        header:
+          $ref: '#/components/schemas/HomescreenBottomSheetHeader'
+        rows:
+          type: array
+          items:
+            # CBA to define all this. See MapListSectionItemTO
+            additionalProperties: true
+    HomescreenBottomSheetHeader:
+      type: object
+      required: [ title ]
+      properties:
+        title:
+          type: string
+        subtitle:
+          type: string
+          nullable: true
+        image:
+          type: string
+          nullable: true
+

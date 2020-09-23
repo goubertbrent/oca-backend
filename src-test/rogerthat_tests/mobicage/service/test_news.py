@@ -263,7 +263,7 @@ class NewsTest(mc_unittest.TestCase):
         ng6.default_notifications_enabled = False
         ng6.tile = None
         ng6.put()
-        
+
         ns.group_ids = [ng1.group_id,
                         ng2.group_id,
                         ng4.group_id,

@@ -169,6 +169,16 @@ class TestCase(unittest.TestCase):
             communities.append(community)
         self.communities = communities
 
+        communities = []
+        for app_model in [rogerthat_app, be_loc_app, be_berlare_app, osa_loyalty_app]:
+            community = Community()
+            community.name = app_model.name
+            community.default_app = app_model.app_id
+            community.put()
+            app_model.community_ids = [community.id]
+            communities.append(community)
+        self.communities = communities
+
         put_and_invalidate_cache(ss, rogerthat_app, be_loc_app, be_berlare_app, osa_loyalty_app)
 
         app.get_default_app = lambda: rogerthat_app

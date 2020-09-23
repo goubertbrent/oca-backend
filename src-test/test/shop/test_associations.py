@@ -59,6 +59,7 @@ class AssociationsTestCase(oca_unittest.TestCase):
                                                   country, language, organization_type, prospect_id,
                                                   team_id=team_id, community_id=community.id)
         city_customer.service_email = city_customer.user_email = r.login
+        city_customer.community_id = community.id
         city_customer.put()
 
         community.main_service = city_customer.service_email

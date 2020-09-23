@@ -25,6 +25,8 @@ from types import NoneType
 import urllib2
 import urlparse
 from collections import defaultdict
+from datetime import datetime
+from types import NoneType
 
 from google.appengine.api import urlfetch, images, taskqueue
 from google.appengine.ext import db, ndb
@@ -318,7 +320,7 @@ def get_groups_for_user(app_user):
 def get_tabs_for_group(lang, news_groups_type_mapping, user_settings, group_type):
     # type: (str, Dict[str, List[NewsGroup]], NewsSettingsUser, unicode) -> Tuple[List[NewsGroupTabInfoTO], List[NewsGroup]]
     news_groups = sorted(news_groups_type_mapping.get(group_type, []),
-                         key=lambda k: k.regional)  # type: List[NewsGroup]
+                         key=lambda k: -k.regional)  # type: List[NewsGroup]
     if not news_groups:
         return [], []
     tabs = []

@@ -75,6 +75,14 @@ from rogerthat.utils.crypto import encrypt_for_jabber_cloud, decrypt_from_jabber
 from rogerthat.utils.service import get_service_identity_tuple, add_slash_default, create_service_identity_user
 from rogerthat.utils.transactions import run_in_xg_transaction, run_in_transaction
 from rogerthat.utils.translations import localize_app_translation
+from typing import List
+
+
+@arguments(app_id=unicode)
+def get_communities_by_app_id( app_id):
+    # type: (unicode) -> List[dict]
+    app = get_app_by_id(app_id)
+    return [{'id': c.id, 'name': c.name} for c in get_communities_by_id(app.community_ids)]
 
 
 @arguments(app_id=unicode)
@@ -120,7 +128,7 @@ def register_mobile(human_user, name=None, first_name=None, last_name=None, app_
     if anonymous_account:
         anonymous_mobile = get_mobile_by_account(anonymous_account)
         azzert(anonymous_mobile)
-        
+
     app = get_app_by_id(app_id)
     if community_id == 0:
         azzert(len(app.community_ids) == 1, "Community was NOT provided but len(app.community_ids) != 1")
@@ -208,7 +216,7 @@ def register_mobile(human_user, name=None, first_name=None, last_name=None, app_
             if tos_version:
                 user_profile.tos_version = tos_version
                 should_put = True
-                
+
             if not user_profile.community_id or community_id != user_profile.community_id:
                 user_profile.community_id = community_id
                 should_put = True

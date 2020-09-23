@@ -87,7 +87,7 @@ class MapGeometryTO(object_factory):
 class MapListSectionItemType(object):
     TOGGLE = 'toggle'
     LINK = 'link'
-    OPENING_HOURS = 'opening_hours'
+    DYNAMIC_OPENING_HOURS = 'opening-hours'
     EXPANDABLE = 'expandable'
 
 
@@ -105,10 +105,16 @@ class ToggleListSectionItemTO(BaseListSectionItem):
     filled = bool_property('filled')
 
 
+class LinkListItemStyle(Enum):
+    ROUND_BUTTON_WITH_ICON = 0
+    BUTTON = 1
+
+
 class LinkListSectionItemTO(BaseListSectionItem):
     type = unicode_property('type', default=MapListSectionItemType.LINK)
     url = unicode_property('url')
     external = bool_property('external', default=False)
+    style = long_property('style', default=LinkListItemStyle.ROUND_BUTTON_WITH_ICON)
     request_user_link = bool_property('request_user_link', default=False)
 
 
@@ -119,7 +125,7 @@ class ExpandableListSectionItemTO(BaseListSectionItem):
 class MapItemLineTextPartTO(TO):
     color = unicode_property('color', default=None)
     text = unicode_property('text')
-    
+
     def __eq__(self, other):
         if not other or not isinstance(other, MapItemLineTextPartTO):
             return False
@@ -138,25 +144,45 @@ class WeekDayTextTO(TO):
             and self.lines == other.lines
 
 
-class OpeningInfoTO(TO):
-    name = unicode_property('name')  # optional name in case there are opening hours for multiple locations
-    title = unicode_property('title')  # opening soon, open, closing soon, closed, ...
-    title_color = unicode_property('title_color', default=None)
-    subtitle = unicode_property('subtitle')  # 11:00 AM - 8:00 PM etc
-    description = unicode_property('description')  # Christmas Eve might affect these hours
+class OpeningHourTO(TO):
+    day = long_property('day')
+    time = unicode_property('time')
+
+
+class OpeningPeriodTO(TO):
+    open = typed_property('open', OpeningHourTO)  # type: OpeningHourTO
+    close = typed_property('close', OpeningHourTO)  # type: OpeningHourTO
+    description = unicode_property('description', default=None)
     description_color = unicode_property('description_color', default=None)
-    weekday_text = typed_property('weekday_text', WeekDayTextTO, True)
 
 
-class OpeningHoursListSectionItemTO(BaseListSectionItem):
-    type = unicode_property('type', default=MapListSectionItemType.OPENING_HOURS)
-    opening_hours = typed_property('opening_hours', OpeningInfoTO)
+class OpeningHourExceptionTO(TO):
+    start_date = unicode_property('start_date')
+    end_date = unicode_property('end_date')
+    description = unicode_property('description')
+    description_color = unicode_property('description_color', default=None)
+    periods = typed_property('periods', OpeningPeriodTO, True, default=[])  # type: List[OpeningPeriodTO]
+
+
+class OpeningHoursTO(TO):
+    id = unicode_property('id')
+    type = unicode_property('type')
+    text = unicode_property('text')
+    title = unicode_property('title')
+    periods = typed_property('periods', OpeningPeriodTO, True, default=[])  # type: List[OpeningPeriodTO]
+    exceptional_opening_hours = typed_property('exceptional_opening_hours', OpeningHourExceptionTO,
+                                               True, default=[])  # type: List[OpeningHourExceptionTO]
+
+
+class OpeningHoursSectionItemTO(BaseListSectionItem):
+    type = unicode_property('type', default=MapListSectionItemType.DYNAMIC_OPENING_HOURS)
+    opening_hours = typed_property('opening_hours', OpeningHoursTO)
 
 
 MAP_LIST_SECTION_ITEM_MAPPING = {
     MapListSectionItemType.TOGGLE: ToggleListSectionItemTO,
     MapListSectionItemType.LINK: LinkListSectionItemTO,
-    MapListSectionItemType.OPENING_HOURS: OpeningHoursListSectionItemTO,
+    MapListSectionItemType.DYNAMIC_OPENING_HOURS: OpeningHoursSectionItemTO,
     MapListSectionItemType.EXPANDABLE: ExpandableListSectionItemTO,
 }
 
@@ -390,13 +416,13 @@ class MapSearchTO(TO):
 class MapSearchSuggestionType(object):
     KEYWORD = 'keyword'
     ITEM = 'item'
-    
+
 
 class MapSearchSuggestionKeywordTO(TO):
     type = unicode_property('type', default=MapSearchSuggestionType.KEYWORD)
     text = unicode_property('text')
-    
-    
+
+
 class MapSearchSuggestionItemTO(TO):
     type = unicode_property('type', default=MapSearchSuggestionType.ITEM)
     id = unicode_property('id')

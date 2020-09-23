@@ -1,0 +1,201 @@
+openapi: 3.0.0
+info:
+  description: Our City App internal apis
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: Our City App
+  version: 0.0.1
+servers:
+- url: https://localhost:8333/api
+security:
+- AppengineAuth: []
+paths:
+  /homescreen/{communityId}:
+    post:
+      operationId: update_home_screen
+      parameters:
+      - description: The id of the community to which this homescreen belongs
+        explode: false
+        in: path
+        name: communityId
+        required: true
+        schema:
+          format: int64
+          type: integer
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HomeScreen'
+      responses:
+        "204":
+          description: Request was successful
+      summary: Saves the homescreen for a community
+      x-openapi-router-controller: oca.controllers.default_controller
+components:
+  schemas:
+    HomeScreen:
+      example:
+        bottom_navigation:
+          buttons:
+          - badge_key: messages
+            icon: fa-envelope
+            action: action
+            label: Messages
+          - badge_key: null
+            icon: fa-external-link
+            action: https://google.com
+            label: Google
+        bottom_sheet:
+          header:
+            image: image
+            subtitle: subtitle
+            title: title
+          rows:
+          - key: '{}'
+          - key: '{}'
+        translations:
+          en:
+            news: News
+            trash_calendar: Trash calendar
+          nl:
+            news: Nieuws
+            trash_calendar: Afvalkalender
+        default_language: en
+        content:
+          embedded_app: embedded_app
+          type: native
+      properties:
+        content:
+          $ref: '#/components/schemas/HomescreenContent'
+        bottom_navigation:
+          $ref: '#/components/schemas/HomescreenBottomNavigation'
+        bottom_sheet:
+          $ref: '#/components/schemas/HomescreenBottomSheet'
+        default_language:
+          description: Language to use when the user his language is not one of the
+            available ones in the translation mapping
+          example: en
+          type: string
+        translations:
+          additionalProperties:
+            additionalProperties:
+              description: Translated strings
+              type: string
+            description: Translation keys
+            type: object
+          description: Translations for any string which could be translated on the
+            homescreen. Properties that should be translated should contain a $ prefix.
+            For example, label -> $trash_calendar
+          example:
+            en:
+              news: News
+              trash_calendar: Trash calendar
+            nl:
+              news: Nieuws
+              trash_calendar: Afvalkalender
+          type: object
+      required:
+      - bottom_navigation
+      - bottom_sheet
+      - content
+      - translations
+      type: object
+    HomescreenContent:
+      description: Content of the homescreen, native or an embedded app
+      example:
+        embedded_app: embedded_app
+        type: native
+      properties:
+        type:
+          enum:
+          - native
+          - embedded_app
+          type: string
+        embedded_app:
+          description: Only set when 'type' is embedded_app
+          type: string
+      required:
+      - type
+    HomescreenBottomNavigation:
+      description: Content of the bottom navigation bar
+      example:
+        buttons:
+        - badge_key: messages
+          icon: fa-envelope
+          action: action
+          label: Messages
+        - badge_key: null
+          icon: fa-external-link
+          action: https://google.com
+          label: Google
+      properties:
+        buttons:
+          items:
+            $ref: '#/components/schemas/HomescreenNavigationButton'
+          type: array
+    HomescreenNavigationButton:
+      description: A button shown in the bottom navigation of the app
+      properties:
+        icon:
+          type: string
+        label:
+          type: string
+        action:
+          type: string
+        badge_key:
+          nullable: true
+          type: string
+      required:
+      - action
+      - icon
+      - label
+      type: object
+    HomescreenBottomSheet:
+      example:
+        header:
+          image: image
+          subtitle: subtitle
+          title: title
+        rows:
+        - key: '{}'
+        - key: '{}'
+      properties:
+        header:
+          $ref: '#/components/schemas/HomescreenBottomSheetHeader'
+        rows:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+      required:
+      - header
+      - rows
+      type: object
+    HomescreenBottomSheetHeader:
+      example:
+        image: image
+        subtitle: subtitle
+        title: title
+      properties:
+        title:
+          type: string
+        subtitle:
+          nullable: true
+          type: string
+        image:
+          nullable: true
+          type: string
+      required:
+      - title
+      type: object
+  securitySchemes:
+    AppengineAuth:
+      description: This header is enforced by appengine, if the imcoming request doesn't
+        actually come from an appengine application this header will be removed
+      in: header
+      name: X-Appengine-Inbound-Appid
+      type: apiKey
+      x-apikeyInfoFunc: oca.controllers.security_controller_.info_from_AppengineAuth

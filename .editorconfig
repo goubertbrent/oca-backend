@@ -20,3 +20,6 @@ trim_trailing_whitespace = false
 [*.json]
 insert_final_newline = false
 indent_size = 2
+
+[*.yaml]
+indent_size = 2

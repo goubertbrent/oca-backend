@@ -21,6 +21,8 @@ import os
 from jinja2 import StrictUndefined, Undefined
 import jinja2
 import webapp2
+from babel import dates, Locale
+from jinja2 import StrictUndefined, Undefined
 
 from babel import dates, Locale
 from mcfw.rpc import serialize_complex_value
@@ -56,7 +58,6 @@ from solutions.common.models.properties import MenuItem
 from solutions.common.to import SolutionEmailSettingsTO
 from solutions.flex import SOLUTION_FLEX
 from solutions.jinja_extensions import TranslateExtension
-
 
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), 'templates'),
@@ -328,15 +329,9 @@ class FlexHomeHandler(webapp2.RequestHandler):
             'BUDGET_RATE': BUDGET_RATE,
             'CURRENCY_SYMBOLS': currency_symbols
         }
-        if customer:
-            vat_pct = get_vat_pct(customer)
-            is_mobicage = customer.team.legal_entity.is_mobicage
-            legal_entity_currency = customer.team.legal_entity.currency
-        else:
-            mobicage_legal_entity = get_mobicage_legal_entity()
-            vat_pct = mobicage_legal_entity.vat_percent
-            is_mobicage = True
-            legal_entity_currency = mobicage_legal_entity.currency
+        vat_pct = get_vat_pct(customer)
+        is_mobicage = customer.team.legal_entity.is_mobicage
+        legal_entity_currency = customer.team.legal_entity.currency
 
         functionality_modules = functionality_info = None
         if community.signup_enabled:

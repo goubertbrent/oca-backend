@@ -33,6 +33,7 @@ from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.elasticsearch import delete_index, create_index, es_request, delete_doc, index_doc, \
     execute_bulk_request
+from rogerthat.bizz.homescreen.homescreen import maybe_update_homescreen
 from rogerthat.bizz.maps.services.places import get_place_details, PlaceDetails, get_place_type_keys
 from rogerthat.bizz.maps.shared import get_map_response
 from rogerthat.bizz.opening_hours import get_opening_hours_info
@@ -52,11 +53,11 @@ from rogerthat.to.maps import GetMapResponseTO, MapFunctionality, MapBaseUrlsTO,
     GetMapItemsRequestTO, GetMapItemDetailsResponseTO, GetMapItemDetailsRequestTO, ToggleMapItemResponseTO, \
     ToggleMapItemRequestTO, GetSavedMapItemsResponseTO, GetSavedMapItemsRequestTO, ToggleListSectionItemTO, \
     LinkListSectionItemTO, ListSectionTO, ListSectionStyle, MapItemDetailsTO, MapItemTO, MapIconTO, \
-    MapListSectionItemType, OpeningInfoTO, OpeningHoursListSectionItemTO, ExpandableListSectionItemTO, \
+    MapListSectionItemType, ExpandableListSectionItemTO, \
     NewsSectionTO, MediaSectionTO, SearchSuggestionTO, MapItemLineTextTO, \
     MapItemLineTextPartTO, GetMapSearchSuggestionsResponseTO, \
     GetMapSearchSuggestionsRequestTO, MapSearchSuggestionKeywordTO, \
-    MapSearchSuggestionItemTO
+    MapSearchSuggestionItemTO, OpeningHoursSectionItemTO, OpeningHoursTO
 from rogerthat.to.news import GetNewsStreamFilterTO, SizeTO
 from rogerthat.translations import localize
 from rogerthat.utils.app import get_app_id_from_app_user
@@ -338,6 +339,23 @@ def save_map_service(service_identity_user):
     map_service.has_news = NewsItem.list_by_sender(service_identity_user).count(1) > 0
     map_service.media_items = service_info.cover_media
 
+    if opening_hours and opening_hours.type in (OpeningHours.TYPE_TEXTUAL, OpeningHours.TYPE_NOT_RELEVANT):
+        if opening_hours.text and opening_hours.text.strip():
+            map_service.vertical_items.append(MapServiceListItem(
+                item=ExpandableListSectionItemTO(icon='fa-clock-o',
+                                                 title=opening_hours.text)
+            ))
+    elif opening_hours and opening_hours.type == OpeningHours.TYPE_STRUCTURED:
+        map_service.opening_hours_links.append(opening_hours.key)
+        new_item = MapServiceListItem(
+            item=OpeningHoursSectionItemTO(
+                icon='fa-clock-o',
+                title=opening_hours.title,
+                opening_hours=OpeningHoursTO.from_model(opening_hours)
+            )
+        )
+        map_service.vertical_items.append(new_item)
+
     if service_info.description:
         description_item = ExpandableListSectionItemTO(icon='fa-info', title=service_info.description)
         map_service.vertical_items.append(MapServiceListItem(item=description_item))
@@ -372,21 +390,6 @@ def save_map_service(service_identity_user):
                                            url=geo_url)
         map_service.vertical_items.append(MapServiceListItem(item=v_map_item))
 
-    if opening_hours and opening_hours.type in (OpeningHours.TYPE_TEXTUAL, OpeningHours.TYPE_NOT_RELEVANT):
-        if opening_hours.text and opening_hours.text.strip():
-            map_service.vertical_items.append(MapServiceListItem(
-                item=ExpandableListSectionItemTO(icon='fa-clock-o',
-                                                 title=opening_hours.text)
-            ))
-    elif opening_hours and opening_hours.type == OpeningHours.TYPE_STRUCTURED:
-        map_service.opening_hours_links.append(opening_hours.key)
-        item = MapServiceListItem(item=OpeningHoursListSectionItemTO(
-            type=MapListSectionItemType.OPENING_HOURS,
-            icon='fa-clock-o',
-            title=opening_hours.title)
-        )
-        map_service.vertical_items.append(item)
-
     for smd in get_service_menu_items(service_identity_user):
         if smd.isBroadcastSettings:
             continue
@@ -408,6 +411,7 @@ def save_map_service(service_identity_user):
             map_service.vertical_items.append(item)
 
     map_service.put()
+    maybe_update_homescreen(map_service, service_profile.community_id)
     return map_service
 
 
@@ -446,66 +450,36 @@ def _get_map_item_details_to_from_ids(app_user, ids):
         models_to_get.append(MapSavedItem.create_key(SERVICES_TAG, app_user, id_))
         for item in map_service.vertical_items:
             all_service_role_keys.update({ServiceRole.create_key(service_user, long(role_id)) for role_id in item.role_ids})
-            if isinstance(item.item, OpeningHoursListSectionItemTO):
-                models_to_get.extend(map_service.opening_hours_links)
-                models_to_get.append(ServiceInfo.create_key(service_user, service_identity))
         for item in map_service.horizontal_items:
             all_service_role_keys.update({ServiceRole.create_key(service_user, long(role_id)) for role_id in item.role_ids})
         for item in map_service.media_items:
             all_service_role_keys.update({ServiceRole.create_key(service_user, long(role_id)) for role_id in item.role_ids})
     models = ndb.get_multi(models_to_get)
-    all_opening_hours = {model.key: model for model in models if isinstance(model, OpeningHours)}
-    service_infos = {model.key: model for model in models if isinstance(model, ServiceInfo)}
     all_saved_items = {model.id for model in models if isinstance(model, MapSavedItem)}
-    existing_role_ids = {role.role_id for role in db.get(list(all_service_role_keys)) if role} if all_service_role_keys else []
+    role_ids = {role.role_id for role in db.get(list(all_service_role_keys)) if role} if all_service_role_keys else []
 
     for id_, service_identity_user, map_service in zip(ids, service_identity_users, map_services):
         if not map_service:
             logging.debug('map_service with id "%s" not found', service_identity_user.email())
             continue
-        service_user, service_identity = get_service_identity_tuple(service_identity_user)
 
         sections = []
 
         media_items = [item.item for item in map_service.media_items
-                       if _item_is_visible(service_identity_user, user_profile, item.role_ids, existing_role_ids)]
+                       if _item_is_visible(service_identity_user, user_profile, item.role_ids, role_ids)]
         if media_items:
             sections.append(MediaSectionTO(ratio=SizeTO(width=16, height=9), items=media_items))
 
         horizontal_list_items = [item.item for item in map_service.horizontal_items
                                  if _item_is_visible(service_identity_user, user_profile, item.role_ids,
-                                                     existing_role_ids)]
+                                                     role_ids)]
         is_saved = id_ in all_saved_items
         save_item = _get_saved_toggle_item(is_saved, None, lang)
         horizontal_list_items.append(save_item)
         sections.append(ListSectionTO(style=ListSectionStyle.HORIZONTAL, items=horizontal_list_items))
 
-        vertical_list_items = []
-
-        for item in map_service.vertical_items:
-            if not _item_is_visible(service_identity_user, user_profile, item.role_ids, existing_role_ids):
-                continue
-
-            if isinstance(item.item, OpeningHoursListSectionItemTO):
-                for opening_hours_key in map_service.opening_hours_links:
-                    opening_hours = all_opening_hours.get(opening_hours_key)  # type: OpeningHours
-                    if not opening_hours:
-                        continue
-                    service_info = service_infos.get(ServiceInfo.create_key(service_user, service_identity))
-                    if not service_info:
-                        continue
-                    now_open, open_until, extra_description, weekday_text = get_opening_hours_info(
-                        opening_hours, service_info.timezone, lang)
-                    item.item.opening_hours = OpeningInfoTO(name=opening_hours.title,
-                                                            title=localize(lang, 'open' if now_open else 'closed'),
-                                                            title_color=get_openinghours_color(OPENING_HOURS_GREEN_COLOR if now_open else OPENING_HOURS_RED_COLOR),
-                                                            subtitle=open_until,
-                                                            description=extra_description,
-                                                            description_color=get_openinghours_color(OPENING_HOURS_ORANGE_COLOR),
-                                                            weekday_text=weekday_text)
-                    vertical_list_items.append(item.item)
-            else:
-                vertical_list_items.append(item.item)
+        vertical_list_items = [item.item for item in map_service.vertical_items
+                               if _item_is_visible(service_identity_user, user_profile, item.role_ids, role_ids)]
 
         if vertical_list_items:
             sections.append(ListSectionTO(style=ListSectionStyle.VERTICAL,
@@ -657,6 +631,7 @@ def _create_index():
     request = {
         'mappings': {
             'properties': {
+                # TODO communities: @ruben why not use the id_ field for this?
                 'email': {
                     'type': 'keyword'
                 },

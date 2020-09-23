@@ -27,6 +27,7 @@ from solutions import translate
 from solutions.common.bizz import broadcast_updates_pending
 from solutions.common.dal import get_solution_settings
 
+from rogerthat.to.maps import OpeningHoursTO
 
 DAY_MAPPING = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
 

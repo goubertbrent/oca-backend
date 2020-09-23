@@ -20,6 +20,7 @@ import datetime
 import random
 from test import set_current_user
 
+from dateutil import relativedelta
 from google.appengine.ext import db
 
 from dateutil import relativedelta

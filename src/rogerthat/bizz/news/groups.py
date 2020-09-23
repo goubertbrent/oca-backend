@@ -27,7 +27,7 @@ from rogerthat.bizz.service import InvalidGroupTypeException
 from rogerthat.consts import MIGRATION_QUEUE
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.models.news import NewsGroup, NewsSettingsService, NewsStream, \
-    NewsGroupTile, NewsStreamLayout, NewsSettingsUser, NewsStreamCustomLayout
+    NewsGroupTile, NewsStreamLayout, NewsSettingsUser, NewsStreamCustomLayout, NewsItem
 from rogerthat.rpc import users
 from rogerthat.to.news import ServiceNewsGroupTO
 from rogerthat.utils import guid
