@@ -65,9 +65,9 @@ def run_for_auto_connected_service(app_user_or_key, new_acs, service_helper):
 
         ui = get_user_interaction(app_user)
         for acs in new_acs:
-            if acs.service_email not in ui.services:
-                service_identity_user = users.User(acs.service_email)
-                ui.services.append(acs.service_email)
+            if acs.service_identity_email not in ui.services:
+                service_identity_user = users.User(acs.service_identity_email)
+                ui.services.append(acs.service_identity_email)
                 to_add.append(add_slash_default(service_identity_user))
         ui.put()
         return to_add

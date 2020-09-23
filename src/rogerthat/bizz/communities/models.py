@@ -22,11 +22,16 @@ from google.appengine.ext import ndb
 from mcfw.utils import Enum
 from rogerthat.models.common import NdbModel
 from rogerthat.rpc import users
+from rogerthat.utils.service import create_service_identity_user
 
 
 class CommunityAutoConnectedService(NdbModel):
     service_email = ndb.StringProperty()
     removable = ndb.BooleanProperty(indexed=False, default=True)
+    
+    @property
+    def service_identity_email(self):
+        return create_service_identity_user(self.service_email).email()
 
 
 class AppFeatures(Enum):
