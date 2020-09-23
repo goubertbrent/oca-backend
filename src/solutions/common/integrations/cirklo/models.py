@@ -140,7 +140,7 @@ class CirkloCity(NdbModel):
 
     @staticmethod
     def get_supported_language(language):
-        for lang in ['en', 'nl']:
+        for lang in ['nl', 'fr']:
             if language.startswith(lang):
                 return lang
         return 'nl'
