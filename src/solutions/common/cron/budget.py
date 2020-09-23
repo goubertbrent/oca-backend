@@ -19,6 +19,7 @@ import logging
 
 from google.appengine.ext import ndb, webapp
 
+from rogerthat.bizz.communities.communities import get_communities_by_id
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import DAY
 from rogerthat.exceptions.news import NewsNotFoundException
@@ -40,30 +41,32 @@ class BudgetCheckHandler(webapp.RequestHandler):
 
 
 def unpaid_regional_news_query(day_date):
-    return SolutionNewsItem.query(
-        SolutionNewsItem.paid == False,
-        SolutionNewsItem.publish_time <= day_date - 14 * DAY)
+    # After 2 weeks that the news item is published, views are no longer accounted for.
+    two_weeks_ago = day_date - 14 * DAY
+    return SolutionNewsItem.list_unpaid(two_weeks_ago)
 
 
 def update_regional_news_budget(sln_news_item_key):
     news_id = sln_news_item_key.id()
-    sln_news_item = sln_news_item_key.get()
+    sln_news_item = sln_news_item_key.get()  # type: SolutionNewsItem
     service_user = sln_news_item.service_user
     service_identity = sln_news_item.service_identity
 
     with users.set_user(service_user):
         try:
             news_item = news.get(news_id, service_identity)
-            statistics = news.get_statistics([news_id], service_identity)[0]
+            statistics = news.get_app_statistics([news_id], service_identity)[0]
         except NewsNotFoundException:
             logging.warning('News item with id %d is not found', news_id)
             return
 
     total_reach = 0
-    for app_stats in statistics.details:
-        if app_stats.app_id not in sln_news_item.app_ids:
+    item_app_ids = [community.default_app for community in get_communities_by_id(sln_news_item.community_ids)]
+    for app_stats in statistics.results:
+        if app_stats.app_id not in item_app_ids:
+            # Probably default community/app of the service, skip
             continue
-        total_reach += app_stats.reached['total']
+        total_reach += app_stats.stats.reached.total
 
     sln_settings = get_solution_settings(service_user)
 

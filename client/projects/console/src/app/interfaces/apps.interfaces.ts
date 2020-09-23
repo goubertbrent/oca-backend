@@ -66,13 +66,9 @@ export interface CreateAppPayload {
   official_id: number | null;
   title: string;
   dashboard_email_address: string;
-  auto_added_services: string[];
   ios_developer_account: number | null;
   android_developer_account: number | null;
   review_notes: number | null;
-  news_stream: {
-    type: string;
-  } | null;
 }
 
 export interface PatchAppPayload {
@@ -156,21 +152,18 @@ export class Build {
   submit_for_review: boolean;
 }
 
-export interface AutoConnectedService {
-  service_identity_email: string;
-  removable: boolean;
-  local: string[];
-  service_roles: number[];
+export const enum AppServiceFilter {
+  COUNTRY,
+  COMMUNITIES,
 }
 
 export interface RogerthatApp {
   admin_services: string[];
   android_app_id: string;
-  auto_connected_services: AutoConnectedService[];
   beta: boolean;
-  chat_enabled: boolean;
   contact_email_address: string;
   core_branding_hash: string;
+  country: string;
   creation_time: number;
   dashboard_email_address: string;
   demo: boolean;
@@ -189,7 +182,8 @@ export interface RogerthatApp {
   secure: boolean;
   type: number;
   user_regex: string;
-  embedded_apps: string[];
+  community_ids: number[];
+  service_filter_type: AppServiceFilter;
 }
 
 export const enum AppTypes {
@@ -200,22 +194,12 @@ export const enum AppTypes {
   YSAAA
 }
 
-export const enum NewsStreamTypes {
-  CITY = 'city',
-  COMMUNITY = 'community',
-}
-
 export const APP_TYPES = [
   { value: AppTypes.ROGERTHAT, label: 'rcc.app_type_rogerthat' },
   { value: AppTypes.CITY_APP, label: 'rcc.app_type_city_app' },
   { value: AppTypes.ENTERPRISE, label: 'rcc.app_type_enterprise' },
   { value: AppTypes.OSA_LOYALTY, label: 'rcc.app_type_osa_loyalty' },
   { value: AppTypes.YSAAA, label: 'rcc.app_type_ysaaa' },
-];
-
-export const NEWS_STREAM_TYPES = [
-  { value: NewsStreamTypes.CITY, label: 'rcc.news_stream_type_city' },
-  { value: NewsStreamTypes.COMMUNITY, label: 'rcc.news_stream_type_community' },
 ];
 
 export interface AppAsset {
@@ -337,30 +321,6 @@ export interface BuildSettings {
   registration_type_qr_url: string;
   registration_type_oauth_domain: string;
   translations: Translations;
-}
-
-export interface NewsGroupTile {
-  background_image_url: string;
-  promo_image_url: string;
-  title: string;
-  subtitle: string;
-}
-
-export interface NewsGroup {
-  group_id: string;
-  name: string;
-  send_notifications: boolean;
-  default_notifications_enabled: boolean;
-  group_type: string;
-  tile: NewsGroupTile;
-}
-
-export interface NewsSettings {
-  groups: NewsGroup[];
-}
-
-export interface UpdateNewsImagePayload {
-  file: any;
 }
 
 export enum RegistrationType {

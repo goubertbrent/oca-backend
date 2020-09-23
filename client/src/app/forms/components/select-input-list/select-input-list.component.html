@@ -1,8 +1,8 @@
 <ng-container *ngFor="let value of values; let i = index; trackBy: trackValues">
   <div class="option-container">
     <ng-container [ngSwitch]="multiple">
-      <mat-radio-button checked="false" disabled="true" *ngSwitchCase="false"></mat-radio-button>
-      <mat-checkbox checked="false" disabled="true" *ngSwitchCase="true"></mat-checkbox>
+      <mat-radio-button [checked]="false" [disabled]="true" *ngSwitchCase="false"></mat-radio-button>
+      <mat-checkbox [checked]="false" [disabled]="true" *ngSwitchCase="true"></mat-checkbox>
     </ng-container>
     <mat-form-field appearance="legacy" class="option-label">
       <input required [name]="name + 'label_' + i" matInput [(ngModel)]="value.label"

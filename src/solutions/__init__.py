@@ -20,7 +20,6 @@ import logging
 from google.appengine.ext.webapp import template
 
 from rogerthat.translations import DEFAULT_LANGUAGE
-from rogerthat.utils import get_python_stack_trace
 from solutions.common import SOLUTION_COMMON
 from solutions.common.consts import UNIT_SYMBOLS
 from solutions.common.localizer import translations
@@ -34,13 +33,7 @@ def get_supported_languages():
 
 
 def translate(language, key, suppress_warning=False, _duplicate_backslashes=False, **kwargs):
-    # type: (str, str, bool, bool, dict) -> str
-    if key == SOLUTION_COMMON:
-        # TODO: remove this if statement after july 2020
-        logging.error('Called translate with wrong arguments: %s', get_python_stack_trace(False))
-        key = suppress_warning
-        suppress_warning = False
-
+    # type: (basestring, basestring, bool, bool, dict) -> str
     language = (language or DEFAULT_LANGUAGE).replace('-', '_')
     if language not in translations:
         if '_' in language:

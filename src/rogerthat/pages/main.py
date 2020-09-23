@@ -101,7 +101,7 @@ class MainPage(webapp.RequestHandler):
             mobile_count = get_user_active_mobiles_count(user)
             my_profile_info = get_profile_info(user, skip_warning=True)
             if not my_profile_info:
-                my_profile_info = create_user_profile(user, user.email())
+                my_profile_info = create_user_profile(user, user.email()) # todo communities set community_id
 
             myavatarid = my_profile_info.avatarId
             if my_profile_info.isServiceIdentity:

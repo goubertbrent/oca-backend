@@ -38,7 +38,7 @@ from mcfw.rpc import returns, arguments
 from rogerthat.bizz.features import Features, Version
 from rogerthat.bizz.job.update_friends import update_friend_service_identity_connections
 from rogerthat.capi.system import unregisterMobile, forwardLogs
-from rogerthat.consts import FAST_QUEUE, HIGH_LOAD_WORKER_QUEUE
+from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
 from rogerthat.dal import put_and_invalidate_cache, generator
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.broadcast import get_broadcast_settings_flow_cache_keys_of_user
@@ -47,8 +47,7 @@ from rogerthat.dal.mobile import get_mobile_by_id, get_mobile_by_key, get_user_a
 from rogerthat.dal.profile import get_avatar_by_id, get_user_profile_key, get_user_profile, \
     get_deactivated_user_profile, get_service_profile
 from rogerthat.models import UserProfile, Avatar, CurrentlyForwardingLogs, Installation, InstallationLog, \
-    UserProfileInfo, UserProfileInfoAddress, \
-    UserProfileInfoPhoneNumber
+    UserProfileInfo, UserProfileInfoAddress, UserProfileInfoPhoneNumber
 from rogerthat.models.properties.profiles import MobileDetails
 from rogerthat.pages.legal import get_current_document_version, DOC_TERMS
 from rogerthat.rpc import users
@@ -57,8 +56,7 @@ from rogerthat.rpc.models import Mobile, RpcCAPICall, ServiceAPICallback, Sessio
 from rogerthat.rpc.rpc import mapping, logError
 from rogerthat.rpc.service import logServiceError
 from rogerthat.settings import get_server_settings
-from rogerthat.to.app import UpdateAppAssetResponseTO, UpdateLookAndFeelResponseTO, UpdateEmbeddedAppsResponseTO, \
-    UpdateEmbeddedAppResponseTO
+from rogerthat.to.app import UpdateAppAssetResponseTO, UpdateEmbeddedAppsResponseTO, UpdateEmbeddedAppResponseTO
 from rogerthat.to.profile import UserProfileTO
 from rogerthat.to.service import ProfilePhoneNumberTO
 from rogerthat.to.system import UserStatusTO, IdentityTO, UpdateSettingsResponseTO, UnregisterMobileResponseTO, \
@@ -66,7 +64,7 @@ from rogerthat.to.system import UserStatusTO, IdentityTO, UpdateSettingsResponse
     ForwardLogsRequestTO, AddProfileAddressRequestTO, ProfileAddressTO, UpdateProfileAddressRequestTO, \
     AddProfilePhoneNumberRequestTO, UpdateProfilePhoneNumberRequestTO
 from rogerthat.utils import now, try_or_defer, file_get_contents
-from rogerthat.utils.app import get_app_id_from_app_user, get_app_user_tuple
+from rogerthat.utils.app import get_app_id_from_app_user, get_human_user_from_app_user
 from rogerthat.utils.crypto import encrypt_for_jabber_cloud, decrypt_from_jabber_cloud
 from rogerthat.utils.languages import get_iso_lang
 from rogerthat.utils.transactions import run_in_xg_transaction, run_in_transaction
@@ -184,7 +182,6 @@ def _heart_beat(current_user, current_mobile, majorVersion, minorVersion, flushB
                 timezone, timezoneDeltaGMT, osVersion, deviceModelName, simCountry, simCountryCode, simCarrierName,
                 simCarrierCode, netCountry, netCountryCode, netCarrierName, netCarrierCode, localeLanguage,
                 localeCountry, now_time, deviceId):
-    from rogerthat.bizz.look_and_feel import update_look_and_feel_for_user
     m = current_mobile
     mobile_key = m.key()
     ms_key = get_mobile_settings_cached(m).key()
@@ -243,7 +240,6 @@ def _heart_beat(current_user, current_mobile, majorVersion, minorVersion, flushB
                 deferred.defer(update_friend_service_identity_connections, my_profile.key(), [u"language"],
                                _transactional=True)
                 db.delete_async(get_broadcast_settings_flow_cache_keys_of_user(my_profile.user))
-            deferred.defer(update_look_and_feel_for_user, current_user, _transactional=True, _queue=FAST_QUEUE)
 
 
         ms.majorVersion = majorVersion
@@ -312,7 +308,7 @@ def get_user_status(user):
 def get_identity(app_user, user_profile=None):
     idTO = IdentityTO()
     profile = user_profile or get_user_profile(app_user)
-    human_user, app_id = get_app_user_tuple(app_user)
+    human_user = get_human_user_from_app_user(app_user)
     idTO.email = human_user.email()
     if profile.first_name:
         idTO.name = u'%s %s' % (profile.first_name, profile.last_name)
@@ -334,16 +330,10 @@ def get_identity(app_user, user_profile=None):
     idTO.hasBirthdate = profile.birthdate is not None
     idTO.hasGender = profile.gender is not None
     idTO.profileData = profile.profileData
-
-    app = get_app_by_id(get_app_id_from_app_user(app_user))
-    if app.owncloud_base_uri:
-        idTO.owncloudUri = app.owncloud_base_uri if profile.owncloud_password else None
-        idTO.owncloudUsername = u"%s_%s" % (idTO.email, app_id)
-        idTO.owncloudPassword = profile.owncloud_password
-    else:
-        idTO.owncloudUri = None
-        idTO.owncloudUsername = None
-        idTO.owncloudPassword = None
+    idTO.owncloudUri = None # todo cleanup owncloud
+    idTO.owncloudUsername = None
+    idTO.owncloudPassword = None
+    idTO.communityId = profile.community_id
     return idTO
 
 
@@ -923,13 +913,6 @@ def system_service_deleted_response_handler(context, result):
 @returns(NoneType)
 @arguments(context=RpcCAPICall, result=UpdateAppAssetResponseTO)
 def update_app_asset_response(context, result):
-    pass
-
-
-@mapping('com.mobicage.capi.system.update_look_and_feel')
-@returns(NoneType)
-@arguments(context=RpcCAPICall, result=UpdateLookAndFeelResponseTO)
-def update_look_and_feel_response(context, result):
     pass
 
 

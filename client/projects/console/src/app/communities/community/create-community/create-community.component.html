@@ -1,0 +1,5 @@
+<mat-progress-bar *ngIf="communityLoading$ | async" mode="indeterminate"></mat-progress-bar>
+<rcc-community-form (saved)="createCommunity($event)"
+                    [apps]="apps$ | async"
+                    [embeddedApps]="embeddedApps$ | async"
+                    [loading]="communityLoading$ | async"></rcc-community-form>

@@ -38,12 +38,13 @@ from typing import List
 import solutions
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns, serialize_complex_value
-from rogerthat.bizz.app import add_auto_connected_services, delete_auto_connected_service
+from rogerthat.bizz.communities.communities import get_community, connect_auto_connected_service
+from rogerthat.bizz.communities.models import CommunityAutoConnectedService, Community
 from rogerthat.bizz.features import Features
 from rogerthat.consts import DEBUG, DAY
 from rogerthat.dal import parent_ndb_key, parent_key, put_and_invalidate_cache
-from rogerthat.models import Branding, ServiceMenuDef, ServiceRole, App, OpeningHours, ServiceIdentity
-from rogerthat.models.properties.app import AutoConnectedService
+from rogerthat.dal.profile import get_service_profile
+from rogerthat.models import Branding, ServiceMenuDef, ServiceRole, OpeningHours, ServiceIdentity
 from rogerthat.models.settings import ServiceInfo
 from rogerthat.models.utils import ndb_allocate_id
 from rogerthat.rpc import users
@@ -54,12 +55,11 @@ from rogerthat.to.friends import ServiceMenuDetailTO, ServiceMenuItemLinkTO
 from rogerthat.to.profile import ProfileLocationTO
 from rogerthat.to.qr import QRDetailsTO
 from rogerthat.utils import now, is_flag_set, xml_escape
-from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import on_trans_committed
 from solutions import translate as common_translate
 from solutions.common.bizz import timezone_offset, render_common_content, SolutionModule, \
     get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, put_branding, \
-    OrganizationType, OCAEmbeddedApps
+    OCAEmbeddedApps, OrganizationType
 from solutions.common.bizz.group_purchase import provision_group_purchase_branding
 from solutions.common.bizz.loyalty import provision_loyalty_branding, get_loyalty_slide_footer
 from solutions.common.bizz.menu import _put_default_menu, get_item_image_url
@@ -82,7 +82,7 @@ from solutions.common.dal import get_solution_settings, get_restaurant_menu, \
     get_solution_group_purchase_settings, get_static_content_keys, \
     get_solution_identity_settings, get_solution_settings_or_identity_settings, get_solution_news_publishers
 from solutions.common.dal.appointment import get_solution_appointment_settings
-from solutions.common.dal.cityapp import invalidate_service_user_for_city, get_uitdatabank_settings
+from solutions.common.dal.cityapp import get_uitdatabank_settings
 from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.dal.repair import get_solution_repair_settings
 from solutions.common.dal.reservations import get_restaurant_profile, get_restaurant_settings
@@ -368,6 +368,8 @@ def populate_identity(sln_settings, main_branding_key):
         keys.append(OpeningHours.create_key(service_user, identity))
         keys.append(ServiceInfo.create_key(service_user, identity))
     models = {model.key: model for model in ndb.get_multi(keys) if model}
+    service_profile = get_service_profile(service_user)
+    community = get_community(service_profile.community_id)
     for service_identity in identities:
         opening_hours = models.get(OpeningHours.create_key(service_user, service_identity))
         service_info = models.get(ServiceInfo.create_key(service_user, service_identity))  # type: ServiceInfo
@@ -379,9 +381,7 @@ def populate_identity(sln_settings, main_branding_key):
         logging.info('Updating identity %s', service_identity)  # idempotent
         identity = system.get_identity(service_identity)
         if service_identity == ServiceIdentity.DEFAULT:
-            default_app_name = identity.app_names[0]
-            if SolutionModule.CITY_APP in sln_settings.modules:
-                invalidate_service_user_for_city(identity.app_ids[0])
+            default_app_name = community.name
         identity.name = service_info.name
         identity.description = service_info.description
         identity.description_use_default = False
@@ -401,49 +401,34 @@ def populate_identity(sln_settings, main_branding_key):
         identity.qualified_identifier = service_info.main_email_address
         identity.content_branding_hash = content_branding_hash
         system.put_identity(identity)
-
-        default_app_id = identity.app_ids[0]
-        app_data = create_app_data(sln_settings, service_identity, service_info, default_app_name, default_app_id,
-                                   opening_hours, branding_settings)
+        app_data = create_app_data(sln_settings, service_identity, service_info, default_app_name, opening_hours,
+                                   branding_settings)
         system.put_service_data(json.dumps(app_data).decode('utf8'), service_identity)
+        if service_identity == ServiceIdentity.DEFAULT:
+            handle_auto_connected_service(service_user, service_info.visible, community,
+                                          service_profile.organizationType)
 
-        handle_auto_connected_service(service_user, service_info.visible)
 
-
-def handle_auto_connected_service(service_user, visible):
-    from shop.models import Customer
-
-    customer = Customer.get_by_service_email(service_user.email())
-    if not customer:
-        return
-    if customer.organization_type != OrganizationType.CITY:
+def handle_auto_connected_service(service_user, visible, community, organization_type):
+    # type: (users.User, bool, Community, int) -> None
+    """Adds community services to auto connected services"""
+    if organization_type != OrganizationType.CITY:
         return
 
-    service_user = users.User(customer.service_email)
-    service_identity_email = create_service_identity_user(service_user).email()
-    app = App.get_by_key_name(customer.app_id)
-    if app.type != App.APP_TYPE_CITY_APP:
-        logging.debug('Not auto-connecting %s because "%s" is not a city app', customer.service_email, customer.app_id)
-        return
-    if app.demo:
-        logging.debug('Not auto-connecting %s because "%s" is a demo app', customer.service_email, customer.app_id)
+    if community.demo:
+        logging.debug('Not auto-connecting %s because %s is a demo community', service_user.email(), community.name)
         return
 
-    if visible:
-        connected_services = app.auto_connected_services
-        if not connected_services.get(service_identity_email):
-            auto_connected_service = AutoConnectedService.create(service_identity_email, False, None, None)
-            add_auto_connected_services(customer.app_id, [auto_connected_service])
-    else:
-        logging.error('Auto connected service is invisible... %s', service_identity_email, _suppress=False)
-        # todo check if fixed by using service_info.visible instead of sln_settings.search_enabled
-        # then set this function back or leave it (making sure no accidents happen)
-#         delete_auto_connected_service(service_user, customer.app_id, service_identity_email)
+    if visible and service_user.email() not in community.auto_connected_service_emails:
+        acs = CommunityAutoConnectedService()
+        acs.service_email = service_user.email()
+        community.auto_connected_services.append(acs)
+        community.put()
+        deferred.defer(connect_auto_connected_service, community.id, [acs], _transactional=db.is_in_transaction())
 
 
-def create_app_data(sln_settings, service_identity, service_info, default_app_name, default_app_id,
-                    opening_hours, branding_settings):
-    # type: (SolutionSettings, str, ServiceInfo, str, str, OpeningHours, SolutionBrandingSettings) -> dict
+def create_app_data(sln_settings, service_identity, service_info, default_app_name, opening_hours, branding_settings):
+    # type: (SolutionSettings, str, ServiceInfo, str, OpeningHours, SolutionBrandingSettings) -> dict
     start = datetime.now()
     timezone_offsets = []
     for _ in xrange(20):
@@ -498,7 +483,7 @@ def create_app_data(sln_settings, service_identity, service_info, default_app_na
     for module, get_app_data_func in MODULES_GET_APP_DATA_FUNCS.iteritems():
         if module in sln_settings.modules:
             get_app_data_func = MODULES_GET_APP_DATA_FUNCS[module]
-            app_data.update(get_app_data_func(sln_settings, service_identity, default_app_id))
+            app_data.update(get_app_data_func(sln_settings, service_identity))
 
     return app_data
 
@@ -515,27 +500,14 @@ def populate_identity_and_publish(sln_settings, main_branding_key):
 
 
 @returns(dict)
-@arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
-def get_app_data_broadcast(sln_settings, service_identity, default_app_id):
-    with users.set_user(sln_settings.service_user):
-        si = system.get_info(service_identity)
-
-    broadcast_target_audience = {}
-    # get current apps of customer and set it as target audience
-    for app_id, app_name in zip(si.app_ids, si.app_names):
-        if app_id == App.APP_ID_ROGERTHAT and len(broadcast_target_audience) > 0:
-            continue  # Rogerthat is not the default app. Don't show it.
-        elif app_id == App.APP_ID_OSA_LOYALTY:
-            continue  # Don't show the OSA Terminal app
-        broadcast_target_audience[app_id] = app_name
-
-    return {'news_groups': [g.to_dict() for g in list_groups(sln_settings.main_language)],
-            'broadcast_target_audience': broadcast_target_audience}
+@arguments(sln_settings=SolutionSettings, service_identity=unicode)
+def get_app_data_broadcast(sln_settings, service_identity):
+    return {'news_groups': [g.to_dict() for g in list_groups(sln_settings.main_language)]}
 
 
 @returns(dict)
-@arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
-def get_app_data_group_purchase(sln_settings, service_identity, default_app_id):
+@arguments(sln_settings=SolutionSettings, service_identity=unicode)
+def get_app_data_group_purchase(sln_settings, service_identity):
     group_purchases = [SolutionGroupPurchaseTO.fromModel(m) for m in SolutionGroupPurchase.list(
         sln_settings.service_user, service_identity, sln_settings.solution)]
     return {
@@ -545,8 +517,8 @@ def get_app_data_group_purchase(sln_settings, service_identity, default_app_id):
 
 
 @returns(dict)
-@arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
-def get_app_data_loyalty(sln_settings, service_identity, default_app_id):
+@arguments(sln_settings=SolutionSettings, service_identity=unicode)
+def get_app_data_loyalty(sln_settings, service_identity):
     app_data = {'currency': sln_settings.currency_symbol}
     loyalty_settings = SolutionLoyaltySettings.get_by_user(sln_settings.service_user)
     if loyalty_settings.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_REVENUE_DISCOUNT:
@@ -566,8 +538,8 @@ def get_app_data_loyalty(sln_settings, service_identity, default_app_id):
 
 
 @returns(dict)
-@arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
-def get_app_data_sandwich_bar(sln_settings, service_identity, default_app_id):
+@arguments(sln_settings=SolutionSettings, service_identity=unicode)
+def get_app_data_sandwich_bar(sln_settings, service_identity):
     service_user = sln_settings.service_user
     sandwich_settings = SandwichSettings.get_settings(service_user, sln_settings.solution)
     return {
@@ -772,7 +744,7 @@ def put_agenda(sln_settings, current_coords, main_branding, default_lang, tag):
             label = common_translate(default_lang, 'agenda')
 
         ssmis.append(SolutionServiceMenuItem(icon,
-                                             sln_settings.menu_item_color,
+                                             None,
                                              label,
                                              tag,
                                              action=SolutionModule.action_order(SolutionModule.AGENDA),
@@ -842,7 +814,7 @@ def put_static_content(sln_settings, current_coords, main_branding, default_lang
                     link = ServiceMenuItemLinkTO()
                     link.url = sc.website
                     link.external = False
-                menu_items.append(SolutionServiceMenuItem(sc.icon_name, sln_settings.menu_item_color, sc.icon_label,
+                menu_items.append(SolutionServiceMenuItem(sc.icon_name, None, sc.icon_label,
                                                           u'%s%s' % (STATIC_CONTENT_TAG_PREFIX, sc.icon_label),
                                                           sc.branding_hash, coords=map(int, sc.coords), link=link))
             sc.provisioned = True
@@ -908,7 +880,7 @@ def put_appointment(sln_settings, current_coords, main_branding, default_lang, t
     appointment_flow = system.put_flow(flow.encode('utf-8'), multilanguage=False)
     logging.info('Creating APPOINTMENT menu item')
     ssmi = SolutionServiceMenuItem(u'fa-calendar-plus-o',
-                                   sln_settings.menu_item_color,
+                                   None,
                                    common_translate(default_lang, 'appointment'),
                                    tag,
                                    static_flow=appointment_flow.identifier,
@@ -937,7 +909,7 @@ def put_ask_question(sln_settings, current_coords, main_branding, default_lang, 
     flow = JINJA_ENVIRONMENT.get_template('flows/ask_question.xml').render(flow_params)
     ask_question_flow = system.put_flow(flow.encode('utf-8'), multilanguage=False)
     ssmi = SolutionServiceMenuItem(u'fa-comments-o',
-                                   sln_settings.menu_item_color,
+                                   None,
                                    menu_label or common_translate(default_lang, 'ask-question'),
                                    tag,
                                    static_flow=ask_question_flow.identifier,
@@ -977,7 +949,7 @@ def put_broadcast(sln_settings, current_coords, main_branding, default_lang, tag
     broadcast_types.extend(auto_broadcast_types)
 
     ssmi = SolutionServiceMenuItem(u'fa-bell',
-                                   sln_settings.menu_item_color,
+                                   None,
                                    common_translate(default_lang, 'broadcast-settings'),
                                    tag,
                                    is_broadcast_settings=True,
@@ -1044,7 +1016,7 @@ def _configure_broadcast_create_news(sln_settings, main_branding, default_lang, 
                                   ServiceRole.TYPE_MANAGED)
 
     ssmi = SolutionServiceMenuItem(u'fa-newspaper-o',
-                                   sln_settings.menu_item_color,
+                                   None,
                                    common_translate(default_lang, 'create_news'),
                                    tag=tag,
                                    roles=[role_id],
@@ -1071,7 +1043,7 @@ def put_group_purchase(sln_settings, current_coords, main_branding, default_lang
         provision_group_purchase_branding(sgps, main_branding, default_lang)
 
         ssmi = SolutionServiceMenuItem(u'fa-shopping-cart',
-                                       sln_settings.menu_item_color,
+                                       None,
                                        common_translate(default_lang, 'group-purchase'),
                                        tag,
                                        screen_branding=sgps.branding_hash,
@@ -1163,7 +1135,7 @@ def put_loyalty(sln_settings, current_coords, main_branding, default_lang, tag):
     provision_loyalty_branding(sln_settings, main_branding, default_lang, loyalty_type)
 
     ssmi = SolutionServiceMenuItem(u"fa-credit-card",
-                                   sln_settings.menu_item_color,
+                                   None,
                                    common_translate(default_lang, 'loyalty'),
                                    tag,
                                    screen_branding=sln_settings.loyalty_branding_hash,
@@ -1200,7 +1172,7 @@ def put_menu(sln_settings, current_coords, main_branding, default_lang, tag):
     menu_branding = generate_branding(main_branding, u'menu', content)
 
     ssmi = SolutionServiceMenuItem(u'fa-list',
-                                   sln_settings.menu_item_color,
+                                   None,
                                    menu.name or common_translate(default_lang, 'menu'),
                                    tag,
                                    screen_branding=menu_branding.id,
@@ -1403,7 +1375,7 @@ def put_order(sln_settings, current_coords, main_branding, default_lang, tag):
         static_flow = None
 
     ssmi = SolutionServiceMenuItem(u'fa-shopping-basket',
-                                   sln_settings.menu_item_color,
+                                   None,
                                    menu_label or common_translate(default_lang, 'order'),
                                    tag,
                                    static_flow=static_flow,
@@ -1424,7 +1396,7 @@ def put_pharmacy_order(sln_settings, current_coords, main_branding, default_lang
 
     logging.info('Creating PHARMACY ORDER menu item')
     ssmi = SolutionServiceMenuItem(u'fa-medkit',
-                                   sln_settings.menu_item_color,
+                                   None,
                                    common_translate(default_lang, 'order'),
                                    tag,
                                    static_flow=pharmacy_order_flow.identifier,
@@ -1499,7 +1471,7 @@ def put_repair(sln_settings, current_coords, main_branding, default_lang, tag):
 
     logging.info('Creating REPAIR menu item')
     ssmi = SolutionServiceMenuItem(u'fa-wrench',
-                                   sln_settings.menu_item_color,
+                                   None,
                                    menu_label or common_translate(default_lang, 'repair'),
                                    tag,
                                    static_flow=repair_flow.identifier,
@@ -1550,13 +1522,13 @@ def put_restaurant_reservation(sln_settings, current_coords, main_branding, defa
     restaurant_profile.put()
 
     return [SolutionServiceMenuItem(u'fa-cutlery',
-                                    sln_settings.menu_item_color,
+                                    None,
                                     menu_label or common_translate(default_lang, 'reserve'),
                                     POKE_TAG_RESERVE_PART1,
                                     static_flow=reserve_flow_part1.identifier,
                                     action=SolutionModule.action_order(SolutionModule.RESTAURANT_RESERVATION)),
             SolutionServiceMenuItem(u'fa-calendar',
-                                    sln_settings.menu_item_color,
+                                    None,
                                     common_translate(default_lang, 'My reservations'),
                                     POKE_TAG_MY_RESERVATIONS,
                                     action=0)]
@@ -1722,7 +1694,7 @@ def put_sandwich_bar(sln_settings, current_coords, main_branding, default_lang, 
 
     logging.info('Creating ORDER SANDWICH menu item')
     ssmi = SolutionServiceMenuItem(u'hamburger',
-                                   sln_settings.menu_item_color,
+                                   None,
                                    common_translate(default_lang, 'order-sandwich'),
                                    tag, static_flow=order_sandwich_flow.identifier, broadcast_types=broadcast_types,
                                    action=SolutionModule.action_order(SolutionModule.SANDWICH_BAR))
@@ -1746,7 +1718,7 @@ def put_when_where(sln_settings, current_coords, main_branding, default_lang, ta
 
     logging.info('Creating WHEN_WHERE menu item')
     ssmi = SolutionServiceMenuItem(u'fa-map-marker',
-                                   sln_settings.menu_item_color,
+                                   None,
                                    menu_label or common_translate(default_lang, 'when-where'),
                                    tag,
                                    screen_branding=when_where_branding.id,
@@ -1760,7 +1732,7 @@ def put_when_where(sln_settings, current_coords, main_branding, default_lang, ta
            default_lang=unicode, tag=unicode)
 def put_discussion_groups(sln_settings, current_coords, main_branding, default_lang, tag):
     ssmi = SolutionServiceMenuItem(u'fa-comments',
-                                   sln_settings.menu_item_color,
+                                   None,
                                    common_translate(default_lang, SolutionModule.DISCUSSION_GROUPS),
                                    tag,
                                    action=SolutionModule.action_order(SolutionModule.DISCUSSION_GROUPS))
@@ -1827,7 +1799,7 @@ def put_q_matic_module(sln_settings, current_coords, main_branding, default_lang
             system.delete_menu_item(current_coords)
         return []
     item = SolutionServiceMenuItem(u'fa-calendar',
-                                   sln_settings.menu_item_color,
+                                   None,
                                    common_translate(default_lang, 'appointments'),
                                    tag,
                                    action=SolutionModule.action_order(SolutionModule.Q_MATIC),
@@ -1846,7 +1818,7 @@ def put_jcc_appointments_module(sln_settings, current_coords, main_branding, def
             system.delete_menu_item(current_coords)
         return []
     item = SolutionServiceMenuItem(u'fa-calendar',
-                                   sln_settings.menu_item_color,
+                                   None,
                                    common_translate(default_lang, 'appointments'),
                                    tag,
                                    action=SolutionModule.action_order(SolutionModule.JCC_APPOINTMENTS),
@@ -1860,7 +1832,7 @@ def put_jcc_appointments_module(sln_settings, current_coords, main_branding, def
 def put_cirklo_module(sln_settings, current_coords, main_branding, default_lang, tag):
     # type: (SolutionSettings, list[int], SolutionMainBranding, unicode, unicode) -> list[SolutionServiceMenuItem]
     item = SolutionServiceMenuItem(u'fa-gift',
-                                   sln_settings.menu_item_color,
+                                   None,
                                    common_translate(default_lang, 'voucher'),
                                    tag,
                                    action=SolutionModule.action_order(SolutionModule.CIRKLO_VOUCHERS),
@@ -1884,7 +1856,7 @@ def delete_jobs(sln_settings, current_coords, service_menu=None):
 def put_hoplr_module(sln_settings, current_coords, main_branding, default_lang, tag):
     # type: (SolutionSettings, list[int], SolutionMainBranding, unicode, unicode) -> list[SolutionServiceMenuItem]
     item = SolutionServiceMenuItem(u'fa-home',
-                                   sln_settings.menu_item_color,
+                                   None,
                                    'Hoplr',
                                    tag,
                                    action=SolutionModule.action_order(SolutionModule.HOPLR),

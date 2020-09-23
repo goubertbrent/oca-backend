@@ -175,7 +175,6 @@ class Test(mc_unittest.TestCase):
                         'app_data': None,
                         'app_ids_use_default':False,
                         'app_ids':[App.APP_ID_ROGERTHAT],
-                        'app_names':["Rogerthat"],
                         'can_edit_supported_apps':False,
                         'content_branding_hash': None,
                         'home_branding_hash': u'HOMEBR',

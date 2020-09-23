@@ -20,18 +20,19 @@ import base64
 import cloudstorage
 from google.appengine.ext import ndb
 from google.appengine.ext.deferred import deferred
+from typing import List
 
 from mcfw.consts import MISSING
 from mcfw.exceptions import HttpNotFoundException, HttpBadRequestException
 from mcfw.rpc import arguments, returns
+from rogerthat.bizz.communities.communities import get_community
+from rogerthat.bizz.communities.models import Community
 from rogerthat.bizz.gcs import upload_to_gcs
 from rogerthat.bizz.job import run_job
-from rogerthat.bizz.system import update_embedded_apps_response, \
-    update_embedded_app_response
+from rogerthat.bizz.system import update_embedded_apps_response, update_embedded_app_response
 from rogerthat.capi.system import updateEmbeddedApps, updateEmbeddedApp
 from rogerthat.consts import GCS_BUCKET_PREFIX, DAY, SCHEDULED_QUEUE
-from rogerthat.dal.app import get_app_by_id
-from rogerthat.models import UserProfile, App
+from rogerthat.models import UserProfile
 from rogerthat.models.apps import EmbeddedApplication
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import logError
@@ -53,10 +54,10 @@ class EmbeddedApplicationNameAlreadyInUseException(HttpBadRequestException):
 
 class EmbeddedApplicationStillInUseException(HttpBadRequestException):
 
-    def __init__(self, name, app_ids):
+    def __init__(self, name, community_ids):
         super(EmbeddedApplicationStillInUseException, self).__init__('embedded_application_still_in_use',
                                                                      {'name': name,
-                                                                      'app_ids': app_ids})
+                                                                      'community_ids': community_ids})
 
 
 def get_embedded_applications(tag=None):
@@ -132,9 +133,9 @@ def update_embedded_application(name, data):
 
 
 def delete_embedded_application(name):
-    app_ids = get_apps_that_use_embedded_app(name)
-    if app_ids:
-        raise EmbeddedApplicationStillInUseException(name, app_ids)
+    community_ids = get_communities_that_use_embedded_app(name)
+    if community_ids:
+        raise EmbeddedApplicationStillInUseException(name, community_ids)
 
     application = get_embedded_application(name)
     if application.file_path:
@@ -146,14 +147,10 @@ def delete_embedded_application(name):
 
 
 @returns([EmbeddedApplication])
-@arguments(app_id=unicode)
-def get_embedded_apps_by_app(app_id):
-    app = get_app_by_id(app_id)
-    if not app.embedded_apps:
-        return []
-
-    keys = [EmbeddedApplication.create_key(name) for name in app.embedded_apps]
-    return ndb.get_multi(keys)
+def get_embedded_apps_by_community(community_id):
+    # type: (long) -> List[EmbeddedApplication]
+    community = get_community(community_id)
+    return ndb.get_multi([EmbeddedApplication.create_key(name) for name in community.embedded_apps])
 
 
 @returns([EmbeddedApplication])
@@ -162,32 +159,27 @@ def get_embedded_apps_by_type(embedded_app_type):
     return EmbeddedApplication.list_by_type(embedded_app_type)
 
 
-@returns([unicode])
-@arguments(name=unicode)
-def get_apps_that_use_embedded_app(name):
-    app_ids = []
-    for k in App.all(keys_only=True).filter('embedded_apps =', name):
-        app_ids.append(k.name())
-    return app_ids
+def get_communities_that_use_embedded_app(name):
+    # type: (str) -> List[long]
+    return [key.id() for key in Community.list_by_embedded_app(name).fetch(keys_only=True)]
 
 
 def send_update_embedded_app(name):
-    app_ids = get_apps_that_use_embedded_app(name)
+    community_ids = get_communities_that_use_embedded_app(name)
     application = get_embedded_application(name)
     request = UpdateEmbeddedAppRequestTO.from_dict(application.to_dict())
-    for app_id in app_ids:
-        run_job(_get_users_per_app, [app_id], send_update_embedded_app_request_worker, [request])
+    for community_id in community_ids:
+        run_job(_get_users_by_community, [community_id], send_update_embedded_app_request_worker, [request])
 
 
-def send_update_all_embedded_apps(app_id):
-    embedded_apps = get_embedded_apps_by_app(app_id)
+def send_update_all_embedded_apps(community_id):
+    embedded_apps = get_embedded_apps_by_community(community_id)
     request = UpdateEmbeddedAppsRequestTO(embedded_apps=[EmbeddedAppTO.from_model(a) for a in embedded_apps])
-    run_job(_get_users_per_app, [app_id], send_update_embedded_apps_request_worker,
-            [request])
+    run_job(_get_users_by_community, [community_id], send_update_embedded_apps_request_worker, [request])
 
 
-def _get_users_per_app(app_id):
-    return UserProfile.list_by_app(app_id, keys_only=True)
+def _get_users_by_community(community_id):
+    return UserProfile.list_by_community(community_id, keys_only=True)
 
 
 def send_update_embedded_app_request_worker(user_profile_key, request):

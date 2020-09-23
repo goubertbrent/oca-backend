@@ -17,15 +17,14 @@
 
 import random
 
-from test import set_current_user
-
 import oca_unittest
 from rogerthat.dal.profile import get_service_profile
-from rogerthat.models import App, ServiceProfile
+from rogerthat.models import ServiceProfile
 from rogerthat.rpc import users
 from solutions.common.bizz import SolutionModule, OrganizationType, common_provision
 from solutions.common.dal import get_solution_settings
 from solutions.flex.bizz import create_flex_service
+from test import set_current_user
 
 
 class BroadcastTestCase(oca_unittest.TestCase):
@@ -47,6 +46,7 @@ class BroadcastTestCase(oca_unittest.TestCase):
 
         email = u'test2.flex@foo.com'
         print 'create_flex_service start'
+        community = self.communities[2]
         r = create_flex_service(email,
                                 name="test",
                                 phone_number="+32 9 324 25 64",
@@ -54,9 +54,9 @@ class BroadcastTestCase(oca_unittest.TestCase):
                                 currency=u"EUR",
                                 modules=modules,
                                 broadcast_types=['test1', 'test2', 'test3'],
-                                apps=[a.app_id for a in App.all()],
                                 allow_redeploy=False,
-                                organization_type=random.choice([x for x in OrganizationType.all() if x > 0]))
+                                organization_type=random.choice([x for x in OrganizationType.all() if x > 0]),
+                                community_id=community.id)
         print 'create_flex_service end'
         service_user = users.User(r.login)
         set_current_user(service_user)

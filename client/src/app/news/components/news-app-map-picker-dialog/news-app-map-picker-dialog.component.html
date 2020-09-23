@@ -1,16 +1,15 @@
 <h2 matDialogTitle>{{ 'oca.broadcast-map-explanation' | translate }}</h2>
 <mat-dialog-content style="max-height: calc(100vh - 160px);">
-  <oca-news-reach [appIds]="appIds"
-                  [appStatistics]="appStatistics"
-                  [defaultAppId]="defaultAppId"></oca-news-reach>
-  <oca-news-app-map-picker name="app_ids"
-                           [apps]="apps"
-                           [defaultAppId]="defaultAppId"
-                           [appStatistics]="appStatistics"
+  <oca-news-reach [communityIds]="selectedCommunities"
+                  [communityMapping]="communityMapping"
+                  [defaultCommunityId]="defaultCommunityId"></oca-news-reach>
+  <oca-news-app-map-picker name="community_ids"
+                           [defaultCommunityId]="defaultCommunityId"
+                           [communityMapping]="communityMapping"
                            [readonly]="false"
                            [showLegend]="true"
                            [mapUrl]="mapUrl"
-                           [(ngModel)]="appIds"></oca-news-app-map-picker>
+                           [(ngModel)]="selectedCommunities"></oca-news-app-map-picker>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button type="button" mat-button matDialogClose>{{ 'oca.Cancel' | translate }}</button>

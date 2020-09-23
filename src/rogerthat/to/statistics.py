@@ -18,8 +18,10 @@
 from collections import defaultdict
 
 from dateutil import relativedelta
+
 from mcfw.consts import MISSING
 from mcfw.properties import long_property, typed_property, unicode_property
+from rogerthat.bizz.communities.models import CommunityUserStats
 from rogerthat.models import FlowStatistics
 from rogerthat.to import TO
 from rogerthat.to.friends import FriendListResultTO
@@ -271,10 +273,11 @@ class FlowStatisticsListResultTO(object):
         return flow_stats
 
 
-class AppServiceStatisticsTO(object):
-    app_id = unicode_property('1')
-    total_user_count = long_property('2')
+class CommunityUserStatisticsTO(TO):
+    community_id = long_property('community_id')
+    total_user_count = long_property('total_user_count', default=0)
 
-    def __init__(self, app_id=None, total_user_count=None):
-        self.app_id = app_id
-        self.total_user_count = total_user_count
+    @classmethod
+    def from_model(cls, model):
+        # type: (CommunityUserStats) -> CommunityUserStatisticsTO
+        return cls(community_id=model.community_id, total_user_count=model.count)

@@ -27,21 +27,19 @@ from mcfw.restapi import rest_functions
 from rogerthat.handlers.blobstore import CloudStorageBlobstoreHandler
 from rogerthat.wsgi import RogerthatWSGIApplication
 from shop.callbacks import ProspectDiscoverCallbackHandler
-from shop.handlers import ExportInvoicesHandler, ExportProductsHandler, ProspectCallbackHandler, \
+from shop.handlers import ExportInvoicesHandler, ExportProductsHandler, \
     CustomerMapHandler, CustomerMapServicesHandler, CustomerSigninHandler, \
     CustomerSignupHandler, CustomerSetPasswordHandler, CustomerResetPasswordHandler, CustomerSignupPasswordHandler, \
     CustomerCirkloAcceptHandler, VouchersCirkloSignupHandler
 from solutions.common.handlers.launcher import GetOSALaucherAppsHandler, GetOSALaucherAppHandler
 from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, LoyaltyNoMobilesUnsubscribeEmailHandler, \
     LoyaltyLotteryConfirmWinnerHandler
-from solutions.common.handlers.maps import FlandersHandler
 from solutions.common.handlers.menu import ViewMenuItemImageHandler
 from solutions.common.handlers.payments import StripeHandler, StripeSuccessHandler, \
     StripeCancelHandler, StripeWebhookHandler
 from solutions.common.handlers.vcard import VCardHandler
 from solutions.common.restapi.rss import RssCoronavirusDotBeHandler
 from solutions.flex.handlers import FlexHomeHandler
-
 
 handlers = [
     ('/flex/', FlexHomeHandler),
@@ -54,30 +52,20 @@ handlers = [
     ('/unauthenticated/loyalty/no_mobiles/lottery_winner', LoyaltyLotteryConfirmWinnerHandler),
     ('/unauthenticated/osa/launcher/apps', GetOSALaucherAppsHandler),
     ('/unauthenticated/osa/launcher/app/download', GetOSALaucherAppHandler),
-    ('/unauthenticated/osa/flanders', FlandersHandler),
     Route('/unauthenticated/rss/info-coronavirus-be', RssCoronavirusDotBeHandler),
     ('/bob/api/apps/set_ios_app_id', SetIosAppIdHandler),
     ('/shop/invoices/export', ExportInvoicesHandler),
     ('/shop/products/export', ExportProductsHandler),
-    ('/shop/prospects/callback', ProspectCallbackHandler),
     ('/shop/prospects/discover/callback', ProspectDiscoverCallbackHandler),
     ('/customers/map/([a-z-_0-9]+)/services', CustomerMapServicesHandler),
     ('/customers/map/([a-z-_0-9]+)', CustomerMapHandler),
     RedirectRoute('/vcards', VCardHandler, 'vcard', strict_slash=True),
     RedirectRoute('/vcards/<user_id:[^/]+>', VCardHandler, 'vcard', strict_slash=True),
     RedirectRoute('/customers/setpassword', CustomerSetPasswordHandler, 'set_password', strict_slash=True),
-    RedirectRoute('/customers/setpassword/<app_id:[^/]+>', CustomerSetPasswordHandler, 'set_password_app',
-                  strict_slash=True),
     RedirectRoute('/customers/signup-password', CustomerSignupPasswordHandler, 'signup_set_password', strict_slash=True),
-    RedirectRoute('/customers/signup-password/<app_id:[^/]+>', CustomerSignupPasswordHandler, 'signup_set_password',
-                  strict_slash=True),
     RedirectRoute('/customers/resetpassword', CustomerResetPasswordHandler, 'reset_password', strict_slash=True),
-    RedirectRoute('/customers/resetpassword/<app_id:[^/]+>', CustomerResetPasswordHandler, 'reset_password_app',
-                  strict_slash=True),
     RedirectRoute('/customers/signin', CustomerSigninHandler, 'signin', strict_slash=True),
-    RedirectRoute('/customers/signin/<app_id:[^/]+>', CustomerSigninHandler, 'signin_app', strict_slash=True),
     RedirectRoute('/customers/signup', CustomerSignupHandler, 'signup', strict_slash=True),
-    RedirectRoute('/customers/signup/<app_id:[^/]+>', CustomerSignupHandler, 'signup_app', strict_slash=True),
     RedirectRoute('/customers/consent/cirklo', CustomerCirkloAcceptHandler, 'consent_cirklo_accept'),
     RedirectRoute('/vouchers/cirklo/signup', VouchersCirkloSignupHandler, 'cirklo_signup'),
     RedirectRoute('/vouchers/cirklo/signup/<city_id:[^/]+>', VouchersCirkloSignupHandler, 'cirklo_signup'),

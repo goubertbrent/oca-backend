@@ -16,8 +16,8 @@
 # @@license_version:1.7@@
 
 import logging
-from types import NoneType
 import uuid
+from types import NoneType
 
 from mcfw.rpc import returns, arguments
 from rogerthat.models import ServiceMenuDef
@@ -36,10 +36,8 @@ from solutions.common.bizz.messaging import POKE_TAG_EVENTS, POKE_TAG_APPOINTMEN
 from solutions.common.bizz.provisioning import get_and_complete_solution_settings, \
     get_and_store_main_branding, populate_identity, provision_all_modules, get_default_language
 from solutions.common.dal import get_solution_settings
-from solutions.common.models.associations import AssociationStatistic
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex import SOLUTION_FLEX
-
 
 # [column, row, page]
 DEFAULT_COORDS = {
@@ -232,16 +230,15 @@ def provision(service_user, friends=None, transactional=True):
 
 @returns(ProvisionResponseTO)
 @arguments(email=unicode, name=unicode, phone_number=unicode, languages=[unicode], currency=unicode,
-           modules=[unicode], broadcast_types=[unicode], apps=[unicode], allow_redeploy=bool, organization_type=int,
+           modules=[unicode], broadcast_types=[unicode], allow_redeploy=bool, organization_type=int,
            search_enabled=bool, broadcast_to_users=[users.User], websites=[SyncedNameValue], password=unicode,
            tos_version=(int, long, NoneType), community_id=(int, long))
-def create_flex_service(email, name, phone_number, languages, currency, modules, broadcast_types, apps,
-                        allow_redeploy, organization_type=OrganizationType.PROFIT, search_enabled=False,
+def create_flex_service(email, name, phone_number, languages, currency, modules, broadcast_types, allow_redeploy,
+                        organization_type=OrganizationType.PROFIT, search_enabled=False,
                         broadcast_to_users=None, websites=None, password=None, tos_version=None, community_id=0):
     from rogerthat.bizz.rtemail import EMAIL_REGEX
 
     redeploy = allow_redeploy and get_solution_settings(users.User(email)) is not None
-    branding_url = menu_item_color = None
 
     owner_user_email = None
     service_email = email
@@ -249,15 +246,8 @@ def create_flex_service(email, name, phone_number, languages, currency, modules,
         owner_user_email = service_email
         service_email = u"service-%s@rogerth.at" % uuid.uuid4()
 
-    return create_or_update_solution_service(SOLUTION_FLEX, service_email, name, branding_url, menu_item_color,
-                                             phone_number, languages, currency, redeploy, organization_type, modules,
-                                             broadcast_types, apps, owner_user_email=owner_user_email,
-                                             search_enabled=search_enabled, broadcast_to_users=broadcast_to_users,
-                                             websites=websites, password=password, tos_version=tos_version,
-                                             community_id=community_id)
+    return create_or_update_solution_service(SOLUTION_FLEX, service_email, name, phone_number, languages, currency,
+                                             redeploy, organization_type, modules, broadcast_types, owner_user_email,
+                                             search_enabled, broadcast_to_users, websites, password, tos_version,
+                                             community_id)
 
-
-@returns(AssociationStatistic)
-@arguments(app_id=unicode)
-def get_services_statistics(app_id):
-    return AssociationStatistic.get(AssociationStatistic.create_key(app_id))

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
-import { NewsItem, ServiceNewsGroup } from '@oca/web-shared';
+import { NewsItem } from '@oca/web-shared';
 import { Loadable } from '../../../shared/loadable/loadable';
-import { NewsListItem } from '../../news';
+import { NewsListItem, ServiceNewsGroup } from '../../news';
 
 @Component({
   selector: 'oca-news-item-list',

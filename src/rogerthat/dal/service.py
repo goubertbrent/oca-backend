@@ -414,12 +414,14 @@ def get_service_identities_not_cached(service_identity_users):
 @returns(ServiceIdentity)
 @arguments(service_user=users.User)
 def get_default_service_identity(service_user):
+    # type: (users.User) -> ServiceIdentity
     return get_service_identity(create_service_identity_user(service_user, ServiceIdentity.DEFAULT))
 
 
 @returns(ServiceIdentity)
 @arguments(service_identity_user=users.User)
 def get_service_identity_not_cached(service_identity_user):
+    # type: (users.User) -> ServiceIdentity
     # XXX: populate cache
     return ServiceIdentity.get(ServiceIdentity.keyFromUser(service_identity_user))
 
@@ -427,6 +429,7 @@ def get_service_identity_not_cached(service_identity_user):
 @returns(ServiceIdentity)
 @arguments(service_user=users.User)
 def get_default_service_identity_not_cached(service_user):
+    # type: (users.User) -> ServiceIdentity
     # XXX: populate cache
     return get_service_identity_not_cached(create_service_identity_user(service_user, ServiceIdentity.DEFAULT))
 
@@ -449,6 +452,7 @@ def get_service_identities(service_user):
 @arguments(service_identity_users=[users.User], app_id=unicode, organization_type=int)
 def get_service_identities_by_service_identity_users(service_identity_users, app_id=None,
                                                      organization_type=ServiceProfile.ORGANIZATION_TYPE_UNSPECIFIED):
+    # type: (List[users.User], unicode, int) -> List[ServiceIdentity]
     # XXX: populate cache
     service_identities = db.get([ServiceIdentity.keyFromUser(u) for u in service_identity_users])
     if app_id is not None:
@@ -467,6 +471,7 @@ def get_service_identities_by_service_identity_users(service_identity_users, app
 @returns([ServiceIdentity])
 @arguments(service_user=users.User)
 def get_child_identities(service_user):
+    # type: (users.User) -> List[ServiceIdentity]
     return [si for si in get_service_identities(service_user) if not si.is_default]
 
 

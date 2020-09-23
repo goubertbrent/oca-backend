@@ -56,7 +56,6 @@ class CustomerTO(CompanyTO):
     auto_login_url = unicode_property('54')
     migration_job = unicode_property('56')
     manager = unicode_property('57')
-    app_ids = unicode_list_property('58')
     prospect_id = unicode_property('60')
     language = unicode_property('61')
     subscription_type = unicode_property('62')
@@ -70,6 +69,7 @@ class CustomerTO(CompanyTO):
     service_disabled_reason_int = long_property('70')
     subscription_cancel_pending_date = long_property('71')
     cancelling_on_date = long_property('72')  # Customer his subscription will be disabled on this date
+    community_id = long_property('community_id')
 
     @staticmethod
     def fromCustomerModel(customer, can_edit, is_admin):
@@ -88,7 +88,6 @@ class CustomerTO(CompanyTO):
         c.auto_login_url = customer.auto_login_url if customer.service_email else None
         c.migration_job = customer.migration_job
         c.manager = customer.manager.email().decode('utf-8') if customer.manager else None
-        c.app_ids = customer.sorted_app_ids
         c.prospect_id = customer.prospect_id
         c.language = customer.language
         c.subscription_type = customer.SUBSCRIPTION_TYPES[customer.subscription_type]
@@ -108,6 +107,7 @@ class CustomerTO(CompanyTO):
         c.subscription_cancel_pending_date = customer.subscription_cancel_pending_date
         c.website = customer.website
         c.facebook_page = customer.facebook_page
+        c.community_id = customer.community_id
         return c
 
 
@@ -253,17 +253,15 @@ class OrderItemTO(SerializableTO):
         return item
 
 
-class CustomerServiceTO(SerializableTO):
+class CustomerServiceTO(TO):
     email = unicode_property('2', default=None)
     phone_number = unicode_property('4', default=None)
     language = unicode_property('5')
     modules = unicode_list_property('7')
     broadcast_types = unicode_list_property('8')
-    apps = unicode_list_property('9')
     organization_type = long_property('10')
-    app_infos = typed_property('11', AppInfoTO, True)
-    current_user_app_infos = typed_property('12', AppInfoTO, True)
     managed_organization_types = long_list_property('13')
+    community_id = long_property('community_id')
 
 
 class ModulesReturnStatusTO(ReturnStatusTO):
@@ -656,9 +654,6 @@ class ShopAppTO(object):
     bounds = typed_property('2', BoundsTO, False)
     searched_bounds = typed_property('3', BoundsTO, True)
     postal_codes = unicode_list_property('4')
-    signup_enabled = bool_property('5')
-    paid_features_enabled = bool_property('paid_features_enabled')
-    jobs_enabled = bool_property('jobs_enabled')
 
     @classmethod
     def from_model(cls, model):
@@ -669,9 +664,6 @@ class ShopAppTO(object):
         to.searched_bounds = [BoundsTO.create(sw.lat, sw.lon, ne.lat, ne.lon)
                               for sw, ne in zip(model.searched_south_west_bounds, model.searched_north_east_bounds)]
         to.postal_codes = model.postal_codes
-        to.signup_enabled = model.signup_enabled
-        to.paid_features_enabled = model.paid_features_enabled
-        to.jobs_enabled = model.jobs_enabled
         return to
 
 

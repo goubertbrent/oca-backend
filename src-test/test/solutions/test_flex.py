@@ -18,7 +18,6 @@
 import base64
 import random
 
-from test import set_current_user
 import webapp2
 
 import main_authenticated
@@ -38,6 +37,7 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.models.order import SolutionOrderWeekdayTimeframe, SolutionOrderSettings
 from solutions.flex.bizz import create_flex_service
 from solutions.flex.handlers import FlexHomeHandler
+from test import set_current_user
 from test.solutions.util import setup_payment_providers, setup_embedded_apps
 
 
@@ -59,6 +59,7 @@ class FlexTestCase(oca_unittest.TestCase):
 
         print 'Test service creation with static modules'
         email = u'test1.flex.foo.com'
+        community = self.communities[2]
         r = create_flex_service(email,
                                 name="test",
                                 phone_number="+32 9 324 25 64",
@@ -66,9 +67,9 @@ class FlexTestCase(oca_unittest.TestCase):
                                 currency=u"EUR",
                                 modules=list(SolutionModule.STATIC_MODULES),
                                 broadcast_types=['test1', 'test2', 'test3'],
-                                apps=[a.app_id for a in App.all()],
                                 allow_redeploy=False,
-                                organization_type=random.choice([x for x in OrganizationType.all() if x > 0]))
+                                organization_type=random.choice([x for x in OrganizationType.all() if x > 0]),
+                                community_id=community.id)
 
         service_user = users.User(r.login)
         set_current_user(service_user)
@@ -113,6 +114,7 @@ class FlexTestCase(oca_unittest.TestCase):
 
         print 'Test %s service creation with all modules' % language
         email = u'test2.flex@foo.com'
+        community = self.communities[2]
         r = create_flex_service(email,
                                 name="test",
                                 phone_number="+32 9 324 25 64",
@@ -120,9 +122,9 @@ class FlexTestCase(oca_unittest.TestCase):
                                 currency=u"EUR",
                                 modules=SolutionModule.visible_modules(),
                                 broadcast_types=['test1', 'test2', 'test3'],
-                                apps=[a.app_id for a in App.all()],
                                 allow_redeploy=False,
-                                organization_type=random.choice([x for x in OrganizationType.all() if x > 0]))
+                                organization_type=random.choice([x for x in OrganizationType.all() if x > 0]),
+                                community_id=community.id)
 
         service_user = users.User(r.login)
         set_current_user(service_user)

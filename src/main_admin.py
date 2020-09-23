@@ -17,14 +17,12 @@
 import webapp2
 
 import admin.explorer.api
-from admin.explorer.handlers import ExplorerHandler
 from mcfw.restapi import rest_functions
 from rogerthat.wsgi import RogerthatWSGIApplication
 from shop.cron import RecurrentBilling, ExportResellerInvoicesHandler, \
     CleanupUnverifiedSignupRequests
 from solution_server_settings.handlers import SolutionServerSettingsHandler
 from solutions.common.bizz.forms.integrations.email_integration import TestFormSubmissionEmailHandler
-from solutions.common.cron.associations import CreateNonProfitStatistics
 from solutions.common.cron.budget import BudgetCheckHandler
 from solutions.common.cron.events.events import CleanupSolutionEvents, SolutionSyncGoogleCalendarEvents, \
     ReIndexPeriodicEventsHandler
@@ -49,7 +47,6 @@ handlers = [
     ('/admin/cron/rpc/solution_module_sandwich_auto_broadcast', SandwichAutoBroadcastCronHandler),
     ('/admin/cron/rpc/solution_loyalty_lottery_loot', LootLotteryCronHandler),
     ('/admin/cron/rpc/solution_loyalty_export', SolutionLoyaltyExportHandler),
-    ('/admin/cron/rpc/city_association_statistics', CreateNonProfitStatistics),
     ('/admin/cron/rpc/solution_rss_scraper', SolutionRssScraper),
     ('/admin/cron/rpc/solutions_news_budget_updater', BudgetCheckHandler),
     ('/admin/cron/shop/recurrent_billing', RecurrentBilling),
@@ -61,7 +58,6 @@ handlers = [
     ('/admin/osa/launcher/apps', OSAAppsPage),
     ('/admin/osa/launcher/app/post', PostOSAAppHandler),
     ('/admin/settings', SolutionServerSettingsHandler),
-    ('/admin/explorer', ExplorerHandler),
     ('/admin/gmb', GoogleMyBusinessHandler),
     webapp2.Route('/admin/form-submission-email/<form_id:\d+>/submission/<submission_id:\d+>',
                   TestFormSubmissionEmailHandler),

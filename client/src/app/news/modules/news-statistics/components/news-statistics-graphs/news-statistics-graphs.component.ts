@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { NewsItemBasicStatistics, NewsItemTimeStatistics } from '@oca/web-shared';
 import { ChartType } from 'angular-google-charts';
+import { NewsItemBasicStatistics, NewsItemTimeStatistics } from '../../../../news';
 
 export type PossibleMetrics = Exclude<keyof NewsItemBasicStatistics, 'id'>;
 

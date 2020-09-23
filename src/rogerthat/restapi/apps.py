@@ -17,11 +17,10 @@
 
 from mcfw.consts import MISSING, REST_TYPE_TO
 from mcfw.exceptions import HttpConflictException, HttpNotFoundException, HttpBadRequestException
-from mcfw.restapi import rest, GenericRESTRequestHandler
+from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.app import create_app, get_app, AppDoesNotExistException, update_app, set_default_app, patch_app, \
-    put_settings, get_news_settings, upload_news_backround_image, \
-    save_firebase_settings_ios
+    put_settings, save_firebase_settings_ios
 from rogerthat.bizz.app_assets import get_app_assets, remove_app_asset, get_all_app_assets, get_app_asset, \
     remove_global_app_asset
 from rogerthat.bizz.branding import save_core_branding
@@ -38,7 +37,7 @@ from rogerthat.models import QRTemplate
 from rogerthat.rpc.service import ServiceApiException
 from rogerthat.to import FileTO, UploadInfoTO
 from rogerthat.to.app import AppTO, AppQRTemplateTO, CreateAppTO, CreateAppQRTemplateTO, AppAssetFullTO, \
-    DefaultBrandingTO, AppSettingsTO, NewsSettingsTO, NewsGroupTO
+    DefaultBrandingTO, AppSettingsTO, PatchAppTO
 from rogerthat.to.branding import BrandingTO
 
 
@@ -89,12 +88,12 @@ def api_update_app(app_id, data):
 
 @rest('/console-api/apps/<app_id:[^/]+>/partial', 'put')
 @returns(dict)
-@arguments(app_id=unicode, data=AppTO)
+@arguments(app_id=unicode, data=PatchAppTO)
 def api_patch_app(app_id, data):
     try:
         rogerthat_app, app = patch_app(app_id, data)
         return {
-            'rogerthat_app': AppTO.from_model(rogerthat_app),
+            'rogerthat_app': AppTO.from_model(rogerthat_app).to_dict(),
             'app': app,
         }
     except AppDoesNotExistException:
@@ -242,21 +241,6 @@ def api_update_app_settings(app_id, data):
 def api_save_firebase_settings(app_id, data):
     return AppSettingsTO.from_model(save_firebase_settings_ios(app_id, data.file))
 
-
-@rest('/console-api/apps/<app_id:[^/]+>/news-settings', 'get')
-@returns(NewsSettingsTO)
-@arguments(app_id=unicode)
-def api_get_news_settings(app_id):
-    return get_news_settings(app_id)
-
-
-@rest('/console-api/apps/<app_id:[^/]+>/news-settings/<group_id:[^/]+>/background-image', 'put')
-@returns(NewsGroupTO)
-@arguments(app_id=unicode, group_id=unicode)
-def api_upload_news_background_image(app_id, group_id):
-    request = GenericRESTRequestHandler.getCurrentRequest()
-    uploaded_file = request.POST.get('file')
-    return upload_news_backround_image(app_id, group_id, uploaded_file)
 
 # Default/global settings - editor permissions are needed for these calls
 

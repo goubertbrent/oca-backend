@@ -11,7 +11,6 @@ import {
   Build,
   BuildSettings,
   DefaultBranding,
-  NewsSettings,
   QrCodeTemplate,
   RogerthatApp,
 } from '../interfaces';
@@ -64,8 +63,6 @@ export interface IAppsState {
   generateImagesStatus: ApiRequestStatus;
   productionApps: Partial<App>[];
   productionAppsStatus: ApiRequestStatus;
-  newsSettings: NewsSettings | null;
-  getNewsSettingsStatus: ApiRequestStatus;
 }
 
 export const initialAppsState: IAppsState = {
@@ -116,6 +113,4 @@ export const initialAppsState: IAppsState = {
   generateImagesStatus: apiRequestInitial,
   productionApps: [],
   productionAppsStatus: apiRequestInitial,
-  newsSettings : null,
-  getNewsSettingsStatus: apiRequestInitial,
 };

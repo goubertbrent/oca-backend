@@ -20,6 +20,10 @@ from collections import defaultdict
 from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
+from google.appengine.ext import ndb
+from google.appengine.ext.deferred import deferred
+
+from rogerthat.bizz.communities.models import Community, CommunityUserStats, CountOnDate, CommunityUserStatsHistory
 from rogerthat.models import App, NdbUserProfile
 from rogerthat.utils import log_offload
 
@@ -90,7 +94,6 @@ def generate_users_per_app_stats(app_ids):
 
 def generate_all_stats():
     apps = App.all().fetch(None)
-    app_ids = [a.app_id for a in apps]
     d = datetime.now()
     date = datetime(year=d.year, month=d.month, day=d.day)
     results = [
@@ -100,3 +103,19 @@ def generate_all_stats():
     ]
     for type_, result in results:
         log_offload.create_log(None, type_, result, None, timestamp=time.mktime(date.timetuple()))
+    deferred.defer(_create_community_stats)
+
+
+def _create_community_stats():
+    community_ids = [key.id() for key in Community.query().fetch(keys_only=True)]
+    rpcs = {community_id: NdbUserProfile.list_by_community(community_id).count_async()
+            for community_id in community_ids}
+    for community_id in community_ids:
+        stats_key = CommunityUserStatsHistory.create_key(community_id)
+        user_count = rpcs[community_id].get_result()
+        stats = CommunityUserStats(key=CommunityUserStats.create_key(community_id))
+        stats.count = user_count
+        history = stats_key.get() or CommunityUserStatsHistory(key=stats_key)
+        history.stats.append(CountOnDate(count=user_count))
+        # Intentionally saving in for loop as the history model might get quite large
+        ndb.put_multi([stats, history])

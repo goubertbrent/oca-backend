@@ -67,7 +67,6 @@ class Features(Enum):
     ADVANCED_ORDER = Feature(ios=Version(0, 765), android=Version(0, 1626))
     NEWS = Feature(ios=Version(0, 1334), android=Version(0, 2448))
     ASSETS = Feature(ios=Version(0, 1334), android=Version(0, 2448))
-    LOOK_AND_FEEL = Feature(ios=Version(0, 1623), android=Version(0, 2680))
     SPLIT_USER_DATA = Feature(ios=Version(1, 2517), android=Version(1, 3608))
     PAYMENTS = Feature(ios=Version(1, 2637), android=Version(1, 3874))  # TODO bump to newest version
     EMBEDDED_APPS = Feature(ios=Version(1, 2637), android=Version(1, 3883))

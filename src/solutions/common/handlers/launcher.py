@@ -28,6 +28,7 @@ from rogerthat.to.registration import MobileInfoTO
 from solutions.common.models.launcher import OSALauncherApp
 
 
+# TODO: remove this, unused
 class GetOSALaucherAppsHandler(webapp.RequestHandler):
     def post(self):
         app_id = self.request.POST.get("app_id", None)

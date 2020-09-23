@@ -28,10 +28,11 @@ from google.appengine.ext import ndb
 from typing import List, Dict
 
 import solutions
+from rogerthat.bizz.communities.communities import get_community
 from rogerthat.dal.app import get_app_by_id
+from rogerthat.dal.profile import get_service_profile
 from rogerthat.models import App
 from rogerthat.rpc import users
-from rogerthat.service.api import system
 from rogerthat.settings import get_server_settings
 from rogerthat.utils import send_mail_via_mime
 from solutions import translate
@@ -139,18 +140,16 @@ def _send_email_for_notification(sln_settings, jobs_settings, subject, html_body
         return translate(sln_settings.main_language, key, **params)
 
     settings = get_server_settings()
-
-    with users.set_user(jobs_settings.service_user):
-        si = system.get_identity()
-
-    app = get_app_by_id(si.app_ids[0])
+    service_profile = get_service_profile(jobs_settings.service_user)
+    community = get_community(service_profile.community_id)
+    app = get_app_by_id(community.default_app)
 
     mime_root = MIMEMultipart('related')
     mime_root['Subject'] = subject
     if app.type == App.APP_TYPE_ROGERTHAT:
         mime_root['From'] = settings.senderEmail
     else:
-        mime_root['From'] = '%s <%s>' % (app.name, app.dashboard_email_address)
+        mime_root['From'] = '%s <%s>' % (community.name, app.dashboard_email_address)
     mime_root['To'] = ', '.join(jobs_settings.emails)
 
     mime = MIMEMultipart('alternative')
@@ -159,7 +158,7 @@ def _send_email_for_notification(sln_settings, jobs_settings, subject, html_body
     button_css = 'display: inline-block; margin-left: 0.5em; margin-right: 0.5em; -webkit-border-radius: 6px;' \
                  ' -moz-border-radius: 6px; border-radius: 6px; font-family: Arial; color: #ffffff; font-size: 14px;' \
                  ' background: #3abb9e; padding: 8px 16px 8px 16px; text-decoration: none;'
-    signin_url = settings.get_signin_url(app.app_id)
+    signin_url = settings.get_signin_url()
     if sln_settings.login:
         signin_url += '?email=%s' % sln_settings.login.email()
     btn = u'<a href="%(signin_url)s" style="%(button_css)s">%(dashboard)s</a>' % {

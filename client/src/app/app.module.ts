@@ -1,4 +1,4 @@
-import { HttpClient, HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, HttpClient, HttpClientModule } from '@angular/common/http';
 import { Injectable, NgModule } from '@angular/core';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { BrowserModule } from '@angular/platform-browser';
@@ -39,7 +39,6 @@ export const routes: Routes = [
   { path: 'participation', loadChildren: () => import('./participation/participation.module').then(m => m.ParticipationModule) },
   { path: 'news', loadChildren: () => import('./news/news.module').then(m => m.NewsModule) },
   { path: 'reports', loadChildren: () => import('./reports/reports.module').then(m => m.ReportsModule) },
-  { path: 'admin', loadChildren: () => import('./admin/admin.module').then(m => m.AdminModule) },
   { path: 'settings', loadChildren: () => import('./settings/settings.module').then(m => m.SettingsModule) },
   { path: 'jobs', loadChildren: () => import('./jobs/jobs.module').then(m => m.JobsModule) },
   { path: 'vouchers', loadChildren: () => import('./vouchers/vouchers.module').then(m => m.VouchersModule) },
@@ -63,7 +62,7 @@ export const routes: Routes = [
       },
     }),
     StoreRouterConnectingModule.forRoot(storeRouterConfig),
-    StoreDevtoolsModule.instrument({ maxAge: 25, logOnly: environment.production }),
+    StoreDevtoolsModule.instrument({ name: 'Our city app dashboard', maxAge: 25, logOnly: environment.production }),
     EffectsModule.forRoot([]),
     TranslateModule.forRoot({
       loader: {

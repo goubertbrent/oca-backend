@@ -51,17 +51,17 @@ def get_days_between_last_activity(d1):
 class SetupNewsServiceHandler(NewsAdminHandler):
 
     def get(self):
-        app_id = self.request.get("app_id", None)
+        community_id = self.request.get("community_id", None)
         sni = self.request.get("sni", None)
-        if not app_id or not sni:
+        if not community_id or not sni:
             self.redirect('/mobiadmin/google/news')
             return
 
         sni = int(sni)
-        qry = NewsSettingsService.list_setup_needed(app_id, sni)
+        qry = NewsSettingsService.list_setup_needed(community_id, sni)
         item = qry.get()
         if not item:
-            self.redirect('/mobiadmin/google/news?app_id=%s' % app_id)
+            self.redirect('/mobiadmin/google/news?community_id=%s' % community_id)
             return
 
         sp = get_service_profile(item.service_user)
@@ -92,7 +92,6 @@ class SetupNewsServiceHandler(NewsAdminHandler):
                                    name=si.name,
                                    news_count=news_count,
                                    user_count=user_count,
-                                   app_ids=si.appIds,
                                    search_enabled=service_visible))
 
         delete_enabled = False
@@ -129,7 +128,7 @@ class SetupNewsServiceHandler(NewsAdminHandler):
 
         service_user_email = data.get("service_user_email", None)
         action = data.get("action", None)
-        nss = NewsSettingsService.create_key(users.User(service_user_email)).get()
+        nss = NewsSettingsService.create_key(users.User(service_user_email)).get()  # type: NewsSettingsService
         if action == 'delete':
             should_delete = False
             try:
@@ -181,9 +180,7 @@ class SetupNewsServiceHandler(NewsAdminHandler):
                                                     'errormsg': 'This is awkward... (groups not found)'}))
                 return
 
-            group_types = []
-            for ng in NewsGroup.list_by_app_id(nss.default_app_id):
-                group_types.append(ng.group_type)
+            group_types = [ng.group_type for ng in NewsGroup.list_by_community_id(nss.community_id)]
             nss.setup_needed_id = 0
             nss.groups = []
             if groups == 'city':
@@ -218,14 +215,14 @@ class SetupNewsServiceHandler(NewsAdminHandler):
 class ListNewsServiceHandler(NewsAdminHandler):
 
     def get(self):
-        app_id = self.request.get("app_id", None)
+        community_id = self.request.get("community_id", None)
         sni = self.request.get("sni", None)
-        if not app_id or not sni:
+        if not community_id or not sni:
             self.redirect('/mobiadmin/google/news')
             return
 
         sni = int(sni)
-        qry = NewsSettingsService.list_setup_needed(app_id, sni)
+        qry = NewsSettingsService.list_setup_needed(community_id, sni)
 
         items = []
         for nss in qry:
@@ -239,7 +236,6 @@ class ListNewsServiceHandler(NewsAdminHandler):
                 identities.append(dict(id=si.identifier,
                                        name=si.name,
                                        news_count=news_count,
-                                       app_ids=si.appIds,
                                        search_enabled=service_visible))
 
             items.append(dict(service_user_email=nss.service_user.email(),

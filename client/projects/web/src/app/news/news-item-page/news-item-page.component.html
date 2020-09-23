@@ -14,7 +14,7 @@
   </mat-card-header>
   <mat-card-content>
     <div [innerHTML]="newsItem.message | markdown"></div>
-    <ng-container [ngSwitch]="newsItem.media?.type">
+    <ng-container [ngSwitch]="newsItem.media.type" *ngIf="newsItem.media">
       <img *ngSwitchCase="MediaType.IMAGE" [src]="newsItem.media.content" class="media-image">
       <iframe *ngSwitchCase="MediaType.YOUTUBE_VIDEO" [src]="youtubeUrl$ | async"
               allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"

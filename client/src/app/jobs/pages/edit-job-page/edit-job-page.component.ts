@@ -2,9 +2,10 @@ import { ChangeDetectionStrategy, Component, OnInit, ViewEncapsulation } from '@
 import { Router } from '@angular/router';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
-import { CreateNews, NewsGroupType } from '@oca/web-shared';
+import { NewsGroupType } from '@oca/web-shared';
 import { Observable } from 'rxjs';
 import { map, take } from 'rxjs/operators';
+import { CreateNews } from '../../../news/news';
 import { deepCopy, filterNull } from '../../../shared/util';
 import { EditJobOffer, JobOffer } from '../../jobs';
 import { UpdateJobOfferAction } from '../../jobs.actions';

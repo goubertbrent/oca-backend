@@ -17,13 +17,15 @@
 
 import base64
 import datetime
+import random
+from test import set_current_user
 
 from google.appengine.ext import db
 
-import oca_unittest
 from dateutil import relativedelta
+import oca_unittest
+from rogerthat.bizz.communities.models import Community
 from rogerthat.bizz.profile import create_user_profile, UNKNOWN_AVATAR
-from rogerthat.models import App
 from rogerthat.rpc import users
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import today, now
@@ -35,7 +37,6 @@ from shop.jobs.recurrentbilling import _create_charge
 from shop.models import Product, ShopTask, ExpiredSubscription, RegioManagerTeam, Charge, Order
 from shop.to import OrderItemTO, CustomerServiceTO
 from solutions.common.bizz import OrganizationType, SolutionModule
-from test import set_current_user
 
 
 class TestCase(oca_unittest.TestCase):
@@ -60,14 +61,15 @@ class TestCase(oca_unittest.TestCase):
                                              language=DEFAULT_LANGUAGE,
                                              organization_type=OrganizationType.PROFIT,
                                              prospect_id=None,
-                                             team_id=RegioManagerTeam.all().get().id)
+                                             team_id=RegioManagerTeam.all().get().id,
+                                             community_id=self.communities[0].id)
 
         contact = create_contact(customer.id, u'Bart', u'example', u'bart@example.com', u'+32 9 324 25 64')
         items = self._create_items(customer, products)
         return self._create_order(customer, contact.id, items)
 
     def _create_items(self, customer, products):
-        items = list()
+        items = []
         for x, product_info in enumerate(products):
             if isinstance(product_info, tuple):
                 product_code, product_count = product_info
@@ -104,9 +106,8 @@ class TestCase(oca_unittest.TestCase):
         order_key = recurrentbilling._qry(order.next_charge_date + 86400).get()
         self.assertEqual(order.key(), order_key)
 
-    def _create_service(self, customer, apps=None):
+    def _create_service(self, customer, community_id):
         service = CustomerServiceTO()
-        service.apps = apps or [App.APP_ID_ROGERTHAT, u'be-loc']
         service.broadcast_types = [u'broadcast']
         service.email = u'test@example.com'
         service.phone_number = u'00248498498494'
@@ -114,18 +115,17 @@ class TestCase(oca_unittest.TestCase):
         mods = [m for m in SolutionModule.MANDATORY_MODULES]
         service.modules = list(set(mods))
         service.organization_type = OrganizationType.PROFIT
-        service.app_infos = []
-        service.current_user_app_infos = []
         service.managed_organization_types = []
+        service.community_id = community_id
         provision_response = put_service(customer, service)
         # deferred functions seem to get ignored in unit tests..
-        _after_service_saved(customer.key(), service.email, provision_response, True, service.apps, [])
+        _after_service_saved(customer.key(), service.email, provision_response, True, service.community_id, [])
 
     def test_recurrent_billing(self):
         self.set_datastore_hr_probability(1)
         products_to_order = [(u'MSUP', 12)]
         subscription_order, customer = self._create_customer_and_subscription_order(products_to_order)
-        self._create_service(customer)
+        self._create_service(customer, random.choice(self.communities).id)
         # Turn back next_charge_date more than 12 months
         subscription_order.next_charge_date -= 367 * 86400
         subscription_order.put()
@@ -175,8 +175,7 @@ class TestCase(oca_unittest.TestCase):
         old_subscription_order.next_charge_date -= 12 * 31 * 86400  # Turn back next_charge_date more than 12 months
         old_subscription_order.put()
 
-        self._create_service(customer, [u'be-loc', u'be-berlare', u'be-beveren', u'es-madrid',
-                                        App.APP_ID_ROGERTHAT, App.APP_ID_OSA_LOYALTY])
+        self._create_service(customer, self.communities[0].id)
 
         # Creating some random order with a discount to be sure this discount isn't applied in recurrent billing job
         self._create_order(customer, old_subscription_order.contact_id, self._create_items(customer, [(u'KLUP', 1),

@@ -1,7 +1,5 @@
-import { sidebarReducer } from '../../../framework/client/nav/sidebar/reducers';
-import { ISidebarState } from '../../../framework/client/nav/sidebar/states';
-import { toolbarReducer } from '../../../framework/client/nav/toolbar/reducers';
-import { IToolbarState } from '../../../framework/client/nav/toolbar/states';
+import { ISidebarState, sidebarReducer } from '../../../framework/client/nav/sidebar';
+import { IToolbarState, toolbarReducer } from '../../../framework/client/nav/toolbar';
 import { IAppsState, IBackendsState, IDeveloperAccountsState, IReviewNotesState } from '../states';
 import { IContactsState } from '../states/contacts.state';
 import { appsReducer } from './apps.reducer';

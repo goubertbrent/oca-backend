@@ -1,0 +1,49 @@
+<mat-toolbar color="primary">
+  <a mat-icon-button routerLink="/news/list">
+    <mat-icon>arrow_back</mat-icon>
+  </a>
+  <h1 class="flex-grow">{{ 'oca.Settings' | translate }}</h1>
+</mat-toolbar>
+<form [formGroup]="formGroup" class="notifications-form">
+  <mat-slide-toggle formControlName="notify" (change)="save()">
+    {{ 'oca.send_notifications' | translate }}
+  </mat-slide-toggle>
+</form>
+<mat-list>
+  <h3 mat-subheader>{{ 'oca.RSS imports' | translate }}</h3>
+  <mat-list-item *ngFor="let scraper of formGroup.controls.scrapers.value; let i = index">
+    <h3 matLine>{{ scraper.url }}</h3>
+    <p matLine>{{ scraper.group_type }}</p>
+    <p matLine *ngIf="scraper.community_ids">Communities: {{ scraper.community_ids.join(',') }}</p>
+    <button (click)="editScraper(scraper)" mat-icon-button type="button">
+      <mat-icon>edit</mat-icon>
+    </button>
+    <button (click)="removeScraper(i)" mat-icon-button type="button">
+      <mat-icon>delete</mat-icon>
+    </button>
+  </mat-list-item>
+  <button mat-stroked-button (click)="addRss()" type="button"><mat-icon>add</mat-icon></button>
+</mat-list>
+<form [formGroup]="scraperFormGroup" *ngIf="editingScraper" (ngSubmit)="saveScraper()" class="edit-form">
+  <mat-form-field>
+    <mat-label>{{ 'oca.Url' | translate }}</mat-label>
+    <input formControlName="url" matInput required type="url">
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>Category</mat-label>
+    <mat-select formControlName="group_type" required>
+      <mat-option *ngFor="let newsGroup of newsGroups" [value]="newsGroup.type">{{ newsGroup.label }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>Communities (optional)</mat-label>
+    <mat-select formControlName="community_ids" multiple>
+      <mat-option *ngFor="let community of communities$ | async" [value]="community.id">
+        {{ community.name }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+  <div>
+    <button mat-stroked-button>{{ 'oca.Save' | translate }}</button>
+  </div>
+</form>

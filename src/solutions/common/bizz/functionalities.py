@@ -17,7 +17,9 @@
 
 from __future__ import unicode_literals
 
-from shop.models import PaidFeatures
+from typing import Tuple, List, Dict
+
+from rogerthat.bizz.communities.models import Community, AppFeatures
 from solutions import translate as common_translate
 from solutions.common.bizz import SolutionModule
 
@@ -50,8 +52,7 @@ MEDIA = {
 
 class Functionality(object):
 
-    def __init__(self, country, language, activated_modules, name):
-        self.country = country
+    def __init__(self, language, activated_modules, name):
         self.language = language
         self.activated_modules = activated_modules
         self.name = name
@@ -138,11 +139,12 @@ def sort_modules(name):
     return name
 
 
-def get_functionalities(country, language, my_modules, activated_modules, shop_app):
+def get_functionalities(language, my_modules, activated_modules, community):
+    # type: (str, List[str], List[str], Community) -> Tuple[List[str], Dict[str, Dict]]
     # we need the broadcast module to be the first
     modules = sorted(SolutionModule.FUNCTIONALITY_MODULES, key=sort_modules)
 
-    if not shop_app or PaidFeatures.JOBS not in shop_app.paid_features:
+    if not community or AppFeatures.JOBS not in community.features:
         modules.remove(SolutionModule.JOBS)
 
     if SolutionModule.CITY_APP in my_modules:
@@ -151,6 +153,6 @@ def get_functionalities(country, language, my_modules, activated_modules, shop_a
     elif SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in modules:
         modules.remove(SolutionModule.HIDDEN_CITY_WIDE_LOTTERY)
 
-    functionalities = [Functionality(country, language, activated_modules, module) for module in modules]
+    functionalities = [Functionality(language, activated_modules, module) for module in modules]
     info = {func.name: func.to_dict() for func in functionalities}
     return modules, info

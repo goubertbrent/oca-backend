@@ -18,11 +18,11 @@
 import urllib
 
 from google.appengine.api import images
-from google.appengine.ext import db, blobstore, ndb
+from google.appengine.ext import db, blobstore
 
 from rogerthat.bizz.gcs import get_serving_url
-from rogerthat.dal import parent_key, parent_key_unsafe, parent_ndb_key
-from rogerthat.models import ArchivedModel, NdbModel
+from rogerthat.dal import parent_key, parent_key_unsafe
+from rogerthat.models import ArchivedModel
 from rogerthat.rpc import users
 from rogerthat.utils import now
 from rogerthat.utils.app import create_app_user_by_email
@@ -537,6 +537,7 @@ class SolutionCityWideLotteryVisit(db.Model):
     def timestamp_day(self):
         return self.timestamp - (self.timestamp % (3600 * 24))
 
+    # TODO communities: should be service user as parent instead
     @classmethod
     def create_city_parent_key(cls, app_id):
         return db.Key.from_path(u"city_wide_lottery", app_id)
@@ -588,6 +589,8 @@ class SolutionCityWideLottery(db.Model):
     def key_str(self):
         return str(self.key())
 
+    # TODO communities: refactor to NDB and don't use app_id as parent.
+    # Use service user as parent like other models
     @property
     def app_id(self):
         return self.parent_key().name()

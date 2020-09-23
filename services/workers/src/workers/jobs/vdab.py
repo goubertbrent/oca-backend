@@ -374,7 +374,7 @@ def _save_job_offer(job_offer, new_job=False, should_create_matches=False):
     if job_offer.data['status'] in ('GEPUBLICEERD',):
         job_offer.visible = True
         job_offer.invisible_reason = None
-        
+
     dubbels = job_offer.data.get('dubbels')
     is_dubble = False
     if dubbels:
@@ -442,7 +442,7 @@ def _save_job_offer(job_offer, new_job=False, should_create_matches=False):
     job_offer.info.employer.name = job_offer.data.get('leverancier', {}).get('naam')
     if job_offer.info.employer.name:
         job_offer.info.employer.name = job_offer.info.employer.name.strip()
-    
+
     job_offer.info.location = JobOfferLocation()
     job_offer.info.location.geo_location = geo_location
     job_offer.info.location.city = city

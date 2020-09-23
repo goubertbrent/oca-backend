@@ -6,8 +6,7 @@ import { Router } from '@angular/router';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
-import { SimpleDialogComponent, SimpleDialogData } from '@oca/web-shared';
-import { ErrorService } from '@oca/web-shared';
+import { ErrorService, SimpleDialogComponent, SimpleDialogData } from '@oca/web-shared';
 import { of } from 'rxjs';
 import { catchError, first, map, switchMap, tap } from 'rxjs/operators';
 import { transformErrorResponse } from '../shared/errors/errors';
@@ -20,12 +19,18 @@ import {
   DeleteNewsItemCancelledAction,
   DeleteNewsItemCompleteAction,
   DeleteNewsItemFailedAction,
+  GetCommunities,
+  GetCommunitiesComplete,
+  GetCommunitiesFailed,
   GetLocationsAction,
   GetLocationsCompleteAction,
   GetLocationsFailedAction,
   GetNewsItemAction,
   GetNewsItemCompleteAction,
-  GetNewsItemFailedAction, GetNewsItemsStatsAction, GetNewsItemsStatsCompleteAction, GetNewsItemsStatsFailedAction,
+  GetNewsItemFailedAction,
+  GetNewsItemsStatsAction,
+  GetNewsItemsStatsCompleteAction,
+  GetNewsItemsStatsFailedAction,
   GetNewsItemTimeStatsAction,
   GetNewsItemTimeStatsCompleteAction,
   GetNewsItemTimeStatsFailedAction,
@@ -61,7 +66,7 @@ export class NewsEffects {
       catchError(err => of(new GetNewsListFailedAction(transformErrorResponse(err)))))),
   ));
 
-  autoFetchStats$ = createEffect(()=>this.actions$.pipe(
+  autoFetchStats$ = createEffect(() => this.actions$.pipe(
     ofType<GetNewsListCompleteAction>(NewsActionTypes.GET_NEWS_LIST_COMPLETE),
     map(action => new GetNewsItemsStatsAction({ ids: action.payload.result.map(r => r.id) }))
   ));
@@ -176,15 +181,23 @@ export class NewsEffects {
       first(),
       map(locations => ({ action, locations }))),
     ),
-    switchMap(({ action, locations }) => {
-      if (locations.data && action.payload.appId === locations.data.app_id) {
-        return of(new GetLocationsCompleteAction(locations.data));
-      }
-      return this.newsService.getLocations(action.payload.appId).pipe(
-        map(data => new GetLocationsCompleteAction(data)),
-        catchError(err => of(new GetLocationsFailedAction(transformErrorResponse(err)))));
-    }),
+     switchMap(({ action, locations }) => {
+       if (locations.data && action.payload.communityId === locations.data.community_id) {
+         return of(new GetLocationsCompleteAction(locations.data));
+       }
+       return this.newsService.getLocations(action.payload.communityId).pipe(
+         map(data => new GetLocationsCompleteAction(data)),
+         catchError(err => of(new GetLocationsFailedAction(transformErrorResponse(err)))));
+     }),
+   ));
+
+  getCommunities$ = createEffect(() => this.actions$.pipe(
+    ofType<GetCommunities>(NewsActionTypes.GET_COMMUNITIES),
+    switchMap(action => this.newsService.getCommunities().pipe(
+      map(data => new GetCommunitiesComplete(data)),
+      catchError(err => this.errorService.handleError(action, GetCommunitiesFailed, err)))),
   ));
+
 
   constructor(private actions$: Actions<NewsActions>,
               private router: Router,

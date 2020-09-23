@@ -26,12 +26,7 @@
             "tsConfig": "src/tsconfig.app.json",
             "assets": [
               "src/favicon.ico",
-              "src/assets",
-              {
-                "glob": "**/*",
-                "input": "node_modules/ngx-monaco-editor/assets/monaco",
-                "output": "/assets/monaco"
-              }
+              "src/assets"
             ],
             "styles": [
               "src/styles.scss"
@@ -121,12 +116,7 @@
             "scripts": [],
             "assets": [
               "src/favicon.ico",
-              "src/assets",
-              {
-                "glob": "**/*",
-                "input": "node_modules/ngx-monaco-editor/assets/monaco",
-                "output": "/assets/monaco"
-              }
+              "src/assets"
             ]
           }
         },
@@ -358,7 +348,12 @@
             "aot": true,
             "assets": [
               "projects/console/src/favicon.ico",
-              "projects/console/src/assets"
+              "projects/console/src/assets",
+              {
+                "glob": "**/*",
+                "input": "node_modules/ngx-monaco-editor/assets/monaco",
+                "output": "/assets/monaco"
+              }
             ],
             "styles": [
               "projects/console/src/styles/styles.scss"
@@ -367,6 +362,7 @@
           },
           "configurations": {
             "production": {
+              "deployUrl": "/static/console/",
               "fileReplacements": [
                 {
                   "replace": "projects/console/src/environments/environment.ts",
@@ -389,7 +385,7 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "6kb",
+                  "maximumWarning": "7kb",
                   "maximumError": "10kb"
                 }
               ]
@@ -424,7 +420,12 @@
             "karmaConfig": "projects/console/karma.conf.js",
             "assets": [
               "projects/console/src/favicon.ico",
-              "projects/console/src/assets"
+              "projects/console/src/assets",
+              {
+                "glob": "**/*",
+                "input": "node_modules/ngx-monaco-editor/assets/monaco",
+                "output": "/assets/monaco"
+              }
             ],
             "styles": [
               "projects/console/src/styles.scss"

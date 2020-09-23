@@ -44,22 +44,18 @@ from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
 from rogerthat.consts import DEBUG, SCHEDULED_QUEUE
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks, parent_ndb_key
-from rogerthat.dal.profile import get_user_profile, get_profile_key,\
-    get_service_profile
+from rogerthat.dal.profile import get_user_profile, get_profile_key, get_service_profile
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import system
-from rogerthat.service.api.system import get_flow_statistics
 from rogerthat.settings import get_server_settings
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, WarningReturnStatusTO
 from rogerthat.to.friends import FriendListResultTO
 from rogerthat.to.messaging import AttachmentTO, BaseMemberTO
 from rogerthat.to.service import UserDetailsTO
-from rogerthat.to.statistics import FlowStatisticsTO
-from rogerthat.to.system import ServiceIdentityInfoTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils.app import get_human_user_from_app_user, sanitize_app_user, \
     get_app_id_from_app_user, get_app_user_tuple
@@ -73,10 +69,9 @@ from solutions import translate as common_translate
 from solutions.common.bizz import get_next_free_spots_in_service_menu, common_provision, timezone_offset, \
     broadcast_updates_pending, SolutionModule, delete_file_blob, create_file_blob, \
     create_news_publisher, delete_news_publisher, enable_or_disable_solution_module, \
-    validate_enable_or_disable_solution_module, OrganizationType, get_default_app_id, \
-    get_organization_type, validate_before_provision, auto_publish
+    validate_enable_or_disable_solution_module, OrganizationType, get_organization_type, validate_before_provision, \
+    auto_publish
 from solutions.common.bizz.branding_settings import save_branding_settings
-from solutions.common.bizz.cityapp import get_country_apps
 from solutions.common.bizz.events import update_events_from_google, get_google_authenticate_url, get_google_calendars
 from solutions.common.bizz.group_purchase import save_group_purchase, delete_group_purchase, broadcast_group_purchase, \
     new_group_purchase_subscription
@@ -112,7 +107,6 @@ from solutions.common.models.repair import SolutionRepairSettings
 from solutions.common.models.sandwich import SandwichType, SandwichTopping, SandwichOption, SandwichSettings, \
     SandwichOrder
 from solutions.common.models.static_content import SolutionStaticContent
-from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO, SolutionSettingsTO, \
     MenuTO, EventItemTO, PublicEventItemTO, SolutionAppointmentWeekdayTimeframeTO, BrandingSettingsTO, \
     SolutionRepairOrderTO, SandwichSettingsTO, SandwichOrderTO, SolutionGroupPurchaseTO, \
@@ -124,7 +118,7 @@ from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO,
     AppUserRolesTO, CustomerSignupTO, SolutionRssSettingsTO, UploadedImageTO, CreateEventItemTO
 from solutions.common.to.forms import GcsFileTO
 from solutions.common.to.paddle import PaddleSettingsTO, PaddleSettingsServicesTO, SimpleServiceTO
-from solutions.common.to.statistics import AppBroadcastStatisticsTO, StatisticsResultTO
+from solutions.common.to.statistics import StatisticsResultTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
 
 
@@ -438,7 +432,6 @@ def export_inbox_messages(email=''):
 @arguments(organization_types=[int], message=unicode)
 def api_send_message_to_services(organization_types=None, message=None):
     service_user = users.get_current_user()
-    session_ = users.get_current_session()
     sln_settings = get_solution_settings(service_user)
 
     def _validation_err(translation_key):
@@ -455,9 +448,8 @@ def api_send_message_to_services(organization_types=None, message=None):
     if not message:
         _validation_err('message')
     services = []
-    si_user = create_service_identity_user(service_user, session_.service_identity or ServiceIdentity.DEFAULT)
-    si = get_service_identity(si_user)
-    for customer in Customer.list_by_app_id(si.defaultAppId):
+    service_profile = get_service_profile(service_user)
+    for customer in Customer.list_by_community_id(service_profile.community_id):
         if customer.organization_type in organization_types:
             # Don't send message to self
             if customer.service_email and customer.service_email != service_user.email():
@@ -465,7 +457,7 @@ def api_send_message_to_services(organization_types=None, message=None):
     send_inbox_info_messages_to_services(services, service_user, message, SolutionInboxMessage.CATEGORY_CITY_MESSAGE)
 
 
-@rest("/common/broadcast/rss", "get", read_only_access=True)
+@rest('/common/news/rss', 'get', read_only_access=True)
 @returns(SolutionRssSettingsTO)
 @arguments()
 def rest_get_broadcast_rss_feeds():
@@ -500,7 +492,7 @@ def rest_validate_rss_feed(url):
     } for item in items]}
 
 
-@rest("/common/broadcast/rss", 'put', type=REST_TYPE_TO)
+@rest('/common/news/rss', 'put', type=REST_TYPE_TO)
 @returns(SolutionRssSettingsTO)
 @arguments(data=SolutionRssSettingsTO)
 def rest_save_broadcast_rss_feeds(data):
@@ -512,7 +504,7 @@ def rest_save_broadcast_rss_feeds(data):
     return SolutionRssSettingsTO.from_model(rss_settings)
 
 
-@rest("/common/broadcast/validate/url", "post")
+@rest('/common/news/rss/validate', 'post')
 @returns(UrlReturnStatusTO)
 @arguments(url=unicode, allow_empty=bool)
 def broadcast_validate_url(url, allow_empty=False):
@@ -589,8 +581,8 @@ def is_place_visible_for_customer(place_details, customer):
     return False
 
 
-def _get_city_services(app_id):
-    customers = Customer.list_enabled_by_organization_type_in_app(app_id, OrganizationType.CITY)
+def _get_city_services(community_id):
+    customers = Customer.list_enabled_by_organization_type_in_community(community_id, OrganizationType.CITY)
     return [SimpleServiceTO(name=c.name, service_email=c.service_email) for c in customers if c.service_email]
 
 
@@ -602,9 +594,9 @@ def rest_get_paddle_settings():
     service_user = users.get_current_user()
     settings_key = PaddleSettings.create_key(service_user)
     settings = settings_key.get() or PaddleSettings(key=settings_key)
-    si = get_service_identity(create_service_identity_user(service_user, ServiceIdentity.DEFAULT))
+    service_profile = get_service_profile(service_user)
     return PaddleSettingsServicesTO(settings=PaddleSettingsTO.from_model(settings),
-                                    services=_get_city_services(si.defaultAppId))
+                                    services=_get_city_services(service_profile.community_id))
 
 
 @rest('/common/settings/paddle', 'put', type=REST_TYPE_TO, silent_result=True)
@@ -639,9 +631,9 @@ def rest_save_paddle_settings(data):
     ndb.put_multi(to_put)
     if paddle_info:
         populate_info_from_paddle(settings, paddle_info)
-    si = get_service_identity(create_service_identity_user(service_user, ServiceIdentity.DEFAULT))
+    service_profile = get_service_profile(service_user)
     return PaddleSettingsServicesTO(settings=PaddleSettingsTO.from_model(settings),
-                                    services=_get_city_services(si.defaultAppId))
+                                    services=_get_city_services(service_profile.community_id))
 
 
 @rest("/common/settings/publish_changes", "post")
@@ -926,8 +918,7 @@ def put_event(data):
         sln_settings = get_solution_settings(service_user)
         org_type = get_organization_type(service_user)
         service_profile = get_service_profile(service_user)
-        community_id = service_profile.community_id
-        event = put_event_bizz(sln_settings, data, get_default_app_id(service_user), org_type, community_id=community_id)
+        event = put_event_bizz(sln_settings, data, service_profile.community_id, org_type)
         return EventItemTO.from_model(event, get_server_settings().baseUrl, destination_app=False)
     except BusinessException as e:
         raise HttpBadRequestException(e.message)
@@ -996,33 +987,11 @@ def load_friends_list(batch_count, cursor):
 def load_service_statistics():
     session_ = users.get_current_session()
     service_identity = session_.service_identity
-    service_identity_user = create_service_identity_user(users.get_current_user(),
-                                                         service_identity or ServiceIdentity.DEFAULT)
-    rpc = db.get_async(AppBroadcastStatistics.create_key(service_identity_user))
     si_stats = system.get_statistics(service_identity)
-    app_broadcast_stats = rpc.get_result()
 
     result = StatisticsResultTO()
     result.service_identity_statistics = si_stats
-    result.has_app_broadcasts = False
-    if app_broadcast_stats and len(app_broadcast_stats.tags) > 0:
-        result.has_app_broadcasts = True
     return result
-
-
-@rest('/common/statistics/app_broadcasts', 'get', silent_result=True, read_only_access=True)
-@returns(AppBroadcastStatisticsTO)
-@arguments()
-def rest_get_app_broadcast_statistics():
-    service_identity = users.get_current_session().service_identity or ServiceIdentity.DEFAULT
-    service_identity_user = create_service_identity_user(users.get_current_user(), service_identity)
-    app_broadcast_statistics = db.get(AppBroadcastStatistics.create_key(service_identity_user))
-    flow_stats = messages = None
-    if app_broadcast_statistics and app_broadcast_statistics.tags:
-        flow_stats = get_flow_statistics(app_broadcast_statistics.tags, FlowStatisticsTO.VIEW_STEPS, 99999,
-                                         FlowStatisticsTO.GROUP_BY_YEAR, service_identity)
-        messages = app_broadcast_statistics.messages
-    return AppBroadcastStatisticsTO(flow_stats, messages)
 
 
 @rest('/common/users/search', 'get', read_only_access=True)
@@ -1820,15 +1789,6 @@ def remove_file_blob(image_id):
     delete_file_blob(users.get_current_user(), image_id)
 
 
-@rest('/common/get_info', 'get', read_only_access=True)
-@returns(ServiceIdentityInfoTO)
-@arguments()
-def rest_get_info():
-    session_ = users.get_current_session()
-    service_identity = session_.service_identity or ServiceIdentity.DEFAULT
-    return system.get_info(service_identity)
-
-
 @rest('/common/customer/signup/all', 'get')
 @returns([CustomerSignupTO])
 @arguments()
@@ -1888,23 +1848,6 @@ def rest_enable_or_disable_module(name, enabled, force=False):
         return WarningReturnStatusTO.create()
     except BusinessException as e:
         return WarningReturnStatusTO.create(False, e.message)
-
-
-@rest('/unauthenticated/osa/apps/flanders', 'get', read_only_access=True, authenticated=False)
-@returns(dict)
-@arguments()
-def api_get_flanders_apps():
-    return get_country_apps(u'be')
-
-
-@rest('/common/apps', 'get', read_only_access=True, authenticated=False)
-@returns([dict])
-@arguments()
-def api_get_app_names():
-    customer = get_customer(users.get_current_user())
-    if not customer:
-        return []
-    return [{'name': key, 'id': value} for key, value in get_country_apps(customer.country).iteritems()]
 
 
 @rest('/common/files/<prefix:.*>', 'post')

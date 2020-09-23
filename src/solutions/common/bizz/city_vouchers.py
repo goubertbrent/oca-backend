@@ -17,10 +17,11 @@
 import json
 import logging
 
+from typing import List
+
 from mcfw.rpc import returns, arguments
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
-from rogerthat.to.friends import GetUserInfoResponseTO
 from rogerthat.to.service import SendApiCallCallbackResultTO, UserDetailsTO
 from rogerthat.utils.app import get_app_user_tuple
 from solutions import translate
@@ -52,9 +53,6 @@ def _resolve_voucher(service_user, service_identity, url):
         human_user, app_id = get_app_user_tuple(custom_loyalty_card.app_user)
         return _create_resolve_result(CustomLoyaltyCard.TYPE, url, human_user.email(), app_id)
     logging.debug('Unknown QR code scanned: %s. Loyalty device will create custom paper loyalty card.', url)
-
-    user_info = GetUserInfoResponseTO()
-    user_info.app_id = user_info.email = user_info.name = user_info.qualifiedIdentifier = u'dummy'
     return _create_resolve_result(u'unknown', url, u'dummy', u'dummy')
 
 
@@ -64,6 +62,7 @@ def _resolve_voucher(service_user, service_identity, url):
            service_identity=unicode,
            user_details=[UserDetailsTO])
 def solution_voucher_resolve(service_user, email, method, params, tag, service_identity, user_details):
+    # type: (users.User, unicode, unicode, unicode, unicode, unicode, List[UserDetailsTO]) -> SendApiCallCallbackResultTO
     logging.debug("Received voucher resolve call with params: %s", params)
     r = SendApiCallCallbackResultTO()
     r.result = None

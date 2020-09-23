@@ -36,10 +36,11 @@ from rogerthat.bizz.elasticsearch import delete_index, create_index, es_request,
 from rogerthat.bizz.maps.services.places import get_place_details, PlaceDetails, get_place_type_keys
 from rogerthat.bizz.maps.shared import get_map_response
 from rogerthat.bizz.opening_hours import get_opening_hours_info
+from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_user_profile, get_service_profile
 from rogerthat.dal.service import get_service_menu_items
 from rogerthat.models import UserProfileInfo, OpeningHours, ServiceIdentity, \
-    ServiceTranslation, ServiceRole, UserProfile
+    ServiceTranslation, ServiceRole, UserProfile, App, AppServiceFilter
 from rogerthat.models.elasticsearch import ElasticsearchSettings
 from rogerthat.models.maps import MapConfig, MapSavedItem, MapService, \
     MapServiceListItem
@@ -73,14 +74,10 @@ OPENING_HOURS_ORANGE_COLOR = u'e69f12'
 class SearchTag(object):
 
     @staticmethod
-    def environment(environment):
-        azzert(environment in ('demo', 'production'))
-        return 'environment#%s' % environment
+    def environment(demo):
+        # type: (bool) -> unicode
+        return 'environment#%s' % ('demo' if demo else 'production')
 
-    @staticmethod
-    def app(app_id):
-        return 'app_id#%s' % app_id
-    
     @staticmethod
     def community(community_id):
         return 'community_id#%s' % community_id
@@ -111,19 +108,15 @@ def get_openinghours_color(color):
     return u'#%s' % color
 
 
-def get_tags_app(app_id, whole_country=True):
-    from rogerthat.dal.app import get_app_by_id
-    tags = []
-    app = get_app_by_id(app_id)
-    if app.demo:
-        tags.append(SearchTag.environment('demo'))
-    else:
-        tags.append(SearchTag.environment('production'))
-    if whole_country and app.country:
+def get_tags_app(app):
+    # type: (App) -> Tuple[List[unicode], List[int]]
+    tags = [SearchTag.environment(app.demo)]
+    community_ids = []
+    if app.service_filter_type == AppServiceFilter.COUNTRY:
         tags.append(SearchTag.country(app.country))
-    else:
-        tags.append(SearchTag.app(app_id))
-    return tags
+    elif app.service_filter_type == AppServiceFilter.COMMUNITIES:
+        community_ids = app.community_ids
+    return tags, community_ids
 
 
 @returns(GetMapResponseTO)
@@ -177,12 +170,15 @@ def get_map_search_suggestions(app_user, request):
         response.items.append(MapSearchSuggestionKeywordTO(text=place_details.title))
 
     app_id = get_app_id_from_app_user(app_user)
+    app = get_app_by_id(app_id)
+    tags, community_ids = get_tags_app(app)
     start_time = time.time()
-    services = _suggest_services(get_tags_app(app_id),
+    services = _suggest_services(tags,
                                  request.coords.lat,
                                  request.coords.lon,
                                  get_clean_language_code(lang),
-                                 request.search.query)
+                                 request.search.query,
+                                 community_ids)
     took_time = time.time() - start_time
     logging.info('debugging.services._suggest_services _search {0:.3f}s'.format(took_time))
     for service in services:
@@ -200,7 +196,8 @@ def get_map_items(app_user, request):
     distance = request.distance
 
     app_id = get_app_id_from_app_user(app_user)
-    tags = get_tags_app(app_id)
+    app = get_app_by_id(app_id)
+    tags, community_ids = get_tags_app(app)
 
     place_type_tags = []
     if request.search:
@@ -214,7 +211,7 @@ def get_map_items(app_user, request):
         logging.info('debugging.services._search_place_types _search {0:.3f}s'.format(took_time))
         logging.debug('get_map_items.search: "%s" -> %s', request.search.query, place_type_tags)
     return _get_items(app_user, tags, place_type_tags, center_lat, center_lon, distance, cursor=request.cursor,
-                      search=None if place_type_tags else request.search)
+                      search=None if place_type_tags else request.search, community_ids=community_ids)
 
 
 @returns(GetMapItemDetailsResponseTO)
@@ -610,11 +607,13 @@ def _convert_to_item_to(map_service, language, timezone, opening_hours):
                      lines=lines)
 
 
-def _get_items(app_user, tags, place_type_tags, lat, lon, distance, limit=100, cursor=None, search=None):
+def _get_items(app_user, tags, place_type_tags, lat, lon, distance, limit=100, cursor=None, search=None,
+               community_ids=None):
     if limit > 1000:
         limit = 1000
     start_time = time.time()
-    new_cursor, result_ids = _search_services(tags, place_type_tags, lat, lon, distance, cursor, limit, search=search)
+    new_cursor, result_ids = _search_services(tags, place_type_tags, lat, lon, distance, cursor, limit, search,
+                                              community_ids)
     took_time = time.time() - start_time
     logging.info('debugging.services._get_items _search {0:.3f}s'.format(took_time))
     items = []
@@ -682,7 +681,8 @@ def _create_index():
     return create_index(_get_elasticsearch_index(), request)
 
 
-def _suggest_services(tags, lat, lon, lang, search):
+def _suggest_services(tags, lat, lon, lang, search, community_ids):
+    # type: (List[unicode], float, float, str, str, List[int]) -> List[dict]
     qry = {
         'size': 12,
         'from': 0,
@@ -705,12 +705,11 @@ def _suggest_services(tags, lat, lon, lang, search):
                         }
                     }
                 ],
-                'filter': [],
-                'should': []
+                'filter': [{'term': {'tags': tag}} for tag in tags],
             }
         },
         'sort': [
-            { "_score": { "order": "desc" }},
+            {'_score': {'order': 'desc'}},
             {
                 '_geo_distance': {
                     'location': {
@@ -724,10 +723,12 @@ def _suggest_services(tags, lat, lon, lang, search):
         ]
     }
 
-    for tag in tags:
-        qry['query']['bool']['filter'].append({
-            'term': {
-                'tags': tag
+    if community_ids:
+        # Must match one of the specified community ids
+        qry['query']['bool']['must'].append({
+            'bool': {
+                'should': [{'term': {'tags': SearchTag.community(community_id)}} for community_id in community_ids],
+                'minimum_should_match': 1
             }
         })
 
@@ -775,7 +776,7 @@ def search_services_by_tags(tags, cursor, limit):
     return results, new_cursor
 
 
-def _search_services(tags, place_type_tags, lat, lon, distance, cursor, limit, search=None):
+def _search_services(tags, place_type_tags, lat, lon, distance, cursor, limit, search=None, community_ids=None):
     # we can only fetch up to 10000 items with from param
     start_offset = long(cursor) if cursor else 0
 
@@ -813,6 +814,7 @@ def _search_services(tags, place_type_tags, lat, lon, distance, cursor, limit, s
         ]
     }
 
+    # Must match all tags
     for tag in tags:
         qry['query']['bool']['filter'].append({
             'term': {
@@ -821,19 +823,13 @@ def _search_services(tags, place_type_tags, lat, lon, distance, cursor, limit, s
         })
 
     if place_type_tags:
-        place_type_tags_filter = {
+        # Must match one of the specified place types
+        qry['query']['bool']['must'].append({
             'bool': {
-                'should': [],
+                'should': [{'term': {'tags': tag}} for tag in place_type_tags],
                 "minimum_should_match": 1
             }
-        }
-        for tag in place_type_tags:
-            place_type_tags_filter['bool']['should'].append({
-                'term': {
-                    'tags': tag
-                }
-            })
-        qry['query']['bool']['must'].append(place_type_tags_filter)
+        })
 
         if search:
             qry['query']['bool']['should'].append({
@@ -843,6 +839,14 @@ def _search_services(tags, place_type_tags, lat, lon, distance, cursor, limit, s
                     "fuzziness": "1"
                 }
             })
+    if community_ids:
+        # Must match one of the specified community ids
+        qry['query']['bool']['must'].append({
+            'bool': {
+                'should': [{'term': {'tags': SearchTag.community(community_id)}} for community_id in community_ids],
+                'minimum_should_match': 1
+            }
+        })
 
     elif search:
         qry['query']['bool']['must'].append({
@@ -1019,7 +1023,4 @@ def _suggest_place_types(qry, lang):
 
     path = '/%s/_search' % _get_elasticsearch_place_type_index()
     result_data = es_request(path, urlfetch.POST, qry)
-    result_ids = list()
-    for hit in result_data['hits']['hits']:
-        result_ids.append(hit['_id'])
-    return result_ids
+    return [hit['_id'] for hit in result_data['hits']['hits']]

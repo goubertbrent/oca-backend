@@ -18,7 +18,7 @@ export class AppAssetsOverviewComponent implements OnInit {
     }, {
       label: 'rcc.qr_templates',
       description: 'rcc.qr_templates_explanation',
-      icon: 'fa-qrcode',
+      icon: 'qr_code',
       route: 'qr-code-templates',
     }, {
       label: 'rcc.resources',

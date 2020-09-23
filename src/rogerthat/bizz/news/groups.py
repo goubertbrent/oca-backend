@@ -16,34 +16,31 @@
 # @@license_version:1.7@@
 
 import logging
-from datetime import datetime
+from collections import defaultdict
 
 from google.appengine.ext import ndb, deferred
-from typing import List, Tuple, Optional
 
-from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.job import run_job
+from rogerthat.bizz.communities.communities import get_community
+from rogerthat.bizz.job import run_job, MODE_BATCH
 from rogerthat.bizz.service import InvalidGroupTypeException
-from rogerthat.consts import MIGRATION_QUEUE, NEWS_MATCHING_QUEUE, DEBUG
-from rogerthat.dal.app import get_app_by_id
-from rogerthat.dal.service import get_service_identity
-from rogerthat.models import App
+from rogerthat.consts import MIGRATION_QUEUE
+from rogerthat.dal.profile import get_service_profile
 from rogerthat.models.news import NewsGroup, NewsSettingsService, NewsStream, \
-    NewsGroupTile, NewsStreamLayout, NewsSettingsUser, NewsSettingsUserGroup, \
-    NewsSettingsUserGroupDetails, NewsNotificationFilter, NewsStreamCustomLayout, NewsItem
+    NewsGroupTile, NewsStreamLayout, NewsSettingsUser, NewsStreamCustomLayout
 from rogerthat.rpc import users
 from rogerthat.to.news import ServiceNewsGroupTO
 from rogerthat.utils import guid
 from rogerthat.utils.service import get_service_user_from_service_identity_user
 
 
-def setup_news_stream_app(app_id, news_stream=None):
-    ns_key = NewsStream.create_key(app_id)
+def setup_news_stream_community(community_id):
+    ns_key = NewsStream.create_key(community_id)
     if ns_key.get():
+        logging.debug('NewsStream already exists for community %s, doing nothing', community_id)
         return
     ns = NewsStream(key=ns_key)
-    ns.stream_type = news_stream.type if news_stream else None
+    ns.stream_type = NewsStream.TYPE_CITY
     ns.should_create_groups = True
     ns.services_need_setup = False
 
@@ -51,39 +48,29 @@ def setup_news_stream_app(app_id, news_stream=None):
     for types in ([NewsGroup.TYPE_CITY], [NewsGroup.TYPE_PRESS, NewsGroup.TYPE_TRAFFIC], [NewsGroup.TYPE_PROMOTIONS]):
         ns.layout.append(NewsStreamLayout(group_types=types))
 
-    custom_layout_polls = NewsStreamCustomLayout(key=NewsStreamCustomLayout.create_key(NewsGroup.TYPE_POLLS, app_id))
+    custom_layout_polls = NewsStreamCustomLayout(
+        key=NewsStreamCustomLayout.create_key(NewsGroup.TYPE_POLLS, community_id))
     custom_layout_polls.layout = []
-    for types in ([NewsGroup.TYPE_CITY], [NewsGroup.TYPE_POLLS, NewsGroup.TYPE_TRAFFIC], [NewsGroup.TYPE_PROMOTIONS], [NewsGroup.TYPE_PRESS]):
+    for types in ([NewsGroup.TYPE_CITY], [NewsGroup.TYPE_POLLS, NewsGroup.TYPE_TRAFFIC], [NewsGroup.TYPE_PROMOTIONS],
+                  [NewsGroup.TYPE_PRESS]):
         custom_layout_polls.layout.append(NewsStreamLayout(group_types=types))
 
     ndb.put_multi([ns, custom_layout_polls])
-
-    if news_stream:
-        deferred.defer(setup_default_groups_app, app_id)
+    deferred.defer(setup_default_groups_community, community_id)
 
 
-def setup_default_groups_app(app_id):
-    ns = NewsStream.create_key(app_id).get()
-    if not ns:
-        return
-    if not ns.stream_type:
-        return
-    if not ns.should_create_groups:
-        return
-    if ns.stream_type not in (NewsStream.TYPE_CITY, NewsStream.TYPE_COMMUNITY):
+def setup_default_groups_community(community_id):
+    ns = NewsStream.create_key(community_id).get()
+    if not ns or not ns.should_create_groups or ns.stream_type not in (NewsStream.TYPE_CITY, NewsStream.TYPE_COMMUNITY):
         return
 
     ns.should_create_groups = False
     to_put = [ns]
 
-    app = get_app_by_id(app_id)
-    
-    azzert(len(app.community_ids) == 1, "Community was NOT provided but len(app.community_ids) != 1")
-    community_id = app.community_ids[0]
+    community = get_community(community_id)
 
     ng1 = NewsGroup(key=NewsGroup.create_key(guid()))
-    ng1.name = u'%s CITY' % app.name
-    ng1.app_id = app.app_id
+    ng1.name = u'%s CITY' % community.name
     ng1.community_id = community_id
     ng1.group_type = NewsGroup.TYPE_CITY
     ng1.regional = False
@@ -93,8 +80,7 @@ def setup_default_groups_app(app_id):
         background_image_url=u'https://storage.googleapis.com/oca-files/news/groups/_default/city.jpg')
 
     ng2 = NewsGroup(key=NewsGroup.create_key(guid()))
-    ng2.name = u'%s PROMOTIONS' % app.name
-    ng2.app_id = app.app_id
+    ng2.name = u'%s PROMOTIONS' % community.name
     ng2.community_id = community_id
     ng2.group_type = NewsGroup.TYPE_PROMOTIONS
     ng2.regional = False
@@ -104,8 +90,7 @@ def setup_default_groups_app(app_id):
         background_image_url=u'https://storage.googleapis.com/oca-files/news/groups/_default/promo.jpg')
 
     ng3 = NewsGroup(key=NewsGroup.create_key(guid()))
-    ng3.name = u'%s PROMOTIONS (regional)' % app.name
-    ng3.app_id = app.app_id
+    ng3.name = u'%s PROMOTIONS (regional)' % community.name
     ng3.community_id = community_id
     ng3.group_type = NewsGroup.TYPE_PROMOTIONS
     ng3.regional = True
@@ -114,8 +99,7 @@ def setup_default_groups_app(app_id):
     ng3.tile = None
 
     ng4 = NewsGroup(key=NewsGroup.create_key(guid()))
-    ng4.name = u'%s EVENTS' % app.name
-    ng4.app_id = app.app_id
+    ng4.name = u'%s EVENTS' % community.name
     ng4.community_id = community_id
     ng4.group_type = NewsGroup.TYPE_EVENTS
     ng4.regional = False
@@ -125,8 +109,7 @@ def setup_default_groups_app(app_id):
         background_image_url=u'https://storage.googleapis.com/oca-files/news/groups/_default/events.jpg')
 
     ng5 = NewsGroup(key=NewsGroup.create_key(guid()))
-    ng5.name = u'%s TRAFFIC' % app.name
-    ng5.app_id = app.app_id
+    ng5.name = u'%s TRAFFIC' % community.name
     ng5.community_id = community_id
     ng5.group_type = NewsGroup.TYPE_TRAFFIC
     ng5.regional = False
@@ -136,8 +119,7 @@ def setup_default_groups_app(app_id):
         background_image_url=u'https://storage.googleapis.com/oca-files/news/groups/_default/trafic.jpg')
 
     ng6 = NewsGroup(key=NewsGroup.create_key(guid()))
-    ng6.name = u'%s PRESS' % app.name
-    ng6.app_id = app.app_id
+    ng6.name = u'%s PRESS' % community.name
     ng6.community_id = community_id
     ng6.group_type = NewsGroup.TYPE_PRESS
     ng6.regional = False
@@ -148,38 +130,34 @@ def setup_default_groups_app(app_id):
     ng6.service_filter = True
 
     ng7 = NewsGroup(key=NewsGroup.create_key(guid()))
-    ng7.name = u'%s POLLS' % app.name
-    ng7.app_id = app.app_id
+    ng7.name = u'%s POLLS' % community.name
     ng7.community_id = community_id
     ng7.send_notifications = False
     ng7.group_type = NewsGroup.TYPE_POLLS
     ng7.regional = False
     ng7.default_order = 60
     ng7.default_notifications_enabled = True
-    ng7.tile = NewsGroupTile(background_image_url=u'https://storage.googleapis.com/oca-files/news/groups/_default/polls.jpg',
-                             promo_image_url=u'https://storage.googleapis.com/oca-files/news/groups/_default/polls_promo.png')
+    ng7.tile = NewsGroupTile(
+        background_image_url=u'https://storage.googleapis.com/oca-files/news/groups/_default/polls.jpg',
+        promo_image_url=u'https://storage.googleapis.com/oca-files/news/groups/_default/polls_promo.png')
 
     to_put.extend([ng1, ng2, ng3, ng4, ng5, ng6, ng7])
 
     ndb.put_multi(to_put)
 
 
-def get_group_id_for_type_and_app_id(group_type, app_id, regional=False):
-    logging.debug('debugging_news get_group_id_for_type_and_app_id type:%s app_id:%s regional:%s',
-                  group_type, app_id, regional)
-    for g in get_groups_for_app_id(app_id).get(group_type, []):
-        if g.regional == regional:
+def get_group_id_for_type_and_community(group_type, community_id):
+    for g in get_groups_for_community(community_id).get(group_type, []):
+        if not g.regional:
             return g.group_id
     return None
 
 
-def get_groups_for_app_id(app_id):
-    d = {}
-    for g in NewsGroup.list_by_app_id(app_id):
-        if g.group_type not in d:
-            d[g.group_type] = []
-        d[g.group_type].append(g)
-    return d
+def get_groups_for_community(community_id):
+    result = defaultdict(list)
+    for group in NewsGroup.list_by_community_id(community_id):
+        result[group.group_type].append(group)
+    return result
 
 
 def get_group_types_for_service(news_settings, group_types):
@@ -194,32 +172,15 @@ def get_group_types_for_service(news_settings, group_types):
     return group_types
 
 
-def get_group_ids_for_type(group_type, default_app_id, app_ids):
-    group_ids = []
-    skipped_app_ids = [App.APP_ID_ROGERTHAT, App.APP_ID_OSA_LOYALTY]
-    for app_id in app_ids:
-        if app_id in skipped_app_ids:
-            # Keep everything on devserver
-            if not DEBUG:
-                continue
-        regional = app_id != default_app_id if group_type == NewsGroup.TYPE_PROMOTIONS else False
-        group_id = get_group_id_for_type_and_app_id(group_type, app_id, regional)
-        if not group_id:
-            raise Exception('Failed to get group_id for group_type:%s app_id:%s regional:%s' %
-                            (group_type, app_id, regional))
-        group_ids.append(group_id)
-    return group_ids
-
-
-def get_group_info(service_identity_user, group_type=None, app_ids=None, news_item=None):
-    # type: (users.User, Optional[str], List[str], Optional[NewsItem]) -> Tuple[List[str], List[str]]
+def get_group_info(service_identity_user, group_type=None, community_ids=None, news_item=None):
+    # type: (users.User, Optional[str], List[int], Optional[NewsItem]) -> Tuple[List[str], List[str]]
     service_user = get_service_user_from_service_identity_user(service_identity_user)
     news_settings = NewsSettingsService.create_key(service_user).get()  # type: Optional[NewsSettingsService]
-    if not news_settings or not news_settings.default_app_id:
-        return [], []
+    if not news_settings:
+        raise Exception('NewsSettingsService for user %s does not existL %s', service_user)
 
     check_group_types = []
-    check_app_ids = set()
+    check_community_ids = set()
 
     if news_item:
         if group_type:
@@ -229,41 +190,35 @@ def get_group_info(service_identity_user, group_type=None, app_ids=None, news_it
                 check_group_types = news_item.group_types_ordered
             else:
                 check_group_types = news_item.group_types
-        check_app_ids = set(news_item.app_ids)
-        if app_ids:
-            check_app_ids.update(app_ids)
+        check_community_ids = set(news_item.community_ids)
+        if community_ids:
+            check_community_ids.update(community_ids)
 
     else:
         if group_type:
             check_group_types = [group_type]
-        if app_ids:
-            check_app_ids = set(app_ids)
-
-    logging.debug('debugging_news get_group_info check_group_types:%s check_app_ids:%s', check_group_types, check_app_ids)
-    if not check_app_ids or not check_group_types:
+        if community_ids:
+            check_community_ids = set(community_ids)
+    if not check_community_ids or not check_group_types:
         return [], []
 
+    default_community_id = news_settings.community_id
     group_types = get_group_types_for_service(news_settings, check_group_types)
-    logging.debug('debugging_news get_group_info group_types:%s', group_types)
+    logging.debug('Fetching group ids for group types: %s', group_types)
     if not group_types:
         return [], []
-
-    si = get_service_identity(service_identity_user)
+    news_groups = NewsGroup.list_by_community_ids(check_community_ids)  # type: List[NewsGroup]
     group_ids = []
-    for gt in group_types:
-        if gt in (NewsGroup.TYPE_CITY, NewsGroup.TYPE_PROMOTIONS, NewsGroup.TYPE_PRESS, NewsGroup.TYPE_PUBLIC_SERVICE_ANNOUNCEMENTS):
-            app_ids = []
-            for app_id in check_app_ids:
-                # TODO refactor: datastore.get in nested for loop
-                ns = NewsStream.create_key(app_id).get()
-                if ns and not ns.should_create_groups:
-                    app_ids.append(app_id)
-        else:
-            app_ids = [si.app_id]
-        # TODO refactor: datastore.query in for loop
-        group_ids.extend(get_group_ids_for_type(gt, si.app_id, app_ids))
-
-    logging.debug('debugging_news get_group_info group_ids:%s', group_ids)
+    for group in news_groups:
+        if group.group_type in group_types:
+            if group.regional:
+                # Add the news item to the regional news stream
+                group_ids.append(group.group_id)
+            else:
+                # Add the item to the "normal" (non-regional) stream for the default community only
+                if group.community_id == default_community_id:
+                    group_ids.append(group.group_id)
+    logging.debug('Found group ids: %s', group_ids)
     return group_types, group_ids
 
 
@@ -280,10 +235,9 @@ def validate_group_type(service_user, group_type):
         raise InvalidGroupTypeException(group_type)
 
 
-def get_groups_for_service_user(service_user, language=None):
-    from rogerthat.bizz.news import get_group_title
-
-    nss = NewsSettingsService.create_key(service_user).get()
+def get_groups_for_service_user(service_user):
+    # type: (users.User) -> List[NewsGroup]
+    nss = NewsSettingsService.create_key(service_user).get()  # type: NewsSettingsService
     if not nss:
         return []
 
@@ -292,30 +246,34 @@ def get_groups_for_service_user(service_user, language=None):
         return []
 
     groups = []
-    for ng in NewsGroup.list_by_app_id(nss.default_app_id):
+    for ng in NewsGroup.list_by_community_id(nss.community_id):
         if ng.group_type not in group_types:
             continue
         if ng.regional:
             continue
         groups.append(ng)
+    return groups
 
+
+def get_group_types_for_service_user(service_user, language):
+    # type: (users.User, str) -> List[ServiceNewsGroupTO]
+    from rogerthat.bizz.news import get_group_title
+    service_profile = get_service_profile(service_user)
+    groups = get_groups_for_service_user(service_user)
     if not groups:
         return []
 
-    news_stream = NewsStream.create_key(nss.default_app_id).get()
+    news_stream = NewsStream.create_key(service_profile.community_id).get()
     type_city = False
     if news_stream and news_stream.stream_type == NewsStream.TYPE_CITY:
         type_city = True
 
-    l = []
-    for ng in groups:
-        l.append(ServiceNewsGroupTO(group_type=ng.group_type,
-                                    name=get_group_title(type_city, ng, language)))
-    return l
+    return [ServiceNewsGroupTO(group_type=ng.group_type, name=get_group_title(type_city, ng, language))
+            for ng in groups]
 
 
 def update_stream_layout(group_ids, layout_id, visible_until):
-    news_groups = ndb.get_multi([NewsGroup.create_key(group_id) for group_id in group_ids])
+    news_groups = ndb.get_multi([NewsGroup.create_key(group_id) for group_id in group_ids])  # type: List[NewsGroup]
     for ng in news_groups:
         if ng.regional:
             continue
@@ -329,117 +287,53 @@ def update_stream_layout(group_ids, layout_id, visible_until):
     ng.send_notifications = True
     ng.put()
 
-    news_stream = NewsStream.create_key(ng.app_id).get()
+    news_stream = NewsStream.create_key(ng.community_id).get()
     if news_stream.custom_layout_id == layout_id:
         return
 
-    custom_layout = NewsStreamCustomLayout.create_key(layout_id, ng.app_id).get()
+    custom_layout = NewsStreamCustomLayout.create_key(layout_id, ng.community_id).get()
     if not custom_layout:
         return
     news_stream.custom_layout_id = layout_id
     news_stream.put()
 
 
-def add_user_group(group_id):
-    g = NewsGroup.create_key(group_id).get()
-    run_job(_qry_user_settings_app, [g.app_id], _worker_add_group_to_user_settings,
-            [group_id], worker_queue=MIGRATION_QUEUE)
+def delete_user_group(group_id):
+    run_job(_qry_user_settings, [group_id], _worker_delete_group_from_user_settings, [group_id], mode=MODE_BATCH,
+            worker_queue=MIGRATION_QUEUE)
 
 
-def delete_user_group(app_id, group_id):
-    run_job(_qry_user_settings_app, [app_id], _worker_delete_group_from_user_settings,
-            [group_id], worker_queue=MIGRATION_QUEUE)
+def _qry_user_settings(group_id):
+    return NewsSettingsUser.list_by_group_id(group_id)
 
 
-def _qry_user_settings_app(app_id):
-    return NewsSettingsUser.list_by_app_id(app_id)
+def _worker_delete_group_from_user_settings(keys, group_id):
+    models = ndb.get_multi(keys)  # type: List[NewsSettingsUser]
+    to_put = []
+    for settings in models:
+        group_settings = settings.get_group_by_id(group_id)
+        if group_settings:
+            settings.group_settings.remove(group_settings)
+            to_put.append(settings)
+    ndb.put_multi(to_put)
 
 
-@ndb.non_transactional()
-def _get_news_group(group_id):
-    # type: (str) -> NewsGroup
-    return NewsGroup.create_key(group_id).get()
+def delete_service_group(community_id, group_type):
+    # type: (int, str) -> None
+    assert isinstance(community_id, (int, long))
+    run_job(_qry_delete_service_group, [community_id], _worker_delete_service_group, [group_type],
+            worker_queue=MIGRATION_QUEUE)
 
 
-@ndb.transactional(xg=True)
-def _worker_add_group_to_user_settings(s_key, group_id):
-    user_settings = s_key.get()  # type: NewsSettingsUser
-    if group_id in user_settings.group_ids:
-        return
-
-    group = _get_news_group(group_id)
-
-    settings_user_group = NewsSettingsUserGroup(
-        group_type=group.group_type,
-        order=group.default_order,
-        details=[],
-    )
-    settings_group_details = NewsSettingsUserGroupDetails()
-    settings_group_details.group_id = group.group_id
-    settings_group_details.order = 20 if group.regional else 10
-    if group.default_notifications_enabled:
-        settings_group_details.notifications = NewsNotificationFilter.ALL
-    else:
-        settings_group_details.notifications = NewsNotificationFilter.SPECIFIED
-    settings_group_details.last_load_request = datetime.utcnow()
-
-    settings_user_group.details.append(settings_group_details)
-
-    user_settings.group_ids.append(group.group_id)
-    user_settings.groups.append(settings_user_group)
-    user_settings.put()
-
-
-@ndb.transactional(xg=True)
-def _worker_delete_group_from_user_settings(s_key, group_id):
-    s = s_key.get()
-    if group_id not in s.group_ids:
-        return
-
-    s.group_ids.remove(group_id)
-    g = s.get_group(group_id)
-    azzert(len(g.details) == 1)
-    s.groups.remove(g)
-    s.put()
-
-
-def delete_service_group(app_id, group_type):
-    run_job(_qry_delete_service_group, [app_id], _worker_delete_service_group,
-            [group_type], worker_queue=MIGRATION_QUEUE)
-
-
-def _qry_delete_service_group(app_id):
-    return NewsSettingsService.list_by_app_id(app_id)
+def _qry_delete_service_group(community_id):
+    return NewsSettingsService.list_by_community(community_id)
 
 
 @ndb.transactional(xg=True)
 def _worker_delete_service_group(nss_key, group_type):
-    nss = nss_key.get()
+    nss = nss_key.get()  # type: NewsSettingsService
     g = nss.get_group(group_type)
     if not g:
         return
     nss.groups.remove(g)
     nss.put()
-
-
-def update_notifications_user_group(group_id, notifications):
-    run_job(_qry_update_notifications_user_group, [group_id],
-            _worker_update_notifications_user_group, [group_id, notifications], worker_queue=MIGRATION_QUEUE)
-
-
-def _qry_update_notifications_user_group(group_id):
-    return NewsSettingsUser.list_by_group_id(group_id)
-
-
-@ndb.transactional()
-@returns()
-@arguments(news_settings_user_key=ndb.Key, group_id=unicode, notifications=(int, long))
-def _worker_update_notifications_user_group(news_settings_user_key, group_id, notifications):
-    news_settings_user = news_settings_user_key.get()
-    if not news_settings_user:
-        return
-    group_details = news_settings_user.get_group_details(group_id)
-    if not group_details:
-        return
-    group_details.notifications = notifications
-    news_settings_user.put()

@@ -23,19 +23,19 @@ import re
 import time
 import urllib
 
-from google.appengine.api import users as gusers, images
-from google.appengine.api.app_identity import app_identity
-from google.appengine.ext import db, blobstore, ndb
-
 from babel import Locale
 from babel.dates import format_date, get_timezone
 from babel.numbers import get_currency_symbol, format_currency
 from dateutil.relativedelta import relativedelta
+from google.appengine.api import users as gusers, images
+from google.appengine.api.app_identity import app_identity
+from google.appengine.ext import db, blobstore, ndb
+from oauth2client.contrib.appengine import CredentialsProperty
+
 from mcfw.cache import CachedModelMixIn, invalidate_cache
 from mcfw.properties import azzert
 from mcfw.serialization import deserializer, ds_model, serializer, s_model, register
 from mcfw.utils import chunks, Enum
-from oauth2client.contrib.appengine import CredentialsProperty
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.consts import DAY
 from rogerthat.models import ServiceProfile
@@ -335,8 +335,8 @@ class Customer(db.Model):
     managed_organization_types = db.ListProperty(int, indexed=False)
     migration_job = db.StringProperty(indexed=False)
     prospect_id = db.StringProperty()
-    default_app_id = db.StringProperty()
-    app_ids = db.StringListProperty()
+    default_app_id = db.StringProperty()  # TODO communities: remove after migration
+    app_ids = db.StringListProperty()  # TODO communities: remove after migration
     community_id = db.IntegerProperty() # todo communities
     subscription_type = db.IntegerProperty(indexed=False, default=-1)
     has_loyalty = db.BooleanProperty(indexed=False, default=False)
@@ -366,13 +366,13 @@ class Customer(db.Model):
     DISABLED_SUBSCRIPTION_EXPIRED = 1
     DISABLED_BAD_PAYER = 2
     DISABLED_OTHER = 3
-    DISABLED_ASSOCIATION_BY_CITY = 4
+    DISABLED_BY_CITY = 4
 
     DISABLED_REASONS = {
         DISABLED_SUBSCRIPTION_EXPIRED: u'Subscription expired',
         DISABLED_BAD_PAYER: u'Did not pay on time',
         DISABLED_OTHER: u'Other',
-        DISABLED_ASSOCIATION_BY_CITY: u'Disabled by city'
+        DISABLED_BY_CITY: u'Disabled by city'
     }
 
     @property
@@ -389,22 +389,12 @@ class Customer(db.Model):
 
     @property
     def app_id(self):
+        # TODO communities: remove after migration
         if self.default_app_id:
             return self.default_app_id
         if self.app_ids:
             return self.app_ids[0]
         return None
-
-    @property
-    def sorted_app_ids(self):
-        if not self.app_ids:
-            return self.app_ids
-
-        default_app_id = self.app_id
-        if self.app_ids[0] != default_app_id:
-            self.app_ids.remove(default_app_id)
-            self.app_ids.insert(0, default_app_id)
-        return self.app_ids
 
     @property
     def locale(self):
@@ -448,29 +438,15 @@ class Customer(db.Model):
         return cls.all().filter('user_email', user_email)
 
     @classmethod
-    def list_by_manager(cls, manager, is_admin):
-        if is_admin:
-            # Get all customers from all regional managers
-            order_keys = Order.all(keys_only=True)
-            customers = db.get({order_key.parent() for order_key in order_keys})
-            return customers
-        else:
-            order_keys = Order.all(keys_only=True).filter('manager', manager)
-            return db.get({order_key.parent() for order_key in order_keys})
-
-    @classmethod
-    def list_enabled_by_organization_type_in_app(cls, app_id, organization_type):
-        return cls.all().filter('default_app_id', app_id) \
+    def list_enabled_by_organization_type_in_community(cls, community_id, organization_type):
+        return cls.all().filter('community_id', community_id) \
             .filter('service_disabled_at', 0) \
-            .filter('organization_type', organization_type)\
+            .filter('organization_type', organization_type) \
             .order('name')
 
     @classmethod
-    def list_enabled_by_organization_type_in_app_by_creation_time(cls, app_id, organization_type):
-        return cls.all().filter('default_app_id', app_id) \
-            .filter('service_disabled_at', 0) \
-            .filter('organization_type', organization_type)\
-            .order('-creation_time')
+    def list_by_community_id(cls, community_id):
+        return cls.all().filter('community_id', community_id)
 
     @property
     def disabled_reason_str(self):
@@ -1247,15 +1223,12 @@ class AuditLog(db.Model):
     variables = db.TextProperty()
 
 
-class PaidFeatures(Enum):
-    JOBS = 'jobs'
-
-
 class ShopApp(NdbModel):
     name = ndb.StringProperty(indexed=False)
     searched_south_west_bounds = ndb.GeoPtProperty(repeated=True)  # [south_west1, south_west2, ...]
     searched_north_east_bounds = ndb.GeoPtProperty(repeated=True)  # [north_east1, north_east2, ...]
     postal_codes = ndb.StringProperty(repeated=True)
+    # TODO communities: remove 3 properties after migration
     signup_enabled = ndb.BooleanProperty(default=False)
     # When true, enables paid features like news based on location, youtube videos in news item, ...
     paid_features_enabled = ndb.BooleanProperty(default=False)
@@ -1277,10 +1250,6 @@ class ShopApp(NdbModel):
     def app_id(self):
         return self.key.id()
 
-    @property
-    def jobs_enabled(self):
-        return PaidFeatures.JOBS in self.paid_features
-
     @classmethod
     def create_key(cls, app_id):
         return ndb.Key(cls, app_id)
@@ -1288,10 +1257,6 @@ class ShopApp(NdbModel):
     @classmethod
     def find_by_postal_code(cls, postal_code):
         return cls.query().filter(cls.postal_codes == postal_code).get()
-
-    @classmethod
-    def list_signup_enabled(cls, enabled):
-        return cls.query().filter(cls.signup_enabled == enabled)
 
 
 class ShopAppGridPoints(NdbModel):
@@ -1436,23 +1401,6 @@ class Prospect(db.Model):
 
 class ProspectRejectionReason(db.Model):
     reason = db.StringProperty(indexed=True)
-
-
-class ProspectInteractions(db.Model):
-    TYPE_INVITE = 1
-    type = db.IntegerProperty()
-    timestamp = db.IntegerProperty()
-    code = db.IntegerProperty()
-    result = db.IntegerProperty()
-    comment = db.StringProperty(indexed=False)
-
-    @property
-    def prospect(self):
-        return db.get(self.parent_key())
-
-    @property
-    def str_key(self):
-        return str(self.key())
 
 
 class ShopTask(db.Model):

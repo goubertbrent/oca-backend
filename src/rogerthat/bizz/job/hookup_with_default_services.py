@@ -16,134 +16,65 @@
 # @@license_version:1.7@@
 
 import logging
-from types import NoneType
 
-from google.appengine.ext import deferred, db
+from google.appengine.ext import deferred, db, ndb
+from typing import Union, Optional, List
 
-from mcfw.properties import azzert
-from mcfw.rpc import arguments, returns
+from rogerthat.bizz.communities.models import CommunityAutoConnectedService
 from rogerthat.bizz.friend_helper import FriendCloudStorageHelper
-from rogerthat.bizz.friends import makeFriends, ORIGIN_USER_INVITE, send_is_in_roles
+from rogerthat.bizz.friends import makeFriends, ORIGIN_USER_INVITE
 from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
 from rogerthat.dal import parent_key
-from rogerthat.dal.app import get_app_by_id
-from rogerthat.dal.profile import get_user_profile, get_service_profile
-from rogerthat.dal.roles import get_service_roles_by_ids
-from rogerthat.models import UserInteraction, ServiceRole
-from rogerthat.models.properties.app import AutoConnectedService
+from rogerthat.dal.profile import get_user_profile
+from rogerthat.models import UserInteraction
 from rogerthat.rpc import users
-from rogerthat.to.roles import RoleTO
-from rogerthat.to.service import UserDetailsTO
-from rogerthat.utils import get_country_code_by_ipaddress
-from rogerthat.utils.app import get_app_id_from_app_user
-from rogerthat.utils.service import get_service_identity_tuple
+from rogerthat.utils.service import add_slash_default
 from rogerthat.utils.transactions import run_in_transaction
 
 
-@returns(NoneType)
-@arguments(app_user=users.User, ipaddress=unicode)
-def schedule(app_user, ipaddress):
-    deferred.defer(run, app_user, ipaddress, _transactional=db.is_in_transaction(), _countdown=2)
+def schedule(app_user):
+    # type: (users.User) -> None
+    deferred.defer(run, app_user, _transactional=db.is_in_transaction(), _countdown=2)
 
 
-@returns(UserInteraction)
-@arguments(app_user=users.User)
 def get_user_interaction(app_user):
+    # type: (users.User) -> UserInteraction
     return UserInteraction.get_by_key_name(app_user.email(), parent=parent_key(app_user)) \
         or UserInteraction(key_name=app_user.email(), parent=parent_key(app_user))
 
 
-@returns(NoneType)
-@arguments(app_user_or_key=(users.User, db.Key), ipaddress=unicode)
-def run(app_user_or_key, ipaddress):
-    app_user = app_user_or_key if isinstance(app_user_or_key, users.User) else users.User(app_user_or_key.name())
-    app = get_app_by_id(get_app_id_from_app_user(app_user))
-    logging.debug("Default services for the '%s' app are: %s", app.name,
-                 [a.service_identity_email for a in app.auto_connected_services])
-    for i, acs in enumerate(app.auto_connected_services):
-        run_for_auto_connected_service(app_user, acs, ipaddress, None, i * 2)
+def run(app_user):
+    # type: (users.User) -> None
+    from rogerthat.bizz.communities.communities import get_community
+    user_profile = get_user_profile(app_user)
+    community = get_community(user_profile.community_id)
+    logging.debug('Default services for the \'%s\' community are: %s', community.name,
+                  community.auto_connected_service_emails)
+    run_for_auto_connected_service(app_user, community.auto_connected_services, None)
 
 
-@returns(NoneType)
-@arguments(app_user_or_key=(users.User, db.Key), acs=AutoConnectedService, ipaddress=unicode,
-           service_helper=FriendCloudStorageHelper, countdown=int)
-def run_for_auto_connected_service(app_user_or_key, acs, ipaddress, service_helper, countdown=0):
-    app_user = app_user_or_key if isinstance(app_user_or_key, users.User) else users.User(app_user_or_key.name())
+def run_for_auto_connected_service(app_user_or_key, new_acs, service_helper):
+    # type: (Union[users.User, ndb.Key], List[CommunityAutoConnectedService], Optional[FriendCloudStorageHelper]) -> None
+    app_user = app_user_or_key if isinstance(app_user_or_key, users.User) else users.User(app_user_or_key.id())
 
     def trans():
-        if acs.local:
-            deferred.defer(run_local_services, app_user, ipaddress, acs, service_helper,
-                           _transactional=True, _countdown=countdown, _queue=HIGH_LOAD_WORKER_QUEUE)
-        else:
-            hookup(app_user, acs, service_helper)
-
-    xg_on = db.create_transaction_options(xg=True)
-    db.run_in_transaction_options(xg_on, trans)
-
-
-def run_local_services(app_user, ipaddress, auto_connected_service, service_helper):
-    logging.debug("Checking if %s (ip: %s) is in %s for %s",
-                  app_user, ipaddress, auto_connected_service.local, auto_connected_service.service_identity_email)
-
-    profile = get_user_profile(app_user)
-    if not profile.language:
-        logging.info("Can't connect %s to %s. User has no language set.",
-                     app_user, auto_connected_service.service_identity_email)
-        return
-
-    if profile.country:
-        country_code = profile.country
-    elif ipaddress:
-        country_code = get_country_code_by_ipaddress(ipaddress)
-        azzert(country_code)
-    else:
-        logging.info("Can't connect %s to %s if there is no ip address, and no country in UserProfile.",
-                     app_user, auto_connected_service.service_identity_email)
-        return
-
-    local_service_map_key = "%s-%s" % (profile.language, country_code.lower())
-
-    if local_service_map_key in auto_connected_service.local:
-        deferred.defer(hookup, app_user, auto_connected_service, service_helper, _queue=HIGH_LOAD_WORKER_QUEUE)
-    else:
-        logging.info("Not connecting to %s. There is no entry for local key %s",
-                     auto_connected_service.service_identity_email, local_service_map_key)
-
-
-def hookup(app_user, acs, service_helper):
-    # type: (users.User, AutoConnectedService, FriendCloudStorageHelper) -> None
-    def trans():
+        to_add = []
         user_profile = get_user_profile(app_user)
         if user_profile.isCreatedForService:
-            return
+            return to_add
 
         ui = get_user_interaction(app_user)
-        if acs.service_identity_email not in ui.services:
-            service_identity_user = users.User(acs.service_identity_email)
-            do_make_friends = True
-            if acs.service_roles:
-                do_make_friends = False
-                # is app_user in one of the roles?
-                service_user, si_id = get_service_identity_tuple(service_identity_user)
-                synced_roles = list()
-                for service_role in get_service_roles_by_ids(service_user, acs.service_roles):
-                    if user_profile.has_role(service_identity_user, u'%s' % service_role.role_id):
-                        do_make_friends = True
-                        break
-                    elif service_role.type == ServiceRole.TYPE_SYNCED:
-                        synced_roles.append(service_role)
-                else:
-                    # for loop did not reach BREAK: user_profile does not have any role --> send friend.is_in_roles
-                    user_details = [UserDetailsTO.fromUserProfile(user_profile)]
-                    send_is_in_roles(app_user, get_service_profile(service_user), si_id, user_details,
-                                     map(RoleTO.fromServiceRole, synced_roles), make_friends_if_in_role=True)
+        for acs in new_acs:
+            if acs.service_email not in ui.services:
+                service_identity_user = users.User(acs.service_email)
+                ui.services.append(acs.service_email)
+                to_add.append(add_slash_default(service_identity_user))
+        ui.put()
+        return to_add
 
-            if do_make_friends:
-                ui.services.append(acs.service_identity_email)
-                ui.put()
-                logging.info("Connecting %s with auto-connected service %s", app_user, acs.service_identity_email)
-                deferred.defer(makeFriends, service_identity_user, app_user, app_user, None,
-                               notify_invitee=False, origin=ORIGIN_USER_INVITE, service_helper=service_helper,
-                               skip_callbacks=True, _transactional=True, _queue=HIGH_LOAD_WORKER_QUEUE)
-
-    run_in_transaction(trans, True)
+    services_to_add = run_in_transaction(trans, xg=True)
+    for service in services_to_add:
+        logging.info('Connecting %s with auto-connected service %s', app_user, service)
+        deferred.defer(makeFriends, service, app_user, app_user, None,
+                       notify_invitee=False, origin=ORIGIN_USER_INVITE, service_helper=service_helper,
+                       skip_callbacks=True, _queue=HIGH_LOAD_WORKER_QUEUE)

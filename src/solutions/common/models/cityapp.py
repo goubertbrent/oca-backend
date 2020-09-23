@@ -21,21 +21,18 @@ from rogerthat.dal import parent_ndb_key
 from rogerthat.models.common import NdbModel, TOProperty
 from rogerthat.rpc import users
 from solutions.common import SOLUTION_COMMON
-from solutions.common.bizz import OrganizationType
 from solutions.common.to.paddle import PaddleOrganizationUnitDetails
 
 
+# TODO communities: remove after migration 007_communities_cleanup
 class CityAppProfile(NdbModel):
     # Run params in cron of CityAppSolutionGatherEvents
     gather_events_enabled = ndb.BooleanProperty(indexed=False, default=False)
     review_news = ndb.BooleanProperty(indexed=False, default=False)
 
-    EVENTS_ORGANIZATION_TYPES = [OrganizationType.NON_PROFIT, OrganizationType.PROFIT, OrganizationType.CITY,
-                                 OrganizationType.EMERGENCY]
-
     @property
-    def service_user(self):
-        return users.User(self.key.id())
+    def service_email(self):
+        return self.key.parent().id().decode('utf-8')
 
     @classmethod
     def create_key(cls, service_user):

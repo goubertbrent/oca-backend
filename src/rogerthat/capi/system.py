@@ -18,9 +18,8 @@
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.features import Features
 from rogerthat.rpc.rpc import capi
-from rogerthat.to.app import UpdateAppAssetResponseTO, UpdateAppAssetRequestTO, UpdateLookAndFeelResponseTO, \
-    UpdateLookAndFeelRequestTO, UpdateEmbeddedAppsResponseTO, UpdateEmbeddedAppsRequestTO, \
-    UpdateEmbeddedAppResponseTO, UpdateEmbeddedAppRequestTO
+from rogerthat.to.app import UpdateAppAssetResponseTO, UpdateAppAssetRequestTO, UpdateEmbeddedAppsResponseTO, \
+    UpdateEmbeddedAppsRequestTO, UpdateEmbeddedAppResponseTO, UpdateEmbeddedAppRequestTO
 from rogerthat.to.js_embedding import UpdateJSEmbeddingResponseTO, UpdateJSEmbeddingRequestTO
 from rogerthat.to.system import UpdateSettingsResponseTO, UpdateSettingsRequestTO, UnregisterMobileResponseTO, \
     UnregisterMobileRequestTO, IdentityUpdateResponseTO, IdentityUpdateRequestTO, ForwardLogsResponseTO, \
@@ -66,13 +65,6 @@ def updateJsEmbedding(request):
 @returns(UpdateAppAssetResponseTO)
 @arguments(request=UpdateAppAssetRequestTO)
 def updateAppAsset(request):
-    pass
-
-
-@capi('com.mobicage.capi.system.updateLookAndFeel', feature_version=Features.LOOK_AND_FEEL)
-@returns(UpdateLookAndFeelResponseTO)
-@arguments(request=UpdateLookAndFeelRequestTO)
-def updateLookAndFeel(request):
     pass
 
 

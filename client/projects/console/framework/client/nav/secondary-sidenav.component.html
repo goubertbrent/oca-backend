@@ -1,19 +1,15 @@
 <mat-sidenav-container>
   <mat-sidenav [opened]="sidebarItems.length > 0" class="secondary-sidenav" mode="side">
     <mat-toolbar *ngIf="sidebarTitle" class="secondary-toolbar-header">
-      <span fxLayout="row" fxLayoutAlign="center center">
-        <mat-icon *ngIf="sidebarTitle.icon">
-          {{ sidebarTitle.icon }}
-        </mat-icon>
-        <img *ngIf="sidebarTitle.imageUrl" [src]="sidebarTitle.imageUrl"/>
-        <h2 *ngIf="sidebarTitle.isTranslation">{{ sidebarTitle.label | translate }}</h2>
-        <h2 *ngIf="!sidebarTitle.isTranslation">{{ sidebarTitle.label }}</h2>
-      </span>
+      <mat-icon *ngIf="sidebarTitle.icon">{{ sidebarTitle.icon }}</mat-icon>
+      <img *ngIf="sidebarTitle.imageUrl" [src]="sidebarTitle.imageUrl"/>
+      <h2 *ngIf="sidebarTitle.isTranslation">{{ sidebarTitle.label | translate }}</h2>
+      <h2 *ngIf="!sidebarTitle.isTranslation">{{ sidebarTitle.label }}</h2>
     </mat-toolbar>
     <mat-divider></mat-divider>
-    <mat-nav-list class="no-icon-padding">
+    <mat-nav-list class="no-icon-padding secondary-sidenav-items">
       <a *ngFor="let item of sidebarItems"
-         [routerLinkActive]="['secondary-router-link-active']"
+         [routerLinkActive]="['router-link-active']"
          [routerLink]="item.route"
          [title]="(item.description ? item.description : item.label) | translate"
          mat-list-item>

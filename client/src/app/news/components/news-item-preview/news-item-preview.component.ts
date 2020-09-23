@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
-import { CreateNews, NewsItemType } from '@oca/web-shared';
+import { NewsItemType } from '@oca/web-shared';
+import { CreateNews } from '../../news';
 
 @Component({
   selector: 'oca-news-item-preview',

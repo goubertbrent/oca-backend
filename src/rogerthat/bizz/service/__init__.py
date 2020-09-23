@@ -16,15 +16,15 @@
 # @@license_version:1.7@@
 
 import base64
-from contextlib import closing
-from datetime import datetime
 import json
 import logging
 import os
-from types import NoneType
 import urllib
 import urlparse
 import uuid
+from contextlib import closing
+from datetime import datetime
+from types import NoneType
 from zipfile import ZipFile
 
 from google.appengine.api import images, search
@@ -37,6 +37,7 @@ from mcfw.imaging import recolor_png
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns, serialize_complex_value
 from mcfw.utils import normalize_search_string, chunks
+from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.embedded_applications import get_embedded_application, EmbeddedApplicationNotFoundException
 from rogerthat.bizz.features import Features, mobile_supports_feature
 from rogerthat.bizz.forms import get_form
@@ -119,7 +120,6 @@ from rogerthat.utils.service import get_service_user_from_service_identity_user,
 from rogerthat.utils.transactions import run_in_transaction, run_in_xg_transaction, on_trans_committed, \
     on_trans_rollbacked
 from solutions.common.integrations.cirklo.models import CirkloMerchant, VoucherProviderId
-
 
 try:
     from cStringIO import StringIO
@@ -332,10 +332,10 @@ class ServiceWithEmailDoesNotExistsException(ServiceApiException):
 
 class MyDigiPassNotSupportedException(ServiceApiException):
 
-    def __init__(self, unsupported_app_ids):
+    def __init__(self):
         ServiceApiException.__init__(self, ServiceApiException.BASE_CODE_SERVICE + 28,
-                                     u"Not all supported apps of this service implement MYDIGIPASS.",
-                                     unsupported_app_ids=unsupported_app_ids)
+                                     u'Mydigipass is no longer supported',
+                                     unsupported_app_ids=[])
 
 
 class AppFailedToResovelUrlException(ServiceApiException):
@@ -376,11 +376,10 @@ class DuplicateItemIdException(ServiceApiException):
 
 class SigningNotSupportedException(ServiceApiException):
 
-    def __init__(self, unsupported_app_ids):
+    def __init__(self):
         ServiceApiException.__init__(self, ServiceApiException.BASE_CODE_SERVICE + 37,
-                                     u"Not all supported apps of this service implement signing. Apps: %s" % ', '.join(
-                                         unsupported_app_ids),
-                                     unsupported_app_ids=unsupported_app_ids)
+                                     u'The signing feature is no longer supported',
+                                     unsupported_app_ids=[])
 
 
 class InvalidSignPayloadException(ServiceApiException):
@@ -587,11 +586,11 @@ def get_configuration_actions(service_user):
 @returns(NoneType)
 @arguments(service_user=users.User)
 def create_default_qr_templates(service_user):
-    si = get_service_identity(create_service_identity_user(service_user, ServiceIdentity.DEFAULT))
-    app = get_app_by_id(si.app_id)
+    community = get_community(get_service_profile(service_user).community_id)
+    app = get_app_by_id(community.default_app)
     for k in app.qrtemplate_keys:
         qr_template = QRTemplate.get_by_key_name(k)
-        azzert(qr_template, u"QRTemplate of %s with key %s did not exist" % (si.app_id, k))
+        azzert(qr_template, u"QRTemplate of %s with key %s did not exist" % (community.default_app, k))
         store_template(service_user, qr_template.blob, qr_template.description,
                        u"".join(("%X" % c).rjust(2, '0') for c in qr_template.body_color))
 
@@ -817,6 +816,7 @@ def _validate_service_identity(to):
 @returns(ServiceIdentity)
 @arguments(service_user=users.User, to=ServiceIdentityDetailsTO)
 def create_service_identity(service_user, to):
+    # type: (users.User, ServiceIdentityDetailsTO) -> ServiceIdentity
     if to.identifier == ServiceIdentity.DEFAULT:
         raise InvalidValueException(u"identifier", u"Cannot create default Service Identity")
     if to.name is MISSING:
@@ -863,6 +863,7 @@ def create_service_identity(service_user, to):
 @returns(ServiceIdentity)
 @arguments(service_user=users.User, to=ServiceIdentityDetailsTO)
 def update_service_identity(service_user, to):
+    # type: (users.User, ServiceIdentityDetailsTO) -> ServiceIdentity
     _validate_service_identity(to)
 
     service_identity_user = create_service_identity_user(service_user, to.identifier)
@@ -913,9 +914,9 @@ def update_service_identity(service_user, to):
     return si
 
 
-@returns(ServiceIdentity)
 @arguments(service_user=users.User, to=ServiceIdentityDetailsTO)
 def create_or_update_service_identity(service_user, to):
+    # type: (users.User, ServiceIdentityDetailsTO) -> None
     if to.identifier is MISSING:
         to.identifier = ServiceIdentity.DEFAULT
     service_identity_user = create_service_identity_user(service_user, to.identifier)
@@ -1047,7 +1048,8 @@ def convert_user_to_service(user):
         # Create some default qr templates
         if QRTemplate.gql("WHERE ANCESTOR IS :1", parent_key(user)).count() == 0:
             deferred.defer(create_default_qr_templates, user, _transactional=True)
-        deferred.defer(create_default_news_settings, user, service_profile.organizationType, _transactional=True)
+        deferred.defer(create_default_news_settings, user, service_profile.organizationType,
+                       service_profile.community_id, _transactional=True)
 
         return service_profile
 
@@ -2180,10 +2182,11 @@ def remove_service_identity_from_index(service_identity_user):
     cleanup_map_index(service_identity_user)
 
 
-def get_search_fields(service_user, service_identity_user, sc):
-    # type: (users.User, users.User, ServiceIdentity) -> Tuple[str, List[str], List[search.Field]]
+def get_search_fields(service_user, service_identity_user):
+    # type: (users.User, users.User) -> Tuple[str, List[str], List[search.Field]]
     service_identity = get_service_identity(service_identity_user)
     service_profile = get_service_profile(service_user)
+    community = get_community(service_profile.community_id)
     service_menu_item_labels = []
     service_menu_item_hashed_tags = []
     for item in ServiceMenuDef.list_with_action(service_user):
@@ -2194,8 +2197,6 @@ def get_search_fields(service_user, service_identity_user, sc):
               search.TextField(name='qualified_identifier', value=service_identity.qualifiedIdentifier),
               search.TextField(name='name', value=service_identity.name.lower()),
               search.TextField(name='description', value=service_identity.description),
-              search.TextField(name='keywords', value=sc.keywords),
-              search.TextField(name='app_ids', value=" ".join(service_identity.appIds)),
               search.AtomField(name='community_id', value=str(service_profile.community_id)),
               search.TextField(name='action_labels', value=' - '.join(service_menu_item_labels)),
               search.TextField(name='action_tags', value=' '.join(service_menu_item_hashed_tags)),
@@ -2217,24 +2218,17 @@ def get_search_fields(service_user, service_identity_user, sc):
         value = translator.translate(ServiceTranslation.IDENTITY_TEXT, service_identity.description, language)
         fields.append(search.TextField(name=name, value=value))
 
-    tags = set()
-    default_app = get_app_by_id(service_identity.app_id)
-    if default_app.demo:
-        tags.add(SearchTag.environment('demo'))
-    else:
-        tags.add(SearchTag.environment('production'))
-
-    for app_id in service_identity.appIds:
-        if default_app.country:
-            tags.add(SearchTag.country(default_app.country))
-        tags.add(SearchTag.app(app_id))
-        
-    tags.add(SearchTag.community(service_profile.community_id))
-
-    keys = [ServiceInfo.create_key(service_user, service_identity.identifier), CirkloMerchant.create_key(service_user.email())]
+    tags = {
+        SearchTag.community(community.id),
+        SearchTag.country(community.country),
+        SearchTag.environment(community.demo)
+    }
+    keys = [ServiceInfo.create_key(service_user, service_identity.identifier),
+            CirkloMerchant.create_key(service_user.email())]
     service_info, cirklo_merchant = ndb.get_multi(keys)  # type: ServiceInfo, CirkloMerchant
     if not service_info:
-        logging.warn('skipping place_types in get_search_fields for service_user:%s identifier:%s', service_user, service_identity.identifier)
+        logging.warn('skipping place_types in get_search_fields for service_user:%s identifier:%s', service_user,
+                     service_identity.identifier)
         return service_identity.name.lower(), list(tags), fields
 
     for place_type in service_info.place_types:
@@ -2251,11 +2245,11 @@ def get_search_fields(service_user, service_identity_user, sc):
 def get_map_txt_from_fields(fields):
     txt = []
     for field in fields:
-        if field.name in ('app_ids', 'action_labels', 'action_tags', 'organization_type',):
+        if field.name in ('community_id', 'action_labels', 'action_tags', 'organization_type'):
             continue
         if not field.value:
             continue
-        if field.name in ('service', 'qualified_identifier', 'name', 'description', 'keywords',):
+        if field.name in ('service', 'qualified_identifier', 'name', 'description', 'keywords'):
             txt.append(field.value)
         elif field.name.startswith('qualified_identifier_'):
             continue # txt.append(field.value)  # we don't have multi language services
@@ -2285,7 +2279,7 @@ def re_index(service_identity_user):
         cleanup_map_index(service_identity_user)
         return []
 
-    name, tags, fields = get_search_fields(service_user, service_identity_user, sc)
+    name, tags, fields = get_search_fields(service_user, service_identity_user)
 
     svc_doc = search.Document(doc_id=service_identity_user.email(), fields=fields)
     svc_index.put(svc_doc)
@@ -2324,7 +2318,7 @@ def re_index_map_only(service_identity_user):
 
     should_cleanup = True
     if locs:
-        name, tags, fields = get_search_fields(service_user, service_identity_user, sc)
+        name, tags, fields = get_search_fields(service_user, service_identity_user)
         map_service = save_map_service(service_identity_user)
         if map_service and map_service.geo_location:
             should_cleanup = False
@@ -2390,16 +2384,16 @@ def find_service(app_user, search_string, geo_point, organization_type, cursor_s
     else:
         cursor_type = cursor_web_safe_string = None
 
+    user_profile = get_user_profile(app_user)
     if geo_point and (cursor_type in (None, '3')):
         the_index = search.Index(name=SERVICE_LOCATION_INDEX)
         # Query generic (not on search_string) for nearby services
         try:
-            query_string = u"app_ids:%s" % app_id
+            query_string = u"community_id:%s" % user_profile.community_id
             if organization_type != ServiceProfile.ORGANIZATION_TYPE_UNSPECIFIED:
                 query_string += u" organization_type:%s" % organization_type
             if hashed_tag:
                 query_string += u" action_tags:%s" % hashed_tag
-
             query = search.Query(query_string=query_string,
                                  options=search.QueryOptions(returned_fields=['service', 'action_labels', 'location'],
                                                              sort_options=get_location_sort_options(lat, lon),
@@ -2419,12 +2413,11 @@ def find_service(app_user, search_string, geo_point, organization_type, cursor_s
     if cursor_type in (None, '2'):
         the_index = search.Index(name=SERVICE_INDEX)
         try:
-            query_string = u"%s app_ids:%s" % (normalize_search_string(search_string), app_id)
+            query_string = u"%s community_id:%s" % (normalize_search_string(search_string), user_profile.community_id)
             if organization_type != ServiceProfile.ORGANIZATION_TYPE_UNSPECIFIED:
                 query_string += u" organization_type:%s" % organization_type
             if hashed_tag:
                 query_string += u" action_tags:%s" % hashed_tag
-
             query = search.Query(query_string=query_string,
                                  options=search.QueryOptions(returned_fields=['service', 'action_labels'],
                                                              sort_options=get_name_sort_options(),
@@ -2999,17 +2992,16 @@ def validate_app_admin(service_user, app_ids):
 
 
 @returns(tuple)
-@arguments(email=unicode, name=unicode, password=unicode, languages=[unicode], solution=unicode, category_id=unicode,
-           organization_type=int, fail_if_exists=bool, supported_app_ids=[unicode],
-           callback_configuration=ServiceCallbackConfigurationTO, owner_user_email=unicode, tos_version=(int, long, NoneType),
-           community_id=(int, long))
-def create_service(email, name, password, languages, solution, category_id, organization_type, fail_if_exists=True,
-                   supported_app_ids=None, callback_configuration=None, owner_user_email=None, tos_version=None,
-                   community_id=0):
+@arguments(email=unicode, name=unicode, password=unicode, languages=[unicode], solution=unicode, organization_type=int,
+           callback_configuration=ServiceCallbackConfigurationTO, owner_user_email=unicode,
+           tos_version=(int, long, NoneType), community_id=(int, long))
+def create_service(email, name, password, languages, solution, organization_type, callback_configuration=None,
+                   owner_user_email=None, tos_version=None, community_id=0):
     service_email = email
     new_service_user = users.User(service_email)
 
     def update(service_profile, service_identity):
+        # type: (ServiceProfile, ServiceIdentity) -> Tuple[SIKKey, APIKey]
         # runs in transaction started in create_service_profile
         if callback_configuration:
             callbacks = 0
@@ -3026,7 +3018,6 @@ def create_service(email, name, password, languages, solution, category_id, orga
         service_profile.lastUsedMgmtTimestamp = now()
         service_profile.solution = solution
         service_profile.sik = unicode(generate_random_key())
-        service_profile.category_id = category_id
         service_profile.organizationType = organization_type
         service_profile.version = 1
         service_profile.community_id = community_id
@@ -3054,7 +3045,7 @@ def create_service(email, name, password, languages, solution, category_id, orga
                 to_put.append(user_profile)
             else:
                 logging.info('Coupling new user %s to %s', owner_user_email, service_email)
-                user_profile = create_user_profile(users.User(owner_user_email), owner_user_email, languages[0])
+                user_profile = create_user_profile(users.User(owner_user_email), owner_user_email, languages[0]) # todo communities set community_id
                 user_profile.isCreatedForService = True
                 user_profile.owningServiceEmails = [service_email]
                 update_password_hash(user_profile, password_hash, now())
@@ -3075,31 +3066,7 @@ def create_service(email, name, password, languages, solution, category_id, orga
     password_hash = sha256_hex(password)
 
     if existing_service_profile:
-        if fail_if_exists:
-            raise ServiceAlreadyExistsException()
-        else:
-            api_keys = list(get_api_keys(new_service_user))
-
-            def trans():
-                service_profile = get_service_profile(new_service_user)
-                service_profile.passwordHash = password_hash
-                service_profile.put()
-                sik = SIKKey(key_name=service_profile.sik)
-                if api_keys:
-                    logging.info("api_keys set")
-                    api_key = api_keys[0]
-                else:
-                    logging.info("api_keys not set")
-                    ak = _generate_api_key("Main", new_service_user)
-                    ak.put()
-                    api_key = ak.ak
-                return sik, api_key
-
-            xg_on = db.create_transaction_options(xg=True)
-            return db.run_in_transaction_options(xg_on, trans)
-
-    if category_id and not get_friend_category_by_id(category_id):
-        raise CategoryNotFoundException()
+        raise ServiceAlreadyExistsException()
 
     try:
         name = _validate_name(name)
@@ -3111,17 +3078,7 @@ def create_service(email, name, password, languages, solution, category_id, orga
         if language not in OFFICIALLY_SUPPORTED_LANGUAGES:
             raise UnsupportedLanguageException()
 
-    if supported_app_ids:
-
-        @db.non_transactional
-        def validate_supported_apps():
-            for app_id, app in zip(supported_app_ids, App.get(map(App.create_key, supported_app_ids))):
-                if not app:
-                    raise InvalidAppIdException(app_id)
-
-        validate_supported_apps()
-
-    sik, api_key = create_service_profile(new_service_user, name, update, supported_app_ids=supported_app_ids, community_id=community_id)[2]
+    sik, api_key = create_service_profile(new_service_user, name, update, community_id)[2]
 
     return sik, api_key
 
@@ -3202,25 +3159,6 @@ def get_and_validate_app_id_for_service_identity_user(service_identity_user, app
     return get_and_validate_app_id_for_service_identity(get_service_identity(service_identity_user),
                                                         app_id,
                                                         friend_email)
-
-
-def add_app_id_to_services(app_id, service_emails):
-    for service_email in service_emails:
-        service_user = users.User(service_email)
-        with users.set_user(service_user):
-            service_identity = get_default_service_identity(service_user)
-            if not service_identity or service_identity.appIds is None:
-                continue
-            if app_id not in service_identity.appIds:
-                service_identity.appIds.append(app_id)
-                service_profile = get_service_profile(service_user)
-                to = ServiceIdentityDetailsTO.fromServiceIdentity(service_identity, service_profile)
-                update_service_identity(service_user, to)
-
-
-def schedule_add_app_id_to_services(app_id, service_emails):
-    deferred.defer(add_app_id_to_services, app_id, service_emails,
-                   _transactional=db.is_in_transaction())
 
 
 def fake_friend_connection(map_key_or_user, si):

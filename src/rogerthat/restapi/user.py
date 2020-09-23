@@ -50,7 +50,6 @@ from rogerthat.rpc import users
 from rogerthat.rpc.models import Mobile
 from rogerthat.settings import get_server_settings
 from rogerthat.templates import get_languages_from_request, JINJA_ENVIRONMENT, render
-from rogerthat.to.service import UserContextTO
 from rogerthat.to.statistics import UserStatisticsTO
 from rogerthat.to.system import ProfileAddressTO, ProfilePhoneNumberTO
 from rogerthat.translations import DEFAULT_LANGUAGE, localize

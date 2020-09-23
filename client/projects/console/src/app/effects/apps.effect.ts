@@ -8,7 +8,7 @@ import { AppsActionTypes } from '../actions';
 import * as actions from '../actions/apps.actions';
 import { getApp } from '../console.state';
 import { filterNull } from '../ngrx';
-import { ApiErrorService, AppsService } from '../services';
+import { AppsService } from '../services';
 
 @Injectable()
 export class AppsEffects {
@@ -47,6 +47,7 @@ export class AppsEffects {
     ofType<actions.CreateAppAction>(AppsActionTypes.CREATE_APP),
     switchMap(value => this.appsService.createApp(value.payload).pipe(
       map(payload => new actions.CreateAppCompleteAction(payload)),
+      tap(action => this.router.navigateByUrl(`/apps/${action.payload.app_id}`)),
       catchError(error => handleApiError(actions.CreateAppFailedAction, error)),
     )));
 
@@ -336,38 +337,14 @@ export class AppsEffects {
       catchError(error => handleApiError(actions.BulkUpdateAppsFailedAction, error)),
     )));
 
-  @Effect() getNewsSettings = this.actions$.pipe(
-    ofType<actions.GetNewsSettingsAction>(AppsActionTypes.GET_NEWS_SETTINGS),
-    switchMap(() => this.appsService.getNewsSettings(this.getAppId()).pipe(
-      map(payload => new actions.GetNewsSettingsCompleteAction(payload)),
-      catchError(error => handleApiError(actions.GetNewsSettingsFailedAction, error)),
-    )));
-
-  @Effect() updateNewsGroupImage = this.actions$.pipe(
-    ofType<actions.UpdateNewsGroupImageAction>(AppsActionTypes.UPDATE_NEWS_GROUP_IMAGE),
-    switchMap(action => {
-      const appId = this.getAppId();
-      return this.appsService.updateNewsGroupImage(appId, action.groupId, action.payload).pipe(
-        map(payload => new actions.UpdateNewsGroupImageCompleteAction(payload)),
-        tap(payload => this.router.navigate([`/apps/${appId}/settings/news`])),
-        catchError(error => handleApiError(actions.UpdateNewsGroupImageFailedAction, error)),
-      );
-    }));
-
-  @Effect({ dispatch: false }) updateNewsGroupImageAfterFailure = this.actions$.pipe(
-    ofType<actions.UpdateNewsGroupImageFailedAction>(AppsActionTypes.UPDATE_NEWS_GROUP_IMAGE_FAILED),
-    map(action => this.errorService.showErrorDialog(action.payload.error)),
-  );
-
   constructor(private store: Store,
               private actions$: Actions,
               private router: Router,
               private route: ActivatedRoute,
-              private appsService: AppsService,
-              private errorService: ApiErrorService) {
+              private appsService: AppsService) {
   }
 
   private getAppId() {
-    return (<ActivatedRouteSnapshot>this.route.snapshot.firstChild).params.appId;
+    return (this.route.snapshot.firstChild as ActivatedRouteSnapshot).params.appId;
   }
 }

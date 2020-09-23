@@ -1,0 +1,31 @@
+<mat-toolbar>
+  <a mat-icon-button routerLink="/communities">
+    <mat-icon>arrow_back</mat-icon>
+  </a>
+  <h1 class="flex-grow">News settings</h1>
+</mat-toolbar>
+<ng-template #progressBar>
+  <mat-progress-bar></mat-progress-bar>
+</ng-template>
+<form [formGroup]="formGroup" (ngSubmit)="saveStream()" class="news-stream-form">
+  <mat-form-field>
+    <mat-label>{{ 'rcc.news_stream_type' | translate }}</mat-label>
+    <mat-select formControlName="stream_type">
+      <mat-option *ngFor="let streamType of streamTypes" [value]="streamType.value">
+        {{ streamType.label | translate}}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+  <button mat-stroked-button class="news-stream-save-button">Save</button>
+</form>
+<ng-container *ngIf="(newsSettings$ | async) as settings; else progressBar">
+  <mat-card *ngFor="let group of settings.groups" class="image-card">
+    <mat-card-header>
+      <mat-card-title>{{ group.name }}</mat-card-title>
+    </mat-card-header>
+    <img *ngIf="group.tile && group.tile.background_image_url" [src]="[group.tile.background_image_url]" mat-card-image>
+    <mat-card-actions align="end">
+      <a [routerLink]="[group.group_id]" color="primary" mat-button>{{ 'rcc.edit' | translate }}</a>
+    </mat-card-actions>
+  </mat-card>
+</ng-container>

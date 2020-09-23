@@ -91,14 +91,6 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
                                             doc="Client secret to sync calendar events",
                                             order=608)
 
-    tropo_token = add_meta(db.StringProperty(indexed=False),
-                           doc="The token used to in api request to tropo",
-                           order=1001)
-    tropo_callback_token = add_meta(db.StringProperty(indexed=False),
-                                    doc="The callback token used in requests from tropo",
-                                    order=1002)
-
-
     data_be_app_id = add_meta(db.StringProperty(indexed=False),
                               doc="The app_id for data.be",
                               order=1101)

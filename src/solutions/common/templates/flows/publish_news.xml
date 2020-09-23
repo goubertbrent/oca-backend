@@ -139,46 +139,18 @@
                      alertType="SILENT"
                      vibrate="false"
                      autoLock="true"
-                     positiveReference="set_target_audience"
+                     positiveReference="flush_news_send"
                      negativeReference="end_cancel">
             <content>{% translate language, 'Label' %}
 {% translate language, 'news_label_explanation' %}</content>
             <form positiveButtonConfirmation=""
                   negativeButtonCaption="{% translate language, 'Cancel' %}"
-                  positiveButtonCaption="{% translate language, 'Next' %}"
+                  positiveButtonCaption="{% translate language, 'publish' %}"
                   negativeButtonConfirmation="">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="SelectSingleWidget">
                     <choice value="none" label="None"/>
                     <choice value="nothing" label="Nothing"/>
                 </widget>
-            </form>
-        </formMessage>
-        <formMessage id="message_target_audience"
-                     brandingKey="{{ branding_key }}"
-                     alertIntervalType="NONE"
-                     alertType="SILENT"
-                     vibrate="false"
-                     autoLock="true"
-                     positiveReference="flush_news_send"
-                     negativeReference="end_cancel">
-            <content>{% translate language, 'target_audience' %}
-{% translate language, 'news_target_audience_explanation' %}</content>
-            <form positiveButtonConfirmation=""
-                  negativeButtonCaption="{% translate language, 'Cancel' %}"
-                  positiveButtonCaption="{% translate language, 'publish' %}"
-                  negativeButtonConfirmation="">
-                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="SelectMultiWidget">
-                    <choice value="none" label="None"/>
-                </widget>
-                <javascriptValidation>
-                    function run (result, rogerthat) {
-                        var apps = result.values;
-                        if (apps.length &lt; 1) {
-                            return "{% translate language, 'news_target_audience_select_at_least_one_app' %}";
-                        }
-                        return true;
-                    }
-                </javascriptValidation>
             </form>
         </formMessage>
         <resultsFlush id="flush_news_send"
@@ -199,37 +171,6 @@
                         form: {
                             widget: {
                                 value: value,
-                                choices: choices
-                            }
-                        }
-                    };
-                    return result;
-                }
-            </javascriptCode>
-        </flowCode>
-
-        <flowCode id="set_target_audience"
-                  exceptionReference="message_exception">
-            <outlet name="message_target_audience" value="message_target_audience" reference="message_target_audience"/>
-            <javascriptCode>
-                function run(rogerthat, messageFlowRun) {
-                    "use strict";
-                    var result;
-                    var apps = rogerthat.service.data.broadcast_target_audience;
-
-                    var choices = [], values = [];
-                    for (var app_id in apps) {
-                        choices.push({
-                            value: app_id,
-                            label: apps[app_id]
-                        });
-                        values.push(app_id);
-                    }
-                    result = {
-                        outlet: 'message_target_audience',
-                        form: {
-                            widget: {
-                                values: values,
                                 choices: choices
                             }
                         }

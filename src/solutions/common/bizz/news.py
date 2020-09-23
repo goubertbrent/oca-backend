@@ -30,11 +30,11 @@ from mcfw.consts import MISSING
 from mcfw.exceptions import HttpForbiddenException
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
-from rogerthat.bizz.app import get_app
+from rogerthat.bizz.communities.communities import get_community, get_communities_by_id
+from rogerthat.bizz.communities.models import AppFeatures
 from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_ndb_key
-from rogerthat.dal.app import get_apps_by_id
-from rogerthat.dal.service import get_service_identity
+from rogerthat.dal.profile import get_service_profile
 from rogerthat.models import App, Image
 from rogerthat.models.news import NewsItem
 from rogerthat.models.settings import ServiceInfo
@@ -48,17 +48,14 @@ from rogerthat.utils.service import get_service_identity_tuple
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule, OrganizationType
-from solutions.common.bizz.cityapp import get_apps_in_country_count
 from solutions.common.bizz.service import get_inbox_message_sender_details, new_inbox_message, \
     send_inbox_message_update, send_message_updates
 from solutions.common.dal import get_solution_settings
-from solutions.common.dal.cityapp import get_cityapp_profile, get_service_user_for_city
-from solutions.common.models import SolutionInboxMessage, SolutionSettings
+from solutions.common.models import SolutionInboxMessage
 from solutions.common.models.budget import Budget
 from solutions.common.models.news import NewsCoupon, SolutionNewsItem, NewsSettings, NewsSettingsTags, NewsReview, \
     CityAppLocations
 from solutions.common.to.news import NewsStatsTO
-from typing import List
 
 
 class AllNewsSentToReviewWarning(BusinessException):
@@ -111,19 +108,9 @@ def _app_uses_custom_organization_types(language):
     return False
 
 
-def get_regional_apps_of_item(news_item, default_app_id):
-    """Returns a list of regional apps of a news item if found"""
-    regional_apps = []
-    for app_id in news_item.app_ids:
-        if app_id in (App.APP_ID_OSA_LOYALTY, App.APP_ID_ROGERTHAT, default_app_id):
-            continue
-        regional_apps.append(app_id)
-    return regional_apps
-
-
 @ndb.transactional()
-def create_regional_news_item(news_item, regional_apps, service_user, service_identity, paid=False, community_ids=None):
-    # type: (NewsItem, List[unicode], users.User, unicode, bool) -> SolutionNewsItem
+def create_regional_news_item(news_item, regional_communities, service_user, service_identity, paid=False):
+    # type: (NewsItem, List[long], users.User, unicode, bool) -> SolutionNewsItem
     sln_item_key = SolutionNewsItem.create_key(news_item.id, service_user)
     settings_key = NewsSettings.create_key(service_user, service_identity)
     sln_item, news_settings = ndb.get_multi([sln_item_key, settings_key])  # type: (SolutionNewsItem, NewsSettings)
@@ -136,8 +123,7 @@ def create_regional_news_item(news_item, regional_apps, service_user, service_id
         publish_time = news_item.timestamp
 
     sln_item.publish_time = publish_time
-    sln_item.app_ids = regional_apps
-    sln_item.community_ids = community_ids or []
+    sln_item.community_ids = regional_communities
     sln_item.service_identity = service_identity
     if paid or news_settings and NewsSettingsTags.FREE_REGIONAL_NEWS in news_settings.tags:
         sln_item.paid = True
@@ -153,7 +139,8 @@ def check_budget(service_user, service_identity):
             raise BusinessException('insufficient_budget')
 
 
-def publish_item(service_identity_user, app_id, is_free_regional_news, coupon, should_save_coupon, **kwargs):
+def publish_item(service_identity_user, default_community_id, is_free_regional_news, coupon, should_save_coupon,
+                 **kwargs):
     service_user, identity = get_service_identity_tuple(service_identity_user)
     news_id = kwargs.get('news_id')
     sticky = kwargs.pop('sticky', False)
@@ -176,19 +163,13 @@ def publish_item(service_identity_user, app_id, is_free_regional_news, coupon, s
             else:
                 logging.warn('Not updating qr_code_caption for non-existing coupon for news with id %d',
                              news_id)
-        regional_apps = get_regional_apps_of_item(news_item, app_id)
-        if regional_apps:
+        regional_communities = [i for i in news_item.community_ids if i != default_community_id]
+        if regional_communities:
             if not news_id and not is_free_regional_news:
                 # check for budget on creation only
                 check_budget(service_user, identity)
-            
-            app_models = get_apps_by_id(regional_apps)
-            community_ids = set()
-            for app_model in app_models:
-                for community_id in app_model.community_ids:
-                    community_ids.add(community_id)
-            deferred.defer(create_regional_news_item, news_item, regional_apps, service_user, identity,
-                           paid=is_free_regional_news, community_ids=list(community_ids), _transactional=True)
+            deferred.defer(create_regional_news_item, news_item, regional_communities, service_user, identity,
+                           paid=is_free_regional_news, _transactional=True)
         return news_item
 
     try:
@@ -245,11 +226,10 @@ def send_news_review_message(sln_settings, sender_service, review_key, image_url
     return unicode(message.key())
 
 
-def send_news_for_review(city_service, service_identity_user, app_id, community_id, is_free_regional_news, coupon, **kwargs):
+def send_news_for_review(city_service, service_identity_user, community_id, is_free_regional_news, coupon, **kwargs):
     key = NewsReview.create_key(city_service)
     review = key.get() or NewsReview(key=key)
     review.service_identity_user = service_identity_user
-    review.app_id = app_id
     review.community_id = community_id
     review.is_free_regional_news = is_free_regional_news
     review.coupon_id = coupon and coupon.id
@@ -285,7 +265,7 @@ def send_news_review_reply(review_key, reason):
 @returns(NewsItemTO)
 @arguments(review_key=unicode)
 def publish_item_from_review(review_key):
-    review = ndb.Key(urlsafe=review_key).get()
+    review = ndb.Key(urlsafe=review_key).get()  # type: NewsReview
     if not review:
         raise BusinessException('review item is not found!')
 
@@ -294,7 +274,7 @@ def publish_item_from_review(review_key):
 
     service_user, _ = get_service_identity_tuple(review.service_identity_user)
     with users.set_user(service_user):
-        item = publish_item(review.service_identity_user, review.app_id, review.is_free_regional_news, coupon,
+        item = publish_item(review.service_identity_user, review.community_id, review.is_free_regional_news, coupon,
                             should_save_coupon, **review.data)
 
     inbox_message = SolutionInboxMessage.get(review.inbox_message_key)
@@ -315,11 +295,11 @@ def publish_item_from_review(review_key):
 @returns(NewsItemTO)
 @arguments(service_identity_user=users.User, title=unicode, message=unicode,
            action_button=(NoneType, NewsActionButtonTO), news_type=(int, long), qr_code_caption=unicode,
-           app_ids=[unicode], scheduled_at=(int, long), news_id=(NoneType, int, long),
-           target_audience=NewsTargetAudienceTO, role_ids=[(int, long)], tag=unicode, media=BaseMediaTO,
+           community_ids=[(int, long)], scheduled_at=(int, long), news_id=(NoneType, int, long),
+           target_audience=NewsTargetAudienceTO, media=BaseMediaTO,
            group_type=unicode, locations=NewsLocationsTO, group_visible_until=(int, long))
-def put_news_item(service_identity_user, title, message, action_button, news_type, qr_code_caption, app_ids,
-                  scheduled_at, news_id=None, target_audience=None, role_ids=None, tag=None, media=MISSING,
+def put_news_item(service_identity_user, title, message, action_button, news_type, qr_code_caption, community_ids,
+                  scheduled_at, news_id=None, target_audience=None, media=MISSING,
                   group_type=None, locations=None, group_visible_until=None):
     """
     Args:
@@ -329,12 +309,10 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
         action_button (NewsActionButtonTO)
         news_type (int)
         qr_code_caption (unicode)
-        app_ids (list of unicode)
+        community_ids (list[int])
         scheduled_at (long)
         news_id (long): id of the news item to update. When not provided a new news item will be created.
         target_audience (NewsTargetAudienceTO)
-        role_ids (list of long) the list of role ids to filter sending the news to their members
-        tag(unicode)
         media (rogerthat.to.news.MediaTO)
         group_type (unicode)
         locations (NewsLocationsTO)
@@ -343,9 +321,6 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
     Returns:
         NewsItemTO
     """
-    NEWS_TAG = u'news'
-    if not tag or tag is MISSING:
-        tag = NEWS_TAG
     service_user, identity = get_service_identity_tuple(service_identity_user)
     sln_settings = get_solution_settings(service_user)
     service_info = ServiceInfo.create_key(service_user, identity).get()
@@ -354,24 +329,16 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
         azzert(SolutionModule.LOYALTY in sln_settings.modules)
         qr_code_caption = MISSING.default(qr_code_caption, title)
     should_save_coupon = news_type == NewsItem.TYPE_QR_CODE and not news_id
-    si = get_service_identity(service_identity_user)
 
-    if not news_id and not app_ids:
-        raise BusinessException('Please select at least one app to publish this news in')
+    if not news_id and not community_ids:
+        raise BusinessException('Please select at least one community to publish this news in')
 
-    default_app = get_app(si.defaultAppId)
-    if default_app.demo and App.APP_ID_ROGERTHAT in app_ids:
-        app_ids.remove(App.APP_ID_ROGERTHAT)
+    service_profile = get_service_profile(service_user)
+    service_community = get_community(service_profile.community_id)
 
-    if is_regional_news_enabled(default_app):
-        if tag == NEWS_TAG:
-            if default_app.demo:
-                # For demo apps the following rules count
-                # Extra apps selected --> post in REGIONAL NEWS in the demo app
-                # No extra apps selected --> post in LOCAL NEWS in the demo app
-                if len(app_ids) == 1 and app_ids[0] == default_app.app_id:
-                    pass  # LOCAL NEWS
-                app_ids = [default_app.app_id]
+    if not is_regional_news_enabled(service_community) or service_community.demo:
+        # Demo apps can't send regional news
+        community_ids = [service_profile.community_id]
     sticky = False
     sticky_until = None
     kwargs = {
@@ -383,8 +350,6 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
         'news_type': news_type,
         'scheduled_at': scheduled_at,
         'target_audience': target_audience,
-        'role_ids': role_ids,
-        'tags': [tag],
         'media': media,
         'group_type': group_type,
         'locations': locations,
@@ -415,55 +380,47 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
             del kwargs[key]
 
     current_session = get_current_session()
-    is_free_regional_news = (current_session and current_session.shop) or default_app.demo
+    is_free_regional_news = (current_session and current_session.shop) or service_community.demo
 
     if not should_save_coupon:
         coupon = None
 
-    new_app_ids = list(app_ids)
+    new_community_ids = list(community_ids)
+    service_communities = {community.id: community for community in get_communities_by_id(community_ids)}
     if not news_id:
         # check for city-enabled news review
-        app_models = get_apps_by_id(app_ids)
-        for app_model in app_models:
-            app_id = app_model.app_id
-            azzert(len(app_model.community_ids) == 1, "Community was NOT provided but len(app.community_ids) != 1")
-            community_id = app_model.community_ids[0]
-            
-            city_service = get_service_user_for_city(app_id)
-            if city_service and city_service != service_user:
-                city_app_profile = get_cityapp_profile(city_service)
-                if city_app_profile.review_news:
+        for community_id in community_ids:
+            community = service_communities[community_id]
+            # Skip check if current service == default service
+            if community.main_service_user != service_user:
+                if AppFeatures.NEWS_REVIEW in community.features:
                     # create a city review for this app
                     city_kwargs = kwargs.copy()
-                    city_kwargs['app_ids'] = [app_id]
                     city_kwargs['community_ids'] = [community_id]
-                    send_news_for_review(city_service, service_identity_user, app_id, community_id, is_free_regional_news,
-                                         coupon, **city_kwargs)
+                    send_news_for_review(community.main_service_user, service_identity_user, community_id,
+                                         is_free_regional_news, coupon, **city_kwargs)
                     # remove from current feed
-                    new_app_ids.remove(app_id)
+                    new_community_ids.remove(community_id)
 
-        if not DEBUG and new_app_ids == [App.APP_ID_ROGERTHAT] or (not new_app_ids and len(app_ids) > 0):
+        if not DEBUG and new_community_ids == [App.APP_ID_ROGERTHAT] or (
+            not new_community_ids and len(community_ids) > 0):
             raise AllNewsSentToReviewWarning(u'news_review_all_sent_to_review')
 
     # for the rest
-    kwargs['app_ids'] = new_app_ids
+    kwargs['community_ids'] = new_community_ids
 
     with users.set_user(service_user):
-        return publish_item(service_identity_user, si.app_id, is_free_regional_news, coupon, should_save_coupon,
-                            **kwargs)
+        return publish_item(service_identity_user, service_community.id, is_free_regional_news, coupon,
+                            should_save_coupon, **kwargs)
 
 
 def delete_news(news_id, service_identity=None):
     news.delete(news_id, service_identity)
 
 
-def is_regional_news_enabled(app_model):
-    # type: (App) -> bool
-    from rogerthat.consts import DEBUG
-    if app_model.app_id.startswith('osa-') or DEBUG:
-        return True
-    country_code = app_model.app_id.split('-')[0].lower()
-    return app_model.type == App.APP_TYPE_CITY_APP and get_apps_in_country_count(country_code) > 1
+def is_regional_news_enabled(community):
+    # type: (Community) -> bool
+    return AppFeatures.NEWS_REGIONAL in community.features
 
 
 def get_news_reviews(service_user):

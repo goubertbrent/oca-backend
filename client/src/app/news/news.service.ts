@@ -1,17 +1,19 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
+import { NewsItem } from '@oca/web-shared';
+import { Observable, of } from 'rxjs';
 import {
   CityAppLocations,
   CreateNews,
-  NewsItem,
+  NewsCommunity,
   NewsItemBasicStatistics,
   NewsItemList,
   NewsItemTimeStatistics,
   NewsOptions,
   NewsStats,
-} from '@oca/web-shared';
-import { Observable, of } from 'rxjs';
+  RssSettings,
+} from './news';
 
 @Injectable({ providedIn: 'root' })
 export class NewsService {
@@ -64,13 +66,29 @@ export class NewsService {
     return this._http.get<NewsOptions>(`/common/news-options`);
   }
 
-  getLocations(appId: string) {
-    return this._http.get<CityAppLocations>(`/common/locations/${appId}`);
+  getLocations(communityId: number) {
+    return this._http.get<CityAppLocations>(`/common/locations/${communityId}`);
+  }
+
+  getCommunities() {
+    return this._http.get<NewsCommunity[]>(`/common/news/communities`);
+  }
+
+  getRssSettings() {
+    return this._http.get<RssSettings>(`/common/news/rss`);
+  }
+
+  saveRssSettings(settings: RssSettings) {
+    return this._http.put<RssSettings>(`/common/news/rss`, settings);
+  }
+
+  validateUrl(url: string) {
+    return this._http.post<{ url: string; success: boolean; errormsg: string | null }>(`/common/news/rss.validate`, {url});
   }
 
   copyNewsItem(newsItem: NewsItem): CreateNews {
     return {
-      app_ids: newsItem.app_ids,
+      community_ids: newsItem.community_ids,
       action_button: newsItem.buttons ? newsItem.buttons[ 0 ] : null,
       scheduled_at: null,
       group_type: newsItem.group_type,
@@ -80,7 +98,6 @@ export class NewsService {
       id: null,
       media: newsItem.media,
       message: newsItem.message,
-      role_ids: newsItem.role_ids,
       target_audience: newsItem.target_audience,
       title: newsItem.title,
       type: newsItem.type,

@@ -72,7 +72,7 @@ export function appsReducer(state: IAppsState = initialAppsState, action: AppsAc
         updateAppStatus: apiRequestLoading,
       };
     case AppsActionTypes.UPDATE_APP_COMPLETE:
-      const loadedApps = (<App[]>state.apps).filter((a: App) => a.id !== (<App>action.payload).id);
+      const loadedApps = (state.apps as App[]).filter((a: App) => a.id !== (action.payload as App).id);
       return {
         ...state,
         app: action.payload,
@@ -349,7 +349,7 @@ export function appsReducer(state: IAppsState = initialAppsState, action: AppsAc
         ...state,
         appColors: action.payload,
         appColorsStatus: apiRequestSuccess,
-        app: { ...<App>state.app, git_status: GitStatus.DRAFT },
+        app: { ...state.app as App, git_status: GitStatus.DRAFT },
       };
     case AppsActionTypes.UPDATE_COLORS_FAILED:
       return {
@@ -383,7 +383,7 @@ export function appsReducer(state: IAppsState = initialAppsState, action: AppsAc
         ...state,
         appSidebar: action.payload,
         appSidebarStatus: apiRequestSuccess,
-        app: { ...<App>state.app, git_status: GitStatus.DRAFT },
+        app: { ...state.app as App, git_status: GitStatus.DRAFT },
       };
     case AppsActionTypes.UPDATE_SIDEBAR_FAILED:
       return {
@@ -424,14 +424,14 @@ export function appsReducer(state: IAppsState = initialAppsState, action: AppsAc
       return {
         ...state,
         imageStatus: apiRequestLoading,
-        app: { ...<App>state.app, git_status: GitStatus.DRAFT },
+        app: { ...state.app as App, git_status: GitStatus.DRAFT },
       };
     case AppsActionTypes.UPDATE_IMAGE_COMPLETE:
       return {
         ...state,
         images: action.payload,
         imageStatus: apiRequestSuccess,
-        app: { ...<App>state.app, git_status: GitStatus.DRAFT },
+        app: { ...state.app as App, git_status: GitStatus.DRAFT },
       };
     case AppsActionTypes.UPDATE_IMAGE_FAILED:
       return {
@@ -442,13 +442,13 @@ export function appsReducer(state: IAppsState = initialAppsState, action: AppsAc
       return {
         ...state,
         generateImagesStatus: apiRequestLoading,
-        app: { ...<App>state.app, git_status: GitStatus.DRAFT },
+        app: { ...state.app as App, git_status: GitStatus.DRAFT },
       };
     case AppsActionTypes.GENERATE_IMAGES_COMPLETE:
       return {
         ...state,
         generateImagesStatus: apiRequestSuccess,
-        app: { ...<App>state.app, git_status: GitStatus.DRAFT },
+        app: { ...state.app as App, git_status: GitStatus.DRAFT },
       };
     case AppsActionTypes.GENERATE_IMAGES_FAILED:
       return {
@@ -468,7 +468,7 @@ export function appsReducer(state: IAppsState = initialAppsState, action: AppsAc
     case AppsActionTypes.SAVE_CHANGES_COMPLETE:
       return {
         ...state,
-        app: { ...<App>state.app, git_status: GitStatus.CLEAN },
+        app: { ...state.app as App, git_status: GitStatus.CLEAN },
       };
     case AppsActionTypes.SAVE_CHANGES_FAILED:
       return {
@@ -483,7 +483,7 @@ export function appsReducer(state: IAppsState = initialAppsState, action: AppsAc
     case AppsActionTypes.REVERT_CHANGES_COMPLETE:
       return {
         ...state,
-        app: { ...<App>state.app, git_status: GitStatus.CLEAN },
+        app: { ...state.app as App, git_status: GitStatus.CLEAN },
         revertChangesStatus: apiRequestSuccess,
       };
     case AppsActionTypes.REVERT_CHANGES_FAILED:
@@ -518,7 +518,7 @@ export function appsReducer(state: IAppsState = initialAppsState, action: AppsAc
         ...state,
         buildSettings: action.payload,
         updateBuildSettingsStatus: apiRequestSuccess,
-        app: { ...<App>state.app, git_status: GitStatus.DRAFT },
+        app: { ...state.app as App, git_status: GitStatus.DRAFT },
       };
     case AppsActionTypes.UPDATE_BUILD_SETTINGS_FAILED:
       return {
@@ -687,23 +687,6 @@ export function appsReducer(state: IAppsState = initialAppsState, action: AppsAc
       return {
         ...state,
         bulkUpdateStatus: initialAppsState.bulkUpdateStatus,
-      };
-    case AppsActionTypes.GET_NEWS_SETTINGS:
-      return {
-        ...state,
-        newsSettings: initialAppsState.newsSettings,
-        getNewsSettingsStatus: apiRequestLoading,
-      };
-    case AppsActionTypes.GET_NEWS_SETTINGS_COMPLETE:
-      return {
-        ...state,
-        newsSettings: action.payload,
-        getNewsSettingsStatus: apiRequestSuccess,
-      };
-    case AppsActionTypes.GET_NEWS_SETTINGS_FAILED:
-      return {
-        ...state,
-        getNewsSettingsStatus: action.payload,
       };
   }
   return state;

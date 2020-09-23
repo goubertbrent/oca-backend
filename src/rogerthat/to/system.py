@@ -19,9 +19,6 @@ import time
 
 from mcfw.properties import bool_property, long_property, long_list_property, unicode_property, \
     typed_property, unicode_list_property
-from rogerthat.dal.app import get_apps_by_id
-from rogerthat.models import UserProfileInfoAddress
-from rogerthat.models.properties.profiles import PublicKeyTO
 from rogerthat.pages.legal import DOC_TERMS, get_current_document_version
 from rogerthat.to import TO, GeoPointTO
 from rogerthat.to.profile import UserProfileTO
@@ -168,6 +165,7 @@ class IdentityTO(TO):
     owncloudUri = unicode_property('owncloudUri')
     owncloudUsername = unicode_property('owncloudUsername')
     owncloudPassword = unicode_property('owncloudPassword')
+    communityId = long_property('communityId', default=0)
 
 
 class LogErrorRequestTO(object):
@@ -461,13 +459,11 @@ class ServiceIdentityInfoTO(TO):
     admin_emails = unicode_list_property('4')
     description = unicode_property('5')
     app_ids = unicode_list_property('6')
-    app_names = unicode_list_property('7')
     default_app = unicode_property('default_app')
 
     @classmethod
     def fromServiceIdentity(cls, service_identity):
         from rogerthat.utils.service import remove_slash_default
-        apps = [a for a in get_apps_by_id(service_identity.appIds) if a]
         meta = []
         if service_identity.metaData:
             meta = [e.strip() for e in service_identity.metaData.split(',') if e.strip()]
@@ -477,8 +473,7 @@ class ServiceIdentityInfoTO(TO):
             avatar=service_identity.avatarUrl,
             description=service_identity.description,
             default_app=service_identity.defaultAppId,
-            app_ids=[app.app_id for app in apps],
-            app_names=[app.name for app in apps],
+            app_ids=service_identity.appIds,
             admin_emails=meta,
         )
 

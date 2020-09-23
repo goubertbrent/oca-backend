@@ -1,4 +1,4 @@
-<ng-container *ngIf="(newsItemWithStats$ | async).data as newsItem">
+<ng-container *ngIf="(newsItemWithStats$ | async)?.data as newsItem">
   <mat-progress-bar *ngIf="timeStatsLoading$ | async"></mat-progress-bar>
   <mat-chip-list *ngIf="newsItem.statistics" class="totals-list">
     <mat-chip>

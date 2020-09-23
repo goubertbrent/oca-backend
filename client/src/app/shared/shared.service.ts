@@ -1,9 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { App, AppStatistics } from '@oca/web-shared';
 import { Budget } from './billing/billing';
 import { BrandingSettings, GlobalConfig, SolutionSettings } from './interfaces/oca';
-import { ServiceIdentityInfo } from './interfaces/rogerthat';
 
 @Injectable({ providedIn: 'root' })
 export class SharedService {
@@ -14,18 +12,6 @@ export class SharedService {
 
   getSolutionSettings() {
     return this.http.get<SolutionSettings>('/common/settings');
-  }
-
-  getServiceIdentityInfo() {
-    return this.http.get<ServiceIdentityInfo>('/common/get_info');
-  }
-
-  getApps() {
-    return this.http.get<App[]>('/common/apps');
-  }
-
-  getAppStatistics() {
-    return this.http.get<AppStatistics[]>('/common/statistics/apps');
   }
 
   getBudget() {

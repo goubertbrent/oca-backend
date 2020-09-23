@@ -176,6 +176,7 @@ class CreateJobOfferTO(TO):
     contract = typed_property('contract', JobOfferContractTO)  # type: JobOfferContractTO
     details = unicode_property('details')
     visible = bool_property('visible')
+    demo = bool_property('demo', default=False)
 
 
 class JobCriteriaGeoLocationTO(TO):

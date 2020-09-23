@@ -236,9 +236,8 @@ pre.formatted {
 }
 
 #create_service_form ul.nav-pills {
-    margin: 0 auto;
-    width: 260px;
-    margin-bottom: 15px;
+    width: 300px;
+    margin: 0 auto 15px;
 }
 
 /* Loading spinner */

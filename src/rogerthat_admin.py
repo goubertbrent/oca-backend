@@ -33,8 +33,7 @@ from rogerthat.cron.rpc_capi_call_retention import CleanupRpcCAPICallHandler
 from rogerthat.cron.rpc_outstanding_gcm_kicks import Reschedule
 from rogerthat.cron.service_api_callback_retention import ProcessServiceAPICallbackHandler
 from rogerthat.cron.service_api_result_retention import CleanupServiceAPIResultHandler
-from rogerthat.cron.statistics import StatisticsHandler, ServiceStatisticsEmailHandler, AppStatisticsCache, \
-    DailyStatisticsHandler
+from rogerthat.cron.statistics import StatisticsHandler, ServiceStatisticsEmailHandler, DailyStatisticsHandler
 from rogerthat.cron.user import CleanupUserContextHandler
 from rogerthat.pages.admin import debugging, mobile_errors, installation_logs
 from rogerthat.pages.admin.activation_logs import ActivationLogsHandler
@@ -70,7 +69,6 @@ handlers = [
     ('/cron/rpc/statistics', StatisticsHandler),
     ('/cron/rpc/service_statistics_email', ServiceStatisticsEmailHandler),
     ('/cron/apn_expiration_check', ApnExpirationCheckHandler),
-    ('/cron/app_statistics_cache', AppStatisticsCache),
     ('/cron/news/statistics', NewsStatisticsHandler),
     ('/cron/news/group_visibility', NewsGroupVisibilityHandler),
     ('/cron/news/unstick', NewsUnstickHandler),

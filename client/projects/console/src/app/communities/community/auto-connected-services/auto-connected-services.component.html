@@ -1,0 +1,16 @@
+<mat-list>
+  <mat-list-item *ngFor="let acs of value" class="acs-item">
+    <h3 matLine>{{ acs.service_email }}</h3>
+    <p [innerText]="(acs.removable ? 'rcc.removable':'rcc.not_removable') | translate" matLine></p>
+    <button (click)="editAcs(acs)" mat-icon-button type="button">
+      <mat-icon>edit</mat-icon>
+    </button>
+    <button (click)="confirmRemoveService(acs)" mat-icon-button type="button">
+      <mat-icon>delete</mat-icon>
+    </button>
+  </mat-list-item>
+</mat-list>
+<button (click)="addAcs()" mat-raised-button type="button">
+  <mat-icon>add</mat-icon>
+  {{ 'rcc.add_auto_connected_service' | translate }}
+</button>

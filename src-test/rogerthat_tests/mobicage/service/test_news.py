@@ -25,28 +25,24 @@ import mc_unittest
 from rogerthat.bizz.friends import makeFriends
 from rogerthat.bizz.news import create_push_notification, get_groups_for_user
 from rogerthat.bizz.news.matching import should_match_location, \
-    setup_default_settings, _create_news_item_match, _match_roles_of_item
+    setup_default_settings, _create_news_item_match
 from rogerthat.bizz.profile import create_service_profile, create_service_identity_user, \
     create_user_profile
 from rogerthat.bizz.system import get_profile_addresses, \
     delete_profile_addresses, add_profile_address, update_profile_address
 from rogerthat.consts import DAY
 from rogerthat.exceptions.news import CannotUnstickNewsException
-from rogerthat.models import App, UserProfileInfoAddress, UserProfileInfo, UserProfile, UserAddressType, \
-    ServiceRole
+from rogerthat.models import UserProfileInfoAddress, UserProfileInfo, UserProfile, UserAddressType
 from rogerthat.models.news import NewsItem, NewsGroup, NewsSettingsService, \
     NewsSettingsServiceGroup, NewsItemAddress, NewsSettingsUser, NewsStream
-from rogerthat.models.properties.news import NewsItemStatistics
 from rogerthat.rpc import users
-from rogerthat.service.api import news, system
+from rogerthat.service.api import news
 from rogerthat.to import GeoPointTO
-from rogerthat.to.messaging import MemberTO
 from rogerthat.to.news import NewsActionButtonTO, NewsItemTO, NewsSenderTO, \
     BaseMediaTO, NewsLocationsTO, NewsGeoAddressTO, \
     NewsAddressTO, NewsTargetAudienceTO
 from rogerthat.to.system import AddProfileAddressRequestTO, UpdateProfileAddressRequestTO
 from rogerthat.utils import now
-from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.location import haversine
 from rogerthat_tests import set_current_user
 
@@ -56,16 +52,17 @@ from rogerthat_tests import set_current_user
 
 class NewsTest(mc_unittest.TestCase):
     user = users.User(u'test@example.com')
-    app_id = 'be-loc'
+    community_id = 0
 
     def setUp(self, datastore_hr_probability=1):
         super(NewsTest, self).setUp(datastore_hr_probability)
-        self._create_news_groups(self.app_id)
-        create_service_profile(self.user, u'test name', supported_app_ids=[self.app_id])
+        self.community_id = self.communities[0].id
+        self.app_id = self.communities[0].default_app
+        self._create_news_groups(self.community_id)
+        create_service_profile(self.user, u'test name', community_id=self.community_id)
 
-    @classmethod
-    def _create_news_item(cls, num, sticky=False, news_type=NewsItem.TYPE_NORMAL, role_ids=None, tags=None,
-                          use_media=False, app_ids=None, locations=None,
+    def _create_news_item(self, num, sticky=False, news_type=NewsItem.TYPE_NORMAL, tags=None,
+                          use_media=False, community_ids=None, locations=None,
                           group_type=NewsGroup.TYPE_CITY,
                           use_image_url=False, use_image_url_http=False):
         def _get_file_contents(path):
@@ -115,17 +112,16 @@ class NewsTest(mc_unittest.TestCase):
                             news_id=None,
                             service_identity=None,
                             target_audience=target_audience,
-                            app_ids=app_ids if app_ids else [App.APP_ID_ROGERTHAT],
+                            community_ids=community_ids or [self.communities[0].id],
                             scheduled_at=0,
                             flags=NewsItem.DEFAULT_FLAGS,
-                            role_ids=role_ids,
                             tags=tags,
                             media=media,
                             locations=locations,
                             group_type=group_type)
 
     @classmethod
-    def _update_news_item(cls, news_id, num, app_ids, group_type=None):
+    def _update_news_item(cls, news_id, num, community_ids, group_type=None):
         sticky = False
         news_type = NewsItem.TYPE_NORMAL
         title = u'test news title %d' % num
@@ -140,7 +136,7 @@ class NewsTest(mc_unittest.TestCase):
                             qr_code_content=None, qr_code_caption=None,
                             news_id=news_id,
                             image=None, media=None,
-                            app_ids=app_ids,
+                            community_ids=community_ids,
                             flags=NewsItem.DEFAULT_FLAGS,
                             group_type=group_type)
 
@@ -177,40 +173,11 @@ class NewsTest(mc_unittest.TestCase):
         news_item.message = None
         print create_push_notification(news_item)
 
-    def test_roles_matching(self):
-        role_names = ['employee', 'manager', 'g.manager']
-        with set_current_user(self.user, skip_create_session=True):
-            role_ids = [system.put_role(name, ServiceRole.TYPE_MANAGED) for name in role_names]
-
-            app_user_with_roles = create_app_user_by_email(u'app@test.user')
-            app_user_without_roles = create_app_user_by_email(u'app@test.user.noroles')
-            app_user_half_roles = create_app_user_by_email(u'app@test.half.roles')
-            create_user_profile(app_user_with_roles, u'ROLES')
-            create_user_profile(app_user_without_roles, u'NO ROLES')
-            create_user_profile(app_user_half_roles, u'1/2 ROLES')
-
-            # now the service user has some roles, assign it to the user
-            for role_id in role_ids:
-                system.add_role_member(role_id, MemberTO.from_user(app_user_with_roles))
-            system.add_role_member(role_ids[1], MemberTO.from_user(app_user_half_roles))
-
-            news_item_to_with_roles = self._create_news_item(111, role_ids=role_ids)
-            news_item_with_roles = NewsItem.create_key(news_item_to_with_roles.id).get()
-            news_item_to_without_roles = self._create_news_item(111)
-            news_item_without_roles = NewsItem.create_key(news_item_to_without_roles.id).get()
-
-            self.assertTrue(_match_roles_of_item(app_user_with_roles, news_item_without_roles))
-            self.assertTrue(_match_roles_of_item(app_user_without_roles, news_item_without_roles))
-            self.assertTrue(_match_roles_of_item(app_user_half_roles, news_item_without_roles))
-
-            self.assertTrue(_match_roles_of_item(app_user_with_roles, news_item_with_roles))
-            self.assertTrue(_match_roles_of_item(app_user_half_roles, news_item_with_roles))
-            self.assertFalse(_match_roles_of_item(app_user_without_roles, news_item_with_roles))
-
     def test_tag(self):
         tags = [u'bla_bla']
         with set_current_user(self.user, skip_create_session=True):
-            news_item = self._create_news_item(123, tags=tags)
+            news_item_to = self._create_news_item(123, tags=tags)
+            news_item = NewsItem.create_key(news_item_to.id).get()
             self.assertEqual(tags, news_item.tags)
 
     def test_deprecated_image(self):
@@ -239,19 +206,17 @@ class NewsTest(mc_unittest.TestCase):
             self.assertTrue(news_item.image_url != None)
             self.assertTrue(news_item.media != None)
 
-    def _create_news_groups(self, app_id, duplicate_in_city_news=False):
-        ns = NewsStream(key=NewsStream.create_key(app_id))
+    def _create_news_groups(self, community_id, duplicate_in_city_news=False):
+        ns = NewsStream(key=NewsStream.create_key(community_id))
         ns.stream_type = None
         ns.should_create_groups = False
         ns.services_need_setup = False
         ns.layout = []
         ns.custom_layout_id = None
-        ns.put()
 
         ng1 = NewsGroup(key=NewsGroup.create_key('be-testing-city'))
-        ng1.name = u'%s CITY' % app_id
-        ng1.app_id = app_id
-        ng1.community_id = 0
+        ng1.name = u'%s CITY' % community_id
+        ng1.community_id = community_id
         ng1.group_type = NewsGroup.TYPE_CITY
         ng1.regional = False
         ng1.default_order = 10
@@ -260,9 +225,8 @@ class NewsTest(mc_unittest.TestCase):
         ng1.put()
 
         ng2 = NewsGroup(key=NewsGroup.create_key('be-testing-events'))
-        ng2.name = u'%s EVENTS' % app_id
-        ng2.app_id = app_id
-        ng2.community_id = 0
+        ng2.name = u'%s EVENTS' % community_id
+        ng2.community_id = community_id
         ng2.group_type = NewsGroup.TYPE_EVENTS
         ng2.regional = False
         ng2.default_order = 30
@@ -271,9 +235,8 @@ class NewsTest(mc_unittest.TestCase):
         ng2.put()
 
         ng4 = NewsGroup(key=NewsGroup.create_key('be-testing-promo'))
-        ng4.name = u'%s PROMOTIONS' % app_id
-        ng4.app_id = app_id
-        ng4.community_id = 0
+        ng4.name = u'%s PROMOTIONS' % community_id
+        ng4.community_id = community_id
         ng4.group_type = NewsGroup.TYPE_PROMOTIONS
         ng4.regional = False
         ng4.default_order = 70
@@ -282,9 +245,8 @@ class NewsTest(mc_unittest.TestCase):
         ng4.put()
 
         ng5 = NewsGroup(key=NewsGroup.create_key('be-testing-promo-regional'))
-        ng5.name = u'%s PROMOTIONS (regional)' % app_id
-        ng5.app_id = app_id
-        ng5.community_id = 0
+        ng5.name = u'%s PROMOTIONS (regional)' % community_id
+        ng5.community_id = community_id
         ng5.group_type = NewsGroup.TYPE_PROMOTIONS
         ng5.regional = True
         ng5.default_order = 70
@@ -293,19 +255,24 @@ class NewsTest(mc_unittest.TestCase):
         ng5.put()
 
         ng6 = NewsGroup(key=NewsGroup.create_key('be-testing-traffic'))
-        ng6.name = u'%s TRAFFIC' % app_id
-        ng6.app_id = app_id
-        ng6.community_id = 0
+        ng6.name = u'%s TRAFFIC' % community_id
+        ng6.community_id = community_id
         ng6.group_type = NewsGroup.TYPE_TRAFFIC
         ng6.regional = False
         ng6.default_order = 50
         ng6.default_notifications_enabled = False
         ng6.tile = None
         ng6.put()
+        
+        ns.group_ids = [ng1.group_id,
+                        ng2.group_id,
+                        ng4.group_id,
+                        ng5.group_id,
+                        ng6.group_id]
+        ns.put()
 
         nss = NewsSettingsService(key=NewsSettingsService.create_key(self.user))
-        nss.default_app_id = app_id
-        nss.community_id = 0
+        nss.community_id = community_id
         nss.setup_needed_id = 0
         nss.groups = [
             NewsSettingsServiceGroup(group_type=NewsGroup.TYPE_CITY),
@@ -316,7 +283,7 @@ class NewsTest(mc_unittest.TestCase):
 
     def test_news_stream(self):
         with set_current_user(self.user, skip_create_session=True):
-            news_item_1_to = self._create_news_item(1234567, use_media=True, app_ids=[self.app_id],
+            news_item_1_to = self._create_news_item(1234567, use_media=True, community_ids=[self.community_id],
                                                     group_type=NewsGroup.TYPE_CITY)
             news_item_1 = NewsItem.create_key(news_item_1_to.id).get()
             self.assertEqual(news_item_1.group_types_ordered, [NewsGroup.TYPE_CITY])
@@ -324,7 +291,7 @@ class NewsTest(mc_unittest.TestCase):
             self.assertEqual(news_item_1.group_ids, [u'be-testing-city'])
             self.assertEqual(news_item_1.group_types, [news_item_1_to.group_type])
 
-            news_item_1_to = self._update_news_item(news_item_1_to.id, 12345678, news_item_1.app_ids,
+            news_item_1_to = self._update_news_item(news_item_1_to.id, 12345678, news_item_1.community_ids,
                                                     group_type=NewsGroup.TYPE_EVENTS)
             news_item_1 = NewsItem.create_key(news_item_1_to.id).get()
             self.assertEqual(news_item_1.group_types_ordered, [NewsGroup.TYPE_EVENTS])
@@ -332,7 +299,7 @@ class NewsTest(mc_unittest.TestCase):
             self.assertEqual(news_item_1.group_ids, [u'be-testing-events'])
             self.assertEqual(news_item_1.group_types, [news_item_1_to.group_type])
 
-            news_item_2_to = self._create_news_item(12345678, use_media=True, app_ids=[self.app_id],
+            news_item_2_to = self._create_news_item(12345678, use_media=True, community_ids=[self.community_id],
                                                     group_type=NewsGroup.TYPE_EVENTS)
             news_item_2 = NewsItem.create_key(news_item_2_to.id).get()
             self.assertEqual(news_item_2.group_types_ordered, [NewsGroup.TYPE_EVENTS])
@@ -340,7 +307,7 @@ class NewsTest(mc_unittest.TestCase):
             self.assertEqual(news_item_2.group_ids, [u'be-testing-events'])
             self.assertEqual(news_item_2.group_types, [news_item_2_to.group_type])
 
-            news_item_2_to = self._update_news_item(news_item_2_to.id, 1234567, news_item_2.app_ids,
+            news_item_2_to = self._update_news_item(news_item_2_to.id, 1234567, news_item_2.community_ids,
                                                     group_type=NewsGroup.TYPE_CITY)
             news_item_2 = NewsItem.create_key(news_item_2_to.id).get()
             self.assertEqual(news_item_2.group_types_ordered, [NewsGroup.TYPE_CITY])
@@ -349,33 +316,33 @@ class NewsTest(mc_unittest.TestCase):
             self.assertEqual(news_item_2.group_types, [news_item_2_to.group_type])
 
     def test_news_stream_duplicate_in_city_news(self):
-        self._create_news_groups(self.app_id, True)
+        self._create_news_groups(self.community_id, True)
 
         with set_current_user(self.user, skip_create_session=True):
-            news_item_1_to = self._create_news_item(1234567, use_media=True, app_ids=[self.app_id])
+            news_item_1_to = self._create_news_item(1234567, use_media=True, community_ids=[self.community_id])
             news_item_1 = NewsItem.create_key(news_item_1_to.id).get()
             self.assertEqual(news_item_1.group_types_ordered, [NewsGroup.TYPE_CITY])
             self.assertEqual(news_item_1.group_types, [NewsGroup.TYPE_CITY])
             self.assertEqual(news_item_1.group_ids, [u'be-testing-city'])
             self.assertEqual(news_item_1.group_types, [news_item_1_to.group_type])
 
-            news_item_1_to = self._update_news_item(news_item_1_to.id, 12345678, news_item_1.app_ids,
+            news_item_1_to = self._update_news_item(news_item_1_to.id, 12345678, news_item_1.community_ids,
                                                     group_type=NewsGroup.TYPE_EVENTS)
             news_item_1 = NewsItem.create_key(news_item_1_to.id).get()
             self.assertEqual(news_item_1.group_types_ordered, [NewsGroup.TYPE_EVENTS, NewsGroup.TYPE_CITY])
             self.assertEqual(news_item_1.group_types, [NewsGroup.TYPE_EVENTS, NewsGroup.TYPE_CITY])
-            self.assertEqual(news_item_1.group_ids, [u'be-testing-events', u'be-testing-city'])
+            self.assertEqual(news_item_1.group_ids, [u'be-testing-city', u'be-testing-events'])
             self.assertEqual(news_item_1.group_types, [news_item_1_to.group_type, NewsGroup.TYPE_CITY])
 
-            news_item_2_to = self._create_news_item(12345678, use_media=True, app_ids=[self.app_id],
+            news_item_2_to = self._create_news_item(12345678, use_media=True, community_ids=[self.community_id],
                                                     group_type=NewsGroup.TYPE_EVENTS)
             news_item_2 = NewsItem.create_key(news_item_2_to.id).get()
             self.assertEqual(news_item_2.group_types_ordered, [NewsGroup.TYPE_EVENTS, NewsGroup.TYPE_CITY])
             self.assertEqual(news_item_2.group_types, [NewsGroup.TYPE_EVENTS, NewsGroup.TYPE_CITY])
-            self.assertEqual(news_item_2.group_ids, [u'be-testing-events', u'be-testing-city'])
+            self.assertEqual(news_item_2.group_ids, [u'be-testing-city', u'be-testing-events'])
             self.assertEqual(news_item_2.group_types, [news_item_2_to.group_type, NewsGroup.TYPE_CITY])
 
-            news_item_2_to = self._update_news_item(news_item_2_to.id, 1234567, news_item_2.app_ids,
+            news_item_2_to = self._update_news_item(news_item_2_to.id, 1234567, news_item_2.community_ids,
                                                     group_type=NewsGroup.TYPE_CITY)
             news_item_2 = NewsItem.create_key(news_item_2_to.id).get()
             self.assertEqual(news_item_2.group_types_ordered, [NewsGroup.TYPE_CITY])
@@ -385,28 +352,28 @@ class NewsTest(mc_unittest.TestCase):
 
     def test_news_stream_group_types(self):
         with set_current_user(self.user, skip_create_session=True):
-            news_item_1_to = self._create_news_item(1234567, use_media=True, app_ids=[self.app_id],
+            news_item_1_to = self._create_news_item(1234567, use_media=True, community_ids=[self.community_id],
                                                     group_type=NewsGroup.TYPE_CITY)
             news_item_1 = NewsItem.create_key(news_item_1_to.id).get()
             self.assertEqual(news_item_1.group_types, [NewsGroup.TYPE_CITY])
             self.assertEqual(news_item_1.group_ids, [u'be-testing-city'])
             self.assertEqual(news_item_1.group_types, [news_item_1_to.group_type])
 
-            news_item_1_to = self._update_news_item(news_item_1_to.id, 12345678, news_item_1.app_ids,
+            news_item_1_to = self._update_news_item(news_item_1_to.id, 12345678, news_item_1.community_ids,
                                                     group_type=NewsGroup.TYPE_EVENTS)
             news_item_1 = NewsItem.create_key(news_item_1_to.id).get()
             self.assertEqual(news_item_1.group_types, [NewsGroup.TYPE_EVENTS])
             self.assertEqual(news_item_1.group_ids, [u'be-testing-events'])
             self.assertEqual(news_item_1.group_types, [news_item_1_to.group_type])
 
-            news_item_2_to = self._create_news_item(12345678, use_media=True, app_ids=[self.app_id],
+            news_item_2_to = self._create_news_item(12345678, use_media=True, community_ids=[self.community_id],
                                                     group_type=NewsGroup.TYPE_EVENTS)
             news_item_2 = NewsItem.create_key(news_item_2_to.id).get()
             self.assertEqual(news_item_2.group_types, [NewsGroup.TYPE_EVENTS])
             self.assertEqual(news_item_2.group_ids, [u'be-testing-events'])
             self.assertEqual(news_item_2.group_types, [news_item_2_to.group_type])
 
-            news_item_2_to = self._update_news_item(news_item_2_to.id, 1234567, news_item_2.app_ids,
+            news_item_2_to = self._update_news_item(news_item_2_to.id, 1234567, news_item_2.community_ids,
                                                     group_type=NewsGroup.TYPE_CITY)
             news_item_2 = NewsItem.create_key(news_item_2_to.id).get()
             self.assertEqual(news_item_2.group_types, [NewsGroup.TYPE_CITY])
@@ -601,11 +568,6 @@ class NewsTest(mc_unittest.TestCase):
             self.assertEqual(len(profile_addresses), 1)
 
             s = setup_default_settings(app_user)
-            self.assertEqual([u'be-testing-promo',
-                              u'be-testing-promo-regional',
-                              u'be-testing-city',
-                              u'be-testing-traffic',
-                              u'be-testing-events'], s.group_ids)
 
             if upia.address_uid not in address_hashes:
                 address_hashes[upia.address_uid] = {'count': 0, 'items': []}
@@ -740,7 +702,7 @@ class NewsTest(mc_unittest.TestCase):
         self.assertEqual([True, False, True, False, True], ni3_matches)
 
         with set_current_user(self.user, skip_create_session=True):
-            news_item_0_to = self._create_news_item(1, app_ids=[self.app_id])
+            news_item_0_to = self._create_news_item(1, community_ids=[self.community_id])
             news_item_0 = NewsItem.create_key(news_item_0_to.id).get()
 
             self.assertEqual(news_item_0.has_locations, False)
@@ -766,7 +728,8 @@ class NewsTest(mc_unittest.TestCase):
                                                                     longitude=ni3_lng)]
             news_item_1_locations.addresses = []
 
-            news_item_1_to = self._create_news_item(1, locations=news_item_1_locations, app_ids=[self.app_id])
+            news_item_1_to = self._create_news_item(1, locations=news_item_1_locations,
+                                                    community_ids=[self.community_id])
             news_item_1 = NewsItem.create_key(news_item_1_to.id).get()
 
             self.assertEqual(news_item_1.has_locations, True)
@@ -786,12 +749,10 @@ class NewsTest(mc_unittest.TestCase):
 
                 t = trans1()
                 self.assertIsNotNone(t)
-                _, matches_location, group_ids = t
+                _, matches_location = t
                 if i in (0, 4):
-                    self.assertEqual(group_ids, [u'be-testing-city'])
                     self.assertEqual(matches_location, False)
                 else:
-                    self.assertEqual(group_ids, [u'be-testing-city'])
                     self.assertEqual(matches_location, True)
 
             news_item_2_locations = NewsLocationsTO()
@@ -803,7 +764,8 @@ class NewsTest(mc_unittest.TestCase):
                                                              zip_code=u'AZipCode',
                                                              street_name=u'BStreet')]
 
-            news_item_2_to = self._create_news_item(2, locations=news_item_2_locations, app_ids=[self.app_id],
+            news_item_2_to = self._create_news_item(2, locations=news_item_2_locations,
+                                                    community_ids=[self.community_id],
                                                     group_type=NewsGroup.TYPE_EVENTS)
             news_item_2 = NewsItem.create_key(news_item_2_to.id).get()
 
@@ -827,8 +789,7 @@ class NewsTest(mc_unittest.TestCase):
                     self.assertIsNone(t)
                 else:
                     self.assertIsNotNone(t)
-                    _, matches_location, group_ids = t
-                    self.assertEqual(group_ids, [u'be-testing-events'])
+                    _, matches_location = t
                     self.assertEqual(matches_location, True)
 
             news_item_3_locations = NewsLocationsTO()
@@ -842,7 +803,8 @@ class NewsTest(mc_unittest.TestCase):
                                                              zip_code=u'AZipCode',
                                                              street_name=u'BStreet')]
 
-            news_item_3_to = self._create_news_item(2, locations=news_item_3_locations, app_ids=[self.app_id],
+            news_item_3_to = self._create_news_item(2, locations=news_item_3_locations,
+                                                    community_ids=[self.community_id],
                                                     group_type=NewsGroup.TYPE_EVENTS)
             news_item_3 = NewsItem.create_key(news_item_3_to.id).get()
 
@@ -867,8 +829,7 @@ class NewsTest(mc_unittest.TestCase):
                     self.assertIsNone(t)
                 else:
                     self.assertIsNotNone(t)
-                    _, matches_location, group_ids = t
-                    self.assertEqual(group_ids, [u'be-testing-events'])
+                    _, matches_location = t
                     self.assertEqual(matches_location, True)
 
         for i in range(5):

@@ -1,9 +1,12 @@
 import { ChangeDetectionStrategy, Component, OnInit, ViewEncapsulation } from '@angular/core';
 import { select, Store } from '@ngrx/store';
-import { NewsItem, ServiceNewsGroup } from '@oca/web-shared';
+import { NewsItem } from '@oca/web-shared';
 import { Observable } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 import { Loadable } from '../../../shared/loadable/loadable';
+import { GetGlobalConfigAction } from '../../../shared/shared.actions';
+import { isShopUser } from '../../../shared/shared.state';
+import { ServiceNewsGroup } from '../../news';
 import { CopyNewsItemAction, DeleteNewsItemAction, GetNewsListAction } from '../../news.actions';
 import {
   getNewsCursor,
@@ -26,14 +29,17 @@ export class NewsListPageComponent implements OnInit {
   hasMore$: Observable<boolean>;
   listStatus$: Observable<Loadable>;
   newsGroups$: Observable<ServiceNewsGroup[]>;
+  isShowUser$: Observable<boolean>;
 
   constructor(private store: Store<NewsState>) {
   }
 
   ngOnInit() {
+    this.store.dispatch(new GetGlobalConfigAction());
     this.newsList$ = this.store.pipe(select(getNewsItems));
     this.hasMore$ = this.store.pipe(select(hasMoreNews));
     this.listStatus$ = this.store.pipe(select(getNewsItemListStatus));
+    this.isShowUser$ = this.store.pipe(select(isShopUser));
     this.listStatus$.pipe(take(1)).subscribe(status => {
       if (status === initialNewsState.listStatus) {
         this.store.dispatch(new GetNewsListAction({ cursor: null }));

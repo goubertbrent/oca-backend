@@ -1,15 +1,15 @@
 import { Action } from '@ngrx/store';
+import { ApiError, ErrorAction, NewsItem } from '@oca/web-shared';
 import {
   CityAppLocations,
   CreateNews,
-  NewsItem,
+  NewsCommunity,
   NewsItemBasicStatistics,
   NewsItemList,
   NewsItemTimeStatistics,
   NewsOptions,
   NewsStats,
-} from '@oca/web-shared';
-import { ApiError, ErrorAction } from '@oca/web-shared';
+} from './news';
 
 export enum NewsActionTypes {
   GET_NEWS_OPTIONS = '[news] Get news options',
@@ -42,6 +42,9 @@ export enum NewsActionTypes {
   GET_LOCATIONS = '[news] Get locations',
   GET_LOCATIONS_COMPLETED = '[news] Get locations complete',
   GET_LOCATIONS_FAILED = '[news] Get locations failed',
+  GET_COMMUNITIES = '[news] Get communities',
+  GET_COMMUNITIES_COMPLETED = '[news] Get communities complete',
+  GET_COMMUNITIES_FAILED = '[news] Get communities failed',
 }
 
 export class GetNewsOptionsAction implements Action {
@@ -239,7 +242,7 @@ export class CopyNewsItemAction implements Action {
 export class GetLocationsAction implements Action {
   readonly type = NewsActionTypes.GET_LOCATIONS;
 
-  constructor(public payload: { appId: string }) {
+  constructor(public payload: { communityId: number }) {
   }
 
 }
@@ -255,6 +258,24 @@ export class GetLocationsFailedAction implements Action {
   readonly type = NewsActionTypes.GET_LOCATIONS_FAILED;
 
   constructor(public error: ApiError) {
+  }
+}
+
+export class GetCommunities implements Action {
+  readonly type = NewsActionTypes.GET_COMMUNITIES;
+}
+
+export class GetCommunitiesComplete implements Action {
+  readonly type = NewsActionTypes.GET_COMMUNITIES_COMPLETED;
+
+  constructor(public payload: NewsCommunity[]) {
+  }
+}
+
+export class GetCommunitiesFailed implements ErrorAction {
+  readonly type = NewsActionTypes.GET_COMMUNITIES_FAILED;
+
+  constructor(public error: string) {
   }
 }
 
@@ -288,4 +309,7 @@ export type NewsActions = GetNewsOptionsAction
   | CopyNewsItemAction
   | GetLocationsAction
   | GetLocationsCompleteAction
-  | GetLocationsFailedAction;
+  | GetLocationsFailedAction
+  | GetCommunities
+  | GetCommunitiesComplete
+  | GetCommunitiesFailed;

@@ -1,3 +1,9 @@
+<mat-toolbar>
+  <h1 class="flex-grow">{{ 'oca.news_items' | translate }}</h1>
+  <a mat-icon-button routerLink="/news/settings" *ngIf="isShowUser$ | async">
+    <mat-icon>settings</mat-icon>
+  </a>
+</mat-toolbar>
 <oca-news-item-list (deleteItem)="onDeleteItem($event)"
                     (copyItem)="onCopyItem($event)"
                     (loadMore)="onLoadMore()"

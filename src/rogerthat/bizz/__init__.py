@@ -20,14 +20,12 @@ def configure():
         INVITE_SERVICE_ADMIN, FRIEND_ACCEPT_FAILED, INVITE_FACEBOOK_FRIEND, FRIEND_SHARE_SERVICE_REQUEST
     from rogerthat.bizz.friends import ackInvitation, ackRequestLocationSharing, ack_share_service
     from rogerthat.bizz.friends import ack_invitation_by_secret_failed
-    from rogerthat.bizz.job.app_broadcast import APP_BROADCAST_TAG
     from rogerthat.bizz.messaging import ackListeners
     from rogerthat.bizz.messaging import process_mfr_email_reply_rogerthat_reply, REPLY_ON_FOLLOW_UP_MESSAGE
     from rogerthat.bizz.profile import ack_facebook_invite
     from rogerthat.bizz.service import ack_service_in_trouble, SERVICE_IN_TROUBLE_TAG
     from rogerthat.bizz.service.broadcast import BROADCAST_TEST_MESSAGE_ID, ack_test_broadcast
 
-    ackListeners[APP_BROADCAST_TAG] = ackInvitation
     ackListeners[FRIEND_INVITATION_REQUEST] = ackInvitation
     ackListeners[REQUEST_LOCATION_SHARING] = ackRequestLocationSharing
     ackListeners[FRIEND_ACCEPT_FAILED] = ack_invitation_by_secret_failed

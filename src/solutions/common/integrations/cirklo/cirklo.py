@@ -15,10 +15,10 @@
 #
 # @@license_version:1.7@@
 
-from datetime import datetime
 import json
 import logging
 import urllib
+from datetime import datetime
 
 from google.appengine.api import urlfetch
 from google.appengine.api.apiproxy_stub_map import UserRPC
@@ -28,7 +28,8 @@ from typing import List, Optional
 from mcfw.cache import cached
 from mcfw.rpc import arguments, returns
 from mcfw.utils import Enum
-from rogerthat.bizz.maps.services import search_services_by_tags, SearchTag, get_tags_app
+from rogerthat.bizz.communities.communities import get_community
+from rogerthat.bizz.maps.services import search_services_by_tags, SearchTag
 from rogerthat.bizz.opening_hours import get_opening_hours_info
 from rogerthat.consts import DEBUG
 from rogerthat.dal.profile import get_user_profile
@@ -241,10 +242,15 @@ def get_vouchers(service_user, app_user):
     return voucher_list
 
 
-def get_merchants_by_app(app_id, language, cursor, page_size):
-    # type: (str, str, Optional[str], int) -> dict
-    tags = get_tags_app(app_id, whole_country=False)
-    tags.append(SearchTag.vouchers(VoucherProviderId.CIRKLO))
+def get_merchants_by_community(community_id, language, cursor, page_size):
+    # type: (int, str, Optional[str], int) -> dict
+    community = get_community(community_id)
+    # Always filter by community id
+    tags = [
+        SearchTag.community(community_id),
+        SearchTag.environment(community.demo),
+        SearchTag.vouchers(VoucherProviderId.CIRKLO)
+    ]
     service_identity_users, new_cursor = search_services_by_tags(tags, cursor, page_size)
     service_users = [get_service_user_from_service_identity_user(service_user)
                      for service_user in service_identity_users]
@@ -303,7 +309,8 @@ def handle_method(service_user, email, method, params, tag, service_identity, us
             language = get_user_profile(app_user).language
             cursor = json_data.get('cursor')
             page_size = json_data.get('page_size', 20)
-            result = get_merchants_by_app(user.app_id, language, cursor, page_size)
+            user_profile = get_user_profile(app_user)
+            result = get_merchants_by_community(user_profile.community_id, language, cursor, page_size)
         else:
             raise UnknownMethodException(method)
         response.result = convert_to_unicode(json.dumps(result.to_dict() if isinstance(result, TO) else result))

@@ -27,7 +27,7 @@
   </mat-form-field>
   <mat-form-field>
     <mat-label>{{ 'oca.start_time' | translate }}</mat-label>
-    <input #startTime (change)="setTime('start_date', $event.target)" matInput name="start_time" required type="time">
+    <input #startTime (change)="setTime('start_date', $any($event.target))" matInput name="start_time" required type="time">
   </mat-form-field>
   <mat-form-field>
     <mat-label>{{ 'oca.end_date' | translate }}</mat-label>
@@ -38,7 +38,7 @@
   </mat-form-field>
   <mat-form-field>
     <mat-label>{{ 'oca.end_time' | translate }}</mat-label>
-    <input #endTime (change)="setTime('end_date', $event.target)" matInput name="end_time" required type="time">
+    <input #endTime (change)="setTime('end_date', $any($event.target))" matInput name="end_time" required type="time">
   </mat-form-field>
   <div>
     <button [disabled]="loading" mat-raised-button>

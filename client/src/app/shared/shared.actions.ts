@@ -1,20 +1,9 @@
 import { Action } from '@ngrx/store';
-import { App, AppStatistics } from '@oca/web-shared';
 import { Budget } from './billing/billing';
 import { ApiError } from './errors/errors';
 import { BrandingSettings, GlobalConfig, SolutionSettings } from './interfaces/oca';
-import { ServiceIdentityInfo } from './interfaces/rogerthat';
 
 export const enum SharedActionTypes {
-  GET_INFO = '[shared] Get info',
-  GET_INFO_COMPLETE = '[shared] Get info complete',
-  GET_INFO_FAILED = '[shared] Get info failed',
-  GET_APPS = '[shared] Get apps',
-  GET_APPS_COMPLETE = '[shared] Get apps complete',
-  GET_APPS_FAILED = '[shared] Get apps failed',
-  GET_APP_STATISTICS = '[shared] Get app statistics',
-  GET_APP_STATISTICS_COMPLETE = '[shared] Get app statistics complete',
-  GET_APP_STATISTICS_FAILED = '[shared] Get app statistics failed',
   GET_BUDGET = '[shared] Get budget',
   GET_BUDGET_COMPLETE = '[shared] Get budget complete',
   GET_BUDGET_FAILED = '[shared] Get budget failed',
@@ -32,60 +21,6 @@ export const enum SharedActionTypes {
   UPDATE_LOGO_FAILED = '[shared] Update logo failed',
   GET_GLOBAL_CONFIG = '[shared] Get global config',
   GET_GLOBAL_CONFIG_COMPLETE = '[shared] Get global config complete',
-}
-
-export class GetInfoAction implements Action {
-  readonly type = SharedActionTypes.GET_INFO;
-}
-
-export class GetInfoCompleteAction implements Action {
-  readonly type = SharedActionTypes.GET_INFO_COMPLETE;
-
-  constructor(public payload: ServiceIdentityInfo) {
-  }
-}
-
-export class GetInfoFailedAction implements Action {
-  readonly type = SharedActionTypes.GET_INFO_FAILED;
-
-  constructor(public error: ApiError) {
-  }
-}
-
-export class GetAppsAction implements Action {
-  readonly type = SharedActionTypes.GET_APPS;
-}
-
-export class GetAppsCompleteAction implements Action {
-  readonly type = SharedActionTypes.GET_APPS_COMPLETE;
-
-  constructor(public payload: App[]) {
-  }
-}
-
-export class GetAppsFailedAction implements Action {
-  readonly type = SharedActionTypes.GET_APPS_FAILED;
-
-  constructor(public error: ApiError) {
-  }
-}
-
-export class GetAppStatisticsAction implements Action {
-  readonly type = SharedActionTypes.GET_APP_STATISTICS;
-}
-
-export class GetAppStatisticsCompleteAction implements Action {
-  readonly type = SharedActionTypes.GET_APP_STATISTICS_COMPLETE;
-
-  constructor(public payload: AppStatistics[]) {
-  }
-}
-
-export class GetAppStatisticsFailedAction implements Action {
-  readonly type = SharedActionTypes.GET_APP_STATISTICS_FAILED;
-
-  constructor(public error: ApiError) {
-  }
 }
 
 export class GetBudgetAction implements Action {
@@ -196,15 +131,6 @@ export class GetGlobalConfigCompleteAction implements Action {
 }
 
 export type SharedActions =
-  | GetInfoAction
-  | GetInfoCompleteAction
-  | GetInfoFailedAction
-  | GetAppsAction
-  | GetAppsCompleteAction
-  | GetAppsFailedAction
-  | GetAppStatisticsAction
-  | GetAppStatisticsCompleteAction
-  | GetAppStatisticsFailedAction
   | GetBudgetAction
   | GetBudgetCompleteAction
   | GetBudgetFailedAction

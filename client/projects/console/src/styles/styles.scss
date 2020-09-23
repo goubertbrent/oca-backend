@@ -53,51 +53,8 @@ html, body {
   right: 0;
 }
 
-.router-link-active, .secondary-router-link-active {
+.router-link-active {
   background-color: rgba(0, 0, 0, 0.10);
-}
-
-lang-switcher {
-  .mat-form-field {
-    min-width: auto;
-    font-size: 0.9em;
-  }
-}
-
-.secondary-sidenav.mat-sidenav {
-  width: 256px;
-  box-shadow: 3px 0 6px rgba(0, 0, 0, .24);
-
-  h2 {
-    margin-left: 16px;
-    margin-right: 16px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-weight: 400;
-    letter-spacing: .005em;
-    font-size: 18px;
-    line-height: 20px;
-    max-width: 160px;
-  }
-
-  img {
-    max-height: 40px;
-  }
-
-}
-
-.secondary-toolbar-header {
-  a {
-    text-decoration: none;
-    color: inherit;
-  }
-
-  .mat-icon {
-    font-size: 36px;
-    width: 36px;
-    height: 36px;
-  }
 }
 
 .no-icon-padding .mat-icon {

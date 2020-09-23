@@ -27,23 +27,23 @@ from email.mime.text import MIMEText
 from types import NoneType
 
 import jinja2
+from babel.dates import format_datetime
 from google.appengine.ext import deferred, db
 
 import solutions
-from babel.dates import format_datetime
 from mcfw.properties import long_property
 from mcfw.rpc import returns, arguments
+from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.consts import SCHEDULED_QUEUE, DAY, MC_DASHBOARD
 from rogerthat.dal import parent_key_unsafe
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_service_profile
-from rogerthat.models import App, ServiceProfile
+from rogerthat.models import App
 from rogerthat.rpc import users
 from rogerthat.service.api import system
 from rogerthat.settings import get_server_settings
 from rogerthat.to.service import UserDetailsTO
-from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import send_mail_via_mime, now, send_mail
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from rogerthat.utils.models import reconstruct_key
@@ -97,19 +97,14 @@ def send_styled_inbox_forwarders_email(service_user, str_key, msg_params, remind
         subject = transl('inbox-forwarding-reminder-text', text=subject)
 
     settings = get_server_settings()
-
-    users.set_user(service_user)
-    try:
-        si = system.get_identity()
-    finally:
-        users.clear_user()
-
-    app = get_app_by_id(si.app_ids[0])
+    service_profile = get_service_profile(service_user)
+    community = get_community(service_profile.community_id)
+    app = get_app_by_id(community.default_app)
 
     mimeRoot = MIMEMultipart('related')
     mimeRoot['Subject'] = subject
     mimeRoot['From'] = settings.senderEmail if app.type == App.APP_TYPE_ROGERTHAT else (
-        "%s <%s>" % (app.name, app.dashboard_email_address))
+        "%s <%s>" % (community.name, app.dashboard_email_address))
     mimeRoot['To'] = ', '.join(sln_i_settings.inbox_mail_forwarders)
 
     mime = MIMEMultipart('alternative')
@@ -125,7 +120,7 @@ def send_styled_inbox_forwarders_email(service_user, str_key, msg_params, remind
         if_email_body_2 = if_email_body_3_button = if_email_body_3_url = None
     else:
         if_email_body_1 = transl('if-email-body-1', if_name=msg_params['if_name'], function=chat_topic,
-                                 app_name=app.name)
+                                 app_name=community.name)
         if_email_body_2 = transl('if-email-body-2')
         dashboard_trans = transl('dashboard')
         service_email = sln_settings.login.email() if sln_settings.login else service_user.email()
@@ -219,11 +214,6 @@ def create_solution_inbox_message(service_user, service_identity, category, cate
     if video_urls is None:
         video_urls = []
     sim_parent.video_urls = video_urls
-    # When a question is asked, add a timestamp so we can search on it to create statistics, but only for associations.
-    if category == SolutionInboxMessage.CATEGORY_ASK_QUESTION and '?' in message:
-        service_profile = get_service_profile(service_user)
-        if service_profile.organizationType == ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT:
-            sim_parent.question_asked_timestamp = now()
     sim_parent.read = mark_as_read
     sim_parent.starred = False
     sim_parent.trashed = False
@@ -294,8 +284,6 @@ def add_solution_inbox_message(service_user, key, sent_by_service, user_details,
         else:
             sim_parent.trashed = False
         sim_parent.deleted = False
-        if sim_parent.category == SolutionInboxMessage.CATEGORY_ASK_QUESTION:
-            sim_parent.question_asked_timestamp = 0  # the user has a reply to his question
         sim_parent.put()
 
         if SolutionModule.LOYALTY in sln_settings.modules:

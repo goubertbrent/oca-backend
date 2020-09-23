@@ -51,8 +51,6 @@ import {
   FirebaseProjectsComponent,
   FirebaseProjectsListPageComponent,
   HomePageComponent,
-  NewsGroupComponent,
-  NewsSettingsComponent,
   NotFoundComponent,
   PaymentProvidersComponent,
   PaymentProvidersListComponent,
@@ -71,7 +69,6 @@ export const consoleRoutes: Array<Route> = [
       id: 'home',
       icon: 'home',
       label: 'rcc.home',
-
     },
     component: HomePageComponent,
   },
@@ -141,16 +138,6 @@ export const consoleRoutes: Array<Route> = [
             path: 'advanced',
             component: AppAdvancedConfigurationComponent,
             data: { label: 'rcc.advanced_app_settings' },
-          },
-          {
-            path: 'news',
-            component: NewsSettingsComponent,
-            data: { label: 'rcc.news_settings' },
-          },
-          {
-            path: 'news/:groupId',
-            component: NewsGroupComponent,
-            data: { label: 'rcc.news_settings' },
           },
         ],
       },
@@ -225,6 +212,15 @@ export const consoleRoutes: Array<Route> = [
         ],
       },
     ],
+  },
+  {
+    path: 'communities',
+    loadChildren: () => import('./communities/communities.module').then(m => m.CommunitiesModule),
+    data: {
+      id: 'communities',
+      icon: 'location_city',
+      label: 'rcc.communities',
+    },
   },
   {
     path: 'default-settings',
@@ -399,6 +395,20 @@ export const consoleRoutes: Array<Route> = [
     path: 'review-notes/:reviewNotesId',
     component: EditReviewNotesComponent,
     data: { label: 'rcc.edit_review_notes' },
+  },
+  {
+    path: 'explorer',
+    pathMatch: 'full',
+    redirectTo: 'scripts',
+  },
+  {
+    path: 'scripts',
+    loadChildren: () => import('./interactive-explorer/explorer.module').then(m => m.ExplorerModule),
+    data: {
+      id: 'scripts',
+      icon: 'code',
+      label: 'rcc.admin_scripts',
+    },
   },
   {
     path: '**',

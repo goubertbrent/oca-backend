@@ -93,7 +93,8 @@ class JobOffer(NdbModel):
 
     source = ndb.StructuredProperty(JobOfferSource)  # type: JobOfferSource
     service_email = ndb.StringProperty()  # can be None (when created via VDAB)
-    demo_app_ids = ndb.TextProperty(repeated=True)
+    demo_app_ids = ndb.TextProperty(repeated=True)  # TODO communities: remove after migration
+    demo = ndb.BooleanProperty()
     data = ndb.JsonProperty(compressed=True)
 
     visible = ndb.BooleanProperty()
@@ -152,7 +153,9 @@ class JobMatchingCriteria(NdbModel):
     contract_types = ndb.TextProperty(repeated=True)
     job_domains = ndb.StringProperty(repeated=True)
     keywords = ndb.TextProperty(repeated=True)
-    notifications = ndb.LocalStructuredProperty(JobMatchingCriteriaNotifications)  # type: JobMatchingCriteriaNotifications
+    notifications = ndb.LocalStructuredProperty(
+        JobMatchingCriteriaNotifications)  # type: JobMatchingCriteriaNotifications
+    demo = ndb.BooleanProperty(default=False)
 
     @property
     def should_send_notifications(self):
@@ -173,7 +176,7 @@ class JobMatchingCriteria(NdbModel):
     @classmethod
     def list_inactive(cls):
         return cls.query().filter(cls.active == False)
-    
+
     @classmethod
     def list_inactive_loads(cls, d):
         return cls.query(cls.last_load_request < d)

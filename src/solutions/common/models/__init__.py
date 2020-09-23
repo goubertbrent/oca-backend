@@ -128,9 +128,6 @@ class SolutionInboxMessage(db.Model):
 
     child_messages = db.ListProperty(int, indexed=False)  # only filled in on parent message
 
-    # timestamp, only filled in on parent message, only for non-profit associations
-    question_asked_timestamp = db.IntegerProperty(default=0)
-
     @property
     def icon(self):
         if self.category and self.category in SolutionInboxMessage.ICON_NAMES:
@@ -183,10 +180,6 @@ class SolutionInboxMessage(db.Model):
         return []
 
     @classmethod
-    def get_all_unanswered_questions(cls, days):
-        return cls.all().filter('question_asked_timestamp <', now() - days * 86400).filter('question_asked_timestamp >', 0)
-
-    @classmethod
     def get_all_by_service(cls, service_user, service_identity, start_date):
         service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
         ancestor = parent_key_unsafe(service_identity_user, SOLUTION_COMMON)
@@ -219,30 +212,6 @@ class SolutionMessage(db.Model):
     @property
     def solution_message_key(self):
         return str(self.key())
-
-
-class SetupGooglePlaceIdLocation(NdbModel):
-    service_identity = ndb.StringProperty(indexed=False)
-    place_id = ndb.StringProperty()
-    perfect_match = ndb.BooleanProperty()
-    matches = ndb.JsonProperty()
-
-
-class SetupGooglePlaceId(NdbModel):
-    default_app_id = ndb.StringProperty()
-    locations = ndb.StructuredProperty(SetupGooglePlaceIdLocation, repeated=True)
-
-    @property
-    def uid(self):
-        return self.key.id()
-
-    @classmethod
-    def list_by_place_id(cls, place_id):
-        return cls.query().filter(cls.place_id == place_id)
-
-    @classmethod
-    def create_key(cls, uid):
-        return ndb.Key(cls, uid)
 
 
 class SolutionIdentitySettings(db.Expando):
@@ -306,8 +275,6 @@ class SolutionSettings(SolutionIdentitySettings):
 
     search_enabled = db.BooleanProperty(indexed=False, default=False)
     search_enabled_check = db.BooleanProperty(indexed=False, default=True)
-
-    menu_item_color = db.StringProperty(indexed=False)
 
     # TODO: remove and use ServiceInfo instead
     currency = db.StringProperty(indexed=False)  # 3 letter symbol, e.g. EUR
@@ -376,7 +343,7 @@ class SolutionSettings(SolutionIdentitySettings):
     def uses_inbox(self):
         from solutions.common.bizz import SolutionModule
         return any((m in self.modules for m in SolutionModule.INBOX_MODULES))
-    
+
     def ciklo_vouchers_only(self):
         from solutions.common.bizz import SolutionModule
         return len(self.modules) == 1 and SolutionModule.CIRKLO_VOUCHERS in self.modules
@@ -671,6 +638,7 @@ class SolutionRssLink(NdbModel):
     url = ndb.StringProperty()
     dry_runned = ndb.BooleanProperty(default=False)
     group_type = ndb.StringProperty(default=None, indexed=False)
+    # TODO communities: remove after migration
     app_ids = ndb.StringProperty(repeated=True, indexed=False)
     community_ids = ndb.IntegerProperty(repeated=True, indexed=False) # todo communities
 

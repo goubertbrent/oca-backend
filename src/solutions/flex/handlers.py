@@ -16,21 +16,21 @@
 # @@license_version:1.7@@
 
 import json
-import logging
 import os
 
-from babel import dates, Locale
 from jinja2 import StrictUndefined, Undefined
 import jinja2
 import webapp2
 
+from babel import dates, Locale
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz import channel
+from rogerthat.bizz.communities.communities import get_community
+from rogerthat.bizz.communities.models import AppFeatures
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.session import set_service_identity
 from rogerthat.consts import DEBUG, APPSCALE
 from rogerthat.dal.profile import get_service_profile
-from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity
 from rogerthat.pages.legal import get_version_content, DOC_TERMS_SERVICE, get_current_document_version
 from rogerthat.pages.login import SessionHandler
@@ -38,13 +38,10 @@ from rogerthat.rpc import users
 from rogerthat.service.api import system
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils.channel import send_message_to_session
-from rogerthat.utils.service import create_service_identity_user
-from shop.bizz import get_organization_types, is_signup_enabled, update_customer_consents, \
-    get_customer_consents
+from shop.bizz import get_organization_types, update_customer_consents
 from shop.business.legal_entities import get_vat_pct
 from shop.constants import LOGO_LANGUAGES
 from shop.dal import get_customer, get_mobicage_legal_entity
-from shop.models import ShopApp
 from solutions import translate, translations, COMMON_JS_KEYS
 from solutions.common.bizz import OrganizationType, SolutionModule
 from solutions.common.bizz.budget import BUDGET_RATE
@@ -54,7 +51,6 @@ from solutions.common.consts import UNITS, UNIT_SYMBOLS, UNIT_PIECE, UNIT_LITER,
     UNIT_MINUTE, ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_PLATTER, UNIT_SESSION, UNIT_PERSON, UNIT_DAY, CURRENCIES
 from solutions.common.dal import get_solution_settings, get_restaurant_menu, get_solution_email_settings, \
     get_solution_settings_or_identity_settings
-from solutions.common.dal.cityapp import get_cityapp_profile, get_service_user_for_city
 from solutions.common.models import SolutionQR, SolutionServiceConsent
 from solutions.common.models.properties import MenuItem
 from solutions.common.to import SolutionEmailSettingsTO
@@ -108,10 +104,6 @@ MODULES_JS_TEMPLATE_MAPPING = {
         'billing_settings_unsigned_orders_table',
         'billing_settings_orders_table',
         'billing_settings_invoices_table'
-    ],
-    SolutionModule.BROADCAST: [
-        'broadcast_rss_settings',
-        'broadcast_rss_add_scraper',
     ],
     SolutionModule.CITY_APP: [
         'services/service',
@@ -237,7 +229,10 @@ class FlexHomeHandler(webapp2.RequestHandler):
         return templates
 
     def _get_qr_codes(self, sln_settings, service_identity):
-        return SolutionQR.list_by_user(sln_settings.service_user, service_identity, sln_settings.solution)
+        if SolutionModule.QR_CODES in sln_settings.modules:
+            return SolutionQR.list_by_user(sln_settings.service_user, service_identity, sln_settings.solution)
+        else:
+            return []
 
     def _get_days(self, language):
         return [(k, v.capitalize()) for k, v in dates.get_day_names('wide', locale=language).items()]
@@ -287,9 +282,10 @@ class FlexHomeHandler(webapp2.RequestHandler):
             session_ = set_service_identity(session_, None)
 
         must_check_tos = not session_.layout_only and not session_.shop
+        service_profile = get_service_profile(service_user)
         if must_check_tos:
             lastest_tos_version = get_current_document_version(DOC_TERMS_SERVICE)
-            if get_service_profile(service_user).tos_version != lastest_tos_version:
+            if service_profile.tos_version != lastest_tos_version:
                 self.redirect('/terms')
                 return
 
@@ -303,15 +299,8 @@ class FlexHomeHandler(webapp2.RequestHandler):
         months_short = self._get_months(lang, 'abbreviated')
         week_days = self._get_week_days(lang)
         loyalty_version = self.request.get("loyalty")
-        if customer:
-            if service_identity != ServiceIdentity.DEFAULT:
-                service_identity_user = create_service_identity_user(service_user, service_identity)
-                si = get_service_identity(service_identity_user)
-                city_app_id = si.app_id
-            else:
-                city_app_id = customer.app_id
-        else:
-            city_app_id = None
+
+        community = get_community(service_profile.community_id)
 
         locale = Locale.parse(lang)
         currency_symbols = {currency: locale.currency_symbols.get(currency, currency) for currency in CURRENCIES}
@@ -339,30 +328,23 @@ class FlexHomeHandler(webapp2.RequestHandler):
             'BUDGET_RATE': BUDGET_RATE,
             'CURRENCY_SYMBOLS': currency_symbols
         }
-        if not customer:
-            mobicage_legal_entity = get_mobicage_legal_entity()
-            vat_pct = mobicage_legal_entity.vat_percent
-            legal_entity_currency = mobicage_legal_entity.currency
-            is_mobicage = True
-        else:
+        if customer:
             vat_pct = get_vat_pct(customer)
             is_mobicage = customer.team.legal_entity.is_mobicage
             legal_entity_currency = customer.team.legal_entity.currency
+        else:
+            mobicage_legal_entity = get_mobicage_legal_entity()
+            vat_pct = mobicage_legal_entity.vat_percent
+            is_mobicage = True
+            legal_entity_currency = mobicage_legal_entity.currency
 
-        country = customer and customer.country
         functionality_modules = functionality_info = None
-        if city_app_id and is_signup_enabled(city_app_id):
-            shop_app = ShopApp.create_key(city_app_id).get()
-            functionality_modules, functionality_info = map(json.dumps, get_functionalities(country,
-                                                                                            lang,
-                                                                                            sln_settings.modules,
-                                                                                            sln_settings.activated_modules,
-                                                                                            shop_app))
+        if community.signup_enabled:
+            functionality_modules, functionality_info = map(json.dumps, get_functionalities(
+                lang, sln_settings.modules, sln_settings.activated_modules, community))
 
-        city_service_user = get_service_user_for_city(city_app_id)
-        is_city = service_user == city_service_user
-        city_app_profile = city_service_user and get_cityapp_profile(city_service_user)
-        news_review_enabled = city_app_profile and city_app_profile.review_news or True
+        is_city = service_user == community.main_service_user
+        news_review_enabled = AppFeatures.NEWS_REVIEW in community.features
 
         default_router_location = u'#/functionalities'
         if sln_settings.ciklo_vouchers_only():
@@ -370,10 +352,9 @@ class FlexHomeHandler(webapp2.RequestHandler):
         elif not functionality_modules:
             default_router_location = u'#/news'
 
-        organization_types = get_organization_types(customer, lang, include_all=True)
+        organization_types = get_organization_types(customer, community.default_app, lang, include_all=True)
         currency = service_info.currency
         params = {'language': lang,
-                  'country': country,
                   'logo_languages': LOGO_LANGUAGES,
                   'sln_settings': sln_settings,
                   'sln_i_settings': sln_i_settings,
@@ -421,8 +402,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   }
 
         if SolutionModule.BULK_INVITE in sln_settings.modules:
-            params['bulk_invite_message'] = translate(lang, "settings-bulk-invite-message",
-                                                      app_name=system.get_identity().app_names[0])
+            params['bulk_invite_message'] = translate(lang, "settings-bulk-invite-message", app_name=community.name)
 
         params['menu'] = get_restaurant_menu(service_user) if SolutionModule.MENU in sln_settings.modules else None
 

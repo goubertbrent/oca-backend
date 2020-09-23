@@ -28,19 +28,8 @@ from rogerthat.to.app import AppSettingsTO
 from solutions import translate
 from solutions.common.bizz.cityapp import get_uitdatabank_events
 from solutions.common.dal import get_solution_settings
-from solutions.common.dal.cityapp import get_cityapp_profile, \
-    get_uitdatabank_settings
-from solutions.common.to.cityapp import CityAppProfileTO, UitdatabankSettingsTO, \
-    UitdatabankCheckTO
-
-
-@rest("/common/cityapp/settings/load", "get", read_only_access=True)
-@returns(CityAppProfileTO)
-@arguments()
-def load_cityapp_settings():
-    service_user = users.get_current_user()
-    settings = get_cityapp_profile(service_user)
-    return CityAppProfileTO.from_model(settings)
+from solutions.common.dal.cityapp import get_uitdatabank_settings
+from solutions.common.to.cityapp import UitdatabankSettingsTO, UitdatabankCheckTO
 
 
 @rest('/common/settings/app', 'get', read_only_access=True)

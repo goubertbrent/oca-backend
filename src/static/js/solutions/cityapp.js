@@ -17,66 +17,6 @@
  */
 $(function() {
     'use strict';
-    var gatherEvents = true;
-
-    var TMPL_SET_GATHER_EVENTS = '<div class="btn-group">' +
-        '      <button class="btn btn-success" id="gatherEventsEnabled">' + T('Hide events of merchants and associations') + '</button>' +
-        '      <button class="btn" id="gatherEventsDisabled">&nbsp;</button>' + '</div>';
-
-    var gatherEventsEnabled = function() {
-        setGatherEvents(!gatherEvents);
-        saveCityAppSettings();
-    };
-
-    var gatherEventsDisabled = function() {
-        setGatherEvents(!gatherEvents);
-        saveCityAppSettings();
-    };
-
-    var setGatherEvents = function(newGatherEvents) {
-        gatherEvents = newGatherEvents;
-        if (newGatherEvents) {
-            $('#gatherEventsEnabled').addClass("btn-success").text(T('Show events of merchants and associations'));
-            $('#gatherEventsDisabled').removeClass("btn-danger").html('&nbsp;');
-        } else {
-            $('#gatherEventsEnabled').removeClass("btn-success").html('&nbsp;');
-            $('#gatherEventsDisabled').addClass("btn-danger").text(T('Hide events of merchants and associations'));
-        }
-    };
-
-    $(".sln-set-gather-events").html(TMPL_SET_GATHER_EVENTS);
-    $('#gatherEventsEnabled').click(gatherEventsEnabled);
-    $('#gatherEventsDisabled').click(gatherEventsDisabled);
-
-    var saveCityAppSettings = function() {
-        var data = JSON.stringify({
-            gather_events: gatherEvents,
-        });
-        sln.call({
-            url: "/common/cityapp/settings/save",
-            type: "POST",
-            data: {
-                data: data
-            },
-            success: function(data) {
-                if (!data.success) {
-                    sln.alert(data.errormsg, null, CommonTranslations.ERROR);
-                }
-            },
-            error: sln.showAjaxError
-        });
-    };
-
-    var loadCityAppSettings = function() {
-        sln.call({
-            url: "/common/cityapp/settings/load",
-            type: "GET",
-            success: function(data) {
-                setGatherEvents(data.gather_events);
-            },
-            error: sln.showAjaxError
-        });
-    };
 
     var saveUitdatabankSettings = function() {
         var allOK = true;
@@ -121,7 +61,7 @@ $(function() {
             });
         }
     };
-    
+
     var checkUitdatabankSettings = function() {
     	sln.call({
             url: "/common/cityapp/uitdatabank/check",
@@ -196,7 +136,5 @@ $(function() {
         }, CommonTranslations.ADD, CommonTranslations.SAVE, CommonTranslations.ENTER_DOT_DOT_DOT, null, null, null);
     });
 
-
-    loadCityAppSettings();
     loadUitdatabankSettings();
 });

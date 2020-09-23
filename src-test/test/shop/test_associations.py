@@ -30,7 +30,7 @@ class AssociationsTestCase(oca_unittest.TestCase):
 
     def test_association_creation(self):
         self.set_datastore_hr_probability(1)
-        apps = [a.app_id for a in App.all()]
+        community = self.communities[2]
         r = create_flex_service(email=u'test-communicatie@example.be',
                                 name=u"test",
                                 phone_number=u"+32 9 324 25 64",
@@ -39,9 +39,9 @@ class AssociationsTestCase(oca_unittest.TestCase):
                                 modules=[SolutionModule.CITY_APP, SolutionModule.BROADCAST, SolutionModule.ASK_QUESTION,
                                          SolutionModule.WHEN_WHERE],
                                 broadcast_types=['News', 'test'],
-                                apps=apps,
                                 allow_redeploy=False,
-                                organization_type=OrganizationType.CITY)
+                                organization_type=OrganizationType.CITY,
+                                community_id=community.id)
         # Create city customer
         shop_user = users.User(u'regiomanager-test@example.com')
         vat = u''
@@ -57,11 +57,12 @@ class AssociationsTestCase(oca_unittest.TestCase):
         team_id = RegioManagerTeam.all().get().id
         city_customer = create_or_update_customer(shop_user, None, vat, name, address1, address2, zip_code, city,
                                                   country, language, organization_type, prospect_id,
-                                                  team_id=team_id)
+                                                  team_id=team_id, community_id=community.id)
         city_customer.service_email = city_customer.user_email = r.login
-        city_customer.default_app_id = apps[0]
-        city_customer.app_ids = apps
         city_customer.put()
+
+        community.main_service = city_customer.service_email
+        community.put()
 
         # Create city contact
         first_name = u'Firstname'

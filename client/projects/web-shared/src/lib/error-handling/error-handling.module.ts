@@ -5,12 +5,21 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { StoreModule } from '@ngrx/store';
 import { TranslateModule } from '@ngx-translate/core';
 import { SimpleDialogModule } from '../simple-dialog';
+import { ERROR_HANDLING_TRANSLATIONS, ErrorServiceTranslations } from './providers';
 
 
 const MAT_IMPORTS = [
   MatSnackBarModule,
   MatDialogModule,
 ];
+
+const messages: ErrorServiceTranslations = {
+  error: 'Error',
+  knownErrorKey: 'oca.error',
+  unknownError: 'Unknown error',
+  retry: 'Retry',
+  close: 'Close',
+};
 
 @NgModule({
   declarations: [],
@@ -20,6 +29,9 @@ const MAT_IMPORTS = [
     StoreModule,
     CommonModule,
     SimpleDialogModule,
+  ],
+  providers: [
+    { provide: ERROR_HANDLING_TRANSLATIONS, useValue: messages },
   ],
   exports: [MAT_IMPORTS],
 })

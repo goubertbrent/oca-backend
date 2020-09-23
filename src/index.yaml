@@ -314,12 +314,6 @@ indexes:
 
 - kind: NewsItem
   properties:
-  - name: deleted
-  - name: published
-  - name: timestamp
-
-- kind: NewsItem
-  properties:
   - name: status
   - name: app_ids
   - name: sender
@@ -1122,18 +1116,10 @@ indexes:
 
 - kind: Customer
   properties:
-  - name: default_app_id
-  - name: service_disabled_at
+  - name: community_id
   - name: organization_type
+  - name: service_disabled_at
   - name: name
-
-- kind: Customer
-  properties:
-  - name: default_app_id
-  - name: organization_type
-  - name: service_disabled_at
-  - name: creation_time
-    direction: desc
 
 - kind: SolutionNewsItem
   properties:

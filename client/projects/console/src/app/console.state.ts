@@ -78,8 +78,6 @@ export const getBulkUpdateStatus = createSelector(getAppsState, s => s.bulkUpdat
 export const getGenerateAppImagesStatus = createSelector(getAppsState, s => s.generateImagesStatus);
 export const getProductionApps = createSelector(getAppsState, s => s.productionApps);
 export const getProductionAppsStatus = createSelector(getAppsState, s => s.productionAppsStatus);
-export const getNewsSettings = createSelector(getAppsState, s => s.newsSettings);
-export const getNewsSettingsStatus = createSelector(getAppsState, s => s.getNewsSettingsStatus);
 
 export const getDeveloperAccounts = createSelector(getDeveloperAccountsState, s => s.developerAccounts);
 export const getDeveloperAccountsStatus = createSelector(getDeveloperAccountsState, s => s.developerAccountsStatus);

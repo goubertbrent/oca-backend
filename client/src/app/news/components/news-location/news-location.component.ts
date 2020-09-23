@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component, forwardRef, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { select, Store } from '@ngrx/store';
-import { CityAppLocations, LocationBounds, NewsAddress, NewsGeoAddress, NewsLocation } from '@oca/web-shared';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { NewsAddress, NewsGeoAddress, NewsLocation } from '../../../../../projects/web-shared/src/lib/types';
 import { Loadable } from '../../../shared/loadable/loadable';
+import { CityAppLocations, LocationBounds} from '../../news';
 import { GetLocationsAction } from '../../news.actions';
 import { getLocations, NewsState } from '../../news.state';
 
@@ -20,7 +21,7 @@ import { getLocations, NewsState } from '../../news.state';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NewsLocationComponent implements OnInit, OnChanges, ControlValueAccessor {
-  @Input() appId: string;
+  @Input() communityId: number;
   disabled: boolean;
 
   set locations(value: NewsLocation) {
@@ -46,9 +47,9 @@ export class NewsLocationComponent implements OnInit, OnChanges, ControlValueAcc
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes.appId) {
-      if (this.appId) {
-        this.store.dispatch(new GetLocationsAction({ appId: this.appId }));
+    if (changes.communityId) {
+      if (this.communityId) {
+        this.store.dispatch(new GetLocationsAction({ communityId: this.communityId }));
       }
     }
   }

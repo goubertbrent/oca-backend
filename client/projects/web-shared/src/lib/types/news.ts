@@ -17,40 +17,11 @@ export enum MediaType {
   YOUTUBE_VIDEO = 'video_youtube',
 }
 
-export interface NewsItemTimeValue {
-  time: string;
-  value: number;
-}
-
-export interface NewsItemTimeStatistics {
-  id: number;
-  reached: NewsItemTimeValue[];
-  action: NewsItemTimeValue[];
-}
-
-export interface KeyValueLong {
-  key: string;
-  value: number;
-}
-
-export type UINewsActionButton =
-  NewsActionButtonWebsite
-  | NewsActionButtonPhone
-  | NewsActionButtonEmail
-  | NewsActionButtonAttachment
-  | NewsActionButtonMenuItem
-  | NewsActionButtonOpen;
-
-export interface NewsItemBasicStatistic {
-  total: number;
-  gender: KeyValueLong[];
-  age: KeyValueLong[];
-}
-
-export interface NewsItemBasicStatistics {
-  id: number;
-  reached: NewsItemBasicStatistic;
-  action: NewsItemBasicStatistic;
+export interface NewsSender {
+  email: string;
+  name: string;
+  avatar_id: string;
+  avatar_url: string;
 }
 
 export interface NewsTargetAudience {
@@ -60,55 +31,8 @@ export interface NewsTargetAudience {
   connected_users_only: boolean;
 }
 
-export interface NewsSender {
-  email: string;
-  name: string;
-  avatar_id: string;
-  avatar_url: string;
-}
-
 export interface NewsActionButton extends BaseButton {
   flow_params?: string | null;
-}
-
-export enum NewsActionButtonType {
-  WEBSITE,
-  PHONE,
-  EMAIL,
-  ATTACHMENT,
-  MENU_ITEM,
-  OPEN,
-}
-
-export interface BaseNewsButton {
-  label: string;
-  button: NewsActionButton;
-}
-
-export interface NewsActionButtonWebsite extends BaseNewsButton {
-  type: NewsActionButtonType.WEBSITE;
-}
-
-export interface NewsActionButtonPhone extends BaseNewsButton {
-  phone: string;
-  type: NewsActionButtonType.PHONE;
-}
-
-export interface NewsActionButtonEmail extends BaseNewsButton {
-  email: string;
-  type: NewsActionButtonType.EMAIL;
-}
-
-export interface NewsActionButtonAttachment extends BaseNewsButton {
-  type: NewsActionButtonType.ATTACHMENT;
-}
-
-export interface NewsActionButtonMenuItem extends BaseNewsButton {
-  type: NewsActionButtonType.MENU_ITEM;
-}
-
-export interface NewsActionButtonOpen extends BaseNewsButton {
-  type: NewsActionButtonType.OPEN;
 }
 
 export interface BaseMedia {
@@ -119,12 +43,6 @@ export interface BaseMedia {
 export interface Media extends BaseMedia {
   width: number;
   height: number;
-}
-
-export interface NewsItemList {
-  result: NewsItem[];
-  cursor: string | null;
-  more: boolean;
 }
 
 export interface NewsGeoAddress {
@@ -155,86 +73,19 @@ export const enum NewsGroupType {
   CITY = 'city',
   EVENTS = 'events',
   TRAFFIC = 'traffic',
+  PUBLIC_SERVICE_ANNOUNCEMENTS = 'public_service_announcements',
   PRESS = 'press',
   POLLS = 'polls',
-}
-
-export interface ServiceNewsGroup {
-  group_type: NewsGroupType;
-  name: string;
-}
-
-export interface CreateNews<T = Date> {
-  id: number | null;
-  title: string;
-  message: string;
-  action_button: NewsActionButton | null;
-  type: NewsItemType;
-  qr_code_caption: string | null;
-  app_ids: string[];
-  scheduled_at: T | null;
-  target_audience: NewsTargetAudience | null;
-  role_ids: number[];
-  media: BaseMedia | null;
-  group_type: NewsGroupType;
-  locations: NewsLocation | null;
-  group_visible_until: T | null;
-}
-
-export interface NewsStats {
-  news_item: NewsItem;
-  statistics: NewsItemBasicStatistics;
-}
-
-export const enum NewsSettingsTag {
-  FREE_REGIONAL_NEWS = 'free_regional_news'
-}
-
-export interface NewsOptions {
-  tags: NewsSettingsTag[];
-  regional: {
-    enabled: boolean;
-    map_url?: string | null;
-  };
-  groups: ServiceNewsGroup[];
-  media_types: MediaType[];
-  location_filter_enabled: boolean;
-  action_buttons: UINewsActionButton[];
-}
-
-export interface Street {
-  name: string;
-  id: number;
-}
-
-export interface LocationBounds {
-  northeast: { lat: number, lon: number };
-  southwest: { lat: number, lon: number };
-}
-
-export interface Locality {
-  postal_code: string;
-  name: string;
-  bounds: LocationBounds;
-  location: { lat: number, lon: number };
-  streets: Street[];
-}
-
-export interface CityAppLocations {
-  app_id: string;
-  country_code: string;
-  localities: Locality[];
 }
 
 export interface NewsItem {
   type: NewsItemType;
   sticky: boolean;
   sticky_until: number;
-  app_ids: string[];
+  community_ids: number[];
   scheduled_at: number;
   published: boolean;
   target_audience: NewsTargetAudience | null;
-  role_ids: number[];
   tags: string[];
   id: number;
   sender: NewsSender;

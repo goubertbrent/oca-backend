@@ -4,10 +4,11 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Actions, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
-import { CreateNews, NewsGroupType } from '@oca/web-shared';
+import { NewsGroupType } from '@oca/web-shared';
 import { SimpleDialogComponent, SimpleDialogData } from '@oca/web-shared';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { first, map, take, takeUntil, tap, withLatestFrom } from 'rxjs/operators';
+import { CreateNews } from '../../../news/news';
 import { Loadable } from '../../../shared/loadable/loadable';
 import {
   UserAutoCompleteDialogComponent,

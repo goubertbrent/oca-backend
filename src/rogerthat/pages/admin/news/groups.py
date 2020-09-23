@@ -27,21 +27,18 @@ from rogerthat.pages.admin.news import NewsAdminHandler
 class NewsGroupsHandler(NewsAdminHandler):
 
     def get(self):
-        app_id = self.request.get("app_id", None)
-        if app_id:
-            qry = NewsGroup.list_by_app_id(app_id)
+        community_id = long(self.request.get("community_id", None))
+        if community_id:
+            qry = NewsGroup.list_by_community_id(community_id)
         else:
             qry = NewsGroup.query()
-
-        groups_dict = {}
-        for g in qry:
-            groups_dict[g.group_id] = dict(group=g, rpc=NewsItem.list_published_by_group_id_sorted(g.group_id).count_async())
-
+        groups_dict = {g.group_id: (g, NewsItem.list_published_by_group_id_sorted(g.group_id).count_async())
+                       for g in qry}
         groups = []
-        for v in groups_dict.values():
-            v['group'].ni_count = v['rpc'].get_result()
-            groups.append(v['group'])
-        context = dict(groups=sorted(groups, key=lambda x: x.name))
+        for group, rpc in groups_dict.values():
+            group.ni_count = rpc.get_result()
+            groups.append(group)
+        context = {'groups': sorted(groups, key=lambda x: x.name)}
 
         channel.append_firebase_params(context)
         path = os.path.join(os.path.dirname(__file__), 'groups.html')

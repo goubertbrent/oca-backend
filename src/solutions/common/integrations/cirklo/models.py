@@ -21,53 +21,10 @@ from typing import List
 from mcfw.utils import Enum
 from rogerthat.dal import parent_ndb_key
 from rogerthat.models import NdbModel
-from rogerthat.rpc import users
-from solutions.common import SOLUTION_COMMON
 
 
 class VoucherProviderId(Enum):
     CIRKLO = 'cirklo'
-
-
-class VoucherProvider(NdbModel):
-    provider = ndb.StringProperty(choices=VoucherProviderId.all())
-    enable_date = ndb.DateTimeProperty(auto_now_add=True)
-
-
-class VoucherSettings(NdbModel):
-    app_id = ndb.StringProperty()
-    # TODO: remove 'providers' property
-    providers = ndb.StringProperty(choices=VoucherProviderId.all(), repeated=True)  # type: List[str]
-    provider_mapping = ndb.StructuredProperty(VoucherProvider, repeated=True)  # type: List[VoucherProvider]
-    customer_id = ndb.IntegerProperty()
-
-    @property
-    def service_user(self):
-        return users.User(self.key.parent().id())
-
-    @classmethod
-    def create_key(cls, service_user):
-        # type: (users.User) -> ndb.Key
-        return ndb.Key(cls, service_user.email(), parent=parent_ndb_key(service_user, SOLUTION_COMMON))
-
-    @classmethod
-    def list_by_provider_and_app(cls, provider, app_id):
-        return cls.query() \
-            .filter(cls.app_id == app_id) \
-            .filter(cls.provider_mapping.provider == provider)
-
-    def get_provider(self, provider_id):
-        for p in self.provider_mapping:
-            if p.provider == provider_id:
-                return p
-
-    def set_provider(self, provider_id, enabled):
-        provider = self.get_provider(provider_id)
-        if enabled:
-            if not provider:
-                self.provider_mapping.append(VoucherProvider(provider=provider_id))
-        elif provider:
-            self.provider_mapping.remove(provider)
 
 
 class CirkloUserVouchers(NdbModel):
@@ -164,7 +121,7 @@ class CirkloMerchant(NdbModel):
 
     @classmethod
     def create_key(cls, service_user_email):
-        # this is only used for normal customers that kgawant to use cirklo
+        # this is only used for normal customers that want to use cirklo
         return ndb.Key(cls, service_user_email)
 
     @classmethod

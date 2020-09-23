@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { select, Store } from '@ngrx/store';
-import { NewsItemTimeStatistics, NewsStats } from '@oca/web-shared';
 import { Observable } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 import { Loadable } from '../../../../shared/loadable/loadable';
 import { filterNull } from '../../../../shared/util';
+import { NewsItemTimeStatistics, NewsStats } from '../../../news';
 import { GetNewsItemTimeStatsAction } from '../../../news.actions';
 import { areNewsItemTimeStatsLoading, getNewsItemStats, getNewsItemTimeStats, NewsState } from '../../../news.state';
 import { PossibleMetrics } from './news-statistics-graphs/news-statistics-graphs.component';

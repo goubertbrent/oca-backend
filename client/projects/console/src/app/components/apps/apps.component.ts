@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { SecondarySidebarItem, SidebarTitle } from '../../../../framework/client/nav/sidebar/interfaces';
+import { SecondarySidebarItem, SidebarTitle } from '../../../../framework/client/nav/sidebar';
 
 @Component({
   selector: 'rcc-apps',

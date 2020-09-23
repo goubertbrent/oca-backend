@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges, ViewEncapsulation } from '@angular/core';
+import { ChartType } from 'angular-google-charts';
 import { ValueAmount } from '../../interfaces/forms';
 
 @Component({
@@ -9,7 +10,7 @@ import { ValueAmount } from '../../interfaces/forms';
 })
 export class FormStatisticsNumberChartComponent implements OnChanges {
   @Input() values: ValueAmount[];
-  chart: { data: (string | number)[][]; columns: string[]; options: google.visualization.BarChartOptions; type: string };
+  chart: { data: (string | number)[][]; columns: string[]; options: google.visualization.BarChartOptions; type: ChartType };
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes.values && changes.values.currentValue) {
@@ -19,9 +20,9 @@ export class FormStatisticsNumberChartComponent implements OnChanges {
 
   getChart(values: ValueAmount[]) {
     return {
-      type: 'BarChart',
-      columns: [ 'Value', '' ],
-      data: values.map(value => ([ value.value, value.amount ])),
+      type: ChartType.BarChart,
+      columns: ['Value', ''],
+      data: values.map(value => ([value.value, value.amount])),
       options: {
         width: 600,
         height: Math.max(150, values.length * 30),

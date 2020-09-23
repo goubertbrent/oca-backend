@@ -24,15 +24,12 @@ import {
   EditAppAssetPayload,
   FileUploadPayload,
   GenerateImagesPayload,
-  NewsGroup,
-  NewsSettings,
   PatchAppCompletePayload,
   PatchAppPayload,
   QrCodeTemplate,
   RogerthatApp,
   SaveChangesPayload,
   UpdateAppImagePayload,
-  UpdateNewsImagePayload,
 } from '../interfaces';
 import { normalizeColorInput, normalizeColorOutput } from '../util';
 import { ConsoleConfig } from './console-config';
@@ -316,16 +313,6 @@ export class AppsService {
   bulkUpdateApps(options: BulkUpdatePayload): Observable<null> {
     return this.http.post(`${ConsoleConfig.BUILDSERVER_API_URL}/apps/bulk-update`, options)
       .pipe(map(() => null));
-  }
-
-  getNewsSettings(appId: string): Observable<NewsSettings> {
-    return this.http.get<NewsSettings>(`${ConsoleConfig.appBaseUrlRT(appId)}/news-settings`);
-  }
-
-  updateNewsGroupImage(appId: string, groupId: string, payload: UpdateNewsImagePayload): Observable<NewsGroup> {
-    const formData = new FormData();
-    formData.append('file', payload.file);
-    return this.http.put<NewsGroup>(`${ConsoleConfig.appBaseUrlRT(appId)}/news-settings/${groupId}/background-image`, formData);
   }
 
   private convertColors(payload: AppColors, add: boolean) {

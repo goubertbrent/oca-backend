@@ -400,7 +400,6 @@ def cancel_order(customer_or_id, order_number, confirm=False, delete_service=Fal
             if service_deleted:
                 customer.service_email = None
                 customer.user_email = None
-                customer.app_ids = []
             customer.subscription_order_number = None
             to_put.append(customer)
         db.put(to_put)

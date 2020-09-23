@@ -82,7 +82,7 @@ export const getForms = createSelector(featureSelector, s => ({
 }));
 export const getForm = createSelector(featureSelector, s => s.form);
 export const getRawFormStatistics = createSelector(featureSelector, s => s.formStatistics);
-export const getTombolaWinners = createSelector(featureSelector, s => s.tombolaWinners.data || []);
+export const getTombolaWinners = createSelector(featureSelector, s => s.tombolaWinners.data ?? []);
 export const getIntegrations = createSelector(featureSelector, s => s.integrations);
 export const getActiveIntegrations = createSelector(featureSelector, s => s.integrations.data.filter(i => i.enabled && i.visible));
 

@@ -22,58 +22,11 @@ from datetime import datetime
 from types import NoneType
 
 from google.appengine.api import urlfetch
-from google.appengine.ext import ndb
 
-from mcfw.cache import cached
 from mcfw.rpc import returns, arguments
-from rogerthat.consts import DEBUG
-from rogerthat.dal.app import get_apps_by_type
-from rogerthat.models import App
 from rogerthat.rpc import users
-from solutions.common.dal.cityapp import get_cityapp_profile, get_uitdatabank_settings
+from solutions.common.dal.cityapp import get_uitdatabank_settings
 from solutions.common.models.cityapp import UitdatabankSettings
-
-
-@ndb.transactional()
-@returns(NoneType)
-@arguments(service_user=users.User, gather_events=bool)
-def save_cityapp_settings(service_user, gather_events):
-    cap = get_cityapp_profile(service_user)
-    cap.gather_events_enabled = gather_events
-    cap.put()
-
-
-@returns(dict)
-@arguments(country=unicode, live=bool)
-def get_country_apps(country, live=True):
-    """
-    Args:
-        country (unicode): country code e.g. be
-        live (bool): has a live published build
-
-    Returns:
-        apps (dict): a dict with app name (city) as key and app_id as value
-    """
-    apps = get_apps_by_type(App.APP_TYPE_CITY_APP)
-
-    # TODO: should add 'country' property to an app and filter on that. None if app type != city app
-
-    def should_include(app):
-        # check if the ios_app_id is set (has a live build)
-        if not DEBUG and live and app.ios_app_id in (None, '-1') or app.disabled:
-            return False
-        return not app.demo and app.app_id.lower().startswith('%s-' % country.lower())
-
-    return {
-        app.name: app.app_id for app in apps if should_include(app)
-    }
-
-
-@cached(1, 3600)
-@returns(int)
-@arguments(country=unicode)
-def get_apps_in_country_count(country):
-    return len(get_country_apps(country, True))
 
 
 @returns(NoneType)

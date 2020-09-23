@@ -33,7 +33,6 @@ from rogerthat.models.settings import ServiceInfo
 from rogerthat.rpc import users
 from rogerthat.rpc.users import get_current_session
 from rogerthat.utils.service import create_service_identity_user
-from shop.dal import get_customer
 from shop.models import Customer
 from solutions import translate
 from solutions.common.bizz import SolutionModule
@@ -53,8 +52,7 @@ def _check_permission(city_sln_settings):
         raise HttpForbiddenException()
 
     if len(city_sln_settings.modules) != 1:
-        city_customer = get_customer(city_sln_settings.service_user)
-        _check_is_city(city_sln_settings, city_customer)
+        _check_is_city(city_sln_settings.service_user)
 
 
 @rest('/common/vouchers/services', 'get', silent_result=True)

@@ -15,8 +15,8 @@
 #
 # @@license_version:1.7@@
 
-import webapp2
 from google.appengine.api import app_identity
+import webapp2
 
 from mcfw.restapi import rest_functions, GenericRESTRequestHandler
 from rogerthat.bizz.jobs import worker_callbacks as jobs_worker_callbacks
@@ -50,7 +50,7 @@ from rogerthat.pages.register_mobile import FinishRegistrationHandler, \
     InitiateRegistrationViaEmailVerificationHandler, VerifyEmailWithPinHandler, RegisterInstallIdentifierHandler, \
     RegisterMobileViaFacebookHandler, LogRegistrationStepHandler, InitServiceAppHandler, RegisterMobileViaQRHandler, \
     GetRegistrationOauthInfoHandler, OauthRegistrationHandler, RegisterDeviceHandler, AnonymousRegistrationHandler, \
-    RegisterMobileViaAppleHandler
+    RegisterMobileViaAppleHandler, RegistrationCommunityHandler
 from rogerthat.pages.service_disabled import ServiceDisabledHandler
 from rogerthat.pages.service_interact import ServiceInteractRequestHandler, ServiceInteractQRCodeRequestHandler
 from rogerthat.pages.service_map import ServiceMapHandler
@@ -104,6 +104,7 @@ handlers = [
     ('/unauthenticated/mobi/registration/init_service_app', InitServiceAppHandler),
     ('/unauthenticated/mobi/registration/oauth/info', GetRegistrationOauthInfoHandler),
     ('/unauthenticated/mobi/registration/oauth/registered', OauthRegistrationHandler),
+    ('/unauthenticated/mobi/registration/register_community', RegistrationCommunityHandler),
     ('/unauthenticated/mobi/cached/avatar/(.*)', GetCachedAvatarHandler),
     ('/unauthenticated/mobi/avatar/(.*)', GetAvatarHandler),
     ('/unauthenticated/mobi/branding/(.*)', BrandingDownloadHandler),

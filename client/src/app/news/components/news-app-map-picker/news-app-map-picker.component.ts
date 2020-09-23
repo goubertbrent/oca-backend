@@ -13,7 +13,7 @@ import {
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
-import { App, AppStatisticsMapping } from '@oca/web-shared';
+import { NewsCommunityMapping } from '../../news';
 import { getCost, getReach } from '../../utils';
 
 interface CountryMapData {
@@ -57,6 +57,7 @@ const enum AreaValue {
   UNSELECTED = 'unselected',
 }
 
+// TODO communities: refactor to use google map with geojson to draw cities/regions
 @Component({
   selector: 'oca-news-app-map-picker',
   templateUrl: './news-app-map-picker.component.html',
@@ -72,9 +73,8 @@ export class NewsAppMapPickerComponent implements ControlValueAccessor, OnChange
   @ViewChild('mapContainer', { static: true }) mapContainer: ElementRef<HTMLDivElement>;
   @Input() readonly: boolean;
   @Input() showLegend: boolean;
-  @Input() apps: App[];
-  @Input() defaultAppId: string;
-  @Input() appStatistics: AppStatisticsMapping;
+  @Input() defaultCommunityId: number;
+  @Input() communityMapping: NewsCommunityMapping;
   @Input() mapUrl: string;
   private colors = {
     [ AreaValue.DEFAULT ]: '#ffffff',
@@ -86,7 +86,7 @@ export class NewsAppMapPickerComponent implements ControlValueAccessor, OnChange
     text: '#000000',
 
   };
-  private appNameMapping: { [ key: string ]: string; }; // key: app name, value: app id
+  private communityNameMapping: { [ key: string ]: number; }; // key: community name, value: community id
   private $: typeof jQuery | null;
   private initializedMapUrl: string;
 
@@ -95,27 +95,27 @@ export class NewsAppMapPickerComponent implements ControlValueAccessor, OnChange
               private http: HttpClient) {
   }
 
-  private _appIds: string[];
+  private _communityIds: number[];
 
-  get appIds(): string[] {
-    return this._appIds;
+  get communityIds(): number[] {
+    return this._communityIds;
   }
 
-  set appIds(values: string[]) {
+  set communityIds(values: number[]) {
     // Don't set 'changed' in case of initial value
-    if (this._appIds) {
+    if (this._communityIds) {
       this.onChange(values);
     }
-    this._appIds = values;
+    this._communityIds = values;
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     // Needs both apps and appStatistics before we can render
-    const hasRelevantChanges = changes.apps || changes.appStatistics || changes.mapUrl;
-    if (hasRelevantChanges && (this.apps && this.apps.length && Object.keys(this.appStatistics).length > 0) && this.mapUrl) {
-      this.appNameMapping = {};
-      for (const app of this.apps) {
-        this.appNameMapping[ app.name ] = app.id;
+    const hasRelevantChanges = changes.communityMapping || changes.mapUrl;
+    if (hasRelevantChanges && Object.keys(this.communityMapping).length > 0 && this.mapUrl) {
+      this.communityNameMapping = {};
+      for (const community of Object.values(this.communityMapping)) {
+        this.communityNameMapping[ community.name ] = community.id;
       }
       if (this.initializedMapUrl !== this.mapUrl) {
         this.http.get<CountryMapData>(this.mapUrl).subscribe(async data => await this.initializeMap(data));
@@ -135,9 +135,9 @@ export class NewsAppMapPickerComponent implements ControlValueAccessor, OnChange
   setDisabledState(isDisabled: boolean): void {
   }
 
-  writeValue(values?: string[]): void {
+  writeValue(values?: number[]): void {
     if (values) {
-      this._appIds = values;
+      this._communityIds = values;
       if (this.$) {
         this.setAreas();
       }
@@ -152,11 +152,11 @@ export class NewsAppMapPickerComponent implements ControlValueAccessor, OnChange
   };
 
   private getTooltip(city: string) {
-    const appId = this.appNameMapping[ city ];
-    if (appId && !this.readonly) {
-      const stats = this.appStatistics[ appId ] || { total_user_count: 0, app_id: appId };
+    const communityId = this.communityNameMapping[ city ];
+    if (communityId && !this.readonly) {
+      const stats = this.communityMapping[ communityId ] ?? { total_user_count: 0 };
       const userCount = stats.total_user_count;
-      const costCount = appId === this.defaultAppId ? 0 : userCount;
+      const costCount = communityId === this.defaultCommunityId ? 0 : userCount;
       const estimatedReach = getReach(userCount);
       const costReach = getReach(costCount);
       const estimatedCost = getCost('€', costReach.lowerGuess, costReach.higherGuess);
@@ -169,22 +169,25 @@ ${this.translate.instant('oca.broadcast-estimated-reach')}: ${estimatedReach.low
   }
 
   private toggleArea(areaName: string) {
-    const appId = this.appNameMapping[ areaName ];
-    const canSelect = areaName in this.appNameMapping;
-    const appSelected = canSelect && !this.appIds.includes(appId);
-    if (appSelected) {
-      this.appIds = [...this.appIds, appId];
+    const communityId = this.communityNameMapping[ areaName ];
+    if (this.defaultCommunityId === communityId) {
+      return;
+    }
+    const canSelect = areaName in this.communityNameMapping;
+    const selected = canSelect && !this.communityIds.includes(communityId);
+    if (selected) {
+      this.communityIds = [...this.communityIds, communityId];
     } else {
-      this.appIds = this.appIds.filter(a => a !== appId);
+      this.communityIds = this.communityIds.filter(a => a !== communityId);
     }
     this.setAreas();
   }
 
   private setAreas() {
     const areas: { [ key: string ]: Partial<MapaelArea> } = {};
-    for (const areaName of Object.keys(this.appNameMapping)) {
-      const appId = this.appNameMapping[ areaName ];
-      const areaValue = this.getAreaValue(areaName, this.appIds.includes(appId));
+    for (const areaName of Object.keys(this.communityNameMapping)) {
+      const communityId = this.communityNameMapping[ areaName ];
+      const areaValue = this.getAreaValue(areaName, this.communityIds.includes(communityId));
       areas[ areaName ] = {
         value: areaValue,
         attrs: {
@@ -204,14 +207,14 @@ ${this.translate.instant('oca.broadcast-estimated-reach')}: ${estimatedReach.low
   }
 
   private getAreaValue(areaName: string, selected: boolean): AreaValue {
-    const appId = this.appNameMapping[ areaName ];
+    const appId = this.communityNameMapping[ areaName ];
     if (selected) {
-      if (appId === this.defaultAppId) {
+      if (appId === this.defaultCommunityId) {
         return AreaValue.DEFAULT_APP;
       }
       return AreaValue.SELECTED;
     }
-    if (areaName in this.appNameMapping) {
+    if (areaName in this.communityNameMapping) {
       return AreaValue.UNSELECTED;
     }
     return AreaValue.DEFAULT;
@@ -224,8 +227,8 @@ ${this.translate.instant('oca.broadcast-estimated-reach')}: ${estimatedReach.low
     this.$ = $;
     const areas: { [ key: string ]: MapaelArea } = {};
     for (const areaName of Object.keys(mapData.cities)) {
-      const appId = this.appNameMapping[ areaName ];
-      const value = this.getAreaValue(areaName, this.appIds.includes(appId));
+      const appId = this.communityNameMapping[ areaName ];
+      const value = this.getAreaValue(areaName, this.communityIds.includes(appId));
       const area: MapaelArea = {
         value,
         attrs: {

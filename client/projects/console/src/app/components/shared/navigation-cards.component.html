@@ -1,19 +1,13 @@
-<div fxLayout.xs="column" fxLayout="row wrap">
-  <a [routerLink]="card.route" fxFlex.xs="100" fxFlex.sm="50" fxFlex.md="33" fxFlex.lg="25" fxFlex.xl="15"
-     *ngFor="let card of navigationItems; let index = index;">
-    <mat-card class="mat-card-colored" fxFlex>
-      <mat-toolbar-row>
-        <mat-toolbar [class]="getBgClass(index)" fxLayout="column" fxLayoutAlign="center center">
-          <mat-icon *ngIf="isFa(card.icon); else normalIcon" [fontIcon]="card.icon" fontSet="fa"></mat-icon>
-          <ng-template #normalIcon>
-            <mat-icon>{{ card.icon }}</mat-icon>
-          </ng-template>
-        </mat-toolbar>
-      </mat-toolbar-row>
-      <mat-card-content>
-        <h2>{{ card.label | translate }}</h2>
-        <p>{{ card.description | translate }}</p>
-      </mat-card-content>
-    </mat-card>
-  </a>
-</div>
+<a *ngFor="let card of navigationItems; let index = index;" [routerLink]="card.route">
+  <mat-card class="mat-card-colored">
+    <mat-toolbar-row>
+      <mat-toolbar [class]="getBgClass(index)">
+        <mat-icon>{{ card.icon }}</mat-icon>
+      </mat-toolbar>
+    </mat-toolbar-row>
+    <mat-card-content>
+      <h2>{{ card.label | translate }}</h2>
+      <p>{{ card.description | translate }}</p>
+    </mat-card-content>
+  </mat-card>
+</a>

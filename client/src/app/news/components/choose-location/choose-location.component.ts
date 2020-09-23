@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
-import { CityAppLocations, Locality, NewsAddress, Street } from '@oca/web-shared';
+import { NewsAddress } from '@oca/web-shared';
 import { Observable } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
+import { CityAppLocations, Locality, Street } from '../../news';
 
 export interface FilteredStreet extends Street {
   html?: string;

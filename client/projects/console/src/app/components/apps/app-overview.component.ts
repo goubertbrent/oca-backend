@@ -33,10 +33,7 @@ export class AppConfigurationComponent implements OnInit {
     }, {
       label: 'rcc.advanced_settings',
       route: 'advanced',
-    }, {
-      label: 'rcc.news_settings',
-      route: 'news',
-    } ];
+    }];
   }
 
 }

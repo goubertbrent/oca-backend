@@ -16,7 +16,6 @@
 # @@license_version:1.7@@
 
 from collections import defaultdict
-from datetime import datetime
 import json
 import logging
 
@@ -31,7 +30,7 @@ from rogerthat.dal import parent_ndb_key
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.utils import now
 from shop.constants import MAPS_QUEUE
-from solutions.common.bizz import get_default_app_id, get_organization_type
+from solutions.common.bizz import get_organization_type
 from solutions.common.bizz.cityapp import get_uitdatabank_events
 from solutions.common.bizz.events.events_search import index_events
 from solutions.common.dal import get_solution_settings
@@ -40,7 +39,6 @@ from solutions.common.models.agenda import Event, EventMedia, EventMediaType, Ev
     EventOpeningPeriod, EventDate
 from solutions.common.models.cityapp import UitdatabankSettings
 from solutions.common.utils import html_to_markdown
-from typing import Dict, List
 
 
 class CityAppSolutionEventsUitdatabank(webapp2.RequestHandler):
@@ -129,8 +127,6 @@ def get_event(sln_settings, external_id, community_id):
         event = Event(parent=event_parent_key,
                       source=Event.SOURCE_UITDATABANK_BE,
                       external_id=external_id)
-
-    event.app_ids = [get_default_app_id(sln_settings.service_user)]
     event.community_id = community_id
     event.organization_type = get_organization_type(sln_settings.service_user)
     event.calendar_id = sln_settings.default_calendar
@@ -147,7 +143,7 @@ def get_organizer_settings(uitdatabank_actors, keys):
     return db.get(organizer_settings_keys) if organizer_settings_keys else []
 
 
-def get_organizer_events(service_user, external_id, organizer_settings, community_id):
+def get_organizer_events(community_id, external_id, organizer_settings):
     events = []
     logging.debug("organizer_settings: %s", map(repr, organizer_settings))
     for organizer_sln_settings in organizer_settings:
@@ -159,8 +155,6 @@ def get_organizer_events(service_user, external_id, organizer_settings, communit
             organizer_event = Event(parent=organizer_event_parent_key,
                                     source=Event.SOURCE_UITDATABANK_BE,
                                     external_id=external_id)
-
-        organizer_event.app_ids = [get_default_app_id(service_user)]
         organizer_event.community_id = community_id
         organizer_event.organization_type = get_organization_type(organizer_sln_settings.service_user)
         organizer_event.calendar_id = organizer_sln_settings.default_calendar
@@ -169,7 +163,7 @@ def get_organizer_events(service_user, external_id, organizer_settings, communit
 
 
 def _populate_uit_events_v3(sln_settings, external_url, detail_result, uitdatabank_actors, community_id):
-    # type: (SolutionSettings, str, dict, Dict[str, db.Key]) -> List[Event]
+    # type: (SolutionSettings, str, dict, Dict[str, db.Key], int) -> List[Event]
     # https://documentatie.uitdatabank.be/content/json-ld-crud-api/latest/events.html
     lang = 'nl'
     if lang not in detail_result['languages']:
@@ -209,7 +203,7 @@ def _populate_uit_events_v3(sln_settings, external_url, detail_result, uitdataba
         organizer_settings = get_organizer_settings(uitdatabank_actors, [uitdatabank_created_by,
                                                                          uitdatabank_organizer_name,
                                                                          uitdatabank_organizer_cdbid])
-        events.extend(get_organizer_events(sln_settings.service_user, external_id, organizer_settings, community_id))
+        events.extend(get_organizer_events(community_id, external_id, organizer_settings))
 
     event_title = detail_result['name'][lang]
     event_description = None

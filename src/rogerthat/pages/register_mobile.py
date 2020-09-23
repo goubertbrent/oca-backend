@@ -37,7 +37,8 @@ from rogerthat.bizz.profile import get_profile_for_facebook_user, FailedToBuildF
     create_user_profile
 from rogerthat.bizz.registration import register_mobile, get_device_names_of_my_mobiles, get_device_name, \
     get_mobile_type, get_or_insert_installation, send_installation_progress_callback, \
-    save_tos_consent, save_push_notifications_consent, get_headers_for_consent
+    save_tos_consent, save_push_notifications_consent, get_headers_for_consent,\
+    get_communities_by_app_id
 from rogerthat.dal import parent_key
 from rogerthat.dal.app import get_app_by_id, get_app_settings
 from rogerthat.dal.profile import get_user_profile, get_deactivated_user_profile, get_service_or_user_profile, \
@@ -170,7 +171,7 @@ class InitiateRegistrationViaEmailVerificationHandler(webapp.RequestHandler):
 
         # Validate input.
         version = int(version)
-        azzert(version > 0 and version <= 3)
+        azzert(version > 0 and version <= 4)
         registration_time = int(registration_time)
         # XXX: validating the email would be an improvement
         app = verify_app(self.response, language, app_id)
@@ -322,7 +323,7 @@ class VerifyEmailWithPinHandler(webapp.RequestHandler):
 
         # Validate input.
         version = int(version)
-        azzert(version > 0 and version <= 3)
+        azzert(version > 0 and version <= 4)
         registration_time = int(registration_time)
         pin_code = int(pin_code)
         # XXX: validating the email address would be an improvement.
@@ -372,6 +373,21 @@ class VerifyEmailWithPinHandler(webapp.RequestHandler):
         installation_log = InstallationLog(parent=installation, timestamp=now(), pin=pin_code,
                                            description="Entered correct pin: %04d%s" % (
                                                pin_code, " (in HTTP request retry)" if is_retry else ""))
+
+        if version >= 4:
+            communities = get_communities_by_app_id(app_id)
+            if communities:
+                installation_log_community = InstallationLog(parent=registration.installation,
+                                                             timestamp=now(),
+                                                             registration=registration,
+                                                             description="User needs to pick a community")
+                db_puts = [registration, installation_log, installation_log_community]
+                send_installation_progress_callback(installation,
+                                                        [m for m in db_puts if isinstance(m, InstallationLog)])
+                self.response.out.write(json.dumps(dict(result="success",
+                                                        show_communities=True,
+                                                        communities=communities)))
+                return
 
         if version >= 3:
             device_names = get_device_names_of_my_mobiles(human_user, language, app_id, unique_device_id)
@@ -476,7 +492,7 @@ class CommonRegistrationHandler(webapp.RequestHandler):
 
         # Validate input.
         version = int(version)
-        azzert(version > 0 and version <= 3)
+        azzert(version > 0 and version <= 4)
 
         app = verify_app(self.response, language, app_id)
         if not app:
@@ -514,6 +530,18 @@ class CommonRegistrationHandler(webapp.RequestHandler):
             timestamp=now(),
             description="%s profile created & registration request validated." % self.TYPE))
         self.to_put.append(registration)
+
+        if version >= 4:
+            communities = get_communities_by_app_id(app_id)
+            if communities:
+                self.to_put.append(InstallationLog(parent=installation,
+                                                   timestamp=now(),
+                                                   description="User needs to pick a community"))
+                self._put_and_callback()
+                self.response.out.write(json.dumps(dict(show_communities=True,
+                                                        email=human_user.email(),
+                                                        communities=communities)))
+                return
 
         if version >= 3 and not self.ANONYMOUS:
             device_names = get_device_names_of_my_mobiles(human_user, language, app_id, unique_device_id)
@@ -671,7 +699,8 @@ class RegisterMobileViaQRHandler(webapp.RequestHandler):
         if self.request.get("qr_url", None):
             self.handle_post_qr_url(language)
         else:
-            self.handle_post_qr_content(language)
+            logging.error("Unable to handle RegisterMobileViaQRHandler")
+            self.response.set_status(500)
 
     def handle_post_qr_url(self, language):
         from rogerthat.pages.shortner import get_short_url_by_code
@@ -704,7 +733,7 @@ class RegisterMobileViaQRHandler(webapp.RequestHandler):
 
             # Validate input.
             version = int(version)
-            azzert(version > 0 and version <= 3)
+            azzert(version > 0 and version <= 4)
 
             app = verify_app(self.response, language, app_id)
             if not app:
@@ -787,112 +816,6 @@ class RegisterMobileViaQRHandler(webapp.RequestHandler):
             self.response.set_status(500)
             return
 
-    def handle_post_qr_content(self, language):
-        # todo too much copy paste from OauthRegistrationHandler
-        version = self.request.get("version", None)
-        install_id = self.request.get("install_id", None)
-        registration_time = self.request.get("registration_time", None)
-        device_id = self.request.get("device_id", None)
-        registration_id = self.request.get("registration_id", None)
-        qr_type = self.request.get("qr_type", None)
-        qr_content = self.request.get("qr_content", None)
-        signature = self.request.get("signature", None)
-        app_id = self.request.get("app_id", App.APP_ID_ROGERTHAT)
-        use_xmpp_kick_channel = self.request.get('use_xmpp_kick', 'true') == 'true'
-        use_firebase_kick_channel = self.request.get('use_firebase_kick', 'false') == 'true'
-        gcm_registration_id = self.request.get('GCM_registration_id', '')
-        firebase_registration_id = self.request.get('firebase_registration_id', '')
-        platform = self.request.get('platform')
-
-        server_settings = get_server_settings()
-
-        calculated_signature = sha256_hex(version + " " + install_id + " " + registration_time + " " + device_id + " " +
-                                          registration_id + " " + qr_type + "-" + qr_content + base64.b64decode(
-                                              server_settings.registrationMainSignature.encode("utf8")))
-
-        if signature.upper() != calculated_signature.upper():
-            logging.error("Invalid request signature.")
-            self.response.set_status(500)
-            return
-
-        app = verify_app(self.response, language, app_id)
-        if not app:
-            return
-        bizz_check(install_id and qr_type and qr_content, u"Could not validate QR code")
-
-        to_put = []
-        try:
-            oauth = get_app_settings(app_id).oauth
-            if not oauth.service_identity_email:
-                logging.error("oauth.service_identity_email is not set.")
-                self.response.set_status(500)
-                return
-
-            if qr_type == "jwt":
-                raise NotImplementedError()
-            else:
-                logging.error("Unknown qr_type: %s" % qr_type)
-                self.response.set_status(500)
-                return
-
-            mobile_type = get_mobile_type(platform, use_xmpp_kick_channel, use_firebase_kick_channel)
-            installation = get_or_insert_installation(install_id, version, mobile_type, registration_time, app_id,
-                                                      language, status=InstallationStatus.IN_PROGRESS)
-
-            to_put.append(InstallationLog(parent=installation, timestamp=now(),
-                                          description="Creating qr based profile & validating registration request. Language: %s, QR type: %s" % (
-                                              language, qr_type)))
-
-            service_identity_user = users.User(oauth.service_identity_email)
-            service_user, service_identity = get_service_identity_tuple(service_identity_user)
-            svc_profile = get_service_profile(service_user)
-
-            profile, app_user = _get_existing_user_profile(username, app_id, oauth.domain)
-
-            data = json.dumps(dict(qr_type=qr_type, qr_content=qr_content))
-            registration_result = validate_user_registration(installation, app_user, language, service_identity_user,
-                                                             svc_profile, service_identity, REGISTRATION_ORIGIN_QR,
-                                                             data)
-            if not profile:
-                _create_user_profile(app_user, username, registration_result)
-
-            human_user = get_human_user_from_app_user(app_user)
-
-            registration = Registration(parent=parent_key(app_user), key_name=registration_id)
-            registration.timestamp = int(registration_time)
-            registration.device_id = device_id
-            registration.pin = -1
-            registration.timesleft = -1
-            registration.installation = installation
-            registration.language = language
-            to_put.append(registration)
-
-            account, registration.mobile, age_and_gender_set = register_mobile(human_user,
-                                                                               app_id=app_id,
-                                                                               use_xmpp_kick_channel=use_xmpp_kick_channel,
-                                                                               gcm_registration_id=gcm_registration_id,
-                                                                               language=registration.language,
-                                                                               firebase_registration_id=firebase_registration_id)
-
-            to_put.append(InstallationLog(parent=installation, timestamp=now(),
-                                          description="Profile created & registration request validated."))
-            installation.profile = get_user_profile(app_user),
-            installation.mobile = registration.mobile
-            to_put.append(installation)
-            db.put(to_put)
-            send_installation_progress_callback(installation, [m for m in to_put if isinstance(m, InstallationLog)])
-            response = dict(account=account.to_dict(),
-                            email=human_user.email(),
-                            age_and_gender_set=age_and_gender_set)
-
-        except BusinessException as be:
-            logging.debug("BusinessException during via QR-content handler %s", be)
-            self.response.set_status(500)
-            return
-
-        self.response.out.write(json.dumps(response))
-
-
 # This handler is called to unregister another logged in device
 class RegisterDeviceHandler(webapp.RequestHandler):
 
@@ -914,6 +837,9 @@ class RegisterDeviceHandler(webapp.RequestHandler):
         sim_carrier_name = self.request.get("sim_carrier_name", None)
         anonymous_account = self.request.get("anonymous_account", None)
         language = _get_language_from_request(self.request)
+        
+        if anonymous_account:
+            logging.error('RegisterDeviceHandler handled with an anonymous_account')
 
         server_settings = get_server_settings()
 
@@ -928,7 +854,7 @@ class RegisterDeviceHandler(webapp.RequestHandler):
 
         # Validate input.
         version = int(version)
-        azzert(version == 3)
+        azzert(version >= 3)
         registration_time = int(registration_time)
 
         app = verify_app(self.response, language, app_id)
@@ -972,9 +898,9 @@ class RegisterDeviceHandler(webapp.RequestHandler):
         if consent_push_notifications_shown:
             deferred.defer(save_push_notifications_consent, app_user, headers, push_notifications_enabled)
 
-        installation_log.mobile = registration.mobile
-        installation_log.profile = get_user_profile(app_user)
-        db.put([registration, installation_log])
+        registration.installation.mobile = registration.mobile
+        registration.installation.profile = get_user_profile(app_user)
+        db.put([registration, registration.installation, installation_log])
         send_installation_progress_callback(registration.installation, [installation_log])
         self.response.out.write(json.dumps(dict(account=account.to_dict(),
                                                 age_and_gender_set=age_and_gender_set)))
@@ -1009,11 +935,7 @@ class FinishRegistrationHandler(webapp.RequestHandler):
         invitor_code = self.request.POST.get('invitor_code')
         invitor_secret = self.request.POST.get('invitor_secret')
 
-        ipaddress = os.environ.get('HTTP_X_FORWARDED_FOR', None)
-        if ipaddress:
-            ipaddress = unicode(ipaddress)
-
-        finish_registration(account, mobileInfo, invitor_code, invitor_secret, ipaddress,
+        finish_registration(account, mobileInfo, invitor_code, invitor_secret,
                             anonymous_account=anonymous_account)
         r = json.dumps({})
         self.response.out.write(r)
@@ -1103,6 +1025,108 @@ class InitServiceAppHandler(webapp2.RequestHandler):
         self.response.out.write(json.dumps(dict(result="success",
                                                 account=account.to_dict(),
                                                 email=user.email(),
+                                                age_and_gender_set=age_and_gender_set)))
+
+
+class RegistrationCommunityHandler(webapp2.RequestHandler):
+
+    def post(self):
+        logging.debug(self.request.POST)
+        version = self.request.get("version", 0)
+        email = self.request.get("email", None)
+        tos_age = self.request.get("tos_age", None)
+        push_notifications_enabled = self.request.get("push_notifications_enabled", None)
+        registration_time = self.request.get("registration_time", None)
+        device_id = self.request.get("device_id", None)
+        registration_id = self.request.get("registration_id", None)
+        signature = self.request.get("signature", None)
+        app_id = self.request.get("app_id", App.APP_ID_ROGERTHAT)
+        use_xmpp_kick_channel = self.request.get('use_xmpp_kick', 'true') == 'true'
+        firebase_registration_id = self.request.get('firebase_registration_id', '')
+        anonymous_account = self.request.get("anonymous_account", None)
+        unique_device_id = self.request.get("unique_device_id", None)
+        language = _get_language_from_request(self.request)
+        community_id = self.request.get("community_id", None)
+        
+        server_settings = get_server_settings()
+ 
+        # Verify request signature.
+        calculated_signature = sha256_hex(version + " " + email + " " + registration_time + " " + device_id + " " +
+                                          registration_id + " " + base64.b64decode(
+                                              server_settings.registrationMainSignature.encode("utf8")))
+
+        if signature.upper() != calculated_signature.upper():
+            self.response.set_status(500)
+            return
+        
+        # Validate input.
+        version = int(version)
+        azzert(version == 4)
+        registration_time = int(registration_time)
+ 
+        app = verify_app(self.response, language, app_id)
+        if not app:
+            return
+        
+        community_id = long(community_id)
+
+        human_user = users.User(email)
+        app_user = create_app_user(human_user, app_id)
+        registration = Registration.get_by_key_name(registration_id, parent_key(app_user))
+
+        azzert(registration)
+        azzert(registration.timestamp == registration_time)
+        azzert(registration.device_id == device_id)
+        
+        installation_log = InstallationLog(parent=registration.installation, timestamp=now(),
+                                           description="Picked community with id '%s'" % (community_id))
+        
+        if not anonymous_account:
+            device_names = get_device_names_of_my_mobiles(human_user, language, app_id, unique_device_id)
+            if device_names:
+                registration.device_names = device_names
+                installation_log_devices = InstallationLog(parent=registration.installation,
+                                                           timestamp=now(),
+                                                           registration=registration,
+                                                           description="Current device names: %s" % device_names)
+                db_puts = [registration, installation_log, installation_log_devices]
+                db.put(db_puts)
+                send_installation_progress_callback(registration.installation,
+                                                    [m for m in db_puts if isinstance(m, InstallationLog)])
+                self.response.out.write(json.dumps(dict(has_devices=True,
+                                                        device_names=device_names)))
+                return
+
+        tos_version = None
+        if tos_age:
+            tos_version = get_current_document_version(DOC_TERMS)
+        consent_push_notifications_shown = push_notifications_enabled is not None
+        account, registration.mobile, age_and_gender_set = register_mobile(human_user,
+                                                                           app_id=app_id,
+                                                                           use_xmpp_kick_channel=use_xmpp_kick_channel,
+                                                                           language=registration.language,
+                                                                           firebase_registration_id=firebase_registration_id,
+                                                                           tos_version=tos_version,
+                                                                           consent_push_notifications_shown=consent_push_notifications_shown,
+                                                                           anonymous_account=anonymous_account,
+                                                                           community_id=community_id)
+
+        headers = get_headers_for_consent(self.request)
+        if tos_version:
+            deferred.defer(save_tos_consent, app_user, headers, tos_version, tos_age)
+        if consent_push_notifications_shown:
+            deferred.defer(save_push_notifications_consent, app_user, headers, push_notifications_enabled)
+
+        installation = registration.installation
+        if installation:
+            installation.mobile = registration.mobile
+            installation.profile = get_user_profile(app_user)
+            db.put([registration, installation, installation_log])
+            send_installation_progress_callback(registration.installation, [installation_log])
+        else:
+            registration.put()
+        self.response.out.write(json.dumps(dict(has_devices=False,
+                                                account=account.to_dict(),
                                                 age_and_gender_set=age_and_gender_set)))
 
 
@@ -1221,7 +1245,7 @@ class OauthRegistrationHandler(webapp2.RequestHandler):
 
         # Validate input.
         version = int(version)
-        azzert(version > 0 and version <= 3)
+        azzert(version > 0 and version <= 4)
 
         app = verify_app(self.response, language, app_id)
         if not app:
@@ -1264,7 +1288,7 @@ class OauthRegistrationHandler(webapp2.RequestHandler):
                 installation.oauth_state = state
                 to_put.append(installation)
             if not profile:
-                profile = _create_user_profile(app_user, username, registration_result)
+                profile = _create_user_profile(app_user, username, registration_result) # todo communities set community_id
 
             human_user = get_human_user_from_app_user(app_user)
 
@@ -1285,7 +1309,6 @@ class OauthRegistrationHandler(webapp2.RequestHandler):
                     registration.device_names = device_names
                     to_put.append(InstallationLog(parent=registration.installation,
                                                   timestamp=now(),
-                                                  registration=registration,
                                                   description="Current device names: '%s'" % device_names))
                     db.put(to_put)
                     send_installation_progress_callback(installation,
@@ -1294,6 +1317,7 @@ class OauthRegistrationHandler(webapp2.RequestHandler):
                                                             email=human_user.email(),
                                                             device_names=device_names)))
                     return
+                
 
             tos_version = None
             if tos_age:

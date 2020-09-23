@@ -16,10 +16,8 @@
 # @@license_version:1.7@@
 
 import webapp2
-from google.appengine.ext.deferred import deferred
 
 from rogerthat.bizz import log_analysis
-from rogerthat.bizz.app import prepare_app_statistics_cache
 from rogerthat.bizz.job.email_statistics import schedule_email_statistics
 from rogerthat.bizz.job.service_stats import start_job
 from rogerthat.bizz.statistics import generate_all_stats
@@ -35,11 +33,6 @@ class ServiceStatisticsEmailHandler(webapp2.RequestHandler):
 
     def get(self):
         schedule_email_statistics()
-
-
-class AppStatisticsCache(webapp2.RequestHandler):
-    def get(self):
-        deferred.defer(prepare_app_statistics_cache)
 
 
 class DailyStatisticsHandler(webapp2.RequestHandler):

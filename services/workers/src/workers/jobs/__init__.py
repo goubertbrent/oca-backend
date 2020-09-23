@@ -20,6 +20,7 @@ import logging
 from google.appengine.api import users, urlfetch
 from google.appengine.api.app_identity.app_identity import get_application_id
 from google.appengine.ext import ndb, deferred
+from typing import Tuple, Optional, List
 
 from common.consts import JOBS_WORKER_QUEUE, JOBS_CONTROLLER_QUEUE
 from common.job import run_job, MODE_BATCH
@@ -43,12 +44,12 @@ def create_job_offer_matches(job_offer):
     for job_domain in job_offer.job_domains:
         run_job(create_matches_query_domain, [job_domain], create_matches_for_job, [job_offer.key],
                 worker_queue=JOBS_WORKER_QUEUE, controller_queue=JOBS_CONTROLLER_QUEUE, mode=MODE_BATCH, batch_size=25)
-        
+
 
 def remove_job_offer_matches(job_id):
     # type: (int) -> None
     deferred.defer(_remove_job_offer_matches, job_id, _queue=JOBS_WORKER_QUEUE)
-    
+
 
 def _remove_job_offer_matches(job_id):
     delete_all_models_by_query(JobMatch.list_by_job_id_and_status(job_id, JobMatchStatus.NEW))
@@ -115,10 +116,8 @@ def calculate_job_match_score(job_offer, criteria, distance):
 def does_job_match_criteria(job_offer, criteria):
     # type: (JobOffer, JobMatchingCriteria) -> Tuple[bool, Optional[int]]
     # In theory this should be the same as executing rogerthat.bizz.jobs.matching.search_jobs
-    if job_offer.demo_app_ids:
-        app_id = get_app_id_from_app_user(criteria.app_user)
-        if app_id not in job_offer.demo_app_ids:
-            return False, None
+    if criteria.demo != job_offer.demo:
+        return False, None
     if criteria.job_domains:
         if not any(domain in job_offer.job_domains for domain in criteria.job_domains):
             return False, None

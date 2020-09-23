@@ -248,7 +248,7 @@ class TestApp(mc_unittest.TestCase):
             rogerthat_user_profile.user).email(), None, None, None, None, origin=ORIGIN_USER_INVITE, app_id=u"rogerthat")
 
         invite(svc_identity_user, get_human_user_from_app_user(rogerthat_app_user).email(),
-               None, None, None, None, origin=ORIGIN_USER_INVITE, app_id=u"rogerthat")
+               None, None, None, origin=ORIGIN_USER_INVITE, app_id=u"rogerthat")
         self.assertRaises(Exception, invite, svc_identity_user, get_human_user_from_app_user(
             rogerthat_app_user).email(), None, None, None, None, origin=ORIGIN_USER_INVITE, app_id=u"rogerthat")
         self.assertRaises(Exception, invite, svc_identity_user, get_human_user_from_app_user(
@@ -256,7 +256,7 @@ class TestApp(mc_unittest.TestCase):
 
         self.assertRaises(Exception, invite, svc_identity_user, get_human_user_from_app_user(lochristi_app_user).email(
         ), None, None, None, None, origin=ORIGIN_USER_INVITE, app_id=u"be-loc", allow_unsupported_apps=True)
-        invite(lochristi_app_user, si.user.email(), None, None, None, None,
+        invite(lochristi_app_user, si.user.email(), None, None, None,
                origin=ORIGIN_USER_INVITE, app_id=u"be-loc", allow_unsupported_apps=True)
 
         def trans5():
@@ -267,7 +267,7 @@ class TestApp(mc_unittest.TestCase):
             return si
         si = db.run_in_transaction(trans5)
 
-        invite(svc_identity_user, u'bart@example.com', None, None,
+        invite(svc_identity_user, u'bart@example.com', None,
                None, None, origin=ORIGIN_USER_INVITE, app_id=u"be-loc")
         self.assertRaises(Exception, invite, svc_identity_user, u'bart@example.com', None,
                           None, None, None, origin=ORIGIN_USER_INVITE, app_id=u"rogerthat")
@@ -282,10 +282,10 @@ class TestApp(mc_unittest.TestCase):
         self.assertEqual("be-loc", users.get_current_app_id())
         azzert(john_mobile == users.get_current_mobile())
 
-        jane = create_app_user(users.User(u'jane_doe@foo.com'), "be-loc2#ffaf14579")
+        jane = create_app_user(users.User(u'jane_doe@foo.com'), "be-berlare")
         create_user_profile(jane, u"Jane Doe")
         jane_mobile = register_tst_mobile(jane.email())
         set_current_mobile(jane_mobile)
 
-        self.assertEqual("be-loc2#ffaf14579", users.get_current_app_id())
+        self.assertEqual("be-berlare", users.get_current_app_id())
         azzert(jane_mobile == users.get_current_mobile())

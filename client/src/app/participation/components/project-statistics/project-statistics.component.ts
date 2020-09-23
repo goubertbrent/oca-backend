@@ -16,6 +16,7 @@ import {
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
+import { ChartType } from 'angular-google-charts';
 import { Loadable } from '../../../shared/loadable/loadable';
 import { MerchantStatistics, ProjectStatistics } from '../../projects';
 
@@ -29,7 +30,7 @@ interface ChartOptions {
   data: (string | number)[][];
   columns: string[];
   options: google.visualization.BarChartOptions;
-  type: string;
+  type: ChartType;
 }
 
 @Component({
@@ -100,7 +101,7 @@ export class ProjectStatisticsComponent implements OnInit, OnChanges {
   private createChart(merchants: MerchantStatistics[], amount: number): ChartOptions {
     const chartData = merchants.slice(0, amount).map(m => ([m.name, m.total]));
     return {
-      type: 'BarChart',
+      type: ChartType.BarChart,
       columns: ['Name', ''],
       data: chartData,
       options: {

@@ -15,7 +15,7 @@
           </button>
         </mat-list-item>
       </mat-list>
-      <oca-choose-location [locations]="(cityAppLocations$ | async).data" (addressAdded)="addAddress($event)">
+      <oca-choose-location [locations]="(cityAppLocations$ | async)?.data" (addressAdded)="addAddress($event)">
       </oca-choose-location>
     </mat-expansion-panel>
 

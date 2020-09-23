@@ -28,6 +28,7 @@ from google.appengine.ext import webapp, deferred, db
 
 from mcfw.properties import azzert
 from mcfw.rpc import serialize_complex_value, returns, arguments
+from rogerthat.bizz.communities.models import Community
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import SCHEDULED_QUEUE
 from rogerthat.dal import parent_key_unsafe, put_and_invalidate_cache
@@ -51,7 +52,6 @@ from solutions.common.bizz.loyalty import update_user_data_admins, create_loyalt
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
 from solutions.common.bizz.settings import get_service_info
 from solutions.common.dal import get_solution_settings
-from solutions.common.dal.cityapp import get_service_user_for_city
 from solutions.common.models import SolutionInboxMessage, SolutionSettings
 from solutions.common.models.loyalty import SolutionLoyaltyLottery, SolutionLoyaltySettings, \
     SolutionLoyaltyVisitLottery, \
@@ -288,12 +288,13 @@ def create_loyalty_export_pdfs():
         countdown += 2
 
 
-
 def _schedule_loot_city_wide_lottery():
     run_job(_qry_city_wide_lottery, [], _worker_city_wide_lottery, [])
 
+
 def _qry_city_wide_lottery():
     return SolutionCityWideLottery.all(keys_only=True).filter("schedule_loot_time <", now()).filter("schedule_loot_time >", 0)
+
 
 def _get_service_user_for_app_id(sln_settings, app_id):
     users.set_user(sln_settings.service_user)
@@ -305,9 +306,11 @@ def _get_service_user_for_app_id(sln_settings, app_id):
     finally:
         users.clear_user()
 
+
 def _worker_city_wide_lottery(sln_cwl_lottery_key):
-    tmp_sln_cwl = db.get(sln_cwl_lottery_key)
-    service_user = get_service_user_for_city(tmp_sln_cwl.app_id)
+    tmp_sln_cwl = db.get(sln_cwl_lottery_key)  # type: SolutionCityWideLottery
+    community = Community.get_by_default_app(tmp_sln_cwl.app_id)  # type: Community
+    service_user = community.main_service_user
 
     if not service_user:
         raise Exception("Failed to do city wide lottery service_user not found for app: %s", tmp_sln_cwl.app_id)

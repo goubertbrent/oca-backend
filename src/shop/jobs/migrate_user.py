@@ -67,7 +67,7 @@ def migrate(executor_user, from_user, to_user, service_email, customer_id=None):
                 service_profile = get_service_profile(users.User(service_email))
                 language = service_profile.defaultLanguage
                 password_hash = service_profile.passwordHash
-            to_profile = create_user_profile(to_user, to_user.email(), language)
+            to_profile = create_user_profile(to_user, to_user.email(), language) # todo communities set community_id
             to_profile.isCreatedForService = True
             to_profile.owningServiceEmails = [service_email]
             update_password_hash(to_profile, password_hash, now())

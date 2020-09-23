@@ -19,10 +19,10 @@ import logging
 from types import NoneType
 
 from google.appengine.ext import db, deferred
+from typing import List
 
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.look_and_feel import get_look_and_feel_for_user, send_look_and_feel_update
 from rogerthat.bizz.service import RoleAlreadyExistsException, InvalidRoleTypeException, \
     DeleteRoleFailedHasMembersException, RoleNotFoundException, ServiceIdentityDoesNotExistException, \
     DeleteRoleFailedHasSMDException
@@ -33,7 +33,6 @@ from rogerthat.dal.roles import get_service_role_by_name, get_service_role_grant
     get_service_roles_by_ids, list_service_roles
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceRole, ServiceIdentity, UserProfile, ServiceMenuDef
-from rogerthat.models.apps import AppLookAndFeel
 from rogerthat.rpc import users
 from rogerthat.to.roles import RoleTO
 from rogerthat.utils import now, channel, bizz_check
@@ -69,25 +68,16 @@ def grant_roles(service_identity_user, user, roles):
             role_ids.append(u'%s' % role.role_id)
 
     def trans():
-        look_and_feel = None
         user_profile = get_user_profile(user, False)
         bizz_check(user_profile, 'User %s does not exist' % user.email())
         for role_id in role_ids:
             user_profile.grant_role(service_identity_user, role_id)
-        if not user_profile.look_and_feel_id:
-            look_n_feel = get_look_and_feel_for_user(user_profile)
-            if look_n_feel:
-                user_profile.look_and_feel_id = look_n_feel.id
-                look_and_feel = look_n_feel
         user_profile.put()
-        return look_and_feel
 
-    look_n_feel = run_in_transaction(trans)
+    run_in_transaction(trans)
 
     if admin:
         _send_admin_role_updates(service_identity_user)
-    if look_n_feel:
-        send_look_and_feel_update(user, look_n_feel)
 
 
 @returns(NoneType)
@@ -112,36 +102,15 @@ def revoke_role(service_identity_user, user, role):
         role_str = u'%s' % role.role_id
 
     def trans():
-        new_look_and_feel = None
-        new_look_and_feel_id = None
-        look_n_feel_changed = False
         user_profile = get_user_profile(user, False)
         user_profile.revoke_role(service_identity_user, role_str)
-        if not admin and user_profile.look_and_feel_id:
-            look_and_feel = AppLookAndFeel.get_by_id(user_profile.look_and_feel_id)
-            for role_mapping in look_and_feel.roles:  # type: LookAndFeelServiceRoles
-                if role.role_id in role_mapping.role_ids:
-                    new_look_and_feel = get_look_and_feel_for_user(user_profile, ignore_role=role.role_id)
-                    if new_look_and_feel:
-                        new_look_and_feel_id = new_look_and_feel.key.id()
-                    break
-
-        if user_profile.look_and_feel_id:
-            if not new_look_and_feel_id or user_profile.look_and_feel_id != new_look_and_feel_id:
-                look_n_feel_changed = True
-
-        user_profile.look_and_feel_id = new_look_and_feel_id
         user_profile.put()
-        return new_look_and_feel, look_n_feel_changed
 
-    new_look_n_feel, look_n_feel_changed = run_in_transaction(trans)
+    run_in_transaction(trans)
 
     if admin:
         deferred.defer(drop_sessions_of_user, user)
         _send_admin_role_updates(service_identity_user)
-
-    if look_n_feel_changed:
-        send_look_and_feel_update(user, new_look_n_feel)
 
 
 @returns(bool)
@@ -201,7 +170,7 @@ def _create_role(service_user, name, type_):
 @returns([ServiceRole])
 @arguments(service_user=users.User, roles=[RoleTO])
 def create_service_roles(service_user, roles):
-    # type: (users.User, list[RoleTO]) -> list[ServiceRole]
+    # type: (users.User, List[RoleTO]) -> List[ServiceRole]
     azzert(get_service_profile(service_user), 'Service %s does not exist' % service_user)
     existing_role_names = {sr.name: sr for sr in list_service_roles(service_user)}
     result = []

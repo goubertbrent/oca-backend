@@ -24,9 +24,9 @@ from mcfw.consts import MISSING
 from mcfw.properties import object_factory
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
+from rogerthat.bizz.communities.communities import get_community
 from rogerthat.dal import put_and_invalidate_cache, parent_key_unsafe
-from rogerthat.dal.profile import get_profile_infos
-from rogerthat.dal.service import get_service_identity
+from rogerthat.dal.profile import get_profile_infos, get_service_profile
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
@@ -34,7 +34,6 @@ from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import now
 from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.channel import send_message
-from rogerthat.utils.service import add_slash_default
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import loyalty as loyalty_bizz, broadcast_updates_pending, get_app_info_cached, \
@@ -597,8 +596,9 @@ def rest_request_loyalty_device(source=MISSING):
 @returns(BaseLoyaltyCustomersTO)
 @arguments(cursor=unicode)
 def load_city_wide_lottery_customer_points(cursor=None):
-    si = get_service_identity(add_slash_default(users.get_current_user()))
-    qry = SolutionCityWideLotteryVisit.load(si.app_id)
+    service_profile = get_service_profile(users.get_current_user())
+    community = get_community(service_profile.community_id)
+    qry = SolutionCityWideLotteryVisit.load(community.default_app)
     qry.with_cursor(cursor)
     visits = qry.fetch(10)
     cursor_ = qry.cursor()
@@ -645,9 +645,10 @@ def load_city_wide_lottery_customer_points(cursor=None):
 @returns(LoyaltyCustomerPointsTO)
 @arguments(email=unicode, app_id=unicode)
 def load_city_wide_lottery_detail_customer_points(email, app_id):
-    si = get_service_identity(add_slash_default(users.get_current_user()))
+    service_profile = get_service_profile(users.get_current_user())
+    community = get_community(service_profile.community_id)
     app_user = create_app_user_by_email(email, app_id)
-    visits = get_solution_city_wide_lottery_loyalty_visits_for_user(si.app_id, app_user)
+    visits = get_solution_city_wide_lottery_loyalty_visits_for_user(community.default_app, app_user)
     r = LoyaltyCustomerPointsTO()
 
     # XXX: don't use get_profile_infos
@@ -666,10 +667,11 @@ def load_city_wide_lottery_detail_customer_points(email, app_id):
 @returns(LoyaltyLotteryChanceTO)
 @arguments(email=unicode, app_id=unicode)
 def load_city_wide_lottery_chance_user(email, app_id):
-    si = get_service_identity(add_slash_default(users.get_current_user()))
+    service_profile = get_service_profile(users.get_current_user())
+    community = get_community(service_profile.community_id)
     app_user = create_app_user_by_email(email, app_id)
     r = LoyaltyLotteryChanceTO()
-    r.total_visits, r.my_visits, r.chance = calculate_city_wide_lottery_chance_for_user(si.app_id, app_user)
+    r.total_visits, r.my_visits, r.chance = calculate_city_wide_lottery_chance_for_user(community.default_app, app_user)
     return r
 
 
@@ -677,8 +679,9 @@ def load_city_wide_lottery_chance_user(email, app_id):
 @returns(ReturnStatusTO)
 @arguments(winnings=unicode, date=TimestampTO, x_winners=(int, long))
 def add_city_wide_lottery_info(winnings, date, x_winners):
-    si = get_service_identity(add_slash_default(users.get_current_user()))
-    city_app_id = si.app_id
+    service_profile = get_service_profile(users.get_current_user())
+    community = get_community(service_profile.community_id)
+    city_app_id = community.default_app
     service_user = users.get_current_user()
     sln_settings = get_solution_settings(service_user)
     try:
@@ -797,16 +800,19 @@ def close_city_wide_lottery_info(key):
 @returns([CityWideLotteryInfoTO])
 @arguments()
 def load_city_wide_lottery_info():
-    si = get_service_identity(add_slash_default(users.get_current_user()))
-    return [CityWideLotteryInfoTO.fromModel(ll_info) for ll_info in SolutionCityWideLottery.load_all(si.app_id)]
+    service_profile = get_service_profile(users.get_current_user())
+    community = get_community(service_profile.community_id)
+    return [CityWideLotteryInfoTO.fromModel(ll_info)
+            for ll_info in SolutionCityWideLottery.load_all(community.default_app)]
 
 
 @rest("/common/city/postal_codes", "get")
 @returns([unicode])
 @arguments()
 def restapi_get_city_postal_codes():
-    si = get_service_identity(add_slash_default(users.get_current_user()))
-    return get_or_create_city_postal_codes(si.app_id).postal_codes
+    service_profile = get_service_profile(users.get_current_user())
+    community = get_community(service_profile.community_id)
+    return get_or_create_city_postal_codes(community.default_app).postal_codes
 
 
 def can_edit_city_postal_codes():
@@ -822,9 +828,10 @@ def can_edit_city_postal_codes():
 @arguments(postal_code=unicode)
 def restapi_add_city_postal_code(postal_code):
     try:
-        si = get_service_identity(add_slash_default(users.get_current_user()))
+        service_profile = get_service_profile(users.get_current_user())
+        community = get_community(service_profile.community_id)
         sln_settings = can_edit_city_postal_codes()
-        add_city_postal_code(si.app_id, postal_code)
+        add_city_postal_code(community.default_app, postal_code)
         return RETURNSTATUS_TO_SUCCESS
     except ValueError:
         return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, u'invlid_postal_code'))
@@ -837,9 +844,10 @@ def restapi_add_city_postal_code(postal_code):
 @arguments(postal_code=unicode)
 def restapi_remove_city_postal_codes(postal_code):
     try:
-        si = get_service_identity(add_slash_default(users.get_current_user()))
+        service_profile = get_service_profile(users.get_current_user())
+        community = get_community(service_profile.community_id)
         can_edit_city_postal_codes()
-        remove_city_postal_code(si.app_id, postal_code)
+        remove_city_postal_code(community.default_app, postal_code)
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)

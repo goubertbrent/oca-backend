@@ -1,12 +1,10 @@
-import { OverlayConfig, OverlayContainer } from '@angular/cdk/overlay';
+import { OverlayContainer } from '@angular/cdk/overlay';
 import { ChangeDetectionStrategy, Component, HostBinding, OnInit, ViewEncapsulation } from '@angular/core';
 import { ActivatedRoute, Event, NavigationEnd, Router } from '@angular/router';
 import { select, Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
-import { UpdateSidebarItemsAction } from '../../framework/client/nav/sidebar/actions';
-import { SidebarItem } from '../../framework/client/nav/sidebar/interfaces';
-import { getRoutes, getSidebarItems } from '../../framework/client/nav/sidebar/sidebar.state';
-import { CleanToolbarItemsAction } from '../../framework/client/nav/toolbar/actions';
+import { getRoutes, getSidebarItems, SidebarItem, UpdateSidebarItemsAction } from '../../framework/client/nav/sidebar';
+import { CleanToolbarItemsAction } from '../../framework/client/nav/toolbar';
 import { Route, RouteData } from './app.routes';
 import { ThemingService } from './theming.service';
 
@@ -35,7 +33,7 @@ export class AppComponent implements OnInit {
     this.router.events.subscribe(event => this.handleRouteEvent(event));
     this.sidebarItems$ = this.store.pipe(select(getSidebarItems));
     this.store.pipe(select(getRoutes)).subscribe(routes => {
-      this.store.dispatch(new UpdateSidebarItemsAction(this.updateSidebarItems(<Route[]>routes)));
+      this.store.dispatch(new UpdateSidebarItemsAction(this.updateSidebarItems(routes as Route[])));
     });
     this.themingService.theme.subscribe(theme => {
       const overlayClassList = this.overlayContainer.getContainerElement().classList;
@@ -48,15 +46,15 @@ export class AppComponent implements OnInit {
   private updateSidebarItems(routes: Route[]): SidebarItem[] {
     const sidebarItems = [];
     for (const route of routes) {
-      const routeData: RouteData = <RouteData>route.data;
+      const routeData: RouteData = route.data as RouteData;
       const routeId = routeData && routeData.id;
       if (routeId) {
         const sidebarItem: SidebarItem = {
-          id: <string>routeData.id,
+          id: routeData.id as string,
           icon: routeData.icon,
-          label: <string>(routeData.label || routeData.meta.title),
+          label: (routeData.label || routeData.meta.title) as string,
           description: routeData.description,
-          route: <string>route.path,
+          route: route.path as string,
         };
         sidebarItems.push(sidebarItem);
       }
@@ -73,7 +71,7 @@ export class AppComponent implements OnInit {
         return;
       }
       const routeData: RouteData = currentRoute.data;
-      this.toolbarTitle = <string>routeData.label;
+      this.toolbarTitle = (routeData.label as string);
       const baseRoute = currentRoute.url.map(u => u.path);
       const parentRoute = JSON.parse(JSON.stringify(baseRoute));
       parentRoute.splice(baseRoute.length - 1);

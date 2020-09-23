@@ -214,9 +214,9 @@ class CanNotInviteOtherServiceException(ServiceApiException):
 
 
 @returns(NoneType)
-@arguments(invitor_user=users.User, invitee_email=unicode, invitee_name=unicode, message=unicode, language=unicode,
+@arguments(invitor_user=users.User, invitee_email=unicode, message=unicode, language=unicode,
            servicetag=unicode, origin=unicode, app_id=unicode, allow_unsupported_apps=bool)
-def invite(invitor_user, invitee_email, invitee_name, message, language, servicetag, origin, app_id, allow_unsupported_apps=False):
+def invite(invitor_user, invitee_email, message, language, servicetag, origin, app_id, allow_unsupported_apps=False):
     from rogerthat.bizz.service import validate_app_id_for_service_identity_user
     # Basic validation checks
     if ':' in invitee_email:
@@ -305,6 +305,7 @@ def areFriends(profile1, profile2):
 @returns(bool)
 @arguments(profile_info1=ProfileInfo, profile_info2=ProfileInfo)
 def canBeFriends(profile_info1, profile_info2):
+    # TODO communities: just refactor to `return True` or remove this function entirely
     if profile_info1.isServiceIdentity:
         if profile_info2.isServiceIdentity:
             return False
@@ -319,8 +320,8 @@ def canBeFriends(profile_info1, profile_info2):
 
 @returns()
 @arguments(app_user=users.User, service_profile=ServiceProfile, identifier=unicode, user_details=[UserDetailsTO],
-           roles=[RoleTO], make_friends_if_in_role=bool)
-def send_is_in_roles(app_user, service_profile, identifier, user_details, roles, make_friends_if_in_role=False):
+           roles=[RoleTO])
+def send_is_in_roles(app_user, service_profile, identifier, user_details, roles):
     def trans():
         context = is_in_roles(is_in_roles_response_receiver, logServiceError, service_profile,
                               service_identity=identifier, user_details=user_details, roles=roles,
@@ -328,7 +329,6 @@ def send_is_in_roles(app_user, service_profile, identifier, user_details, roles,
         if context is not None:  # None if friend.is_in_roles not implemented
             context.human_user = app_user
             context.role_ids = [r.id for r in roles]
-            context.make_friends_if_in_role = make_friends_if_in_role
             context.put()
 
     if roles:
@@ -487,7 +487,6 @@ def makeFriends(invitor, invitee, original_invitee, servicetag, origin, notify_i
 
             on_trans_committed(slog, msg_="Service user gained", function_=log_analysis.SERVICE_STATS,
                                service=from_.email(), tag=to.email(), type_=log_analysis.SERVICE_STATS_TYPE_GAINED)
-
             on_trans_committed(setup_notification_settings_for_user, to, from_)
         if to_put:
             db.put(to_put)
@@ -612,16 +611,13 @@ def ack_invitation_by_invitation_secret(invitee_user, invitor_user, secret):
 @returns(NoneType)
 @arguments(message=Message)
 def ackInvitation(message):
-    from rogerthat.bizz.job.app_broadcast import APP_BROADCAST_TAG
-    azzert(message.tag == FRIEND_INVITATION_REQUEST or message.tag.startswith(APP_BROADCAST_TAG))
+    azzert(message.tag == FRIEND_INVITATION_REQUEST)
     invitor = message.invitor
     invitee = message.invitee
     origin = getattr(message, "origin", ORIGIN_USER_INVITE)
     servicetag = getattr(message, "servicetag", None)
 
     btn_index = message.memberStatusses[message.members.index(invitee)].button_index
-    if btn_index == -1 and message.tag.startswith(APP_BROADCAST_TAG):
-        return
 
     if btn_index != message.buttons[ACCEPT_ID].index:
         if is_service_identity_user(invitor):
@@ -871,7 +867,7 @@ def ack_share_service(message):
     # If the invitee accepts the recommendation, then we somehow reverse roles, and the invitee invites the service
     # This means that the invitee is now an invitor
     if message.memberStatusses[message.members.index(invitee)].button_index == message.buttons[ACCEPT_ID].index:
-        invite(invitee, service_identity_user.email(), get_service_identity(service_identity_user).name, None, None,
+        invite(invitee, service_identity_user.email(), None, None,
                None, ORIGIN_USER_RECOMMENDED, get_app_id_from_app_user(invitee))
 
 
@@ -1143,7 +1139,6 @@ def is_in_roles_response_receiver(context, result):
     service_identity_user = context.service_identity_user
     app_user = context.human_user
     role_ids = context.role_ids
-    make_friends_if_in_role = context.make_friends_if_in_role
 
     def trans():
         user_profile = get_user_profile(app_user, cached=False)
@@ -1164,12 +1159,8 @@ def is_in_roles_response_receiver(context, result):
             on_trans_committed(_send_service_role_grants_updates, service_user)
 
             if granted:
-                if make_friends_if_in_role:
-                    on_trans_committed(makeFriends, service_identity_user, app_user, app_user, None,
-                                       notify_invitee=False, origin=ORIGIN_USER_INVITE)
-                else:
-                    on_trans_committed(schedule_update_a_friend_of_a_service_identity_user, service_identity_user,
-                                       app_user, force=True)
+                on_trans_committed(schedule_update_a_friend_of_a_service_identity_user, service_identity_user,
+                                   app_user, force=True)
 
     xg_on = db.create_transaction_options(xg=True)
     db.run_in_transaction_options(xg_on, trans)
@@ -1359,7 +1350,7 @@ def ack_invitation_by_secret_failed(message):
     invitor = message.invitor
     invitee = message.invitee
     if message.memberStatusses[message.members.index(invitor)].button_index == message.buttons[INVITE_ID].index:
-        invite(invitor, invitee.email(), get_profile_info(invitee).name, None, None,
+        invite(invitor, invitee.email(), None, None,
                message.service_tag, origin=message.origin, app_id=get_app_id_from_app_user(invitor))
         logging.info("Mr %s accepted offer" % invitor.email())
     else:

@@ -2,26 +2,19 @@ import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/
 import { Router } from '@angular/router';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
-import { App, AppStatisticsMapping, CreateNews, NewsOptions, NewsSettingsTag, NewsStats } from '@oca/web-shared';
 import { ErrorService } from '@oca/web-shared';
 import { Observable, Subject } from 'rxjs';
 import { distinctUntilChanged, map, takeUntil, withLatestFrom } from 'rxjs/operators';
 import { BrandingSettings } from '../../../shared/interfaces/oca';
-import { ServiceIdentityInfo } from '../../../shared/interfaces/rogerthat';
 import { Loadable } from '../../../shared/loadable/loadable';
-import {
-  GetAppsAction,
-  GetAppStatisticsAction,
-  GetBrandingSettingsAction,
-  GetBudgetAction,
-  GetInfoAction,
-} from '../../../shared/shared.actions';
-import { getApps, getAppStatistics, getBrandingSettings, getBudget, getServiceIdentityInfo } from '../../../shared/shared.state';
+import { GetBrandingSettingsAction, GetBudgetAction } from '../../../shared/shared.actions';
+import { getBrandingSettings, getBudget } from '../../../shared/shared.state';
 import { filterNull } from '../../../shared/util';
 import { BUDGET_RATE } from '../../consts';
-import { CreateNewsItemAction, GetNewsOptionsAction, UpdateNewsItemAction } from '../../news.actions';
+import { CreateNews, NewsCommunity, NewsOptions, NewsSettingsTag, NewsStats } from '../../news';
+import { CreateNewsItemAction, GetCommunities, GetNewsOptionsAction, UpdateNewsItemAction } from '../../news.actions';
 import { NewsService } from '../../news.service';
-import { getEditingNewsItem, getNewsItemStats, getNewsOptions, getNewsOptionsError, NewsState } from '../../news.state';
+import { getEditingNewsItem, getNewsCommunities, getNewsItemStats, getNewsOptions, getNewsOptionsError, NewsState } from '../../news.state';
 
 @Component({
   selector: 'oca-edit-news-page',
@@ -33,9 +26,7 @@ export class EditNewsPageComponent implements OnInit, OnDestroy {
   newsItem$: Observable<Loadable<CreateNews>>;
   newsStats$: Observable<Loadable<NewsStats>>;
   options$: Observable<NewsOptions | null>;
-  serviceInfo$: Observable<Loadable<ServiceIdentityInfo>>;
-  apps$: Observable<Loadable<App[]>>;
-  appStatistics$: Observable<AppStatisticsMapping>;
+  communities$: Observable<NewsCommunity[]>;
   brandingSettings$: Observable<BrandingSettings | null>;
   remainingBudget$: Observable<string>;
 
@@ -55,9 +46,7 @@ export class EditNewsPageComponent implements OnInit, OnDestroy {
     this.options$ = this.store.pipe(select(getNewsOptions));
     this.newsStats$ = this.store.pipe(select(getNewsItemStats));
     this.newsItem$ = this.store.pipe(select(getEditingNewsItem));
-    this.serviceInfo$ = this.store.pipe(select(getServiceIdentityInfo));
-    this.apps$ = this.store.pipe(select(getApps));
-    this.appStatistics$ = this.store.pipe(select(getAppStatistics));
+    this.communities$ = this.store.pipe(select(getNewsCommunities));
     this.brandingSettings$ = this.store.pipe(select(getBrandingSettings));
     this.store.pipe(select(getNewsOptionsError), filterNull(), takeUntil(this.destroyed$), distinctUntilChanged()).subscribe(error => {
       this.errorService.showErrorDialog(error).afterClosed().subscribe(() => {
@@ -75,11 +64,10 @@ export class EditNewsPageComponent implements OnInit, OnDestroy {
         }
         return this.translate.instant('oca.x_views', { views });
       }));
-    this.store.dispatch(new GetInfoAction());
     this.store.dispatch(new GetBrandingSettingsAction());
-    this.newsItem$.pipe(withLatestFrom(this.serviceInfo$), takeUntil(this.destroyed$)).subscribe(([item, info]) => {
-      if (item.data && info.data) {
-        if (item.data.app_ids.length > 1 || item.data.app_ids[ 0 ] !== info.data.default_app) {
+    this.newsItem$.pipe(withLatestFrom(this.options$), takeUntil(this.destroyed$)).subscribe(([item, options]) => {
+      if (item.data && options) {
+        if (item.data.community_ids.length > 1 || item.data.community_ids[ 0 ] !== options.community_id) {
           this.fetchRegionalNewsData();
         }
       }
@@ -107,8 +95,7 @@ export class EditNewsPageComponent implements OnInit, OnDestroy {
 
   private fetchRegionalNewsData() {
     if (!this.hasRegionalNewsData) {
-      this.store.dispatch(new GetAppsAction());
-      this.store.dispatch(new GetAppStatisticsAction());
+      this.store.dispatch(new GetCommunities());
       this.store.dispatch(new GetBudgetAction());
       this.hasRegionalNewsData = true;
     }

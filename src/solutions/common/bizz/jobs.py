@@ -17,9 +17,9 @@
 
 from types import NoneType
 
+import cloudstorage
 from google.appengine.ext import deferred, db
 
-import cloudstorage
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.job import delete_service
 from rogerthat.bizz.job.delete_service import validate_delete_service
@@ -64,8 +64,6 @@ def _reset_customer_model(service_user):
     if customer:
         customer.user_email = None
         customer.service_email = None
-        customer.default_app_id = None
-        customer.app_ids = []
         customer.community_id = 0
         customer.put()
 

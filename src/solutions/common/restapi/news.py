@@ -16,8 +16,6 @@
 # @@license_version:1.7@@
 from __future__ import unicode_literals
 
-import logging
-
 from google.appengine.ext import ndb
 
 from mcfw.consts import MISSING, REST_TYPE_TO
@@ -25,9 +23,9 @@ from mcfw.exceptions import HttpBadRequestException, HttpNotFoundException
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
-from rogerthat.consts import DEBUG
-from rogerthat.dal.app import get_app_by_id
-from rogerthat.dal.service import get_service_identity
+from rogerthat.bizz.communities.communities import get_community, get_communities_by_country
+from rogerthat.bizz.communities.models import AppFeatures
+from rogerthat.dal.profile import get_service_profile
 from rogerthat.models import ServiceIdentity
 from rogerthat.models.jobs import JobOffer
 from rogerthat.models.news import NewsGroup, MediaType
@@ -35,23 +33,22 @@ from rogerthat.models.settings import ServiceInfo
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException
 from rogerthat.service.api import system
+from rogerthat.service.api.communities import get_statistics
 from rogerthat.service.api.news import list_groups, get_basic_statistics
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.to.news import NewsItemTO, NewsItemListResultTO, NewsActionButtonTO, NewsItemTimeStatisticsTO, \
     NewsItemBasicStatisticsTO
-from rogerthat.utils.service import create_service_identity_user, add_slash_default
+from rogerthat.utils.service import create_service_identity_user
 from shop.exceptions import BusinessException
-from shop.models import ShopApp
 from solutions import translate as common_translate
 from solutions.common.bizz.news import get_news, put_news_item, delete_news, get_news_item, get_news_reviews, \
     send_news_review_reply, publish_item_from_review, AllNewsSentToReviewWarning, get_locations, \
     is_regional_news_enabled, check_can_send_news, get_news_statistics
 from solutions.common.dal import get_solution_settings
-from solutions.common.dal.cityapp import get_service_user_for_city
 from solutions.common.models.news import NewsSettings, NewsSettingsTags
 from solutions.common.to.broadcast import NewsOptionsTO, RegionalNewsSettingsTO, NewsActionButtonWebsite, \
     NewsActionButtonAttachment, NewsActionButtonEmail, NewsActionButtonPhone, NewsActionButtonMenuItem, \
-    NewsActionButtonOpen
+    NewsActionButtonOpen, NewsCommunityTO
 from solutions.common.to.news import NewsStatsTO, NewsReviewTO, CreateNewsItemTO
 from solutions.common.utils import is_default_service_identity
 
@@ -111,10 +108,13 @@ def rest_put_news_item(news_id, data):
     try:
         return put_news_item(
             service_identity_user, data.title, data.message, MISSING.default(data.action_button, None), data.type,
-            data.qr_code_caption, data.app_ids, data.scheduled_at, news_id,
-            target_audience=data.target_audience, role_ids=data.role_ids,
-            tag=data.tag, media=data.media, group_type=data.group_type, locations=data.locations,
-            group_visible_until=data.group_visible_until, accept_missing=True)
+            data.qr_code_caption, data.community_ids, data.scheduled_at, news_id,
+            target_audience=data.target_audience,
+            media=data.media,
+            group_type=data.group_type,
+            locations=data.locations,
+            group_visible_until=data.group_visible_until,
+            accept_missing=True)
     except AllNewsSentToReviewWarning:
         return None
     except BusinessException as ex:
@@ -146,10 +146,11 @@ def rest_delete_news(news_id):
 @returns([NewsReviewTO])
 @arguments()
 def rest_get_news_reviews():
-    si = get_service_identity(add_slash_default(users.get_current_user()))
-    city_service = get_service_user_for_city(si.app_id)
-    azzert(city_service == users.get_current_user())
-    return map(NewsReviewTO.from_model, get_news_reviews(city_service))
+    service_user = users.get_current_user()
+    service_profile = get_service_profile(service_user)
+    community = get_community(service_profile.community_id)
+    azzert(community.main_service_user == service_user)
+    return map(NewsReviewTO.from_model, get_news_reviews(service_user))
 
 
 @rest('/common/news/review/reply', 'post')
@@ -175,17 +176,33 @@ def rest_publish_news_from_review(review_key):
         return ReturnStatusTO.create(False, message)
 
 
-@rest('/common/locations/<app_id:[^/]+>', 'get', silent_result=True)
+@rest('/common/news/communities', 'get', read_only_access=True, silent_result=True)
+@returns([NewsCommunityTO])
+@arguments()
+def rest_news_get_communities():
+    service_user = users.get_current_user()
+    service_profile = get_service_profile(service_user)
+    community = get_community(service_profile.community_id)
+    communities = get_communities_by_country(community.country)
+    stats = get_statistics([community.id for community in communities])
+    return [NewsCommunityTO.from_model(community, community_stats.total_user_count)
+            for community, community_stats in zip(communities, stats)]
+
+
+@rest('/common/locations/<community_id:\d+>', 'get', silent_result=True)
 @returns(dict)
-@arguments(app_id=unicode)
-def rest_locations(app_id):
-    locations = get_locations(app_id)
+@arguments(community_id=(int, long))
+def rest_locations(community_id):
+    community = get_community(community_id)
+    # TODO communities: should probably be per community instead of per app.
+    # Or perhaps we could refactor it so it ignores the community and they can just select country, postal code, street in the ui
+    locations = get_locations(community.default_app)
     if not locations:
         raise HttpNotFoundException('oca.errors.no_locations_for_city')
     return locations.to_dict(extra_properties=['app_id'])
 
 
-@rest("/common/news-options", "get", read_only_access=True, silent_result=True)
+@rest('/common/news-options', 'get', read_only_access=True, silent_result=True)
 @returns(NewsOptionsTO)
 @arguments()
 def rest_get_news_options():
@@ -193,36 +210,33 @@ def rest_get_news_options():
     session_ = users.get_current_session()
     service_identity = session_.service_identity or ServiceIdentity.DEFAULT
     sln_settings = get_solution_settings(service_user)
-    service_info = ServiceInfo.create_key(service_user, service_identity).get()
+    community = get_community(get_service_profile(service_user).community_id)
     lang = sln_settings.main_language
-    check_can_send_news(sln_settings, service_info)
-    info = system.get_info(service_identity)
     news_settings_key = NewsSettings.create_key(service_user, service_identity)
-    keys = [news_settings_key, ShopApp.create_key(info.default_app)]
-    news_settings, shop_app = ndb.get_multi(keys)  # type: NewsSettings, ShopApp
+    keys = [ServiceInfo.create_key(service_user, service_identity), news_settings_key]
+    service_info, news_settings = ndb.get_multi(keys)  # type: ServiceInfo, NewsSettings
+    check_can_send_news(sln_settings, service_info)
     if not news_settings:
         news_settings = NewsSettings(key=news_settings_key)
-    if not shop_app:
-        shop_app = ShopApp()
     # For demo apps and for shop sessions, creating regional news items is free.
-    default_app = get_app_by_id(info.default_app)
     tags = news_settings.tags
-    if session_.shop or default_app.demo and NewsSettingsTags.FREE_REGIONAL_NEWS not in news_settings.tags:
+    if session_.shop or community.demo and NewsSettingsTags.FREE_REGIONAL_NEWS not in news_settings.tags:
         tags.append(NewsSettingsTags.FREE_REGIONAL_NEWS)
 
-    news_groups = list_groups(lang)
     jobs_rpc = JobOffer.list_by_service(service_user.email()).fetch_async()
+    news_groups = list_groups(lang)
 
     regional_enabled_types = (NewsGroup.TYPE_PRESS, NewsGroup.TYPE_PROMOTIONS)
-    regional_news_enabled = any(g.group_type in regional_enabled_types for g in news_groups) or DEBUG
+    regional_news_enabled = any(g.group_type in regional_enabled_types for g in news_groups) or community.demo
     map_url = None
     if regional_news_enabled:
-        regional_news_enabled = is_regional_news_enabled(default_app)
-        if DEBUG or regional_news_enabled and (default_app.country == 'BE' or default_app.demo):
+        regional_news_enabled = is_regional_news_enabled(community)
+        if regional_news_enabled and community.country == 'BE':
             map_url = '/static/js/shop/libraries/flanders.json'
-    regional = RegionalNewsSettingsTO(enabled=regional_news_enabled, map_url=map_url)
+    regional = RegionalNewsSettingsTO(enabled=regional_news_enabled,
+                                      map_url=map_url)
     media_types = [MediaType.IMAGE]
-    if default_app.demo or shop_app.paid_features_enabled:
+    if AppFeatures.NEWS_VIDEO in community.features:
         media_types.append(MediaType.VIDEO_YOUTUBE)
     action_buttons = [
         NewsActionButtonWebsite(label=common_translate(lang, 'Website'),
@@ -278,6 +292,5 @@ def rest_get_news_options():
         ))
 
     return NewsOptionsTO(tags=tags, regional=regional, groups=news_groups, media_types=media_types,
-                         # location_filter_enabled=shop_app.paid_features_enabled)
-                         location_filter_enabled=default_app.demo or DEBUG,
-                         action_buttons=action_buttons)
+                         location_filter_enabled=AppFeatures.NEWS_LOCATION_FILTER in community.features,
+                         action_buttons=action_buttons, service_name=service_info.name, community_id=community.id)

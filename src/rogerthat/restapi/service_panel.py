@@ -457,7 +457,7 @@ def test_message_flow(message_flow_design_name, member, force_language=None, app
         return "Message flow could not be started!\n%s" % (e.fields['error'] or '')
     except NonFriendMembersException:
         try:
-            invite(default_service_identity_user, member, "", "", None, None, origin=ORIGIN_USER_INVITE, app_id=app_id)
+            invite(default_service_identity_user, member, "", None, None, origin=ORIGIN_USER_INVITE, app_id=app_id)
             return "Message flow could not be started!\n%s is not a user of this service. An invitation has been sent." % member
         except Exception as e:
             logging.exception("Invite failed.")

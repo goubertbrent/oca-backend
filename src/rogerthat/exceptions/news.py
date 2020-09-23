@@ -85,12 +85,6 @@ class EmptyActionButtonCaption(ServiceApiException):
         super(EmptyActionButtonCaption, self).__init__(self.BASE_CODE_NEWS + 13, message)
 
 
-class InvalidActionButtonRoles(ServiceApiException):
-    def __init__(self):
-        message = u'This news item is missing action button roles'
-        super(InvalidActionButtonRoles, self).__init__(self.BASE_CODE_NEWS + 14, message)
-
-
 class InvalidActionButtonFlowParamsException(ServiceApiException):
     def __init__(self, button):
         message = u'This flow_params of action button %s must be parseable as json' % button

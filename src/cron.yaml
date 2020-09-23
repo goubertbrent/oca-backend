@@ -97,21 +97,13 @@ cron:
   url: /admin/cron/rpc/solution_cityapp_events_uitdatabank
   schedule: every day 00:30
 
-- description: City association statistics
-  url: /admin/cron/rpc/city_association_statistics
-  schedule: every day 00:30
-
 - description: Daily statistics
   url: /cron/daily_statistics
   schedule: every day 04:00
 
 - description: Daily OCA statistics
   url: /admin/cron/daily_statistics
-  schedule: every day 04:30
-
-- description: App statistics cache
-  url: /cron/app_statistics_cache
-  schedule: every day 05:00
+  schedule: every day 00:00
 
 - description: news service setup
   url: /cron/news/service_setup

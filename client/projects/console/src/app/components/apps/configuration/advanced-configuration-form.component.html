@@ -3,11 +3,6 @@
   <div class="form-row">
     <mat-slide-toggle name="demo" [(ngModel)]="app.demo">{{ 'rcc.demo_app' | translate }}</mat-slide-toggle>
   </div>
-  <!--
-  <div class="form-row">
-    <mat-checkbox name="chat_enabled" [(ngModel)]="app.chat_enabled">{{ 'rcc.chat_enabled' | translate }}</mat-checkbox>
-  </div>
-  -->
   <mat-form-field>
     <input matInput name="android_app_id"
            [placeholder]="'rcc.android_app_id' | translate"
@@ -36,42 +31,28 @@
     <mat-error *ngIf="dashboardMail.errors?.email">{{ 'rcc.invalid_email_address' | translate }}</mat-error>
   </mat-form-field>
   <mat-form-field>
-                    <textarea matInput matTextareaAutosize name="user_regex"
-                              [placeholder]="'rcc.username_regexes' | translate"
-                              [(ngModel)]="app.user_regex"></textarea>
+    <textarea matInput matTextareaAutosize name="user_regex"
+              [placeholder]="'rcc.username_regexes' | translate"
+              [(ngModel)]="app.user_regex"></textarea>
   </mat-form-field>
   <mat-form-field>
-    <mat-select name="embedded_applications"
-                [placeholder]="'rcc.embedded_apps' | translate"
-                [(ngModel)]="app.embedded_apps"
-                [multiple]="true">
-      <mat-option *ngFor="let application of embeddedApps" [value]="application.name">
-        {{ application.title }}
-      </mat-option>
+    <mat-label>Service search type</mat-label>
+    <mat-select name="service_filter_type" [(ngModel)]="app.service_filter_type" required>
+      <mat-option *ngFor="let filter of appServiceFilters" [value]="filter.value">{{ filter.label }}</mat-option>
     </mat-select>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>Communities</mat-label>
+    <mat-select name="community_ids" multiple [(ngModel)]="app.community_ids" required>
+      <mat-option *ngFor="let community of communities" [value]="community.id">{{ community.name }}</mat-option>
+    </mat-select>
+    <mat-hint>Users will only be able to choose these communities in the app.</mat-hint>
   </mat-form-field>
   <h3>{{ 'rcc.admin_services' | translate }}</h3>
   <p>{{ 'rcc.admin_services_explanation' | translate }}</p>
   <rcc-admin-services [(ngModel)]="app.admin_services"
                       [ngModelOptions]="{standalone:true}"></rcc-admin-services>
 
-  <h3>{{ 'rcc.auto_connected_services' | translate }}</h3>
-  <p>{{ 'rcc.auto_connected_services_explanation' | translate }}</p>
-  <rcc-auto-connected-services [(ngModel)]="app.auto_connected_services" [ngModelOptions]="{ standalone: true }">
-  </rcc-auto-connected-services>
-
-  <h3>{{ 'rcc.mydigipass' | translate }}</h3>
-  <p>{{ 'rcc.mydigipass_explanation' | translate }}</p>
-  <mat-form-field>
-    <input matInput name="mdp_client_id"
-           [placeholder]="'rcc.client_id' | translate"
-           [(ngModel)]="app.mdp_client_id">
-  </mat-form-field>
-  <mat-form-field>
-    <input matInput name="mdp_client_secret"
-           [placeholder]="'rcc.client_secret' | translate"
-           [(ngModel)]="app.mdp_client_secret">
-  </mat-form-field>
   <rcc-api-request-status [status]="status"></rcc-api-request-status>
   <button mat-button mat-raised-button color="primary" [disabled]="!form.form.valid">
     {{ 'rcc.save' | translate }}

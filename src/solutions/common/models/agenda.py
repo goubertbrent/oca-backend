@@ -22,7 +22,6 @@ from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from google.appengine.ext import ndb
 from oauth2client.contrib.appengine import CredentialsNDBProperty
-from typing import Tuple, List
 
 from mcfw.utils import Enum
 from rogerthat.dal import parent_ndb_key
@@ -98,6 +97,7 @@ class Event(NdbModel):
     SOURCE_UITDATABANK_BE = 1
     SOURCE_GOOGLE_CALENDAR = 2
 
+    # TODO communities: remove after migration
     app_ids = ndb.StringProperty(indexed=True, repeated=True)
     community_id = ndb.IntegerProperty() # todo communities
     organization_type = ndb.IntegerProperty(indexed=True)
@@ -119,14 +119,6 @@ class Event(NdbModel):
     opening_hours = ndb.LocalStructuredProperty(EventOpeningPeriod, repeated=True)  # type: List[EventOpeningPeriod]
     deleted = ndb.BooleanProperty(indexed=True, default=False)
     media = ndb.StructuredProperty(EventMedia, repeated=True, indexed=False)  # type: List[EventMedia]
-
-    # TODO: remove these properties after migration _005_migrate_events has ran
-    first_start_date = ndb.IntegerProperty(indexed=True, default=0)
-    last_start_date = ndb.IntegerProperty(indexed=True)
-    start_dates = ndb.IntegerProperty(repeated=True, indexed=False)  # seconds from midnight till end
-    end_dates = ndb.IntegerProperty(repeated=True, indexed=False)
-    picture = ndb.BlobProperty()  # Deprecated
-    picture_version = ndb.IntegerProperty(indexed=False, default=0)  # Deprecated
 
     @property
     def id(self):
@@ -166,10 +158,6 @@ class Event(NdbModel):
     @classmethod
     def list_less_than_end_date(cls, date):
         return cls.query().filter(cls.end_date < date)
-
-    @classmethod
-    def list_greater_than_start_date(cls, date):
-        return cls.query().filter(cls.start_date > date)
 
     def get_closest_occurrence(self, date):
         # type: (datetime) -> Tuple[EventDate, EventDate]

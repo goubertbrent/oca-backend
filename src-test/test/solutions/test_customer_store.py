@@ -16,11 +16,13 @@
 # @@license_version:1.7@@
 
 import base64
+from test import set_current_user
 
 from google.appengine.ext import db
 
-import oca_unittest
 from mcfw.consts import MISSING
+import oca_unittest
+from rogerthat.bizz.communities.models import Community
 from rogerthat.bizz.profile import create_user_profile, UNKNOWN_AVATAR
 from rogerthat.models import App
 from rogerthat.rpc import users
@@ -29,11 +31,9 @@ from shop.bizz import put_service, _after_service_saved, create_or_update_custom
     sign_order
 from shop.models import RegioManagerTeam, Product, Customer, Order
 from shop.to import ShopProductTO, CustomerServiceTO, OrderItemTO
-from solutions.common.bizz import OrganizationType
-from solutions.common.bizz import SolutionModule
+from solutions.common.bizz import OrganizationType, SolutionModule
 from solutions.common.bizz.service import put_customer_service
 from solutions.common.restapi.store import add_item_to_order, remove_from_order
-from test import set_current_user
 
 
 class CustomerStoreTestCase(oca_unittest.TestCase):
@@ -57,7 +57,8 @@ class CustomerStoreTestCase(oca_unittest.TestCase):
                                              language=DEFAULT_LANGUAGE,
                                              organization_type=OrganizationType.PROFIT,
                                              prospect_id=None,
-                                             team_id=RegioManagerTeam.all().get().id)
+                                             team_id=RegioManagerTeam.all().get().id,
+                                             community_id=self.communities[0].id)
 
         contact = create_contact(customer.id, u'Bart', u'example', u'bart@example.com', u'+32 9 324 25 64')
         items = list()
@@ -89,17 +90,17 @@ class CustomerStoreTestCase(oca_unittest.TestCase):
         service.broadcast_types = [u'broadcast']
         service.email = u'test@example.com'
         service.language = u'en'
+        service.community_id = self.communities[2].id
         mods = [m for m in SolutionModule.MANDATORY_MODULES]
         service.modules = list(set(mods))
         service.organization_type = OrganizationType.PROFIT
-        service.app_infos = []
-        service.current_user_app_infos = []
         service.managed_organization_types = []
         provision_response = put_service(customer, service)
         # deferred functions seem to get ignored in unit tests..
-        _after_service_saved(customer.key(), service.email, provision_response, True, service.apps, [])
+        _after_service_saved(customer.key(), service.email, provision_response, True, service.community_id, [])
 
     def test_create_service_trans(self):
+        self.set_datastore_hr_probability(1)
         _, customer = self._create_customer_and_subscription_order([u'MSUP', u'KSUP', u'ILOS'])
 
         service = CustomerServiceTO()
@@ -110,8 +111,6 @@ class CustomerStoreTestCase(oca_unittest.TestCase):
         mods = [m for m in SolutionModule.MANDATORY_MODULES]
         service.modules = list(set(mods))
         service.organization_type = OrganizationType.PROFIT
-        service.app_infos = []
-        service.current_user_app_infos = []
         service.managed_organization_types = []
 
         put_customer_service(customer, service, skip_module_check=True, search_enabled=False,
@@ -121,6 +120,7 @@ class CustomerStoreTestCase(oca_unittest.TestCase):
                              skip_email_check=True, rollback=True)
 
     def test_customer_store(self):
+        self.set_datastore_hr_probability(1)
         product_bdgt, product_posm = db.get([Product.create_key(u'BDGT'), Product.create_key(u'POSM')])
         price_budget = product_bdgt.price
         posm_product = ShopProductTO.create(MISSING, u'POSM', 250)

@@ -74,19 +74,33 @@
                                     <h4>{% translate language, "application" %}</h4>
                                 </div>
                             </div>
-                            <div class="control-group {% if app_id %}hidden{% endif %}">
-                                <label for="app" class="control-label">{% translate language, "City/Municipality" %}</label>
+                            <div class="control-group">
+                                <label for="country" class="control-label">{% translate language, 'country' %}</label>
                                 <div class="controls">
-                                    <select id="app" class="input-block-level" required >
+                                    <select id="country" class="input-block-level" required>
                                         <option value="">{% translate language, "Select..." %}</option>
-                                        {% for app in apps %}
-                                        <option value="{{ app.app_id }}" {% if app_id== app.app_id %}selected{% endif%}>{{ app.name }}</option>
+                                        {%- for code, country in countries -%}
+                                            <option value="{{ code }}"
+                                                    {% if selected_country == code %}selected{% endif %}>{{ country }}</option>
+                                        {%- endfor -%}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="control-group" {% if not selected_country %}style="display: none;"{% endif %}
+                                 id="community-select-parent">
+                                <label for="community"
+                                       class="control-label">{% translate language, "City/Municipality" %}</label>
+                                <div class="controls">
+                                    <select id="community" class="input-block-level" required>
+                                        {% for community in communities %}
+                                            <option value="{{ community.id }}">{{ community.name }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
                             </div>
                             <div id="organization_types" class="control-group" style="display: none;">
-                                <label for="organization_type" class="control-label">{% translate language, "organization_type" %}</label>
+                                <label for="organization_type"
+                                       class="control-label">{% translate language, "organization_type" %}</label>
                                 <div class="controls">
                                 </div>
                             </div>

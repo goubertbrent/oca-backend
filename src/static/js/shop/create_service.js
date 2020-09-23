@@ -164,32 +164,13 @@ var submitModules = function() {
     showNextTab();
 };
 
-var submitApps = function() {
-    var oldUnknowApps = newService.apps || [];
-
-    var defaultAppId = $('#create_service_form #form_apps #service_default_app').val();
-    newService.apps = [ defaultAppId ];
-
-    $('#create_service_form #form_apps input[type="checkbox"]').map(function() {
-        if (this.value != defaultAppId && $(this).is(':checked')) {
-            newService.apps.push(this.value);
-        }
-
-        var i = oldUnknowApps.indexOf(this.value);
-        if (i >= 0) {
-            oldUnknowApps.splice(i, 1);
-        }
-    });
-
-    if (oldUnknowApps.length) {
-        // Its possible that the current user does not have any access to some apps.
-        // Previously there were non-city-apps supported.
-        // Lets add them again
-        $.each(oldUnknowApps, function(i, appId) {
-            if (newService.apps.indexOf(appId) == -1) {
-                newService.apps.push(appId);
-            }
-        });
+var submitCommunity = function() {
+    const communityId = $('#service_community').val();
+    if (communityId) {
+        newService.community_id = parseInt(communityId);
+    } else {
+        showAlert('Please select a community');
+        return;
     }
     createService();
 };
@@ -283,7 +264,7 @@ var showServiceTab = function() {
             submitModules();
             break;
         case 2:
-            submitApps();
+            submitCommunity();
             break;
         default:
             break;
@@ -315,24 +296,6 @@ var showServiceTab = function() {
         }
     }).change();
 
-    form.find('#form_apps #service_default_app').change(function() {
-        var appId = $(this).val();
-        form.find('#form_apps input[type="checkbox"]').each(function() {
-            var checkbox = $(this);
-            var isDefault = checkbox.val() === appId;
-            checkbox.prop('checked', isDefault || checkbox.is(':checked')).attr('disabled', isDefault)
-                .parents('label').toggleClass('default-app', isDefault);
-        });
-    }).change();
-
-    if (currentCustomer.app_ids.length) {
-        // customer already has a service, preselect the current active apps
-        form.find('#other-apps').find('[type=checkbox]').each(function () {
-            // Preselect the currently enabled apps.
-            var $this = $(this);
-            $this.prop('checked', currentCustomer.app_ids.indexOf($this.val()) !== -1);
-        });
-    }
     var customerForm = $('#customer_form');
     customerForm.find("#button_change_service_email").unbind('click').click(function () {
         if (!$(this).attr('disabled'))
@@ -347,6 +310,20 @@ var showServiceTab = function() {
     currentTabId = 0;
     showTab(TAB_IDS[0]);
 };
+
+async function getCommunities(country, communityId){
+    const communities = await (await fetch('/console-api/communities?country=' + country)).json();
+    const communitySelect = $('#service_community');
+    communitySelect.empty();
+    communitySelect.append('<option></option>');
+    for (const community of communities){
+        communitySelect.append(`<option value="${community.id}">${community.name}</option>`);
+    }
+    if (communityId) {
+        communitySelect.val(communityId);
+    }
+}
+
 var showCreateService = function() {
     $('#tab-service').find('.loading').html(TMPL_LOADING_SPINNER);
     $('#tab-service').find('.content').addClass('hide');
@@ -382,7 +359,7 @@ var showCreateService = function() {
                 }
             }
         });
-    }else{
+    } else{
         showServiceTab();
     }
 
@@ -394,43 +371,7 @@ $('button.create-service, a.create-service').click(function() {
     showCustomerForm(CustomerFormType.OPEN_TAB, showCreateService, customerId);
 });
 
-var resetCustomerServiceApps = function(current_apps, service_apps, current_user_apps) {
-    var otherApps = $("#other-apps").empty();
-    var defaultAppFound = false;
-    $.each(current_user_apps, function(i , user_app) {
-        var _label = $('<label class="checkbox"></label>');
-        var _input = $('<input type="checkbox">').val(user_app.id);
-
-        _label.append(_input);
-        _label.append(" " + user_app.name + " (" + user_app.id + ")");
-
-        otherApps.append(_label);
-
-        if (current_apps[0] == user_app.id) {
-            defaultAppFound = true;
-        }
-    });
-
-    var defaultApps = $("#service_default_app").empty();
-    if (!defaultAppFound) {
-        $.each(service_apps, function(i , service_app) {
-            if (current_apps[0] == service_app.id) {
-                var _option = $('<option></option>').val(service_app.id).text(service_app.name + " (" + service_app.id + ")");
-                defaultApps.append(_option);
-                return false;
-            }
-        });
-    }
-
-    $.each(current_user_apps, function(i , user_app) {
-        var _option = $('<option></option>').val(user_app.id).text(user_app.name + " (" + user_app.id + ")");
-        defaultApps.append(_option);
-    });
-};
-
 var customerSelected = function(customer) {
-    newService.app_infos = [];
-    newService.current_user_app_infos = [];
 
     if (customer.service_email) {
         sln.call({
@@ -441,8 +382,6 @@ var customerSelected = function(customer) {
             success : function(service) {
                 showServiceError(null);
 
-                resetCustomerServiceApps(service.apps, service.app_infos, service.current_user_app_infos);
-
                 var createServiceForm = $('#create_service_form');
                 // set values
                 $.each(['email', 'language', 'organization_type'],
@@ -450,7 +389,7 @@ var customerSelected = function(customer) {
                         $('#service_' + attr, createServiceForm).val(service[attr]);
                     });
                 // set checkBoxes
-                $.each([ 'modules', 'broadcast_types', 'apps', 'managed_organization_types'], function(i, attr) {
+                $.each([ 'modules', 'broadcast_types', 'managed_organization_types'], function(i, attr) {
                     $('#form_' + attr + ' input[type="checkbox"]', createServiceForm).each(function() {
                     	var v = this.value;
                     	if (attr === 'managed_organization_types') {
@@ -459,8 +398,8 @@ var customerSelected = function(customer) {
                         $(this).prop('checked', service[attr].indexOf(v) != -1).change();
                     });
                 });
-                newService.apps = service.apps;
                 currentCustomer.service = service;
+                getCommunities(currentCustomer.country, service.community_id);
 
                 if (service.modules.indexOf('broadcast') == -1) {
                     $('#form_broadcast_types', createServiceForm).hide();
@@ -483,7 +422,6 @@ var customerSelected = function(customer) {
                 if (service.modules.indexOf('city_app') == -1) {
                     $('#form_managed_organization_types', createServiceForm).hide();
                 }
-                selectDefaultApps();
                 $('#tab-service').find('.loading').html('');
                 $('#tab-service').find('.content').removeClass('hide');
             },
@@ -495,15 +433,6 @@ var customerSelected = function(customer) {
     } else {
         ShopRequests.getContacts(customer.id).then(contacts => prefillServiceData(customer, contacts[0]));
 
-        sln.call({
-            url : '/internal/shop/rest/regio_manager/apps',
-            success : function(data) {
-                resetCustomerServiceApps([], [], data);
-                selectDefaultApps();
-            }
-        });
-
-        //set default apps
         if(currentCustomer.prospect_id){
             // get prospect
             if(!currentCustomer.prospect){
@@ -516,15 +445,10 @@ var customerSelected = function(customer) {
                     success: function (data) {
                         if (data) {
                             currentCustomer.prospect = data.prospect;
-                            selectDefaultApps();
                         }
                     }
                 });
-            }else{
-                selectDefaultApps();
             }
-        }else {
-            selectDefaultApps();
         }
     }
 };
@@ -544,48 +468,6 @@ function prefillServiceData(customer, contact) {
     $('#tab-service').find('.content').removeClass('hide');
 
 }
-
-
-function selectDefaultApps(){
-    var elemServiceDefaultApp = $('#service_default_app');
-    if(currentCustomer.service){
-        $.each(currentCustomer.service.apps, function(i, app){
-            var elem = $('#other-apps').find('[value=' + app + ']').prop('checked', true);
-            if(i === 0){
-                $('#service_default_app').val(currentCustomer.service.apps[0]).change();
-            }
-        });
-    } else if (currentCustomer.prospect) {
-        var exists = false;
-        var default_app = currentCustomer.prospect.app_id;
-        elemServiceDefaultApp.find('option').each(function () {
-            if (this.value === default_app) {
-                exists = true;
-            }
-            if (this.value === 'rogerthat') {
-                $(this).prop('checked', true);
-            }
-        });
-        if (!exists) {
-            default_app = "rogerthat";
-        }
-        elemServiceDefaultApp.val(default_app).change();
-    } else{
-    	var defaultAppId = "rogerthat";
-
-    	var form = $('#create_service_form');
-    	form.find('#form_apps input[type="checkbox"]').each(function() {
-            var checkbox = $(this);
-            var value = checkbox.val();
-            var text = checkbox.parents("label").text();
-        	if (text.indexOf(currentCustomer.city) >= 0) {
-        		defaultAppId = value;
-        	}
-        });
-        elemServiceDefaultApp.val(defaultAppId).change();
-    }
-}
-
 
 $(document).ready(function () {
     customer_selected.push(function (sender, customer) {
@@ -624,5 +506,4 @@ $(document).ready(function () {
                 break;
         }
     });
-
 });

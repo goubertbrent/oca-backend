@@ -60,7 +60,7 @@ from rogerthat.bizz.service import test_callback_response_receiver, poke_service
 from rogerthat.bizz.service.mfr import start_flow_response_handler
 from rogerthat.bizz.system import unregister_mobile_success_callback, update_settings_response_handler, \
     identity_update_response_handler, forward_logs_response_handler, \
-    system_service_deleted_response_handler, update_app_asset_response, update_look_and_feel_response, \
+    system_service_deleted_response_handler, update_app_asset_response, \
     update_embedded_apps_response, update_embedded_app_response
 from rogerthat.capi.forms import test_form_response_handler, testForm
 from rogerthat.capi.friends import updateFriend, becameFriends, updateFriendSet, updateGroups
@@ -81,8 +81,7 @@ from rogerthat.capi.payment import updatePaymentProvider, updatePaymentStatus, u
     updatePaymentProviders, updatePaymentAssets
 from rogerthat.capi.services import receiveApiCallResult, updateUserData as capi_updateUserData
 from rogerthat.capi.system import unregisterMobile as unregisterMobile_capi, updateSettings, \
-    identityUpdate, forwardLogs, updateJsEmbedding, updateAppAsset, updateLookAndFeel, updateEmbeddedApps,\
-    updateEmbeddedApp
+    identityUpdate, forwardLogs, updateJsEmbedding, updateAppAsset, updateEmbeddedApps, updateEmbeddedApp
 from rogerthat.rpc.rpc import logError, dismissError
 from rogerthat.rpc.service import logServiceError
 from rogerthat.service.api.app import installation_progress_response_receiver, installation_progress
@@ -251,7 +250,6 @@ client_mapping = {
     u'com.mobicage.capi.system.unregisterMobile': unregisterMobile_capi,
     u'com.mobicage.capi.system.updateJsEmbedding': updateJsEmbedding,
     u'com.mobicage.capi.system.updateAppAsset': updateAppAsset,
-    u'com.mobicage.capi.system.updateLookAndFeel': updateLookAndFeel,
     u'com.mobicage.capi.system.updateEmbeddedApp': updateEmbeddedApp,
     u'com.mobicage.capi.system.updateEmbeddedApps': updateEmbeddedApps,
     u'com.mobicage.capi.messaging.newMessage': newMessage,
@@ -362,7 +360,6 @@ result_mapping = {
     u'com.mobicage.capi.system.forwardLogsResponseHandler': forward_logs_response_handler,
     u'com.mobicage.capi.system.update_jsembedding_response': update_jsembedding_response,
     u'com.mobicage.capi.system.update_app_asset': update_app_asset_response,
-    u'com.mobicage.capi.system.update_look_and_feel': update_look_and_feel_response,
     u'com.mobicage.capi.system.update_embedded_app': update_embedded_app_response,
     u'com.mobicage.capi.system.update_embedded_apps': update_embedded_apps_response,
     u'com.mobicage.capi.location.get_location_response_handler': get_location_response_handler,

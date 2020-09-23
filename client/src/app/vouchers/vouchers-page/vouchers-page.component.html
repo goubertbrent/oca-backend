@@ -2,7 +2,7 @@
   <h1 class="flex-grow">{{ 'oca.cirklo_light' | translate }}</h1>
   <mat-form-field class="flex-grow">
     <mat-label>{{ 'oca.search' | translate }}</mat-label>
-    <input matInput (keyup)="applyFilter($event.target.value)">
+    <input matInput (keyup)="applyFilter(search.value)" #search>
   </mat-form-field>
   <button (click)="refresh()" [disabled]="loading$ | async" mat-icon-button [matTooltip]="'oca.refresh' | translate">
     <mat-icon>refresh</mat-icon>

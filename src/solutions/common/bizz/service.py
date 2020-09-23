@@ -15,14 +15,17 @@
 #
 # @@license_version:1.7@@
 
-from datetime import datetime
 import logging
 import time
+from datetime import datetime
 
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
+from typing import Set
 
 from mcfw.rpc import serialize_complex_value
+from rogerthat.bizz.communities.communities import get_community
+from rogerthat.bizz.communities.models import AppFeatures
 from rogerthat.consts import DAY, SCHEDULED_QUEUE
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_service_profile
@@ -34,10 +37,9 @@ from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import channel, log_offload, now, send_mail
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import run_in_xg_transaction
-from shop.models import Product, RegioManagerTeam, CustomerSignup, Customer, CustomerSignupStatus,\
-    ShopApp
+from shop.models import Product, RegioManagerTeam, CustomerSignup, Customer, CustomerSignupStatus
 from shop.to import CustomerServiceTO
-from solutions import SOLUTION_COMMON, translate as common_translate
+from solutions import translate as common_translate
 from solutions.common.bizz import SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES, common_provision
 from solutions.common.bizz.campaignmonitor import send_smart_email
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message
@@ -71,16 +73,12 @@ def get_allowed_broadcast_types(city_customer):
 
 
 def get_allowed_modules(city_customer):
-    """
-    Args:
-        city_customer (Customer)
-    """
-    
+    # type: (Customer) -> Set[str]
     if city_customer.can_only_edit_organization_type(ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT):
         return SolutionModule.ASSOCIATION_MODULES
     else:
-        shop_app = ShopApp.create_key(city_customer.default_app_id).get()
-        if shop_app and shop_app.jobs_enabled:
+        community = get_community(city_customer.community_id)
+        if AppFeatures.JOBS in community.features:
             return set(list(SolutionModule.POSSIBLE_MODULES) + [SolutionModule.JOBS])
         return SolutionModule.POSSIBLE_MODULES
 
@@ -247,8 +245,9 @@ def _send_denied_signup_email(city_customer, signup, reason):
         common_translate(signup.language, 'signup_request_denial_reason_contact')
     ]
     message = '\n\n'.join(lines)
-    app = get_app_by_id(city_customer.default_app_id)
-    from_email = '%s <%s>' % (app.name, app.dashboard_email_address)
+    community = get_community(city_customer.community_id)
+    app = get_app_by_id(community.default_app)
+    from_email = '%s <%s>' % (community.name, app.dashboard_email_address)
     send_mail(from_email, signup.customer_email, subject, message)
 
 

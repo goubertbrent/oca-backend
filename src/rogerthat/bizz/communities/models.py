@@ -15,6 +15,8 @@
 #
 # @@license_version:1.5@@
 
+from __future__ import unicode_literals
+
 from google.appengine.ext import ndb
 
 from mcfw.utils import Enum
@@ -29,17 +31,18 @@ class CommunityAutoConnectedService(NdbModel):
 
 class AppFeatures(Enum):
     # Show events from merchants in the feed from the community
-    EVENTS_SHOW_MERCHANTS = u'events_show_merchants'
+    EVENTS_SHOW_MERCHANTS = 'events_show_merchants'
     # Jobs features
-    JOBS = u'jobs'
+    JOBS = 'jobs'
     # Allows adding a video to a news item
-    NEWS_VIDEO = u'news_video'
+    NEWS_VIDEO = 'news_video'
     # Allows settings the location filter on news items
-    NEWS_LOCATION_FILTER = u'news_location_filter'
+    NEWS_LOCATION_FILTER = 'news_location_filter'
     # Delays publishing a news item until the city has approved its content
-    NEWS_REVIEW = u'news_review'
+    NEWS_REVIEW = 'news_review'
     # Allows merchants to post in regional news
-    NEWS_REGIONAL = u'news_regional'
+    NEWS_REGIONAL = 'news_regional'
+
 
 
 class Community(NdbModel): # todo communities
@@ -109,3 +112,29 @@ class Community(NdbModel): # todo communities
     @classmethod
     def list_by_main_service(cls, service_user):
         return cls.query().filter(cls.main_service == service_user.email())
+
+
+class CountOnDate(NdbModel):
+    date = ndb.DateProperty(auto_now_add=True, indexed=False)
+    count = ndb.IntegerProperty(indexed=False)
+
+
+class CommunityUserStatsHistory(NdbModel):
+    stats = ndb.StructuredProperty(CountOnDate, repeated=True, indexed=False)  # Should contain one entry per day
+
+    @classmethod
+    def create_key(cls, community_id):
+        return ndb.Key(cls, community_id)
+
+
+class CommunityUserStats(NdbModel):
+    count = ndb.IntegerProperty()
+    updated_on = ndb.DateTimeProperty(auto_now=True)
+
+    @property
+    def community_id(self):
+        return self.key.integer_id()
+
+    @classmethod
+    def create_key(cls, community_id):
+        return ndb.Key(cls, community_id)

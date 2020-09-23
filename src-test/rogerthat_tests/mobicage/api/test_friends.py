@@ -65,7 +65,7 @@ class Test(mc_unittest.TestCase):
         service_profile.put()
 
         def do_invite(invitee):
-            invite(invitor, invitee.email(), None, None, None, None, origin=ORIGIN_USER_INVITE,
+            invite(invitor, invitee.email(), None, None, None, origin=ORIGIN_USER_INVITE,
                    app_id=App.APP_ID_ROGERTHAT)
 
         # assert invitee and invitor are not friends
@@ -184,7 +184,7 @@ class Test(mc_unittest.TestCase):
 
         # friend invites svc_identity_user
         set_current_user(invitor)
-        invite(invitor, remove_slash_default(svc_identity_user).email(), None, None,
+        invite(invitor, remove_slash_default(svc_identity_user).email(), None,
                None, None, origin=ORIGIN_USER_INVITE, app_id=App.APP_ID_ROGERTHAT)
         myFriendMap = get_friends_map(invitor)
         print myFriendMap.generation
@@ -200,7 +200,7 @@ class Test(mc_unittest.TestCase):
         db.delete(Message.all())
 
         # invite two nuntiuz users via user code
-        invite(invitor, unicode(userCode(users.User(invitee.email()))), None, None,
+        invite(invitor, unicode(userCode(users.User(invitee.email()))), None,
                None, None, origin=ORIGIN_USER_INVITE, app_id=App.APP_ID_ROGERTHAT)
         set_current_user(invitee)
         messages = getMessages(None).messages
@@ -262,7 +262,7 @@ class Test(mc_unittest.TestCase):
 
         self.assertIsNone(db.get(UserData.createKey(invitor, si.user)))
 
-        invite(invitor, remove_slash_default(si.user).email(), None, None, None,
+        invite(invitor, remove_slash_default(si.user).email(), None, None,
                None, origin=ORIGIN_USER_INVITE, app_id=App.APP_ID_ROGERTHAT)
         invited_response_receiver(UNIT_TEST_REFS["invited"], json.dumps(user_data))
         myFriendMap = get_friends_map(invitor)

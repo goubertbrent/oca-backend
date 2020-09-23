@@ -19,6 +19,7 @@ import logging
 from types import NoneType
 
 from google.appengine.ext import db, ndb
+from typing import Union
 
 from mcfw.cache import cached, get_from_request_cache, add_to_request_cache
 from mcfw.consts import MISSING
@@ -92,7 +93,7 @@ def get_user_profile(app_user, cached=True):
 @returns((ServiceProfile, NdbServiceProfile))
 @arguments(user=users.User, cached=bool)
 def get_service_profile(user, cached=True):
-    # type: (users.User, bool) -> ServiceProfile
+    # type: (users.User, bool) -> Union[ServiceProfile, NdbServiceProfile]
     azzert("/" not in user.email())
     service_profile = _get_profile(user) if cached else _get_db_profile_not_cached(user)
     azzert(service_profile is None or isinstance(service_profile, (ServiceProfile, NdbServiceProfile)))
@@ -167,7 +168,7 @@ def _get_ndb_profile_not_cached(user):
         logging.warn("Retrieving profile of MC_DASHBOARD\n%s" % get_python_stack_trace(short=True))
         return None
 
-    return NdbProfile.createKey(user).get()
+    return NdbProfile.createKey(user).get(use_cache=False)
 
 
 @returns(db.Key)
@@ -186,6 +187,11 @@ def get_user_profile_key(app_user):
 @arguments(app_id=unicode)
 def get_user_profile_keys_by_app_id(app_id):
     return UserProfile.all(keys_only=True).filter('app_id =', app_id)
+
+
+def get_user_profiles_by_community(community_id):
+    # type: (int) -> ndb.Query
+    return NdbUserProfile.list_by_community(community_id)
 
 
 @returns(db.Query)

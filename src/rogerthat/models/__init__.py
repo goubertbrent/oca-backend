@@ -41,7 +41,6 @@ from mcfw.serialization import deserializer, ds_model, register, s_model, s_long
 from mcfw.utils import Enum
 from rogerthat.consts import MC_RESERVED_TAG_PREFIX, IOS_APPSTORE_WEB_URI_FORMAT, \
     ANDROID_MARKET_ANDROID_URI_FORMAT, ANDROID_MARKET_WEB_URI_FORMAT, ANDROID_BETA_MARKET_WEB_URI_FORMAT
-from rogerthat.dal import parent_ndb_key, parent_key
 from rogerthat.models.common import NdbModel
 from rogerthat.models.properties import CompressedIntegerList
 from rogerthat.models.properties.app import AutoConnectedServicesProperty, AutoConnectedService
@@ -135,29 +134,30 @@ class App(CachedModelMixIn, db.Model):
     apple_push_cert = db.TextProperty(indexed=False)
     apple_push_key = db.TextProperty(indexed=False)
     apple_push_cert_valid_until = db.IntegerProperty()
+    # TODO communities: remove after migration
     auto_connected_services = AutoConnectedServicesProperty()  # type: list[AutoConnectedService]
     is_default = db.BooleanProperty(indexed=True)
     qrtemplate_keys = db.StringListProperty(indexed=False)
     dashboard_email_address = db.StringProperty(indexed=False)
     contact_email_address = db.StringProperty(indexed=False)
-    admin_services = db.StringListProperty(indexed=False)
+    admin_services = db.StringListProperty()
     main_service = db.StringProperty(indexed=False)
     demo = db.BooleanProperty(indexed=True, default=False)
     beta = db.BooleanProperty(indexed=False, default=False)
     secure = db.BooleanProperty(indexed=False, default=False)
-    chat_enabled = db.BooleanProperty(indexed=False, default=True)
     mdp_client_id = db.StringProperty(indexed=False)
     mdp_client_secret = db.StringProperty(indexed=False)
     owncloud_base_uri = db.StringProperty(indexed=False)
     owncloud_admin_username = db.StringProperty(indexed=False)
     owncloud_admin_password = db.StringProperty(indexed=False)
+    # TODO communities: remove after migration
     embedded_apps = db.StringListProperty(indexed=True, default=[])
     disabled = db.BooleanProperty(default=False)
-    country = db.StringProperty(indexed=True)  # 2 letter country code
+    country = db.StringProperty()  # 2 letter country code
     default_app_name_mapping = db.TextProperty()
     # These ids are used to limit the communities the user can choose when using this app.
     # They may also be used to filter the services the user can view, depending on the value of service_filter_type.
-    community_ids = db.ListProperty(long, default=[])  # type: List[int]
+    community_ids = db.ListProperty(long, default=[])  # type: List[int] # todo communities
     service_filter_type = db.IntegerProperty(indexed=False, default=AppServiceFilter.COUNTRY,
                                              choices=AppServiceFilter.all())
 
@@ -207,6 +207,10 @@ class App(CachedModelMixIn, db.Model):
     @staticmethod
     def create_key(app_id):
         return db.Key.from_path(App.kind(), app_id)
+
+    @classmethod
+    def list_by_admin_service(cls, service_email):
+        return cls.all().filter('admin_services', service_email)
 
 
 class AppNameMapping(NdbModel):
@@ -652,6 +656,7 @@ class Profile(BaseProfile, polymodel.PolyModel):
 
     @classmethod
     def createKey(cls, user):
+        from rogerthat.dal import parent_key
         return db.Key.from_path(cls.kind(), user.email(), parent=parent_key(user))
 
     @property
@@ -804,16 +809,11 @@ class NdbUserProfile(NdbProfile, ProfileInfo):
     profileData = ndb.TextProperty()  # a JSON string containing extra profile fields
     unsubscribed_from_reminder_email = ndb.BooleanProperty(indexed=False, default=False)
     owncloud_password = ndb.StringProperty(indexed=False)
-    look_and_feel_id = ndb.IntegerProperty(indexed=False)
 
     isCreatedForService = ndb.BooleanProperty(indexed=False, default=False)
     owningServiceEmails = ndb.StringProperty(indexed=True, repeated=True)
 
     consent_push_notifications_shown = ndb.BooleanProperty(indexed=True, default=False)
-
-    @classmethod
-    def count_by_app(cls, app_id):
-        return cls.query().filter(cls.app_id == app_id).count(None)
 
     @classmethod
     def list_by_app(cls, app_id, keys_only=False):
@@ -833,6 +833,10 @@ class NdbUserProfile(NdbProfile, ProfileInfo):
     def _class_key(cls):
         return ['Profile', 'UserProfile']
 
+    @classmethod
+    def list_by_community(cls, community_id):
+        return cls.query(cls.community_id == community_id)
+
 
 class UserProfile(Profile, BaseUserProfile, ArchivedModel):
     name = db.StringProperty(indexed=False)
@@ -848,21 +852,17 @@ class UserProfile(Profile, BaseUserProfile, ArchivedModel):
     service_roles = db.StringListProperty()  # <service_email>>:<role_id>
     version = db.IntegerProperty(indexed=False,
                                  default=0)  # bumped every time that FriendTO-related properties are updated
+    # TODO communities: remove usage of app_id
     app_id = db.StringProperty(indexed=True, default=App.APP_ID_ROGERTHAT)  # Needed for querying
     profileData = db.TextProperty()  # a JSON string containing extra profile fields
     unsubscribed_from_reminder_email = db.BooleanProperty(indexed=False, default=False)
     owncloud_password = db.StringProperty(indexed=False)
-    look_and_feel_id = db.IntegerProperty(indexed=False)
 
     isCreatedForService = db.BooleanProperty(indexed=False, default=False)
     owningServiceEmails = db.StringListProperty(indexed=True)
 
     consent_push_notifications_shown = db.BooleanProperty(indexed=True, default=False)
     ArchivedModel.skip_on_archive(service_roles)
-
-    @classmethod
-    def count_by_app(cls, app_id):
-        return cls.all().filter('app_id', app_id).count(None)
 
     @classmethod
     def list_by_birth_day(cls, timestamp):
@@ -886,8 +886,8 @@ class UserProfile(Profile, BaseUserProfile, ArchivedModel):
             .filter('service_roles <', service_user_email + u'/\ufffd')
 
     @classmethod
-    def list_by_app(cls, app_id, keys_only=False):
-        return cls.all(keys_only=keys_only).filter('app_id', app_id)
+    def list_by_community(cls, community_id, keys_only=False):
+        return cls.all(keys_only=keys_only).filter('community_id', community_id)
 
 
 UserProfileArchive = ArchivedModel.constructArchivedModel("UserProfileArchive", UserProfile)
@@ -962,6 +962,7 @@ class UserProfileInfo(NdbModel):
 
     @classmethod
     def create_key(cls, app_user):
+        from rogerthat.dal import parent_ndb_key
         return ndb.Key(cls,
                        app_user.email(),
                        parent=parent_ndb_key(app_user))
@@ -1244,6 +1245,7 @@ class ServiceCallBackSettings(NdbModel):
 
     @classmethod
     def create_key(cls, service_user):
+        from rogerthat.dal import parent_ndb_key
         return ndb.Key(cls,
                        service_user.email(),
                        parent=parent_ndb_key(service_user))
@@ -1264,6 +1266,7 @@ class ServiceCallBackConfiguration(db.Model):
 
     @classmethod
     def create_key(cls, name, service_user):
+        from rogerthat.dal import parent_key
         return db.Key.from_path(cls.kind(), name, parent=parent_key(service_user))
 
 
@@ -1301,6 +1304,7 @@ class ServiceRole(db.Model):
     @classmethod
     def create_key(cls, service_user, role_id):
         # type: (users.User, int) -> db.Key
+        from rogerthat.dal import parent_key
         azzert(isinstance(role_id, (int, long)))
         return db.Key.from_path(cls.kind(), role_id, parent=parent_key(service_user))
 
@@ -1436,7 +1440,9 @@ class ServiceIdentity(CachedModelMixIn, db.Model, ProfileInfo):
     emailStatistics = db.BooleanProperty(indexed=True, default=False)
     version = db.IntegerProperty(indexed=False,
                                  default=0)  # bumped every time that FriendTO-related properties are updated
+    # TODO communities: remove usages & remove after migration
     defaultAppId = db.StringProperty(indexed=False)
+    # TODO communities: remove usages (use community.default_app instead)
     appIds = db.StringListProperty(indexed=True, default=[App.APP_ID_ROGERTHAT])
     contentBrandingHash = db.StringProperty(indexed=False)
     homeBrandingHash = db.StringProperty(indexed=False)
@@ -1491,18 +1497,10 @@ class ServiceIdentity(CachedModelMixIn, db.Model, ProfileInfo):
 
     @property
     def app_id(self):
+        # TODO communities: remove usages (use community.default_app instead)
         if self.defaultAppId:
             return self.defaultAppId
         return self.appIds[0]
-
-    @property
-    def sorted_app_ids(self):
-        app_ids = self.appIds
-        default_app_id = self.app_id
-        if app_ids[0] != default_app_id:
-            app_ids.remove(default_app_id)
-            app_ids.insert(0, default_app_id)
-        return app_ids
 
     @staticmethod
     def isDefaultServiceIdentityUser(service_identity_user):
@@ -1616,6 +1614,7 @@ class OpeningHours(NdbModel):
 
     @classmethod
     def create_key(cls, service_user, identity):
+        from rogerthat.dal import parent_ndb_key
         return ndb.Key(cls, identity, parent=parent_ndb_key(service_user))
 
     def sort_dates(self):
@@ -2521,10 +2520,12 @@ class LocationMessage(ndb.Model):
 
     @classmethod
     def create_key(cls, app_user, message_id):
+        from rogerthat.dal import parent_ndb_key
         return ndb.Key(cls, message_id, parent=parent_ndb_key(app_user))
 
     @classmethod
     def list_by_user(cls, app_user):
+        from rogerthat.dal import parent_ndb_key
         return cls.query(ancestor=parent_ndb_key(app_user))
 
 
@@ -2634,6 +2635,7 @@ class NdbServiceMenuDef(NdbModel):
 
     @classmethod
     def list_by_service(cls, svc_user):
+        from rogerthat.dal import parent_ndb_key
         return cls.query(ancestor=parent_ndb_key(svc_user))
 
 
@@ -2988,17 +2990,6 @@ class TransferChunk(db.Model):
     @property
     def transfer_result_key(self):
         return self.parent_key()
-
-
-class DSPickle(db.Model):
-    version = db.IntegerProperty()
-
-
-class DSPicklePart(db.Model):
-    data = db.BlobProperty(indexed=False)
-    version = db.IntegerProperty(indexed=True)
-    number = db.IntegerProperty(indexed=True)
-    timestamp = db.IntegerProperty(indexed=True)
 
 
 class FlowResultMailFollowUp(db.Model):

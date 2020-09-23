@@ -26,12 +26,13 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterModule } from '@angular/router';
 import { EffectsModule } from '@ngrx/effects';
 import { Store, StoreModule } from '@ngrx/store';
+import { StoreDevtoolsModule } from '@ngrx/store-devtools';
 import { MissingTranslationHandler, MissingTranslationHandlerParams, TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ColorPickerModule } from 'ngx-color-picker';
+import { environment } from '../../../../src/environments/environment';
 import { NavModule } from '../../framework/client/nav/nav.module';
-import { AddRoutesAction } from '../../framework/client/nav/sidebar/actions';
+import { AddRoutesAction } from '../../framework/client/nav/sidebar';
 import { rcc as englishTranslations } from '../assets/i18n/en.json';
-import { environment } from '../environments/environment';
 import { AppComponent } from './app.component';
 import {
   AdminServicesComponent,
@@ -63,7 +64,6 @@ import {
   AppSettingsFirebaseIosComponent,
   AppSettingsFormComponent,
   AutoAddedServiceDialogComponent,
-  AutoConnectedServicesComponent,
   BackendBrandingsComponent,
   BackendDefaultAppComponent,
   BackendDefaultSettingsComponent,
@@ -93,7 +93,6 @@ import {
   DefaultBrandingListComponent,
   DeveloperAccountDetailsComponent,
   DeveloperAccountsComponent,
-  EditAutoConnectedServiceDialogComponent,
   EditBackendBrandingComponent,
   EditBackendResourceComponent,
   EditContactComponent,
@@ -112,10 +111,6 @@ import {
   HomePageComponent,
   NavigationCardsComponent,
   NavigationItemListComponent,
-  NewsGroupComponent,
-  NewsGroupFormComponent,
-  NewsSettingsComponent,
-  NewsSettingsFormComponent,
   NotFoundComponent,
   PaymentProviderFormComponent,
   PaymentProvidersComponent,
@@ -186,6 +181,11 @@ export class MissingTranslationWarnHandler implements MissingTranslationHandler 
         strictActionWithinNgZone: true,
       },
     }),
+    StoreDevtoolsModule.instrument({
+      name: 'Our City App console',
+      maxAge: 25,
+      logOnly: environment.production,
+    }),
     EffectsModule.forRoot([AppsEffects, BackendsEffects, DeveloperAccountsEffects, ReviewNotesEffects, ContactsEffects]),
     NavModule,
     MatAutocompleteModule,
@@ -238,7 +238,6 @@ export class MissingTranslationWarnHandler implements MissingTranslationHandler 
     AppSettingsFormComponent,
     AppSettingsFirebaseIosComponent,
     AutoAddedServiceDialogComponent,
-    AutoConnectedServicesComponent,
     BackendBrandingsComponent,
     BackendDefaultAppComponent,
     BackendDefaultSettingsComponent,
@@ -267,7 +266,6 @@ export class MissingTranslationWarnHandler implements MissingTranslationHandler 
     DefaultBrandingListComponent,
     DeveloperAccountDetailsComponent,
     DeveloperAccountsComponent,
-    EditAutoConnectedServiceDialogComponent,
     EditBackendBrandingComponent,
     EditBackendResourceComponent,
     EditContactComponent,
@@ -287,10 +285,6 @@ export class MissingTranslationWarnHandler implements MissingTranslationHandler 
     HomePageComponent,
     NavigationCardsComponent,
     NavigationItemListComponent,
-    NewsSettingsComponent,
-    NewsSettingsFormComponent,
-    NewsGroupComponent,
-    NewsGroupFormComponent,
     NotFoundComponent,
     PaymentProviderFormComponent,
     PaymentProvidersComponent,

@@ -15,9 +15,6 @@
 #
 # @@license_version:1.7@@
 
-from setup_devserver import init_env
-init_env()
-
 import base64
 import os
 import pprint
@@ -26,17 +23,27 @@ import traceback
 import unittest
 import uuid
 
-from google.appengine.ext import db
+from google.appengine.ext import db, ndb
 
+from rogerthat.bizz.communities.models import Community
 from rogerthat.bizz.qrtemplate import store_template
 from rogerthat.bizz.service import create_qr_template_key_name
 from rogerthat.bizz.system import DEFAULT_QR_CODE_OVERLAY, DEFAULT_QR_CODE_COLOR, HAND_ONLY_QR_CODE_OVERLAY
-from rogerthat.dal import put_and_invalidate_cache, app
+from rogerthat.dal import app, put_and_invalidate_cache
 from rogerthat.models import App
 from rogerthat.utils import now
+from setup_devserver import init_env
+from typing import List
+
+
+init_env()
+
+
+
 
 
 class TestCase(unittest.TestCase):
+    communities = []  # type: List[Community]
 
     def log(self, *logs):
         sys.stdout.write("\n" + traceback.format_stack()[-2].splitlines()[0] + "\n")
@@ -106,6 +113,7 @@ class TestCase(unittest.TestCase):
         rogerthat_app.mdp_client_id = str(uuid.uuid4())
         rogerthat_app.mdp_client_secret = str(uuid.uuid4())
         rogerthat_app.qrtemplate_keys = qr_template_keys
+        rogerthat_app.country = u"BE"
 
         be_loc_app = App(key=App.create_key(u"be-loc"))
         be_loc_app.name = u"Lochristi"
@@ -149,6 +157,17 @@ class TestCase(unittest.TestCase):
         osa_loyalty_app.creation_time = now()
         osa_loyalty_app.is_default = False
         osa_loyalty_app.visible = True
+        osa_loyalty_app.country = u"BE"
+
+        communities = []
+        for app_model in [rogerthat_app, be_loc_app, be_berlare_app, osa_loyalty_app]:
+            community = Community()
+            community.name = app_model.name
+            community.default_app = app_model.app_id
+            community.put()
+            app_model.community_ids = [community.id]
+            communities.append(community)
+        self.communities = communities
 
         put_and_invalidate_cache(ss, rogerthat_app, be_loc_app, be_berlare_app, osa_loyalty_app)
 

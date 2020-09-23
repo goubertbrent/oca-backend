@@ -1,6 +1,5 @@
 import { HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../environments/environment';
 
 /**
  * Adds an X-Logged-In-As header to every request that ensures the currently logged in user is the same as the currently shown dashboard
@@ -14,8 +13,6 @@ export class MainHttpInterceptor implements HttpInterceptor {
       req = req.clone({
         headers: req.headers.append('X-Logged-In-As', MainHttpInterceptor.serviceEmail),
       });
-    } else if (!environment.production) {
-      console.warn('MainHttpInterceptor.serviceEmail is not set');
     }
     return next.handle(req);
   }

@@ -1,12 +1,11 @@
 import { ChangeDetectionStrategy, Component, Inject, ViewEncapsulation } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { App, AppStatisticsMapping } from '@oca/web-shared';
+import { NewsCommunityMapping } from '../../news';
 
 export interface NewsAppMapPickerDialogData {
-  appIds: string[];
-  apps: App[];
-  appStatistics: AppStatisticsMapping;
-  defaultAppId: string;
+  selectedCommunityIds: number[];
+  communityMapping: NewsCommunityMapping;
+  defaultCommunity: number;
   mapUrl?: string | null;
 }
 
@@ -17,23 +16,21 @@ export interface NewsAppMapPickerDialogData {
   encapsulation: ViewEncapsulation.None,
 })
 export class NewsAppMapPickerDialogComponent {
-  appIds: string[];
-  apps: App[];
-  appStatistics: AppStatisticsMapping;
-  defaultAppId: string;
+  selectedCommunities: number[];
+  communityMapping: NewsCommunityMapping;
+  defaultCommunityId: number;
   mapUrl?: string | null;
 
   constructor(@Inject(MAT_DIALOG_DATA) private data: NewsAppMapPickerDialogData,
               private dialogRef: MatDialogRef<NewsAppMapPickerDialogComponent>) {
-    this.appIds = data.appIds;
-    this.apps = data.apps;
-    this.appStatistics = data.appStatistics;
-    this.defaultAppId = data.defaultAppId;
+    this.selectedCommunities = data.selectedCommunityIds;
+    this.communityMapping = data.communityMapping;
+    this.defaultCommunityId = data.defaultCommunity;
     this.mapUrl = data.mapUrl;
   }
 
   submit() {
-    this.dialogRef.close(this.appIds);
+    this.dialogRef.close(this.selectedCommunities);
   }
 
 }

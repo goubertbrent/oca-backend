@@ -53,7 +53,7 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
   }
 
   applyFilter(filterValue: string) {
-    this.dataSource.filter = filterValue.trim().toLowerCase();
+    this.dataSource.filter = filterValue?.trim().toLowerCase() ?? '';
   }
 
   refresh() {

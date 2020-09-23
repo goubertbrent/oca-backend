@@ -74,17 +74,18 @@ class NdbServiceLog(NdbModel):
     @property
     def rpc_id(self):
         return self.key.parent().name()
-    
-    
+
+
 class StatsExport(NdbModel):
     NAMESPACE = STATISTICS_NAMESPACE
     start_date = ndb.DateProperty(indexed=False)
+    # TODO communities (refactor to community_id when needed, for now only used for testing)
     default_app_id = ndb.StringProperty(indexed=False)
-    
+
     @property
     def service_user(self):
         return users.User(self.key.id())
-    
+
     @classmethod
     def create_key(cls, service_user):
         return ndb.Key(cls, service_user.email(), namespace=cls.NAMESPACE)
@@ -98,42 +99,42 @@ class StatsExportDailyData(NdbModel):
 class StatsExportDailyAppStats(NdbModel):
     app_id = ndb.StringProperty(indexed=False)
     data = ndb.LocalStructuredProperty(StatsExportDailyData, repeated=True)
-    
+
     def get_tag_data(self, tag):
         for d in self.data:
             if d.tag == tag:
                 return d
         return None
-    
+
 
 class StatsExportDaily(NdbModel):
     NAMESPACE = STATISTICS_NAMESPACE
-    
+
     date = ndb.DateProperty(indexed=True)
     app_stats = ndb.LocalStructuredProperty(StatsExportDailyAppStats, repeated=True)
-    
+
     def get_app_stats(self, app_id):
         for stats in self.app_stats:
             if stats.app_id == app_id:
                 return stats
         return None
-    
+
     @property
     def date_str(self):
         return self.key.id()
-    
+
     @property
     def service_user_email(self):
         return self.key.parent().parent().id()
-    
+
     @property
     def service_identity(self):
         return self.key.parent().id()
-    
+
     @classmethod
     def create_service_parent_key(cls, service_user):
         return ndb.Key(cls, service_user.email(), namespace=cls.NAMESPACE)
-    
+
     @classmethod
     def create_parent_key(cls, service_user, service_identity):
         return ndb.Key(cls, service_identity, parent=cls.create_service_parent_key(service_user))
@@ -141,4 +142,3 @@ class StatsExportDaily(NdbModel):
     @classmethod
     def create_key(cls, year, month, day, service_user, service_identity):
         return ndb.Key(cls, '%s-%s-%s' % (year, month, day), parent=cls.create_parent_key(service_user, service_identity))
-    

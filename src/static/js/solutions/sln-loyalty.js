@@ -628,7 +628,7 @@ $(function() {
         $("#loyalty-website-validating").show();
 
         sln.call({
-            url : "/common/broadcast/validate/url",
+            url : "/common/news/rss/validate",
             type : "POST",
             data : {
                 data : JSON.stringify({

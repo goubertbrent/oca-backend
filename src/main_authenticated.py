@@ -36,7 +36,6 @@ import solutions.common.restapi.reports
 import solutions.common.restapi.reservation
 import solutions.common.restapi.services
 import solutions.common.restapi.settings
-import solutions.common.restapi.statistics
 import solutions.common.restapi.store
 from mcfw.restapi import rest_functions
 from rogerthat.wsgi import AuthenticatedRogerthatWSGIApplication
@@ -92,7 +91,6 @@ modules = [
     solutions.common.restapi.reports,
     solutions.common.restapi.store,
     solutions.common.restapi.settings,
-    solutions.common.restapi.statistics,
     vouchers_api,
 ]
 for mod in modules:

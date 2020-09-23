@@ -22,7 +22,6 @@ import json
 import logging
 import os
 import re
-import urllib
 from cgi import FieldStorage
 from collections import namedtuple
 from datetime import date, timedelta
@@ -36,6 +35,7 @@ from google.appengine.api import urlfetch, users as gusers
 from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
 from oauth2client.client import HttpAccessTokenRefreshError
+from typing import List
 
 from add_1_monkey_patches import DEBUG, APPSCALE
 from mcfw.cache import cached
@@ -45,6 +45,7 @@ from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.bizz import channel
+from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.gcs import upload_to_gcs
 from rogerthat.bizz.profile import create_user_profile
 from rogerthat.bizz.session import switch_to_service_identity, create_session
@@ -52,14 +53,12 @@ from rogerthat.consts import FAST_QUEUE, OFFICIALLY_SUPPORTED_COUNTRIES, ROGERTH
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.app import get_apps, get_apps_by_type, get_apps_by_id, get_app_by_id
 from rogerthat.dal.profile import get_service_profile, get_profile_info
-from rogerthat.dal.service import get_default_service_identity
 from rogerthat.exceptions import ServiceExpiredException
 from rogerthat.models import App, ServiceProfile
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.settings import get_server_settings
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
-from rogerthat.to.app import AppInfoTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import now, send_mail
 from rogerthat.utils.channel import broadcast_via_iframe_result
@@ -68,14 +67,14 @@ from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import on_trans_committed, allow_transaction_propagation
 from shop import SHOP_JINJA_ENVIRONMENT
 from shop.bizz import search_customer, create_or_update_customer, \
-    generate_order_or_invoice_pdf, generate_transfer_document_image, TROPO_SESSIONS_URL, \
+    generate_order_or_invoice_pdf, generate_transfer_document_image, \
     PaymentFailedException, list_prospects, set_prospect_status, find_city_bounds, \
     put_prospect, put_regio_manager, link_prospect_to_customer, \
     list_history_tasks, put_hint, delete_hint, \
     get_invoices, get_regiomanager_statistics, get_prospect_history, create_contact, create_order, export_customers_csv, \
     put_service, update_contact, put_regio_manager_team, \
     get_regiomanagers_by_app_id, delete_contact, finish_on_site_payment, send_payment_info, manual_payment, \
-    post_app_broadcast, shopOauthDecorator, get_customer_charges, put_shop_app, sign_order, import_customer, \
+    shopOauthDecorator, get_customer_charges, sign_order, import_customer, \
     export_cirklo_customers_csv
 from shop.business.audit import audit_log, dict_str_for_audit_log
 from shop.business.charge import cancel_charge
@@ -94,12 +93,11 @@ from shop.dal import get_shop_loyalty_slides, get_shop_loyalty_slides_new_order,
     get_customer
 from shop.exceptions import DuplicateCustomerNameException, ReplaceBusinessException, NoSubscriptionFoundException, \
     CustomerNotFoundException, NoPermissionException
-from shop.jobs.migrate_service import migrate_and_create_user_profile
 from shop.jobs.migrate_user import migrate as migrate_user
 from shop.jobs.prospects import find_prospects, get_grid
 from shop.jobs.remove_regio_manager import remove_regio_manager
 from shop.models import Customer, Contact, normalize_vat, Order, Invoice, Charge, RegioManager, Prospect, \
-    ProspectInteractions, ShopLoyaltySlide, ShopApp, \
+    ShopLoyaltySlide, ShopApp, \
     ProspectRejectionReason, ShopTask, ShopLoyaltySlideNewOrder, RegioManagerTeam, RegioManagerStatistic, \
     ExpiredSubscription, LegalEntity, ShopExternalLinks
 from shop.to import CustomerTO, ContactTO, OrderItemTO, CompanyTO, CustomerServiceTO, CustomerReturnStatusTO, \
@@ -110,14 +108,14 @@ from shop.to import CustomerTO, ContactTO, OrderItemTO, CompanyTO, CustomerServi
     ProspectTO, RegioManagerTO, SubscriptionLengthReturnStatusTO, OrderReturnStatusTO, LegalEntityTO, \
     LegalEntityReturnStatusTO, CustomerChargesTO, ImportCustomersReturnStatusTO, QuotationTO
 from solution_server_settings import get_solution_server_settings
-from solutions.common.bizz import SolutionModule, get_all_existing_broadcast_types
+from solutions.common.bizz import SolutionModule, get_all_existing_broadcast_types, OrganizationType
 from solutions.common.bizz.locations import create_new_location
 from solutions.common.bizz.loyalty import update_all_user_data_admins
 from solutions.common.bizz.qanda import re_index_question
 from solutions.common.consts import CURRENCIES, get_currency_name
 from solutions.common.dal import get_solution_settings
-from solutions.common.dal.cityapp import get_service_user_for_city, invalidate_service_user_for_city
 from solutions.common.dal.hints import get_all_solution_hints, get_solution_hints
+from solutions.common.models import SolutionSettings
 from solutions.common.models.qanda import Question, QuestionReply
 from solutions.common.to import ProvisionReturnStatusTO
 from solutions.common.to.hints import SolutionHintTO
@@ -197,22 +195,28 @@ def get_regional_manager(user):
     return regio_manager
 
 
-def get_shop_context(**kwargs):
+def _get_current_user_apps():
     user = gusers.get_current_user()
-
-    team_admin = False
     if is_admin(user):
         current_user_apps = _get_apps()
     else:
         manager = get_regional_manager(user)
-        team_admin = manager and manager.admin
         regio_manager_team = manager.team
         current_user_apps_unfiltered = get_apps_by_id(regio_manager_team.app_ids)
-        current_user_apps = sorted(
-            [app for app in current_user_apps_unfiltered if app.visible], key=lambda app: app.name)
+        current_user_apps = sorted([app for app in current_user_apps_unfiltered if app.visible],
+                                   key=lambda app: app.name)
+    return current_user_apps
 
+
+def get_shop_context(**kwargs):
+    user = gusers.get_current_user()
+
+    team_admin = False
+    if not is_admin(user):
+        manager = get_regional_manager(user)
+        team_admin = manager and manager.admin
     # These are the variables used in base.html
-    js_templates = kwargs.pop('js_templates', dict())
+    js_templates = kwargs.pop('js_templates', {})
     if 'prospect_comment' not in js_templates:
         js_templates.update(render_js_templates(['prospect_comment', 'prospect_types', 'prospect_task_history']))
     js_templates.update(render_js_templates(['customer_popup'], is_folders=True))
@@ -222,7 +226,6 @@ def get_shop_context(**kwargs):
     ctx = dict(modules=_get_solution_modules(),
                default_modules=_get_default_modules(),
                static_modules=SolutionModule.STATIC_MODULES,
-               current_user_apps=current_user_apps,
                admin=is_admin(user),
                team_admin=team_admin,
                payment_admin=is_payment_admin(user),
@@ -609,7 +612,8 @@ class FindProspectsHandler(BizzManagerHandler):
             self.abort(403)
         path = os.path.join(os.path.dirname(__file__), 'html', 'prospects_find.html')
         context = get_shop_context(COUNTRY_STRINGS=sorted(OFFICIALLY_SUPPORTED_COUNTRIES.iteritems(),
-                                                          key=lambda (k, v): v))
+                                                          key=lambda (k, v): v),
+                                   current_user_apps=_get_current_user_apps())
         self.response.out.write(template.render(path, context))
 
 
@@ -644,7 +648,7 @@ class LoginAsCustomerHandler(BizzManagerHandler):
                 rogerthat_user = users.User(google_user.email())
                 profile_info = get_profile_info(rogerthat_user)
                 if not profile_info:
-                    create_user_profile(rogerthat_user, google_user.email().replace("@", " at "))
+                    create_user_profile(rogerthat_user, google_user.email().replace("@", " at ")) # todo communities set community_id
                 try:
                     secret, session = create_session(rogerthat_user, ignore_expiration=True)
                 except ServiceExpiredException:
@@ -717,8 +721,7 @@ class ExportEmailAddressesHandler(BizzManagerHandler):
 class CustomersImportHandler(BizzManagerHandler):
 
     def get(self):
-        apps = sorted(get_apps_by_type(App.APP_TYPE_CITY_APP), key=lambda a: a.name.lower())
-        return self.render_template('customers_import', apps=apps)
+        return self.render_template('customers_import')
 
 
 class ExpiredSubscriptionsHandler(BizzManagerHandler):
@@ -746,8 +749,7 @@ class LegalEntityHandler(BizzManagerHandler):
             self.abort(403)
         path = os.path.join(os.path.dirname(__file__), 'html', 'legal_entities.html')
         js_templates = render_js_templates(['legal_entities'], True)
-        self.response.out.write(template.render(path, get_shop_context(
-            js_templates=js_templates)))
+        self.response.out.write(template.render(path, get_shop_context(js_templates=js_templates)))
 
 
 @rest('/internal/shop/rest/legal_entity/list', 'get')
@@ -828,15 +830,6 @@ def rest_delete_expired_subscription(customer_id):
         return ReturnStatusTO.create(False, exception.message)
 
 
-class CustomersHandler(BizzManagerHandler):
-
-    def get(self):
-        path = os.path.join(os.path.dirname(__file__), 'html', 'customers.html')
-        cur_user = gusers.get_current_user()
-        context = get_shop_context(customers=Customer.list_by_manager(cur_user, is_admin(cur_user)))
-        self.response.out.write(template.render(path, context))
-
-
 class SalesStatisticsHandler(BizzManagerHandler):
 
     def get(self):
@@ -852,33 +845,6 @@ class HintsHandler(BizzManagerHandler):
             self.abort(403)
         path = os.path.join(os.path.dirname(__file__), 'html', 'hints.html')
         context = get_shop_context(js_templates=render_js_templates(['hints']))
-        self.response.out.write(template.render(path, context))
-
-
-class SignupAppsHandler(BizzManagerHandler):
-
-    def get(self):
-        current_user = gusers.get_current_user()
-        if not is_admin(current_user):
-            self.abort(403)
-
-        # List all shop apps, joined with all city apps
-        shop_apps = ShopApp.query().fetch()
-        shop_app_ids = [a.app_id for a in shop_apps]
-        for city_app in get_apps_by_type(App.APP_TYPE_CITY_APP):
-            if city_app.app_id in shop_app_ids:
-                shop_app = shop_apps[shop_app_ids.index(city_app.app_id)]
-            else:
-                shop_app = ShopApp(key=ShopApp.create_key(city_app.app_id),
-                                   name=city_app.name)
-                shop_apps.append(shop_app)
-
-            shop_app.main_service = city_app.main_service  # just setting this property for the template
-
-        shop_apps.sort(key=lambda a: a.name and a.name.lower())
-
-        path = os.path.join(os.path.dirname(__file__), 'html', 'apps.html')
-        context = get_shop_context(shop_apps=shop_apps)
         self.response.out.write(template.render(path, context))
 
 
@@ -1214,20 +1180,6 @@ def rest_put_regio_manager_team(team_id, name, legal_entity_id, app_ids):
         return ReturnStatusTO.create(False, be.message)
 
 
-@rest('/internal/shop/rest/regio_manager/apps', 'get')
-@returns([AppInfoTO])
-@arguments()
-def regio_manager_apps():
-    cur_user = gusers.get_current_user()
-    if is_admin(cur_user):
-        current_user_apps = get_apps([App.APP_TYPE_CITY_APP, App.APP_TYPE_ROGERTHAT], True)
-    else:
-        regio_manager = RegioManager.get(RegioManager.create_key(cur_user.email()))
-        regio_manager_team = RegioManagerTeam.get_by_id(regio_manager.team_id)
-        current_user_apps = get_apps_by_id(regio_manager_team.app_ids)
-    return [AppInfoTO.fromModel(app) for app in current_user_apps]
-
-
 @rest('/internal/shop/rest/regio_manager/put', 'post')
 @returns(RegioManagerReturnStatusTO)
 @arguments(email=unicode, name=unicode, phone=unicode, app_rights=[AppRightsTO], show_in_stats=bool, is_support=bool, team_id=(int, long), admin=bool)
@@ -1454,7 +1406,8 @@ def put_customer(customer_id, name, address1, address2, zip_code, city, country,
                  prospect_id=None, force=False, team_id=None):
     try:
         customer = create_or_update_customer(gusers.get_current_user(), customer_id, vat, name, address1, address2,
-                                             zip_code, city, country, language, organization_type, prospect_id, force, team_id)
+                                             zip_code, city, country, language, organization_type, prospect_id, force,
+                                             team_id) # todo communities set community_id
         audit_log(customer.id, u"Save Customer.", prospect_id=prospect_id)
     except DuplicateCustomerNameException, ex:
         return CustomerReturnStatusTO.create(False, warning=ex.message)
@@ -1471,17 +1424,15 @@ def find_customer(search_string, find_all=False):
     audit_log(-1, u"Customer lookup.")
     user = gusers.get_current_user()
     if is_admin(user):
-        app_ids = None
         team_id = None
         has_admin_permissions = True
     else:
         regio_manager = RegioManager.get(RegioManager.create_key(user.email()))
-        app_ids = regio_manager.app_ids
         team_id = regio_manager.team_id
         has_admin_permissions = False
 
     customers = []
-    for c in search_customer(search_string, None if find_all else app_ids, None if find_all else team_id):
+    for c in search_customer(search_string, [], None if find_all else team_id):
         can_edit = team_id is None or team_id == c.team_id
         admin = has_admin_permissions or (team_id == c.team_id and regio_manager.admin)
         customers.append(CustomerTO.fromCustomerModel(c, can_edit, admin))
@@ -1802,14 +1753,23 @@ def rest_finish_on_site_payment(customer_id, charge_reference):
 
 
 def check_only_one_city_service(customer_id, service):
+    # type: (int, CustomerServiceTO) -> None
     if SolutionModule.CITY_APP in service.modules:
-        customer = Customer.get_by_id(customer_id)
-        invalidate_service_user_for_city(service.apps[0])
-        city_service_user = get_service_user_for_city(service.apps[0])
-        if city_service_user and city_service_user.email() != customer.service_email:
-            raise BusinessException('City app module cannot be enabled for more than one service per app.'
-                                    ' %s currently has the city app module enabled for app %s' % (
-                                        city_service_user.email(), service.apps[0]))
+        community = get_community(service.community_id)
+        customer = Customer.get_by_id(customer_id)  # type: Customer
+        customers = Customer.list_enabled_by_organization_type_in_community(service.community_id, OrganizationType.CITY) \
+            .fetch(None)  # type: List[Customer]
+        settings = {s.service_user.email(): s for s in
+                    db.get([SolutionSettings.create_key(customer.service_user) for customer in customers
+                            if customer.service_email])}
+        for other_customer in customers:  # type: Customer
+            sln_settings = settings.get(other_customer.service_email)
+            if sln_settings and other_customer.service_email != customer.service_email \
+                and SolutionModule.CITY_APP in sln_settings.modules:
+                msg = 'City app module cannot be enabled for more than one service per community. ' \
+                      'Service %s (%s) currently has the city app module enabled for community %s(%d)' % (
+                          other_customer.service_email, other_customer.name, community.name, community.id)
+                raise BusinessException(msg)
 
 
 @rest("/internal/shop/rest/service/put", "post")
@@ -1822,7 +1782,7 @@ def save_service(customer_id, service):
         service = allow_transaction_propagation(db.run_in_transaction_options, xg_on, put_service, customer_id, service,
                                                 broadcast_to_users=[gusers.get_current_user()])
         return ProvisionReturnStatusTO.create(True, None, service)
-    except BusinessException, ex:
+    except BusinessException as ex:
         logging.warn(ex, exc_info=1)
         return ProvisionReturnStatusTO.create(False, ex)
     except:
@@ -1839,7 +1799,7 @@ def get_service(customer_id):
 
 
 def _get_service(customer_id, current_user):
-    customer = Customer.get_by_id(customer_id)
+    customer = Customer.get_by_id(customer_id)  # type: Customer
     azzert(user_has_permissions_to_team(current_user, customer.team_id))
     service_user = users.User(customer.service_email)
 
@@ -1849,16 +1809,9 @@ def _get_service(customer_id, current_user):
     svc.language = settings.main_language
     svc.modules = settings.modules
     svc.broadcast_types = settings.broadcast_types
-    svc.apps = get_default_service_identity(service_user).sorted_app_ids
     svc.organization_type = get_service_profile(service_user).organizationType
-
-    service_apps = get_apps_by_id(svc.apps)
-    svc.app_infos = [AppInfoTO.fromModel(app) for app in service_apps]
-
-    regio_manager_team = RegioManagerTeam.get_by_id(customer.team_id)
-    current_user_apps = get_apps_by_id(regio_manager_team.app_ids)
-    svc.current_user_app_infos = [AppInfoTO.fromModel(app) for app in current_user_apps]
     svc.managed_organization_types = customer.managed_organization_types if customer.managed_organization_types else []
+    svc.community_id = customer.community_id
     return svc
 
 
@@ -1875,9 +1828,7 @@ def change_service_email(customer_id, email):
     to_user = users.User(email)
     try:
         if customer.user_email == customer.service_email:
-            from_service_user = users.User(customer.service_email)
-            job = migrate_and_create_user_profile(gusers.get_current_user(), from_service_user, to_user)
-            return JobReturnStatusTO.create(job_key=unicode(job.key()))
+            return JobReturnStatusTO.create(False, 'It is not possible to change the email of this service')
         else:
             from_user = users.User(customer.user_email)
             migrate_user(users.get_current_user(), from_user, to_user, customer.service_email, customer_id=customer_id)
@@ -1909,42 +1860,6 @@ def add_location(customer_id, name):
 def get_job_status(job):
     job_model = db.get(job)
     return JobStatusTO.from_model(job_model)
-
-
-@returns(ReturnStatusTO)
-@arguments(prospect_key=(str, db.Key))
-def invite_prospect(prospect_key):
-    prospect = db.get(prospect_key)
-    if not prospect:
-        logging.warn("Could not find prospect with id %s", prospect_key)
-        return ReturnStatusTO.create(False, 'Could not find prospect')
-
-    prospect_interation = ProspectInteractions(parent=prospect)
-    prospect_interation.type = ProspectInteractions.TYPE_INVITE
-    prospect_interation.timestamp = now()
-    prospect_interation.put()
-
-    solution_server_settings = get_solution_server_settings()
-
-    url = '%s?%s' % (TROPO_SESSIONS_URL, urllib.urlencode((('action', 'create'),
-                                                           ('invite', 'true'),
-                                                           ('token', solution_server_settings.tropo_token),
-                                                           ('phone_number', prospect.phone),
-                                                           ('prospect_id', prospect_interation.str_key),
-                                                           ('mp3', prospect.app_id + "-invitation.mp3"))))
-
-    logging.info(url)
-    response = urlfetch.fetch(url, deadline=10)
-    status_code = response.status_code
-    if status_code != 200:
-        logging.warn('Tropo returned status code "%s" on inviting prospect', status_code)
-        return ReturnStatusTO.create(False, 'Tropo returned status code "%s" on inviting prospect' % status_code)
-
-    logging.info(response.content)
-    prospect.invite_code = Prospect.INVITE_CODE_IN_CALL
-    prospect.put()
-
-    return ReturnStatusTO.create()
 
 
 @rest("/internal/shop/rest/loyalty/slides/delete", "post")
@@ -1992,7 +1907,8 @@ class LoyaltySlidesHandler(BizzManagerHandler):
             self.abort(403)
         path = os.path.join(os.path.dirname(__file__), 'html', 'loyalty_slides.html')
         context = get_shop_context(slides=[LoyaltySlideTO.fromSolutionLoyaltySlideObject(c, include_apps=True)
-                                           for c in get_shop_loyalty_slides()])
+                                           for c in get_shop_loyalty_slides()],
+                                   current_user_apps=_get_current_user_apps())
         self.response.out.write(template.render(path, context))
 
 
@@ -2004,7 +1920,8 @@ class LoyaltySlidesNewOrderHandler(BizzManagerHandler):
             self.abort(403)
         path = os.path.join(os.path.dirname(__file__), 'html', 'loyalty_slides_new_order.html')
         context = get_shop_context(slides=[LoyaltySlideNewOrderTO.fromSlideObject(c)
-                                           for c in get_shop_loyalty_slides_new_order()])
+                                           for c in get_shop_loyalty_slides_new_order()],
+                                   current_user_apps=_get_current_user_apps())
         self.response.out.write(template.render(path, context))
 
 
@@ -2183,16 +2100,6 @@ def load_prospect_history(prospect_id):
     return [ProspectHistoryTO.create(h) for h in get_prospect_history(prospect_id)]
 
 
-@rest('/internal/shop/rest/shop-apps/<app_id:[^/]+>', 'put', type=REST_TYPE_TO)
-@returns(ShopAppTO)
-@arguments(app_id=unicode, data=ShopAppTO)
-def set_app_signup_enabled(app_id, data):
-    # type: (str, ShopAppTO) -> ShopAppTO
-    azzert(is_admin(gusers.get_current_user()))
-    model = put_shop_app(app_id, data.signup_enabled, data.paid_features_enabled, data.jobs_enabled)
-    return ShopAppTO.from_model(model)
-
-
 @rest("/internal/shop/rest/apps/all", "get")
 @returns([SimpleAppTO])
 @arguments()
@@ -2215,20 +2122,6 @@ def rest_generate_qr_codes(app_id, amount, mode):
     return wrap_with_result_status(generate_unassigned_qr_codes_zip_for_app, app_id, amount, mode)
 
 
-@rest("/internal/shop/rest/customer/app_broadcast", "post")
-@returns(ReturnStatusTO)
-@arguments(service=unicode, app_ids=[unicode], message=unicode)
-def app_broadcast(service, app_ids, message):
-    return wrap_with_result_status(post_app_broadcast, service, app_ids, message)
-
-
-@rest("/internal/shop/rest/customer/test_app_broadcast", "post")
-@returns(ReturnStatusTO)
-@arguments(service=unicode, app_ids=[unicode], message=unicode, tester=unicode)
-def test_app_broadcast(service, app_ids, message, tester):
-    return wrap_with_result_status(post_app_broadcast, service, app_ids, message, tester)
-
-
 @rest("/internal/shop/customer/charges", "get")
 @returns(CustomerChargesTO)
 @arguments(paid=bool, cursor=unicode)
@@ -2239,11 +2132,12 @@ def rest_get_customer_charges(paid=False, cursor=None):
 
 @rest('/internal/shop/customers/import/sheet', 'post')
 @returns(ImportCustomersReturnStatusTO)
-@arguments(import_id=(int, long), app_id=unicode, file_data=str)
-def rest_import_customers(import_id, app_id, file_data):
+@arguments(import_id=(int, long), community_id=(int, long), file_data=str)
+def rest_import_customers(import_id, community_id, file_data):
     user = gusers.get_current_user()
 
-    city_service_user = get_service_user_for_city(app_id)
+    community = get_community(community_id)
+    city_service_user = community.main_service_user
     sln_settings = get_solution_settings(city_service_user)
     city_customer = get_customer(city_service_user)
     currency = sln_settings.currency
@@ -2270,7 +2164,7 @@ def rest_import_customers(import_id, app_id, file_data):
 
         customer_count += 1
         deferred.defer(
-            import_customer, user, import_id, app_id, city_customer, currency, name, vat, org_type_name,
+            import_customer, user, import_id, community_id, city_customer, currency, name, vat, org_type_name,
             email, phone, address, zip_code, city, website, facebook_page, contact_name, contact_address,
             contact_zipcode, contact_city, contact_email, contact_phone
         )
@@ -2292,7 +2186,4 @@ class ConsoleHandler(BizzManagerHandler):
 class ConsoleIndexHandler(webapp2.RequestHandler):
     def get(self, route=''):
         path = os.path.join(os.path.dirname(__file__), 'html', 'console-index.html')
-        html = template.render(path, {}) \
-            .replace('href="styles', 'href="/static/console/styles') \
-            .replace('src="', 'src="/static/console/')
-        self.response.out.write(html)
+        self.response.out.write(template.render(path, {}))

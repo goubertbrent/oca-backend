@@ -24,9 +24,9 @@ class ParticipationCity(NdbModel):
     secret = ndb.StringProperty(indexed=False)
 
     @property
-    def app_id(self):
-        return self.key.id().decode('utf-8')
+    def community_id(self):
+        return self.key.id()
 
     @classmethod
-    def create_key(cls, app_id):
-        return ndb.Key(cls, app_id)
+    def create_key(cls, community_id):
+        return ndb.Key(cls, community_id)

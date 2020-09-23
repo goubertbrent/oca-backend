@@ -14,11 +14,11 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
+from typing import Tuple
 
-
-from rogerthat.bizz.jobs.workers import create_job_offer_matches,\
-    remove_job_offer_matches, re_index_job_offer
+from rogerthat.bizz.jobs.workers import create_job_offer_matches, remove_job_offer_matches, re_index_job_offer
 from rogerthat.models.jobs import JobOffer, JobOfferInfo
+from rogerthat.to.jobs import CreateJobOfferTO
 from rogerthat.utils import try_or_defer
 
 
@@ -35,10 +35,11 @@ def _set_job_offer_properties(model, data):
     info.contract = data.contract.to_model()
     info.details = data.details
     model.info = info
+    model.demo = data.demo
     return model
 
 
-def create_or_update_job_offer(service_email, demo_app_ids, data):
+def create_or_update_job_offer(service_email, data):
     # type: (unicode, CreateJobOfferTO) -> Tuple[JobOffer, bool]
     job_offer = JobOffer.get_by_source(data.source.type, data.source.id)
     created = False
@@ -46,7 +47,6 @@ def create_or_update_job_offer(service_email, demo_app_ids, data):
         job_offer = JobOffer()
         created = True
     job_offer.service_email = service_email
-    job_offer.demo_app_ids = demo_app_ids
     _set_job_offer_properties(job_offer, data)
     job_offer.put()
     if job_offer.visible:

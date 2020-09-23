@@ -24,8 +24,10 @@ from google.appengine.ext.ndb import put_multi, get_multi, GeoPt
 from typing import List, Tuple
 
 from mcfw.exceptions import HttpNotFoundException, HttpBadRequestException
+from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.jobs.bizz import create_or_update_job_offer
 from rogerthat.dal import parent_ndb_key
+from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import NdbApp
 from rogerthat.models.jobs import JobOfferSourceType
@@ -98,6 +100,7 @@ def update_job_offer(service_user, job_id, data):
     data.profile = data.profile.strip()
 
     language = get_solution_settings(service_user).main_language
+    service_profile = get_service_profile(service_user)
     job_offer, stats = get_job_offer(service_user, job_id)
     status_changed = job_offer.status != data.status
     if status_changed:
@@ -121,14 +124,9 @@ def update_job_offer(service_user, job_id, data):
     rt_data.contract = updated_data.contract
     rt_data.employer = updated_data.employer
     rt_data.details = _get_details_from_job_offer(job_offer, language)
+    rt_data.demo = get_community(service_profile.community_id).demo
 
-    demo_app_ids = []
-    si =  get_service_identity(create_service_identity_user(service_user))
-    default_app = NdbApp.create_key(si.defaultAppId).get()
-    if default_app.demo:
-        demo_app_ids.append(si.defaultAppId)
-
-    offer, created = create_or_update_job_offer(service_user.email(), demo_app_ids, rt_data)
+    offer, created = create_or_update_job_offer(service_user.email(), rt_data)
     if created or not job_offer.internal_id:
         job_offer.internal_id = offer.id
         job_offer.put()

@@ -31,7 +31,7 @@ from rogerthat.dal.profile import get_profile_info
 from rogerthat.rpc import users
 from rogerthat.settings import get_server_settings
 from rogerthat.to.admin import UserTO
-from rogerthat.utils import now, send_mail
+from rogerthat.utils import now
 from rogerthat.utils.crypto import encrypt_for_jabber_cloud
 
 

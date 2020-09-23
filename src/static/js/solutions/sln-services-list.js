@@ -23,7 +23,6 @@ function ServicesList(organizationType, container) {
     this.cursor = null;
     this.hasMore = true;
     this.isLoading = false;
-    this.generatedOn = null;
 
     this.services = []; // cache
     this.servicesContainer = container;
@@ -61,14 +60,8 @@ ServicesList.prototype = {
                     self.hasMore = false;
                 }
                 self.cursor = data.cursor;
-                self.generatedOn = data.generated_on;
                 $.each(data.services, function(i, service) {
                     if(self.services.indexOf(service) === -1) {
-                        service.statistics.lastQuestionAnsweredDate = sln.format(new Date(service.statistics.last_unanswered_question_timestamp * 1000));
-                        service.hasAgenda = service.modules.indexOf('agenda') !== -1;
-                        service.hasQA = service.modules.indexOf('ask_question') !== -1;
-                        service.hasBroadcast = service.modules.indexOf('broadcast') !== -1;
-                        service.hasStaticContent = service.modules.indexOf('static_content') !== -1;
                         newServices.push(service);
                     }
                 });
@@ -83,12 +76,6 @@ ServicesList.prototype = {
     renderServices: function (services) {
         // render the given services by appending them to the container
         var self = this;
-        if(services.length && self.generatedOn) {
-            var formattedDate = sln.format(new Date(self.generatedOn * 1000));
-            $('#generated_on').show().text(formattedDate);
-        } else {
-            $('#generated_on').hide();
-        }
 
         $.each(services, function(i, service) {
             var serviceHtml = $.tmpl(templates['services/service'], {

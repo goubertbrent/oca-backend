@@ -16,7 +16,6 @@
 # @@license_version:1.7@@
 
 from google.appengine.ext import ndb
-from typing import List
 
 from mcfw.utils import Enum
 from rogerthat.dal import parent_ndb_key, parent_ndb_key_unsafe
@@ -60,6 +59,7 @@ class SolutionNewsItem(NdbModel):
     paid = ndb.BooleanProperty(default=False)
     publish_time = ndb.IntegerProperty()
     reach = ndb.IntegerProperty(default=0, indexed=False)
+    # TODO communities: remove after migration
     app_ids = ndb.StringProperty(indexed=False, repeated=True)  # contains only regional apps (not rogerthat/main app)
     # contains only regional communities (not service_profile.community_id)
     community_ids = ndb.IntegerProperty(indexed=False, repeated=True) # todo communities
@@ -72,6 +72,12 @@ class SolutionNewsItem(NdbModel):
     @classmethod
     def create_key(cls, news_id, user):
         return ndb.Key(cls, news_id, parent=parent_ndb_key(user, SOLUTION_COMMON))
+
+    @classmethod
+    def list_unpaid(cls, publish_timestamp):
+        return cls.query() \
+            .filter(SolutionNewsItem.paid == False) \
+            .filter(SolutionNewsItem.publish_time <= publish_timestamp)
 
 
 class NewsSettingsTags(Enum):
@@ -86,9 +92,11 @@ class NewsSettings(NdbModel):
         return ndb.Key(cls, service_identity, parent=parent_ndb_key(service_user, SOLUTION_COMMON))
 
 
+# TODO communities: (or after communities) refactor to 'NewsDraft': also create a draft when a published item is changed
+# Then add a hourly cron to send emails to the community default service telling them they need to review x drafts.
 class NewsReview(NdbModel):
     service_identity_user = ndb.UserProperty()
-    app_id = ndb.StringProperty(indexed=False)
+    app_id = ndb.StringProperty(indexed=False)  # TODO communities: remove after migration
     community_id = ndb.IntegerProperty() # todo communities
     is_free_regional_news = ndb.BooleanProperty(indexed=False)
     coupon_id = ndb.IntegerProperty(indexed=False)

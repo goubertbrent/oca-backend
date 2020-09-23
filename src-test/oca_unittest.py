@@ -14,10 +14,14 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
-
+from __future__ import unicode_literals
 from setup_devserver import init_env
+
 init_env()
 
+from rogerthat.bizz.communities.communities import _populate_community
+from rogerthat.bizz.communities.models import Community, AppFeatures
+from rogerthat.bizz.communities.to import BaseCommunityTO
 import base64
 import os
 import pprint
@@ -25,7 +29,7 @@ import sys
 import traceback
 import unittest
 
-from google.appengine.ext import db
+from google.appengine.ext import db, ndb
 
 from mcfw.cache import _tlocal
 from rogerthat.bizz.qrtemplate import store_template
@@ -42,6 +46,7 @@ from solution_server_settings import get_solution_server_settings
 
 
 class TestCase(unittest.TestCase):
+    communities = []
 
     def log(self, *logs):
         sys.stdout.write("\n" + traceback.format_stack()[-2].splitlines()[0] + "\n")
@@ -86,29 +91,33 @@ class TestCase(unittest.TestCase):
         ss.mobidickAddress = "http://1.2.3.4:8090"  # not used
         ss.jabberEndPoints = ["jabber.mobicage.com:8084"]  # Development jabber server
         ss.jabberSecret = "leeg"
-        ss.userCodeCipher = u"dGVzdCAlcyB0ZXN0"
-        ss.dashboardEmail = u"dashboard@example.com"
-        ss.supportEmail = u"support@example.com"
+        ss.userCodeCipher = "dGVzdCAlcyB0ZXN0"
+        ss.dashboardEmail = "dashboard@example.com"
+        ss.supportEmail = "support@example.com"
         ss.supportWorkers = ["test@example.com"]
         ss.staticPinCodes = ["0666", "test@example.com"]
-        ss.userEncryptCipherPart1 = base64.b64encode(u'userEncryptCipherPart1')
-        ss.userEncryptCipherPart2 = base64.b64encode(u'userEncryptCipherPart2')
+        ss.userEncryptCipherPart1 = base64.b64encode('userEncryptCipherPart1')
+        ss.userEncryptCipherPart2 = base64.b64encode('userEncryptCipherPart2')
 
         sss = get_solution_server_settings()
-        sss.shop_bizz_admin_emails = [u"test@example.com"]
-        sss.shop_no_reply_email = u"norepy@example.com"
+        sss.shop_bizz_admin_emails = ["test@example.com"]
+        sss.shop_no_reply_email = "norepy@example.com"
 
-        apps_to_be_created = {App.APP_TYPE_ROGERTHAT: {App.APP_ID_ROGERTHAT: u'Rogerthat'},
-                              App.APP_TYPE_CONTENT_BRANDING: {App.APP_ID_OSA_LOYALTY: u'OSA Terminal'},
-                              App.APP_TYPE_CITY_APP: {u'be-loc': u'Lochristi',
-                                                      u'be-berlare': u'Berlare',
-                                                      u'be-beveren': u'Beveren',
-                                                      u'be-neerpelt': u'Neerpelt',
-                                                      u'be-sint-truiden': u'Sint-Truiden',
-                                                      u'es-madrid': u'Madrid'}}
+        apps_to_be_created = {App.APP_TYPE_ROGERTHAT: {App.APP_ID_ROGERTHAT: 'Rogerthat'},
+                              App.APP_TYPE_CONTENT_BRANDING: {App.APP_ID_OSA_LOYALTY: 'OSA Terminal'},
+                              App.APP_TYPE_CITY_APP: {'be-loc': 'Lochristi',
+                                                      'be-berlare': 'Berlare',
+                                                      'be-beveren': 'Beveren',
+                                                      'be-neerpelt': 'Neerpelt',
+                                                      'be-sint-truiden': 'Sint-Truiden',
+                                                      'es-madrid': 'Madrid'}}
 
         apps = {}
         qrtemplate_keys = self.setup_qr_templates()
+        communities = []
+
+        default_app_features = [AppFeatures.EVENTS_SHOW_MERCHANTS, AppFeatures.JOBS, AppFeatures.NEWS_VIDEO,
+                                AppFeatures.NEWS_LOCATION_FILTER, AppFeatures.NEWS_REGIONAL]
         for app_type, apps_dict in apps_to_be_created.iteritems():
             for app_id, app_name in apps_dict.iteritems():
                 new_app = App(key=App.create_key(app_id))
@@ -116,7 +125,7 @@ class TestCase(unittest.TestCase):
                 new_app.type = app_type
                 new_app.core_branding_hash = None
                 new_app.facebook_app_id = None
-                new_app.ios_app_id = u'com.mobicage.%s' % app_id
+                new_app.ios_app_id = 'com.mobicage.%s' % app_id
                 new_app.android_app_id = new_app.ios_app_id
                 new_app.is_default = False
                 new_app.visible = True
@@ -125,10 +134,26 @@ class TestCase(unittest.TestCase):
                 new_app.mdp_client_id = guid()
                 new_app.mdp_client_secret = guid()
                 new_app.qrtemplate_keys = qrtemplate_keys
+                new_app.country = app_id.split('-')[0].upper() if app_type == App.APP_TYPE_CITY_APP else 'BE'
                 apps[app_id] = new_app
+                community_to = BaseCommunityTO()
+                community_to.auto_connected_services = []
+                community_to.country = new_app.country
+                community_to.default_app = app_id
+                community_to.demo = False
+                community_to.embedded_apps = []
+                community_to.features = default_app_features
+                community_to.main_service = None
+                community_to.name = app_name
+                community_to.signup_enabled = False
+                community = _populate_community(Community(), community_to)
+                community.put()
+                new_app.community_ids = [community.id]
+                communities.append(community)
+        self.communities = communities
 
         rogerthat_app = apps[App.APP_ID_ROGERTHAT]
-        rogerthat_app.admin_services = [u'app_admin@rogerth.at']
+        rogerthat_app.admin_services = ['app_admin@rogerth.at']
         rogerthat_app.is_default = True
         rogerthat_app.facebook_app_id = 188033791211994
 
@@ -151,18 +176,18 @@ class TestCase(unittest.TestCase):
 
         regio_manager_team = RegioManagerTeam()
         regio_manager_team.deleted = False
-        regio_manager_team.name = u'(test) Mobicage headquarters'
-        regio_manager_team.app_ids = [u'rogerthat', u'be-loc']
+        regio_manager_team.name = '(test) Mobicage headquarters'
+        regio_manager_team.app_ids = ['rogerthat', 'be-loc']
         regio_manager_team.legal_entity_id = mobicage_entity.key().id()
         regio_manager_team.put()  # need to put here because we need its id later on
 
-        regio_manager = RegioManager(key=RegioManager.create_key(u'support@example.com'))
-        regio_manager.name = u'Support'
-        regio_manager.app_ids = [u'rogerthat', u'be-loc']
+        regio_manager = RegioManager(key=RegioManager.create_key('support@example.com'))
+        regio_manager.name = 'Support'
+        regio_manager.app_ids = ['rogerthat', 'be-loc']
         regio_manager.read_only_app_ids = []
         regio_manager.show_in_stats = True
         regio_manager.internal_support = True
-        regio_manager.phone = u'0032654984984'
+        regio_manager.phone = '0032654984984'
         regio_manager.credentials = None
         regio_manager.team_id = regio_manager_team.id
         regio_manager_team.support_manager = regio_manager.email
@@ -170,9 +195,9 @@ class TestCase(unittest.TestCase):
         to_put = apps.values() + [ss, sss, regio_manager, regio_manager_team]
         put_and_invalidate_cache(*to_put)
 
-        users.get_current_user = lambda: users.User(u'g.audenaert@gmail.com')
+        users.get_current_user = lambda: users.User('g.audenaert@gmail.com')
         user = users.get_current_user()
-        create_user_profile(user, u"Geert Audenaert", language='nl')
+        create_user_profile(user, "Geert Audenaert", language='nl')
         m = register_tst_mobile(user.email())
         users.get_current_mobile = lambda: m
 
@@ -180,18 +205,18 @@ class TestCase(unittest.TestCase):
 
         for app_id, new_app in apps.iteritems():
             if new_app.type == App.APP_TYPE_CITY_APP and app_id.startswith('be-'):
-                put_shop_app(new_app.app_id, signup_enabled=True, paid_features_enabled=True, jobs_enabled=True)
+                put_shop_app(new_app.app_id)
 
     def setup_qr_templates(self):
         qrtemplate_keys = []
-        description = u"DEFAULT"
+        description = "DEFAULT"
         key_name = create_qr_template_key_name('test', description)
-        store_template(None, DEFAULT_QR_CODE_OVERLAY, description, u"".join(("%X" % c).rjust(2, '0')
+        store_template(None, DEFAULT_QR_CODE_OVERLAY, description, "".join(("%X" % c).rjust(2, '0')
                                                                             for c in DEFAULT_QR_CODE_COLOR), key_name)
         qrtemplate_keys.append(key_name)
-        description = u"HAND"
+        description = "HAND"
         key_name = create_qr_template_key_name('test', description)
-        store_template(None, HAND_ONLY_QR_CODE_OVERLAY, description, u"".join(("%X" % c).rjust(2, '0')
+        store_template(None, HAND_ONLY_QR_CODE_OVERLAY, description, "".join(("%X" % c).rjust(2, '0')
                                                                               for c in DEFAULT_QR_CODE_COLOR), key_name)
         qrtemplate_keys.append(key_name)
         return qrtemplate_keys

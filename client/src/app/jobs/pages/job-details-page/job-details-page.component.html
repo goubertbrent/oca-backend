@@ -15,7 +15,7 @@
     <span *ngIf="jobOfferStats$ | async as stats"
           [matBadgeHidden]="stats.unread_solicitations.length === 0"
           [matBadgeOverlap]="false"
-          [matBadge]="stats.unread_solicitations.length"
+          [matBadge]="stats.unread_solicitations.length.toString()"
           matBadgeColor="accent"
           matBadgeSize="small">{{ 'oca.solicitations' | translate }}</span>
   </a>

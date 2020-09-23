@@ -624,62 +624,6 @@ def is_numeric_string(s):
         return False
 
 
-class DSPickler(object):
-
-    def __init__(self, key, version=0, data=None):
-        self.data = data
-        self.key = key
-        self.version = version
-
-    def ancestor(self):
-        from rogerthat.models import DSPickle
-
-        return Key.from_path(DSPickle.kind(), self.key)
-
-    def update(self, data):
-        from rogerthat.models import DSPicklePart, DSPickle
-
-        self.data = data
-        version = self.version + 1
-        stream = StringIO()
-        pickle.dump(data, stream)
-        stream.seek(0)
-        number = 0
-        while True:
-            part = stream.read(900 * 1024)
-            if not part:
-                break
-            number += 1
-            DSPicklePart(parent=self.ancestor(), version=version, number=number,
-                         timestamp=now(), data=db.Blob(part)).put()
-        DSPickle(key=self.ancestor(), version=version).put()
-        self.version = version
-
-    def delete(self):
-        from rogerthat.models import DSPicklePart, DSPickle
-
-        while True:
-            parts = DSPicklePart.all(keys_only=True).ancestor(self.ancestor()).fetch(200)
-            if not parts:
-                break
-            db.delete(parts)
-        db.delete(Key.from_path(DSPickle.kind(), self.key))
-
-    @staticmethod
-    def read(key):
-        from rogerthat.models import DSPicklePart, DSPickle
-
-        dsp = db.get(Key.from_path(DSPickle.kind(), key))
-        if not dsp:
-            return DSPickler(key)
-        stream = StringIO()
-        for dspp in DSPicklePart.all().ancestor(dsp).filter('version =', dsp.version).order('number'):
-            stream.write(str(dspp.data))
-        stream.seek(0)
-        data = pickle.load(stream)
-        return DSPickler(key, dsp.version, data)
-
-
 def file_get_contents(filename):
     with open(filename) as f:
         return f.read()

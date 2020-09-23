@@ -20,53 +20,41 @@ import json
 import logging
 import re
 
-import cloudstorage
 from google.appengine.api import urlfetch
-from google.appengine.ext import db, deferred
-from typing import Tuple
+from google.appengine.ext import db, deferred, ndb
+from typing import Tuple, List
 
-from mcfw.cache import cached, invalidate_cache
+from mcfw.cache import invalidate_cache
 from mcfw.consts import MISSING
-from mcfw.exceptions import HttpBadRequestException, HttpNotFoundException, HttpException
+from mcfw.exceptions import HttpBadRequestException, HttpException
 from mcfw.properties import get_members
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.embedded_applications import send_update_all_embedded_apps
-from rogerthat.bizz.friend_helper import FriendHelper
-from rogerthat.bizz.gcs import get_serving_url
+from rogerthat.bizz.communities.models import CommunityUserStats
 from rogerthat.bizz.gsuite import create_app_group
-from rogerthat.bizz.job import run_job, hookup_with_default_services
-from rogerthat.bizz.service import ServiceWithEmailDoesNotExistsException, ServiceIdentityDoesNotExistException, \
-    InvalidAppIdException, schedule_add_app_id_to_services
+from rogerthat.bizz.job import run_job
+from rogerthat.bizz.service import InvalidAppIdException
 from rogerthat.bizz.system import update_settings_response_handler
 from rogerthat.bizz.user import delete_account
 from rogerthat.capi.system import updateSettings
-from rogerthat.consts import DEBUG, FILES_BUCKET
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.app import get_app_settings, get_default_app
 from rogerthat.dal.mobile import get_mobile_settings_cached
-from rogerthat.dal.profile import get_user_profile_keys_by_app_id, get_user_profiles_by_app_id
-from rogerthat.dal.service import get_service_identities_by_service_identity_users, get_service_identity
+from rogerthat.dal.profile import get_user_profiles_by_app_id
 from rogerthat.exceptions.app import DuplicateAppIdException
 from rogerthat.handlers.proxy import _exec_request
-from rogerthat.models import App, AppSettings, UserProfile, ServiceIdentity, \
-    AppTranslations, AppNameMapping
+from rogerthat.models import App, AppSettings, UserProfile, ServiceIdentity, AppTranslations, AppNameMapping
 from rogerthat.models.apps import EmbeddedApplication
 from rogerthat.models.firebase import FirebaseProjectSettings
-from rogerthat.models.news import NewsGroup, NewsGroupTile
-from rogerthat.models.properties.app import AutoConnectedService, AutoConnectedServices
 from rogerthat.models.properties.oauth import OAuthSettings
 from rogerthat.rpc import users
 from rogerthat.rpc.models import Mobile
 from rogerthat.rpc.rpc import logError
 from rogerthat.rpc.service import ServiceApiException
 from rogerthat.settings import get_server_settings
-from rogerthat.to.app import AppSettingsTO, AppTO, CreateAppTO, NewsSettingsTO, \
-    NewsGroupTO, PatchAppTO
-from rogerthat.to.friends import FRIEND_TYPE_SERVICE
-from rogerthat.to.statistics import AppServiceStatisticsTO
+from rogerthat.to.app import AppSettingsTO, AppTO, CreateAppTO, PatchAppTO
+from rogerthat.to.statistics import CommunityUserStatisticsTO
 from rogerthat.to.system import UpdateSettingsRequestTO, SettingsTO
-from rogerthat.utils import now, read_file_in_chunks, random_string
-from rogerthat.utils.service import add_slash_default
+from rogerthat.utils import now
 from rogerthat.utils.transactions import run_in_xg_transaction, on_trans_committed
 
 try:
@@ -100,48 +88,6 @@ def get_app(app_id):
         return app
 
     return trans() if db.is_in_transaction() else db.run_in_transaction(trans)
-
-
-@returns()
-@arguments(app_id=unicode, services=[AutoConnectedService], auto_connect_now=bool)
-def add_auto_connected_services(app_id, services, auto_connect_now=True):
-    def trans():
-        app = get_app(app_id)
-        to_be_put = [app]
-
-        si_users = [add_slash_default(users.User(acs.service_identity_email)) for acs in services]
-        service_identities = get_service_identities_by_service_identity_users(si_users)
-        for si, acs in zip(service_identities, services):
-            if not si:
-                raise ServiceWithEmailDoesNotExistsException(acs.service_identity_email)
-            if app_id not in si.appIds:
-                si.appIds.append(app_id)
-                to_be_put.append(si)
-
-            acs.service_identity_email = si.user.email()
-            app.auto_connected_services.add(acs)
-
-        put_and_invalidate_cache(*to_be_put)
-
-    xg_on = db.create_transaction_options(xg=True)
-    db.run_in_transaction_options(xg_on, trans)
-
-    if auto_connect_now:
-        logging.info('There are new auto-connected services for %s: %s', app_id, [acs.service_identity_email
-                                                                                  for acs in services])
-        deferred.defer(connect_auto_connected_services, app_id, services)
-
-
-@returns()
-@arguments(service_user=users.User, app_id=unicode, service_identity_email=unicode)
-def delete_auto_connected_service(service_user, app_id, service_identity_email):
-    def trans():
-        app = get_app(app_id)
-        if service_identity_email in app.auto_connected_services:
-            app.auto_connected_services.remove(service_identity_email)
-            app.put()
-
-    db.run_in_transaction(trans)
 
 
 @returns(bool)
@@ -314,31 +260,13 @@ def validate_user_regex(user_regex):
         raise HttpBadRequestException('invalid_user_regex', data={})
 
 
-def prepare_app_statistics_cache():
-    for app_key in list(App.all(keys_only=True)):
-        app_id = app_key.name()
-        invalidate_cache(get_user_count_in_app, app_id)
-        get_user_count_in_app(app_id)
-
-
-@cached(1, lifetime=0, memcache=True, datastore='get_user_count_in_app')
-@returns(long)
-@arguments(app_id=unicode)
-def get_user_count_in_app(app_id):
-    return UserProfile.count_by_app(app_id)
-
-
-@returns([AppServiceStatisticsTO])
-@arguments(app_ids=[unicode])
-def get_app_statistics(app_ids):
-    stats = []
-    for app_id in app_ids:
-        total_user_count = get_user_count_in_app(app_id)
-        if DEBUG and total_user_count == 0:
-            import random
-            total_user_count = random.randint(500, 10000)
-        stats.append(AppServiceStatisticsTO(app_id, total_user_count))
-    return stats
+def get_community_statistics(community_ids):
+    # type: (List[long]) -> List[CommunityUserStatisticsTO]
+    stats = ndb.get_multi([CommunityUserStats.create_key(community_id) for community_id in community_ids])
+    return [
+        CommunityUserStatisticsTO.from_model(model) if model else CommunityUserStatisticsTO(community_id=community_id)
+        for community_id, model in zip(community_ids, stats)
+    ]
 
 
 def is_valid_app_id(app_id):
@@ -349,7 +277,6 @@ def is_valid_app_id(app_id):
 @arguments(data=CreateAppTO)
 def create_app(data):
     # type: (CreateAppTO) -> App
-    from rogerthat.bizz.news.groups import setup_news_stream_app
     from solutions.common.bizz.location_data_import import import_location_data
     from solutions.common.bizz.participation.proxy import register_app
 
@@ -377,7 +304,6 @@ def create_app(data):
                                    background_fetch_timestamps=[21600] if app.type == App.APP_TYPE_CITY_APP else [])
         db.put((app, app_settings))
 
-        deferred.defer(setup_news_stream_app, create_app_to.app_id, news_stream=data.news_stream, _transactional=True)
         deferred.defer(register_app, create_app_to.app_id, data.ios_developer_account, _transactional=True)
         deferred.defer(create_app_group, create_app_to.app_id)
         if data.official_id:
@@ -405,42 +331,19 @@ def create_app(data):
             raise HttpException.from_urlfetchresult(response)
         return app
 
-    app = run_in_xg_transaction(trans, data)
-    if data.auto_added_services not in (None, MISSING):
-        schedule_add_app_id_to_services(app.app_id, data.auto_added_services)
-
-    return app
+    return run_in_xg_transaction(trans, data)
 
 
 @returns(App)
 @arguments(app_id=unicode, data=AppTO)
 def update_app(app_id, data):
-    """
-    Args:
-        app_id (unicode)
-        data(AppTO)
-    Returns:
-        App
-    """
+    # type: (unicode, AppTO) -> App
     # Validation
     if data.user_regex:
         validate_user_regex(data.user_regex)
 
-    # checking this non-transactional to prevent accessing too many entity groups in the transaction
-    auto_connected_identities = db.get(
-        [ServiceIdentity.keyFromUser(add_slash_default(users.User(acs.service_identity_email)))
-         for acs in data.auto_connected_services])
-    identities_to_patch = []
-    for si in auto_connected_identities:
-        if not si:
-            raise ServiceIdentityDoesNotExistException(si.user.email())
-        if app_id not in si.appIds:
-            identities_to_patch.append(si.user)
-
     def trans():
         app = get_app(app_id)
-        to_put = [app]
-
         app.admin_services = data.admin_services
         app.name = data.name
         app.type = data.type
@@ -454,48 +357,20 @@ def update_app(app_id, data):
         app.demo = data.demo
         app.beta = data.beta
         app.secure = data.secure
-        app.chat_enabled = data.chat_enabled
         app.mdp_client_id = data.mdp_client_id
         app.mdp_client_secret = data.mdp_client_secret
         app.owncloud_base_uri = data.owncloud_base_uri
         app.owncloud_admin_username = data.owncloud_admin_username
         app.owncloud_admin_password = data.owncloud_admin_password
+        app.country = data.country
+        app.community_ids = data.community_ids
+        app.service_filter_type = data.service_filter_type
 
-        if set(app.embedded_apps).symmetric_difference(data.embedded_apps):
-            deferred.defer(send_update_all_embedded_apps, app_id, _countdown=2, _transactional=True)
-        app.embedded_apps = data.embedded_apps
         if data.default_app_name_mapping and data.default_app_name_mapping != app.default_app_name_mapping:
             app.default_app_name_mapping = data.default_app_name_mapping
             deferred.defer(set_app_name_mapping, app_id, app.default_app_name_mapping, _transactional=True)
 
-        old_auto_connected_services = {acs.service_identity_email for acs in app.auto_connected_services}
-        app.auto_connected_services = AutoConnectedServices()
-        for acs in data.auto_connected_services:
-            service_identity_user = add_slash_default(users.User(acs.service_identity_email))
-            if service_identity_user in identities_to_patch:
-                si = get_service_identity(service_identity_user)
-                si.appIds.append(app_id)
-                to_put.append(si)
-            acs.service_identity_email = service_identity_user.email()
-            app.auto_connected_services.add(acs)
-
-        # Add mainservice as autoconnected service if it's not already added
-        if app.main_service:
-            main_service_identity_email = add_slash_default(users.User(app.main_service))
-            service = AutoConnectedService()
-            service.service_identity_email = main_service_identity_email.email()
-            service.removable = False
-            service.local = []
-            service.service_roles = []
-            app.auto_connected_services.add(service)
-
-        new_acs = [acs for acs in app.auto_connected_services
-                   if acs.service_identity_email not in old_auto_connected_services]
-        if new_acs:
-            logging.info('There are new auto-connected services for %s: %s', app_id,
-                         [acs.service_identity_email for acs in new_acs])
-        deferred.defer(connect_auto_connected_services, app_id, new_acs, _transactional=True)
-        put_and_invalidate_cache(*to_put)
+        app.put()
         return app
 
     return run_in_xg_transaction(trans)
@@ -503,19 +378,6 @@ def update_app(app_id, data):
 
 def set_app_name_mapping(app_id, name):
     AppNameMapping(key=AppNameMapping.create_key(name), app_id=app_id).put()
-
-
-def connect_auto_connected_services(app_id, auto_connected_services):
-    # type: (unicode, [AutoConnectedService]) -> None
-    for acs in auto_connected_services:
-        deferred.defer(_connect_auto_connected_service, app_id, acs)
-
-
-def _connect_auto_connected_service(app_id, acs):
-    # type: (unicode, AutoConnectedService) -> None
-    helper = FriendHelper.serialize(users.User(acs.service_identity_email), FRIEND_TYPE_SERVICE)
-    run_job(get_user_profile_keys_by_app_id, [app_id],
-            hookup_with_default_services.run_for_auto_connected_service, [acs, None, helper])
 
 
 @arguments(app_id=unicode)
@@ -541,26 +403,29 @@ def validate_can_delete_app(app):
                                                               service_identities]})
 
 
-@db.transactional()
-@returns(App)
+@returns(tuple)
 @arguments(app_id=unicode, data=PatchAppTO)
 def patch_app(app_id, data):
     # type: (str, PatchAppTO) -> Tuple[App, dict]
-    app = get_app(app_id)
-    app.name = data.title
-    app.type = data.app_type
-    app.beta = data.playstore_track != 'production'
-    app.main_service = data.main_service
-    app.facebook_app_id = data.facebook_app_id
-    app.facebook_app_secret = data.facebook_app_secret
-    app.secure = data.secure
-    app.put()
-    path = '/api/apps/%s/partial' % app_id
-    body = json.dumps(data.to_dict())
-    result = _exec_request(path, 'put', {'Content-Type': 'application/json'}, body, True)
-    if result.status_code != 200:
-        raise HttpException.from_urlfetchresult(result)
-    return app, json.loads(result.content)
+    def f():
+        app = get_app(app_id)
+        app.name = data.title
+        app.type = data.app_type
+        app.beta = data.playstore_track != 'production'
+        app.main_service = data.main_service
+        app.facebook_app_id = data.facebook_app_id
+        app.facebook_app_secret = data.facebook_app_secret
+        app.secure = data.secure
+        app.put()
+        path = '/api/apps/%s/partial' % app_id
+        body = json.dumps(data.to_dict())
+        result = _exec_request(path, 'put', {'Content-Type': 'application/json'}, body, True)
+        if result.status_code != 200:
+            raise HttpException.from_urlfetchresult(result)
+        return app, json.loads(result.content)
+
+    # Can't use the decorator here since we need the on_trans_committed that clears the cache
+    return db.run_in_transaction(f)
 
 
 def set_default_app(app_id):
@@ -586,37 +451,3 @@ def set_default_app(app_id):
     app = run_in_xg_transaction(trans, old_default_app)
     invalidate_cache(get_default_app)
     return app
-
-
-@returns(NewsSettingsTO)
-@arguments(app_id=unicode)
-def get_news_settings(app_id):
-    groups = NewsGroup.list_by_app_id(app_id)
-    return NewsSettingsTO(groups=[NewsGroupTO.from_model(m) for m in groups if not m.regional])
-
-
-def upload_news_backround_image(app_id, group_id, uploaded_file):
-    news_group = NewsGroup.create_key(group_id).get()
-    if not news_group:
-        raise HttpNotFoundException('errors.news_group_not_found', {'id': group_id})
-
-    if app_id != news_group.app_id:
-        raise HttpBadRequestException('errors.invalid_app_id', {'id': app_id})
-
-    content_type = uploaded_file.type or 'image/jpeg'
-    extension = '.jpg' if content_type == 'image/jpeg' else '.png'
-    cloudstorage_path = '/%s/news/groups/%s/%s_%s%s' % (
-    FILES_BUCKET, app_id, news_group.group_type, random_string(5), extension)
-
-    with cloudstorage.open(cloudstorage_path, 'w', content_type=content_type) as f:
-        for chunk in read_file_in_chunks(uploaded_file.file):
-            f.write(chunk)
-
-    url = get_serving_url(cloudstorage_path)
-
-    if not news_group.tile:
-        news_group.tile = NewsGroupTile()
-    news_group.tile.background_image_url = url
-    news_group.put()
-
-    return NewsGroupTO.from_model(news_group)

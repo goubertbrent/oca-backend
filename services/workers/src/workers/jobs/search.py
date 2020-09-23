@@ -21,13 +21,21 @@ from google.appengine.api import urlfetch
 from google.appengine.ext import ndb
 from typing import Iterable, List, Any, Optional, Tuple
 
-from common.utils.app import get_app_id_from_app_user
 from common.consts import JOBS_CONTROLLER_QUEUE, JOBS_WORKER_QUEUE
-from common.elasticsearch import create_index, delete_doc_operations,\
-    index_doc_operations, get_elasticsearch_config, execute_bulk_request,\
-    delete_index, es_request
+from common.elasticsearch import create_index, delete_doc_operations, \
+    index_doc_operations, get_elasticsearch_config, execute_bulk_request, \
+    delete_index, es_request, ElasticsearchSettings
 from common.job import run_job, MODE_BATCH
+from workers.jobs import JobMatchingCriteria
 from workers.jobs.models import JobOffer
+
+
+class SearchTag(object):
+
+    @staticmethod
+    def environment(demo):
+        # type: (bool) -> unicode
+        return 'environment#%s' % ('demo' if demo else 'production')
 
 
 def create_matching_index(config):
@@ -63,15 +71,7 @@ def create_job_offer_index_operations(job_offer):
     # type: (JobOffer) -> Iterable[dict]
     if not job_offer.visible:
         return delete_doc_operations(job_offer.id)
-
-    tags = []
-    if job_offer.demo_app_ids:
-        tags.append('environment#demo')
-        for app_id in job_offer.demo_app_ids:
-            tags.append('app_id#%s' % app_id)
-    else:
-        tags.append('environment#production')
-
+    tags = [SearchTag.environment(job_offer.demo)]
     doc = {
         'source': job_offer.source.type,
         'details': job_offer.info.details,
@@ -146,7 +146,7 @@ def search_jobs(job_criteria, cursor=None, amount=500):
             }
         },
         'sort': [
-            "_score",
+            '_score',
             {
                 '_geo_distance': {
                     'location': {
@@ -163,7 +163,7 @@ def search_jobs(job_criteria, cursor=None, amount=500):
         job_domains_filter = {
             'bool': {
                 'should': [],
-                "minimum_should_match": 1
+                'minimum_should_match': 1
             }
         }
         for job_domain in job_criteria.job_domains:
@@ -178,7 +178,7 @@ def search_jobs(job_criteria, cursor=None, amount=500):
         contract_types_filter = {
             'bool': {
                 'should': [],
-                "minimum_should_match": 1
+                'minimum_should_match': 1
             }
         }
         for contract_type in job_criteria.contract_types:
@@ -193,7 +193,7 @@ def search_jobs(job_criteria, cursor=None, amount=500):
         keywords_filter = {
             'bool': {
                 'should': [],
-                "minimum_should_match": 1
+                'minimum_should_match': 1
             }
         }
         for keyword in job_criteria.keywords:
@@ -204,19 +204,14 @@ def search_jobs(job_criteria, cursor=None, amount=500):
             })
         qry['query']['bool']['filter'].append(keywords_filter)
 
-    app_id = get_app_id_from_app_user(job_criteria.app_user)
     qry['query']['bool']['filter'].append({
         'bool': {
             'should': [{
                 'term': {
-                    'tags': 'environment#production'
-                }
-            }, {
-                'term': {
-                    'tags': 'app_id#%s' % app_id
+                    'tags': SearchTag.environment(job_criteria.demo)
                 }
             }],
-            "minimum_should_match": 1
+            'minimum_should_match': 1
         }
     })
 

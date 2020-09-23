@@ -24,6 +24,7 @@ from google.appengine.ext import ndb
 from mcfw.exceptions import HttpNotFoundException
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments
+from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.news import get_news_share_base_url, get_news_share_url, save_web_news_item_action_statistic
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_service_identity
@@ -37,9 +38,11 @@ from rogerthat.utils.service import get_service_user_from_service_identity_user
 from rogerthat.web_client.pages.web_client import handle_web_request
 from solutions import translate
 
+
 @returns(tuple)
 @arguments(app_name=unicode, news_id=(int, long), language=unicode)
 def get_news_item_details(app_name, news_id, language=None):
+    # type: (unicode, long, unicode) -> Tuple[NewsItem, Optional[AppNameMapping], NewsItemTO]
     news_item, app_name_mapping = ndb.get_multi([
         NewsItem.create_key(news_id),
         AppNameMapping.create_key(app_name)
@@ -53,10 +56,11 @@ def get_news_item_details(app_name, news_id, language=None):
     si_user = news_item.sender
     service_profile = get_service_profile(get_service_user_from_service_identity_user(si_user))
     service_identity = get_service_identity(si_user)
-    app_id = app_name_mapping.app_id if app_name_mapping else service_identity.defaultAppId
-    share_base_url = get_news_share_base_url(server_settings.webClientUrl, app_id, news_item.app_ids)
+    app_id = app_name_mapping.app_id if app_name_mapping else get_community(service_profile.community_id).default_app
+    share_base_url = get_news_share_base_url(server_settings.webClientUrl, app_id=app_id)
     share_url = get_news_share_url(share_base_url, news_item.id)
-    return news_item, app_name_mapping, NewsItemTO.from_model(news_item, server_settings.baseUrl, service_profile, service_identity, share_url=share_url)
+    return news_item, app_name_mapping, NewsItemTO.from_model(news_item, server_settings.baseUrl, service_profile,
+                                                              service_identity, share_url=share_url)
 
 
 @rest('/api/web/<app_name:[^/]+>/news/id/<news_id:\d+>', 'get')

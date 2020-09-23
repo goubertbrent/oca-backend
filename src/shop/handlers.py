@@ -23,18 +23,20 @@ import os
 import time
 import urllib
 
+import webapp2
+from babel import Locale
 from dateutil.relativedelta import relativedelta
 from google.appengine.api import search, users as gusers
 from google.appengine.ext import db
 from google.appengine.ext.deferred import deferred
 from google.appengine.ext.webapp import template
-import webapp2
 
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.exceptions import HttpNotFoundException
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import serialize_complex_value, arguments, returns
+from rogerthat.bizz.communities.communities import get_communities_by_country, get_community, get_community_countries
 from rogerthat.bizz.friends import user_code_by_hash, makeFriends, ORIGIN_USER_INVITE
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.service import SERVICE_LOCATION_INDEX, re_index_map_only
@@ -51,7 +53,7 @@ from rogerthat.rpc.service import BusinessException
 from rogerthat.settings import get_server_settings
 from rogerthat.templates import get_languages_from_request
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, WarningReturnStatusTO
-from rogerthat.utils import get_epoch_from_datetime, bizz_check, try_or_defer
+from rogerthat.utils import get_epoch_from_datetime, bizz_check, try_or_defer, get_country_code_by_ipaddress
 from rogerthat.utils.app import get_app_id_from_app_user
 from rogerthat.utils.cookie import set_cookie
 from rogerthat.utils.service import create_service_identity_user
@@ -62,7 +64,6 @@ from shop.bizz import create_customer_signup, complete_customer_signup, get_orga
 from shop.business.i18n import shop_translate
 from shop.business.permissions import is_admin
 from shop.constants import OFFICIALLY_SUPPORTED_LANGUAGES
-from shop.dal import get_all_signup_enabled_apps
 from shop.models import Invoice, OrderItem, Product, Prospect, RegioManagerTeam, LegalEntity, Customer, \
     Quotation, CustomerSignup
 from shop.to import CompanyTO, CustomerTO, CustomerLocationTO
@@ -70,7 +71,7 @@ from shop.view import get_shop_context, get_current_http_host
 from solution_server_settings import get_solution_server_settings
 from solutions import translate
 from solutions.common.bizz.grecaptcha import recaptcha_verify
-from solutions.common.bizz.settings import get_consents_for_app
+from solutions.common.bizz.settings import get_consents_for_community
 from solutions.common.integrations.cirklo.cirklo import check_merchant_whitelisted
 from solutions.common.integrations.cirklo.models import CirkloMerchant, CirkloCity
 from solutions.common.models import SolutionServiceConsent
@@ -110,56 +111,6 @@ class ExportInvoicesHandler(webapp2.RequestHandler):
 
         self.response.headers['Content-Type'] = 'text/json'
         self.response.write(json.dumps(invoices))
-
-
-class ProspectCallbackHandler(webapp2.RequestHandler):
-
-    def get(self):
-        solution_server_settings = get_solution_server_settings()
-        if not solution_server_settings.tropo_callback_token:
-            logging.error("tropo_callback_token is not set yet")
-            self.abort(401)
-
-        if self.request.get('token') != solution_server_settings.tropo_callback_token:
-            self.abort(401)
-
-        prospect_id = self.request.get('prospect_id')
-        if not prospect_id:
-            logging.warn("missing prospect_id in prospect callback invite result")
-            self.abort(401)
-
-        status = self.request.get('status')
-        if not status:
-            logging.warn("missing status in prospect callback invite result")
-            self.abort(401)
-
-        if status not in Prospect.INVITE_RESULT_STRINGS:
-            logging.warn("got unexpected status in prospect callback invite result %s", status)
-            self.abort(401)
-
-        prospect_interaction = db.get(prospect_id)
-        if not prospect_interaction:
-            logging.warn("could not find prospect with key %s", prospect_id)
-            self.abort(401)
-
-        prospect = prospect_interaction.prospect
-        logging.info("Process callback invite result for prospect with id '%s' and status '%s'", prospect.id, status)
-        if status == Prospect.INVITE_RESULT_STRING_YES:
-            prospect_interaction.code = prospect.invite_code = Prospect.INVITE_CODE_ANSWERED
-            prospect_interaction.result = prospect.invite_result = Prospect.INVITE_RESULT_YES
-        elif status == Prospect.INVITE_RESULT_STRING_NO:
-            prospect_interaction.code = prospect.invite_code = Prospect.INVITE_CODE_ANSWERED
-            prospect_interaction.result = prospect.invite_result = Prospect.INVITE_RESULT_NO
-        elif status == Prospect.INVITE_RESULT_STRING_MAYBE:
-            prospect_interaction.code = prospect.invite_code = Prospect.INVITE_CODE_ANSWERED
-            prospect_interaction.result = prospect.invite_result = Prospect.INVITE_RESULT_MAYBE
-        elif status == Prospect.INVITE_RESULT_STRING_NO_ANSWER:
-            prospect_interaction.code = prospect.invite_code = Prospect.INVITE_CODE_NO_ANSWER
-        elif status == Prospect.INVITE_RESULT_STRING_CALL_FAILURE:
-            prospect_interaction.code = prospect.invite_code = Prospect.INVITE_CODE_CALL_FAILURE
-
-        db.put([prospect, prospect_interaction])
-        self.response.out.write("Successfully processed invite result")
 
 
 class StaticFileHandler(webapp2.RequestHandler):
@@ -278,17 +229,6 @@ class GenerateQRCodesHandler(webapp2.RequestHandler):
         if not is_admin(current_user):
             self.abort(403)
         path = os.path.join(os.path.dirname(__file__), 'html', 'generate_qr_codes.html')
-        context = get_shop_context()
-        self.response.out.write(template.render(path, context))
-
-
-class AppBroadcastHandler(webapp2.RequestHandler):
-
-    def get(self):
-        current_user = gusers.get_current_user()
-        if not is_admin(current_user):
-            self.abort(403)
-        path = os.path.join(os.path.dirname(__file__), 'html', 'app_broadcast.html')
         context = get_shop_context()
         self.response.out.write(template.render(path, context))
 
@@ -442,62 +382,41 @@ class PublicPageHandler(webapp2.RequestHandler):
 
 class CustomerSigninHandler(PublicPageHandler):
 
-    def get(self, app_id=''):
+    def get(self):
         self.response.write(self.render('signin'))
 
 
 class CustomerSignupHandler(PublicPageHandler):
 
-    def get(self, app_id=''):
+    def get(self):
         language = (self.request.get('language') or self.language).split('_')[0]
-
-        email = self.request.get('email')
-        if email.endswith('.'):
-            email = email[:-1]
-        data = self.request.get('data')
-        if email and data:
-            # TODO: can be removed after june 2020
-            try:
-                complete_customer_signup(email, data)
-            except ExpiredUrlException:
-                return self.return_error("link_expired", action='')
-            except AlreadyUsedUrlException:
-                return self.return_error("link_is_already_used", action='')
-            except InvalidUrlException:
-                return self.return_error('invalid_url')
-
-            params = {
-                'email_verified': True,
-            }
+        solution_server_settings = get_solution_server_settings()
+        version = get_current_document_version(DOC_TERMS_SERVICE)
+        legal_language = get_legal_language(language)
+        countries = get_community_countries()
+        selected_country = get_country_code_by_ipaddress(os.environ.get('HTTP_X_FORWARDED_FOR', None))
+        if selected_country:
+            communities = get_communities_by_country(selected_country)
         else:
-            apps = []
-            # If app id is in the url, only allow choosing that app in the dropdown list.
-            if app_id:
-                app = get_app_by_id(app_id)
-                if app:
-                    apps = [app]
-            if not apps:
-                apps = get_all_signup_enabled_apps()
-            solution_server_settings = get_solution_server_settings()
-            version = get_current_document_version(DOC_TERMS_SERVICE)
-            legal_language = get_legal_language(language)
-            params = {
-                'apps': sorted(apps, key=lambda x: x.name),
-                'recaptcha_site_key': solution_server_settings.recaptcha_site_key,
-                'email_verified': False,
-                'toc_content': get_version_content(legal_language, DOC_TERMS_SERVICE, version)
-            }
-        params['language'] = language.lower()
-        params['languages'] = [
-            (code, name) for code, name in OFFICIALLY_SUPPORTED_LANGUAGES.iteritems() if code in LEGAL_LANGUAGES
-        ]
-        params['signup_success'] = json.dumps(self.render('signup_success', language=language))
+            communities = []
+        params = {
+            'recaptcha_site_key': solution_server_settings.recaptcha_site_key,
+            'email_verified': False,
+            'toc_content': get_version_content(legal_language, DOC_TERMS_SERVICE, version),
+            'language': language.lower(),
+            'languages': [(code, name) for code, name in OFFICIALLY_SUPPORTED_LANGUAGES.iteritems()
+                          if code in LEGAL_LANGUAGES],
+            'countries': [(country, Locale(language, country).get_territory_name()) for country in countries],
+            'communities': communities,
+            'selected_country': selected_country,
+            'signup_success': json.dumps(self.render('signup_success', language=language))
+        }
         self.response.write(self.render('signup', **params))
 
 
 class CustomerSignupPasswordHandler(PublicPageHandler):
 
-    def get(self, app_id=''):
+    def get(self):
         data = self.request.get('data')
         email = self.request.get('email').rstrip('.')
 
@@ -509,7 +428,7 @@ class CustomerSignupPasswordHandler(PublicPageHandler):
         }
         self.response.write(self.render('signup_setpassword', **params))
 
-    def post(self, app_id=''):
+    def post(self):
         json_data = json.loads(self.request.body)
         email = json_data.get('email')
         data = json_data.get('data')
@@ -551,14 +470,14 @@ class CustomerSignupPasswordHandler(PublicPageHandler):
 
 class CustomerResetPasswordHandler(PublicPageHandler):
 
-    def get(self, app_id=''):
+    def get(self):
         self.response.out.write(self.render('reset_password'))
 
 
 class CustomerSetPasswordHandler(PublicPageHandler, SetPasswordHandler):
     """Inherit PublicPageHandler first to override SetPasswordHandler return_error()"""
 
-    def get(self, app_id=''):
+    def get(self):
         email = self.request.get('email')
         data = self.request.get('data')
 
@@ -580,7 +499,7 @@ class CustomerSetPasswordHandler(PublicPageHandler, SetPasswordHandler):
 
         self.response.out.write(self.render('set_password', **params))
 
-    def post(self, app_id=''):
+    def post(self):
         super(CustomerSetPasswordHandler, self).post()
 
 
@@ -611,35 +530,43 @@ def parse_euvat_address_eu(address):
     return address1, address2, zip_code, city
 
 
-@rest('/unauthenticated/osa/signup/app-info/<app_id:[^/]+>', 'get', read_only_access=True, authenticated=False)
+@rest('/unauthenticated/osa/signup/community-info/<community_id:[^/]+>', 'get', read_only_access=True,
+      authenticated=False)
 @returns(dict)
-@arguments(app_id=unicode, language=unicode)
-def get_customer_info(app_id, language=None):
-    app = get_app_by_id(app_id)
-    if not app:
-        raise HttpNotFoundException('app_not_found', {'app_id': app_id})
+@arguments(community_id=(int, long), language=unicode)
+def get_customer_info(community_id, language=None):
+    community = get_community(community_id)
+    if not community:
+        raise HttpNotFoundException('Community not found')
     if not language:
         request = GenericRESTRequestHandler.getCurrentRequest()
         language = get_languages_from_request(request)[0]
-    customer = Customer.get_by_service_email(app.main_service)  # type: Customer
-    organization_types = dict(get_organization_types(customer, language))
+    customer = Customer.get_by_service_email(community.main_service)  # type: Customer
+    organization_types = dict(get_organization_types(customer, community.default_app, language))
     return {
         'customer': {
             'id': customer.id,
-            'country': customer.country,
         },
         'organization_types': organization_types
     }
 
 
-@rest('/unauthenticated/osa/signup/privacy-settings/<app_id:[^/]+>', 'get', read_only_access=True, authenticated=False)
+@rest('/unauthenticated/osa/signup/communities/<country_code:[^/]+>', 'get', read_only_access=True, authenticated=False)
+@returns([dict])
+@arguments(country_code=unicode)
+def api_get_communities(country_code):
+    return [{'name': community.name, 'id': community.id} for community in get_communities_by_country(country_code)]
+
+
+@rest('/unauthenticated/osa/signup/privacy-settings/<community_id:[^/]+>', 'get', read_only_access=True,
+      authenticated=False)
 @returns([PrivacySettingsGroupTO])
-@arguments(app_id=unicode, language=unicode)
-def get_privacy_settings(app_id, language=None):
+@arguments(community_id=(int, long), language=unicode)
+def get_privacy_settings(community_id, language=None):
     if not language:
         request = GenericRESTRequestHandler.getCurrentRequest()
         language = get_languages_from_request(request)[0]
-    return get_consents_for_app(app_id, language, [])
+    return get_consents_for_community(community_id, language, [])
 
 
 class QuotationHandler(webapp2.RequestHandler):
@@ -702,7 +629,6 @@ class CustomerCirkloAcceptHandler(PublicPageHandler):
         self.response.out.write(self.render('cirklo_accept', **params))
 
     def post(self):
-        from solutions.common.dal.cityapp import get_service_user_for_city
         try:
             customer_id = self.request.get('cid')
             customer = Customer.get_by_id(long(customer_id))  # type: Customer
@@ -724,8 +650,8 @@ class CustomerCirkloAcceptHandler(PublicPageHandler):
         if should_put_consents:
             consents.put()
 
-            service_user = get_service_user_for_city(customer.default_app_id)
-            city_id = CirkloCity.get_by_service_email(service_user.email()).city_id
+            community = get_community(customer.community_id)
+            city_id = CirkloCity.get_by_service_email(community.main_service).city_id
 
             service_user_email = customer.service_user.email()
             cirklo_merchant_key = CirkloMerchant.create_key(service_user_email)

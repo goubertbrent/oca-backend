@@ -18,11 +18,12 @@
 # Do not touch the indentation here
 
 from rogerthat.rpc.service import register_service_api_calls
-from rogerthat.service.api import app, friends, messaging, qr, system, news, payments
+from rogerthat.service.api import app, communities, friends, messaging, qr, system, news, payments
 
 
 def register_all_service_api_calls():
     register_service_api_calls(app)
+    register_service_api_calls(communities)
     register_service_api_calls(friends)
     register_service_api_calls(messaging)
     register_service_api_calls(qr)

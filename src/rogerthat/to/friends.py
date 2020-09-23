@@ -20,7 +20,6 @@ import logging
 
 from mcfw.properties import unicode_property, long_property, typed_property, bool_property, unicode_list_property, \
     long_list_property, azzert
-from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_user_profile
 from rogerthat.models import ServiceTranslation, ServiceMenuDef, App
 from rogerthat.models.properties.friend import BaseFriendDetail
@@ -30,7 +29,7 @@ from rogerthat.to import TO
 from rogerthat.translations import localize
 from rogerthat.utils import merge_transfer_object
 from rogerthat.utils.app import get_human_user_from_app_user, remove_app_id, get_app_id_from_app_user
-from rogerthat.utils.service import add_slash_default, remove_slash_default
+from rogerthat.utils.service import remove_slash_default
 
 FRIEND_TYPE_PERSON = BaseFriendDetail.TYPE_USER
 FRIEND_TYPE_SERVICE = BaseFriendDetail.TYPE_SERVICE
@@ -283,6 +282,7 @@ class FriendTO(BaseFriendDetail):
     def fromDBFriendDetail(helper, friendDetail, includeAvatarHash=False, includeServiceDetails=False, targetUser=None,
                            existence=None):
         # type: (FriendHelper, FriendDetails, bool, bool, users.User, bool) -> FriendTO
+        from rogerthat.bizz.communities.communities import get_community
         f = merge_transfer_object(friendDetail, FriendTO())
         user = users.User(friendDetail.email)
 
@@ -317,14 +317,9 @@ class FriendTO(BaseFriendDetail):
             if targetUser:
                 targetProfile = get_user_profile(targetUser)
                 language = targetProfile.language
-
-                app = get_app_by_id(targetProfile.app_id)
-                if app.type == App.APP_TYPE_YSAAA:
+                community = get_community(targetProfile.community_id)
+                if not community.is_service_removable(friendDetail.email):
                     f.flags |= FriendTO.FLAG_FRIEND_NOT_REMOVABLE
-                else:
-                    acs = app.auto_connected_services.get(add_slash_default(users.User(friendDetail.email)).email())
-                    if acs and not acs.removable:
-                        f.flags |= FriendTO.FLAG_FRIEND_NOT_REMOVABLE
             else:
                 targetProfile = None
                 language = service_profile.defaultLanguage

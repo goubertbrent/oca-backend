@@ -23,11 +23,10 @@ from google.appengine.ext import deferred
 
 from mcfw.consts import MISSING
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.embedded_applications import get_embedded_apps_by_app, get_embedded_application, \
-    get_embedded_apps_by_type
+from rogerthat.bizz.embedded_applications import get_embedded_application, get_embedded_apps_by_type, \
+    get_embedded_apps_by_community
 from rogerthat.bizz.friends import get_user_invite_url, get_user_and_qr_code_url
-from rogerthat.bizz.registration import save_push_notifications_consent, \
-    get_headers_for_consent
+from rogerthat.bizz.registration import save_push_notifications_consent, get_headers_for_consent
 from rogerthat.bizz.service import get_default_qr_template_by_app_id
 from rogerthat.dal.app import get_app_settings, get_app_by_id
 from rogerthat.dal.mobile import get_mobile_settings_cached
@@ -330,7 +329,8 @@ def getEmbeddedApps(request):
     if MISSING.default(request.type, None):
         embedded_apps = get_embedded_apps_by_type(request.type)
     else:
-        embedded_apps = get_embedded_apps_by_app(users.get_current_app_id())
+        user_profile = get_user_profile(users.get_current_user())
+        embedded_apps = get_embedded_apps_by_community(user_profile.community_id)
     return GetEmbeddedAppsResponseTO(embedded_apps=[EmbeddedAppTO.from_model(a) for a in embedded_apps])
 
 

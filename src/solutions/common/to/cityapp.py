@@ -15,19 +15,8 @@
 #
 # @@license_version:1.7@@
 
-from mcfw.properties import unicode_property, bool_property, typed_property,\
-    long_property
+from mcfw.properties import unicode_property, bool_property, typed_property, long_property
 from rogerthat.to import TO
-
-
-class CityAppProfileTO(object):
-    gather_events = bool_property('4')
-
-    @staticmethod
-    def from_model(model):
-        to = CityAppProfileTO()
-        to.gather_events = model.gather_events_enabled
-        return to
 
 
 class UitdatabankSettingsTO(object):

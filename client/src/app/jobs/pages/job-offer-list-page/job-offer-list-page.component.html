@@ -25,7 +25,7 @@
           <a *ngIf="item.statistics.unread_solicitations.length as notificationCount"
              [routerLink]="[item.offer.id, 'solicitations', item.statistics.unread_solicitations[0]]"
              mat-icon-button>
-            <mat-icon [matBadge]="notificationCount" matBadgeColor="accent">notifications</mat-icon>
+            <mat-icon [matBadge]="notificationCount.toString()" matBadgeColor="accent">notifications</mat-icon>
           </a>
         </mat-card-title>
         <mat-card-subtitle>{{ item.offer.employer.name }}</mat-card-subtitle>

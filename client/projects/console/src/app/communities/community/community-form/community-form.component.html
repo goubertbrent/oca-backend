@@ -1,0 +1,47 @@
+<form [formGroup]="formGroup" (ngSubmit)="save()">
+  <mat-form-field class="field">
+    <mat-label>Name</mat-label>
+    <input matInput formControlName="name" required>
+  </mat-form-field>
+  <mat-form-field class="field">
+    <mat-label>Default app</mat-label>
+    <mat-select formControlName="default_app" required>
+      <mat-option *ngFor="let app of apps" [value]="app.id">{{ app.name }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-form-field class="field">
+    <mat-label>Country</mat-label>
+    <select formControlName="country" required matNativeControl>
+      <option *ngFor="let country of countries" [value]="country.code">{{ country.name }}</option>
+    </select>
+  </mat-form-field>
+  <mat-form-field class="field">
+    <mat-label>Main service</mat-label>
+    <input matInput formControlName="main_service">
+    <mat-hint>This service will be able to create other services inside this community</mat-hint>
+  </mat-form-field>
+  <mat-form-field class="field">
+    <mat-label>{{ 'rcc.embedded_apps' | translate }}</mat-label>
+    <mat-select formControlName="embedded_apps" multiple>
+      <mat-option *ngFor="let embeddedApp of embeddedApps" [value]="embeddedApp.name">
+        {{ embeddedApp.title }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-form-field class="field">
+    <mat-label>Enabled features</mat-label>
+    <mat-select formControlName="features" multiple required>
+      <mat-option *ngFor="let feature of features" [value]="feature.value">{{ feature.label }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <h3>{{ 'rcc.auto_connected_services' | translate }}</h3>
+  <p>{{ 'rcc.auto_connected_services_explanation' | translate }}</p>
+  <rcc-auto-connected-services formControlName="auto_connected_services"></rcc-auto-connected-services>
+
+  <mat-slide-toggle class="toggle" formControlName="demo">Demo</mat-slide-toggle>
+  <mat-slide-toggle class="toggle" formControlName="signup_enabled">Signup enabled</mat-slide-toggle>
+  <div>
+    <button mat-raised-button>Save</button>
+  </div>
+</form>

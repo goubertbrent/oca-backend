@@ -34,6 +34,7 @@ from rogerthat.bizz.messaging import CanOnlySendToFriendsException
 from rogerthat.bizz.service import InvalidAppIdException
 from rogerthat.consts import SCHEDULED_QUEUE, ROGERTHAT_ATTACHMENTS_BUCKET, FAST_QUEUE
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe
+from rogerthat.dal.profile import get_service_profile
 from rogerthat.models import Message, ServiceIdentity, ServiceInteractionDef
 from rogerthat.models.news import NewsItem, MediaType
 from rogerthat.models.properties.forms import FormResult, Form
@@ -75,9 +76,7 @@ from solutions.common.bizz.loyalty import API_METHOD_SOLUTION_LOYALTY_LOAD, solu
     stop_loyalty_reminders, \
     solution_loyalty_scan, API_METHOD_SOLUTION_LOYALTY_SCAN, API_METHOD_SOLUTION_LOYALTY_LOTTERY_CHANCE, \
     solution_loyalty_lottery_chance, solution_loyalty_couple, API_METHOD_SOLUTION_LOYALTY_COUPLE, \
-    API_METHOD_SOLUTION_VOUCHER_RESOLVE, API_METHOD_SOLUTION_VOUCHER_ACTIVATE, \
-    API_METHOD_SOLUTION_VOUCHER_REDEEM, \
-    API_METHOD_SOLUTION_VOUCHER_CONFIRM_REDEEM, API_METHOD_SOLUTION_VOUCHER_PIN_ACTIVATE
+    API_METHOD_SOLUTION_VOUCHER_RESOLVE
 from solutions.common.bizz.menu import set_menu_item_image
 from solutions.common.bizz.order import order_received, poke_order
 from solutions.common.bizz.pharmacy.order import pharmacy_order_received
@@ -373,7 +372,8 @@ def broadcast_create_news_item(service_user, message_flow_run_id, member, steps,
             image = ',' + b64encode(result.content)
 
     group_type = group_type_step.form_result.result.value
-    app_ids = app_ids_step.form_result.result.values
+    service_profile = get_service_profile(service_user)
+    community_ids = [service_profile.community_id]
     if is_default_service_identity(service_identity):
         service_identity_user = create_service_identity_user(service_user)
     else:
@@ -383,7 +383,7 @@ def broadcast_create_news_item(service_user, message_flow_run_id, member, steps,
     try:
         media = BaseMediaTO(type=MediaType.IMAGE, content=image) if image else None
         put_news_item(service_identity_user, title, message, action_button=None, news_type=news_type,
-                      qr_code_caption=title, app_ids=app_ids, scheduled_at=0, news_id=None, media=media,
+                      qr_code_caption=title, community_ids=community_ids, scheduled_at=0, news_id=None, media=media,
                       group_type=group_type)
         message = common_translate(user_details.language, u'news_item_published')
         result = result_message(message)

@@ -3,7 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { select, Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { SecondarySidebarItem, SidebarTitle } from '../../../../framework/client/nav/sidebar/interfaces';
+import { SecondarySidebarItem, SidebarTitle } from '../../../../framework/client/nav/sidebar';
 import { filterNull } from '../../ngrx';
 import { ClearDeveloperAccountAction, GetDeveloperAccountAction } from '../../actions';
 import { getDeveloperAccount } from '../../console.state';

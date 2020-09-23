@@ -35,6 +35,8 @@ from dateutil.relativedelta import relativedelta
 from icalendar import Calendar, Event as ICalenderEvent, vText, vCalAddress
 from mcfw.consts import MISSING
 from mcfw.rpc import returns, arguments
+from rogerthat.bizz.communities.communities import get_community
+from rogerthat.bizz.communities.models import AppFeatures
 import pytz
 from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_ndb_key
@@ -51,18 +53,15 @@ from rogerthat.to.messaging import AttachmentTO
 from rogerthat.to.service import SendApiCallCallbackResultTO, UserDetailsTO
 from rogerthat.utils import send_mail, replace_url_with_forwarded_server
 from rogerthat.utils.rfc3339 import rfc3339
-from rogerthat.utils.service import create_service_identity_user
 from solution_server_settings import get_solution_server_settings
 from solutions import translate, translate as common_translate
-from solutions.common.bizz import SolutionModule, \
-    get_default_app_id, get_organization_type
+from solutions.common.bizz import SolutionModule, get_organization_type
 from solutions.common.bizz.events.events_search import search_events, index_events, delete_events_from_index
 from solutions.common.bizz.images import upload_file, remove_files
 from solutions.common.dal import get_solution_settings, get_event_by_id
 from solutions.common.models import SolutionSettings
 from solutions.common.models.agenda import SolutionCalendar, SolutionGoogleCredentials, Event, EventPeriod, \
     EventCalendarType, EventDate, EventMedia, EventMediaType, EventAnnouncements
-from solutions.common.models.cityapp import CityAppProfile
 from solutions.common.to import EventItemTO, SolutionGoogleCalendarStatusTO, SolutionGoogleCalendarTO, \
     CreateEventItemTO
 
@@ -240,7 +239,6 @@ def put_google_events(service_user, calendar_id, solution, google_events, langua
                 event.deleted = True
             else:
                 event.deleted = False
-            event.app_ids = [get_default_app_id(service_user)]
             event.community_id = community_id
             event.organization_type = get_organization_type(service_user)
             event.title = google_event.get('summary', no_title_text)
@@ -283,10 +281,10 @@ def put_google_events(service_user, calendar_id, solution, google_events, langua
 
 @ndb.transactional(xg=True)
 @returns(Event)
-@arguments(sln_settings=SolutionSettings, new_event=CreateEventItemTO, default_app_id=unicode,
-           organization_type=(int, long), community_id=(int, long))
-def put_event(sln_settings, new_event, default_app_id, organization_type, community_id=0):
-    # type: (SolutionSettings, CreateEventItemTO, str, int) -> Event
+@arguments(sln_settings=SolutionSettings, new_event=CreateEventItemTO, community_id=(int, long),
+           organization_type=(int, long))
+def put_event(sln_settings, new_event, community_id, organization_type):
+    # type: (SolutionSettings, CreateEventItemTO, int, int) -> Event
     service_user = sln_settings.service_user
 
     if not new_event.periods:
@@ -338,7 +336,6 @@ def put_event(sln_settings, new_event, default_app_id, organization_type, commun
         periods.append(EventPeriod(start=EventDate(datetime=start_date), end=EventDate(datetime=end_date)))
     periods = sorted(periods, key=lambda p: p.start.datetime)
     event.calendar_type = EventCalendarType.MULTIPLE if len(periods) > 1 else EventCalendarType.SINGLE
-    event.app_ids = [default_app_id]
     event.community_id = community_id
     event.organization_type = organization_type
     event.title = new_event.title
@@ -400,16 +397,17 @@ def solution_load_events(service_user, email, method, params, tag, service_ident
         return r
     cursor = data.get('cursor', None)
 
-    app_id = None
+    community_id = None
     service = None
     if SolutionModule.CITY_APP in sln_settings.modules:
-        city_app_profile = CityAppProfile.create_key(sln_settings.service_user).get()
-        if city_app_profile and city_app_profile.gather_events_enabled:
-            si = get_service_identity(create_service_identity_user(service_user, service_identity))
-            app_id = si.defaultAppId
-    if not app_id:
+        profile = get_service_profile(service_user)
+        community = get_community(profile.community_id)
+        if AppFeatures.EVENTS_SHOW_MERCHANTS in community.features:
+            community_id = community.id
+    if not community_id:
         service = service_user.email()
-    cursor, events = search_events(data['startDate'], data['endDate'], app_id, service, data.get('query'), cursor, 15)
+    cursor, events = search_events(data['startDate'], data['endDate'], community_id, service, data.get('query'), cursor,
+                                   15)
     base_url = get_server_settings().baseUrl
     r.result = json.dumps({
         'events': [EventItemTO.from_model(e, base_url, service_user=service_user).to_dict() for e in events],

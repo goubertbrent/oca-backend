@@ -27,7 +27,6 @@ from types import NoneType
 import pytz
 from PIL.Image import Image
 from babel.dates import format_date, format_time, format_datetime, get_timezone
-from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred, ndb
 from google.appengine.ext.webapp import template
 from typing import List
@@ -39,18 +38,16 @@ from mcfw.properties import object_factory, unicode_property, long_list_property
     azzert, long_property, typed_property
 from mcfw.rpc import returns, arguments
 from mcfw.utils import Enum
-from rogerthat.bizz.branding import is_branding
+from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.embedded_applications import send_update_all_embedded_apps
 from rogerthat.bizz.rtemail import generate_auto_login_url
 from rogerthat.bizz.service import create_service, InvalidAppIdException, RoleNotFoundException, \
     AvatarImageNotSquareException
 from rogerthat.consts import FAST_QUEUE, DEBUG
 from rogerthat.dal import put_and_invalidate_cache
-from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_default_service_identity
-from rogerthat.exceptions.branding import BrandingValidationException
-from rogerthat.models import App, ServiceRole, Branding, OpeningHours, ServiceIdentity
+from rogerthat.models import App, ServiceRole, OpeningHours, ServiceIdentity
 from rogerthat.models.maps import MapServiceMediaItem
 from rogerthat.models.news import MediaType
 from rogerthat.models.settings import SyncedNameValue, ServiceInfo
@@ -68,7 +65,7 @@ from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.to.messaging.flow import FormFlowStepTO, FLOW_STEP_MAPPING
 from rogerthat.to.news import BaseMediaTO
 from rogerthat.translations import DEFAULT_LANGUAGE
-from rogerthat.utils import generate_random_key, parse_color, channel, bizz_check, now, get_current_task_name, \
+from rogerthat.utils import generate_random_key, channel, bizz_check, now, get_current_task_name, \
     try_or_defer
 from rogerthat.utils.app import get_app_user_tuple
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException
@@ -353,7 +350,6 @@ def get_app_info_cached(app_id):
 
 
 def update_reserved_menu_item_labels(sln_settings):
-    logging.warning(sln_settings.service_user)
     with users.set_user(sln_settings.service_user):
         for i, label in enumerate(['About', 'History', 'Call', 'Recommend']):
             put_reserved_menu_item_label(
@@ -361,28 +357,26 @@ def update_reserved_menu_item_labels(sln_settings):
 
 
 @returns(ProvisionResponseTO)
-@arguments(solution=unicode, email=unicode, name=unicode, branding_url=unicode, menu_item_color=unicode,
+@arguments(solution=unicode, email=unicode, name=unicode,
            phone_number=unicode, languages=[unicode], currency=unicode, redeploy=bool,
-           organization_type=int, modules=[unicode], broadcast_types=[unicode], apps=[unicode],
+           organization_type=int, modules=[unicode], broadcast_types=[unicode],
            owner_user_email=unicode, search_enabled=bool, broadcast_to_users=[users.User], websites=[SyncedNameValue],
            password=unicode, tos_version=(int, long, NoneType), community_id=(int, long))
-def create_or_update_solution_service(solution, email, name, branding_url, menu_item_color, phone_number,
+def create_or_update_solution_service(solution, email, name, phone_number,
                                       languages, currency, redeploy, organization_type=OrganizationType.PROFIT,
-                                      modules=None, broadcast_types=None, apps=None, owner_user_email=None,
+                                      modules=None, broadcast_types=None, owner_user_email=None,
                                       search_enabled=False, broadcast_to_users=None, websites=None, password=None,
                                       tos_version=None, community_id=0):
     if not redeploy:
         password, sln_settings = \
-            create_solution_service(email, name, branding_url, menu_item_color, phone_number,
-                                    solution, languages, currency, organization_type=organization_type, modules=modules,
-                                    broadcast_types=broadcast_types, apps=apps, owner_user_email=owner_user_email,
-                                    search_enabled=search_enabled, websites=websites, password=password, tos_version=tos_version,
-                                    community_id=community_id)
+            create_solution_service(email, name, phone_number, solution, languages, currency, organization_type,
+                                    modules, broadcast_types, owner_user_email, search_enabled, websites, password,
+                                    tos_version, community_id)
         service_user = sln_settings.service_user
     else:
         service_user = users.User(email)
-        _, sln_settings = update_solution_service(service_user, branding_url, menu_item_color, solution, languages,
-                                                  modules, broadcast_types, apps, organization_type, community_id)
+        _, sln_settings = update_solution_service(service_user, solution, languages, modules, broadcast_types,
+                                                  organization_type, community_id)
         password = None
 
     # Slightly delay this as create_solution_service needs to run a task first to save the ServiceInfo
@@ -397,19 +391,11 @@ def create_or_update_solution_service(solution, email, name, branding_url, menu_
 
 
 @returns(tuple)
-@arguments(service_user=users.User, branding_url=unicode, menu_item_color=unicode, solution=unicode,
-           languages=[unicode], modules=[unicode], broadcast_types=[unicode], apps=[unicode], organization_type=int,
+@arguments(service_user=users.User, solution=unicode,
+           languages=[unicode], modules=[unicode], broadcast_types=[unicode], organization_type=int,
            community_id=(int, long))
-def update_solution_service(service_user, branding_url, menu_item_color, solution, languages, modules=None,
-                            broadcast_types=None, apps=None, organization_type=None, community_id=0):
-    if branding_url:
-        resp = urlfetch.fetch(branding_url, deadline=60)
-        if resp.status_code != 200:
-            raise BrandingNotFoundException()
-
-        if not is_branding(resp.content, Branding.TYPE_NORMAL):
-            raise BrandingValidationException("Content of branding download could not be identified as a branding")
-
+def update_solution_service(service_user, solution, languages, modules=None,
+                            broadcast_types=None, organization_type=None, community_id=0):
     def trans():
         service_profile = get_service_profile(service_user, False)
         bizz_check(service_profile, "Service %s does not exist" % service_user.email())
@@ -419,11 +405,11 @@ def update_solution_service(service_user, branding_url, menu_item_color, solutio
         service_profile.community_id = community_id
 
         default_si = None
-        if apps is not None:
-            azzert(apps)
+        if community_id:
+            community = get_community(community_id)
             default_si = get_default_service_identity(service_user)
-            default_si.appIds = apps
-            default_si.defaultAppId = apps[0]
+            default_si.appIds = [community.default_app]
+            default_si.defaultAppId = community.default_app
             default_si.put()
 
         if organization_type is not None:
@@ -447,18 +433,6 @@ def update_solution_service(service_user, branding_url, menu_item_color, solutio
             solution_settings.main_language = languages[0]
             solution_settings_changed = True
 
-        if menu_item_color == u"branding":
-            solution_settings.menu_item_color = None
-            solution_settings_changed = True
-        elif menu_item_color:
-            try:
-                parse_color(menu_item_color)
-            except ValueError:
-                raise InvalidMenuItemColorException()
-
-            solution_settings.menu_item_color = menu_item_color
-            solution_settings_changed = True
-
         if modules is not None:
             solution_settings.modules = modules
             solution_settings_changed = True
@@ -471,11 +445,6 @@ def update_solution_service(service_user, branding_url, menu_item_color, solutio
                                                    SolutionBrandingSettings.create_key(service_user)])
         if not main_branding:
             main_branding = SolutionMainBranding(key=SolutionMainBranding.create_key(service_user))
-            if not branding_url:
-                main_branding.put()
-        if branding_url:
-            main_branding.blob = db.Blob(resp.content)
-            main_branding.branding_creation_time = 0
             main_branding.put()
 
         if not branding_settings:
@@ -495,42 +464,22 @@ def update_solution_service(service_user, branding_url, menu_item_color, solutio
 
 
 @returns(tuple)
-@arguments(email=unicode, name=unicode, branding_url=unicode, menu_item_color=unicode,
-           phone_number=unicode, solution=unicode, languages=[unicode], currency=unicode, category_id=unicode,
-           organization_type=int, fail_if_exists=bool, modules=[unicode], broadcast_types=[unicode], apps=[unicode],
-           owner_user_email=unicode, search_enabled=bool, websites=[SyncedNameValue], password=unicode, tos_version=(int, long, NoneType),
-           community_id=(int, long))
-def create_solution_service(email, name, branding_url=None, menu_item_color=None, phone_number=None,
-                            solution=SOLUTION_FLEX, languages=None, currency=u"EUR", category_id=None,
-                            organization_type=1,
-                            fail_if_exists=True, modules=None, broadcast_types=None, apps=None, owner_user_email=None,
-                            search_enabled=False, websites=None, password=None, tos_version=None,
-                            community_id=0):
+@arguments(email=unicode, name=unicode,
+           phone_number=unicode, solution=unicode, languages=[unicode], currency=unicode,
+           organization_type=int, modules=[unicode], broadcast_types=[unicode],
+           owner_user_email=unicode, search_enabled=bool, websites=[SyncedNameValue], password=unicode,
+           tos_version=(int, long, NoneType), community_id=(int, long))
+def create_solution_service(email, name, phone_number=None,
+                            solution=SOLUTION_FLEX, languages=None, currency=u'EUR', organization_type=1,
+                            modules=None, broadcast_types=None, owner_user_email=None,
+                            search_enabled=False, websites=None, password=None, tos_version=None, community_id=0):
     password = password or unicode(generate_random_key()[:8])
     if languages is None:
         languages = [DEFAULT_LANGUAGE]
 
-    if menu_item_color == "branding":
-        menu_item_color = None
-    elif menu_item_color:
-        try:
-            parse_color(menu_item_color)
-        except ValueError:
-            raise InvalidMenuItemColorException()
-
-    if branding_url:
-        # Already download branding to validate url
-        resp = urlfetch.fetch(branding_url, deadline=60)
-        if resp.status_code != 200:
-            raise BrandingNotFoundException()
-
-        if not is_branding(resp.content, Branding.TYPE_NORMAL):
-            raise BrandingValidationException("Content of branding download could not be identified as a branding")
-
     # Raises if service already existed
-    create_service(email, name, password, languages, solution, category_id, organization_type, fail_if_exists,
-                   supported_app_ids=apps, owner_user_email=owner_user_email, tos_version=tos_version,
-                   community_id=community_id)
+    create_service(email, name, password, languages, solution, organization_type, None, owner_user_email, tos_version,
+                   community_id)
     new_service_user = users.User(email)
 
     to_be_put = []
@@ -538,7 +487,6 @@ def create_solution_service(email, name, branding_url=None, menu_item_color=None
     settings = get_solution_settings(new_service_user)
     if not settings:
         settings = SolutionSettings(key=SolutionSettings.create_key(new_service_user),
-                                    menu_item_color=menu_item_color,
                                     main_language=languages[0],
                                     solution=solution,
                                     search_enabled=search_enabled,
@@ -568,13 +516,10 @@ def create_solution_service(email, name, branding_url=None, menu_item_color=None
             service_info.put()
 
     main_branding = SolutionMainBranding(key=SolutionMainBranding.create_key(new_service_user))
-    to_be_put.append(main_branding)
     main_branding.branding_key = None
-    if branding_url:
-        main_branding.blob = db.Blob(resp.content)
-    else:
-        # Branding will be generated during provisioning
-        to_be_put.append(_get_default_branding_settings(new_service_user))
+    to_be_put.append(main_branding)
+    # Branding will be generated during provisioning
+    to_be_put.append(_get_default_branding_settings(new_service_user))
 
     put_and_invalidate_cache(*to_be_put)
 
@@ -592,13 +537,13 @@ def _after_service_created(service_user):
 def _execute_consent_actions(service_user):
     from shop.bizz import get_customer_consents
     from shop.dal import get_customer
-    from solutions.common.dal.cityapp import get_service_user_for_city
     from solutions.common.integrations.cirklo.cirklo import check_merchant_whitelisted
     customer = get_customer(service_user)
     consents = get_customer_consents(customer.user_email)
     # If consent was given, automatically allow cirklo data to be shared instead of requiring city to toggle this
     if consents.TYPE_CIRKLO_SHARE in consents.types:
-        city_service_user = get_service_user_for_city(customer.default_app_id)
+        community = get_community(customer.community_id)
+        city_service_user = community.main_service_user
         city_id = CirkloCity.get_by_service_email(city_service_user.email()).city_id
 
         service_user_email = service_user.email()
@@ -719,6 +664,12 @@ def auto_publish(service_user):
         common_provision(service_user, run_checks=False)
 
 
+def _is_demo_app(service_user):
+    service_profile = get_service_profile(service_user)
+    community = get_community(service_profile.community_id)
+    return community.demo
+
+
 @returns(NoneType)
 @arguments(service_user=users.User, sln_settings=SolutionSettings, broadcast_to_users=[users.User],
            friends=[BaseMemberTO], run_checks=bool)
@@ -738,7 +689,7 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
             else:
                 sln_settings = get_solution_settings(service_user)
 
-            if DEBUG or friends or not run_checks or is_demo_app(service_user):
+            if DEBUG or friends or not run_checks or _is_demo_app(service_user):
                 pass  # no check needed
             else:
                 now_ = now()
@@ -812,20 +763,22 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
 
 
 def _check_embedded_apps_after_publish(service_user):
-    from shop.dal import get_customer
-    customer = get_customer(service_user)
-    app_id = customer.default_app_id
-    app = get_app_by_id(app_id)
-    if app.main_service == service_user.email():
+    service_profile = get_service_profile(service_user)
+    community = get_community(service_profile.community_id)
+    # Automatically add embedded apps to the community when needed
+    if community.main_service == service_user.email():
         with users.set_user(service_user):
             menu = get_menu()
             embedded_apps = {item.embeddedApp for item in menu.items if item.embeddedApp}
-            if set(app.embedded_apps).symmetric_difference(embedded_apps):
-                logging.debug('Updating embedded apps for app %s: from %s to %s', app_id, app.embedded_apps,
-                              embedded_apps)
-                app.embedded_apps = list(embedded_apps)
-                put_and_invalidate_cache(app)
-                deferred.defer(send_update_all_embedded_apps, app_id, _countdown=2)
+            has_changes = False
+            for embedded_app in embedded_apps:
+                if embedded_app not in community.embedded_apps:
+                    community.embedded_apps.append(embedded_app)
+                    has_changes = True
+            if has_changes:
+                logging.debug('Updating embedded apps for community %d to %s', community.id, community.embedded_apps)
+                community.put()
+                deferred.defer(send_update_all_embedded_apps, community.id, _countdown=2)
 
 
 @returns()
@@ -1207,14 +1160,6 @@ def enable_or_disable_solution_module(service_user, module, enabled):
 
 
 @cached(1, request=True, memcache=False)
-@returns(unicode)
-@arguments(service_user=users.User)
-def get_default_app_id(service_user):
-    si = get_default_service_identity(service_user)
-    return si.defaultAppId
-
-
-@cached(1, request=True, memcache=False)
 @returns((int, long))
 @arguments(service_user=users.User)
 def get_organization_type(service_user):
@@ -1223,10 +1168,6 @@ def get_organization_type(service_user):
     if customer:
         return customer.organization_type
     return OrganizationType.UNSPECIFIED
-
-
-def is_demo_app(service_user):
-    return get_app_by_id(get_default_app_id(service_user)).demo
 
 
 @returns()

@@ -16,18 +16,17 @@
 # @@license_version:1.7@@
 
 import base64
-from collections import namedtuple
-from datetime import datetime
 import hashlib
 import json
 import logging
 import re
 import time
-from types import NoneType, BooleanType
-import types
 import urllib2
 import uuid
 import zlib
+from collections import namedtuple
+from datetime import datetime
+from types import NoneType, BooleanType
 
 from google.appengine.api import app_identity, images, search
 from google.appengine.ext import db, deferred, ndb
@@ -106,7 +105,6 @@ from rogerthat.utils.service import get_service_identity_tuple, get_service_user
     remove_slash_default, create_service_identity_user, get_identity_from_service_identity_user, add_slash_default
 from rogerthat.utils.transactions import on_trans_committed, run_in_transaction
 
-
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -119,7 +117,7 @@ MAX_CHAT_MEMBER_UPDATE_SIZE = 15
 
 ALLOWED_BUTTON_ACTIONS = ('http', 'https', 'geo', 'tel', 'mailto', 'confirm', 'smi', 'open', 'form')
 
-ackListeners = dict()
+ackListeners = {}
 
 CHAT_MEMBER_INDEX = 'CHAT_MEMBER_INDEX'
 
@@ -962,7 +960,6 @@ def sendMessage(sender_user_possibly_with_slash_default, members, flags, timeout
         sender_is_service_identity = is_service_identity_user(sender_user_possibly_with_slash_default)
         sender_type = FriendDetail.TYPE_SERVICE if sender_is_service_identity else FriendDetail.TYPE_USER
         if not sender_is_service_identity:
-            _validate_messaging_enabled(members, sender_user_possibly_with_slash_default)
 
             if parent_key is None \
                     and not is_flag_set(Message.FLAG_DYNAMIC_CHAT, flags) \
@@ -1997,22 +1994,12 @@ def ackMessage(responder, message_key, message_parent_key, button_id, custom_rep
         _send_locked(message, DirtyBehavior.NORMAL)
 
     if message.tag:
-        ack_listener = _get_ack_listener(message.tag)
+        ack_listener = ackListeners.get(message.tag)
         if ack_listener and (message.sender == MC_DASHBOARD
                              or message.tag.startswith(MC_RESERVED_TAG_PREFIX)
                              or hasattr(message, 'follow_up_id')):
             try_or_defer(ack_listener, message)
     return MESSAGE_ACKED
-
-
-@returns(types.FunctionType)
-@arguments(tag=unicode)
-def _get_ack_listener(tag):
-    from rogerthat.bizz.job.app_broadcast import APP_BROADCAST_TAG
-    ack_listener = ackListeners.get(tag)
-    if not ack_listener and tag.startswith(APP_BROADCAST_TAG):
-        ack_listener = ackListeners.get(APP_BROADCAST_TAG)
-    return ack_listener
 
 
 @returns(int)
@@ -3294,19 +3281,6 @@ def _validate_button_ui_flags(ui_flags, button_id):
         raise UnknownUiFlagException(button=button_id)
 
 
-def _validate_messaging_enabled(members, sender_user):
-    _validate_messaging_enabled_by_app_user(sender_user)
-    for m in members:
-        _validate_messaging_enabled_by_app_user(m.member)
-
-
-def _validate_messaging_enabled_by_app_user(app_user):
-    app_id = get_app_id_from_app_user(app_user)
-    app = get_app_by_id(app_id)
-    if not app.chat_enabled:
-        raise ApiWarning('Messaging is disabled for the %s app.' % app.name)
-
-
 def _validate_alert_flags(members):
     for alert_flags in (m.alert_flags for m in members):
         if alert_flags > sum(Message.ALERT_FLAGS):
@@ -3565,31 +3539,8 @@ def validate_my_digi_pass(widgetTO):
 
 
 def validate_my_digi_pass_support(service_user, app_user=None):
-    if app_user:
-        app_ids = [get_app_id_from_app_user(app_user)]
-    else:
-        # checking if all the apps of this service support MDP
-        app_ids = set()
-        for si in get_service_identities(service_user):
-            app_ids.update(si.appIds)
-
-        try:
-            app_ids.remove(App.APP_ID_OSA_LOYALTY)
-        except KeyError:
-            pass  # osa-loyalty not in app_ids
-
-        app_ids = list(app_ids)
-
-    unsupported = list()
-    for app_id, app in zip(app_ids, db.get([App.create_key(app_id) for app_id in app_ids])):
-        azzert(app)
-        if not app.supports_mdp:
-            unsupported.append(app_id)
-    if unsupported:
-        from rogerthat.bizz.service import MyDigiPassNotSupportedException
-        unsupported = sorted(unsupported)
-        logging.info('MYDIGIPASS is not supported by %s', unsupported)
-        raise MyDigiPassNotSupportedException(unsupported)
+    from rogerthat.bizz.service import MyDigiPassNotSupportedException
+    raise MyDigiPassNotSupportedException()
 
 
 def validate_openid(widget):
@@ -3682,32 +3633,8 @@ def validate_pay(widget_to):
 
 
 def validate_sign_support(service_user, app_user=None):
-    if app_user:
-        app_ids = [get_app_id_from_app_user(app_user)]
-    else:
-        # checking if all the apps of this service support signing
-        app_ids = set()
-        for si in get_service_identities(service_user):
-            app_ids.update(si.appIds)
-
-        try:
-            app_ids.remove(App.APP_ID_OSA_LOYALTY)
-        except KeyError:
-            pass  # osa-loyalty not in app_ids
-
-        app_ids = list(app_ids)
-
-    unsupported = list()
-    for app_id, app in zip(app_ids, db.get([App.create_key(app_id) for app_id in app_ids])):
-        azzert(app)
-        if not app.secure:
-            unsupported.append(app_id)
-    if unsupported:
-        from rogerthat.bizz.service import SigningNotSupportedException
-        unsupported = sorted(unsupported)
-        logging.info('Signing is not supported by %s', unsupported)
-        if not DEBUG:
-            raise SigningNotSupportedException(unsupported)
+    from rogerthat.bizz.service import SigningNotSupportedException
+    raise SigningNotSupportedException()
 
 
 def validate_advanced_order(widgetTO):
@@ -4509,7 +4436,7 @@ def _validate_form(formTO, service_user, app_user):
     validate_module_supported(formTO.type)
     WIDGET_MAPPING[formTO.type].to_validate(formTO.widget)
     if formTO.type == MyDigiPassTO.TYPE:
-        validate_my_digi_pass_support(service_user, app_user) 
+        validate_my_digi_pass_support(service_user, app_user)
     elif formTO.type == Sign.TYPE:
         validate_sign_support(service_user, app_user)
     if formTO.positive_button == MISSING or formTO.positive_button == None or not formTO.positive_button.strip():

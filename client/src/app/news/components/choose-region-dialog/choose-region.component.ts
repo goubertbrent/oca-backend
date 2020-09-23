@@ -2,11 +2,12 @@ import { LatLngBoundsLiteral, LatLngLiteral, MouseEvent } from '@agm/core';
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { TranslateService } from '@ngx-translate/core';
-import { LocationBounds, NewsGeoAddress } from '@oca/web-shared';
+import { NewsGeoAddress } from '@oca/web-shared';
 import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '@oca/web-shared';
 import { ReplaySubject, Subject } from 'rxjs';
 import { filter, map, takeUntil } from 'rxjs/operators';
 import { FitBoundsService } from '../../../shared/fit-bounds/fit-bounds.service';
+import { LocationBounds } from '../../news';
 
 @Component({
   selector: 'oca-choose-region',

@@ -15,17 +15,13 @@
 #
 # @@license_version:1.7@@
 
-from types import NoneType
-
 from google.appengine.ext import db
 
 from mcfw.cache import cached
 from mcfw.rpc import returns, arguments
 from rogerthat.dal import generator
-from rogerthat.dal.app import get_apps_by_id
-from rogerthat.models import App
 from rogerthat.rpc import users
-from shop.models import Customer, CustomerSignup, ShopLoyaltySlide, ShopLoyaltySlideNewOrder, LegalEntity, ShopApp
+from shop.models import Customer, CustomerSignup, ShopLoyaltySlide, ShopLoyaltySlideNewOrder, LegalEntity
 
 
 @returns(Customer)
@@ -71,11 +67,3 @@ def get_mobicage_legal_entity():
 @arguments(city_customer=Customer, done=bool)
 def get_customer_signups(city_customer, done=False):
     return list(CustomerSignup.all().ancestor(city_customer.key()).filter('done =', done))
-
-
-@returns([App])
-@arguments()
-def get_all_signup_enabled_apps():
-    signup_enabled_app_keys = ShopApp.list_signup_enabled(True).fetch(keys_only=True)
-    app_ids = [app_key.id() for app_key in signup_enabled_app_keys]
-    return [app for app in get_apps_by_id(app_ids) if app.main_service]

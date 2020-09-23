@@ -18,10 +18,10 @@
 import logging
 import os
 
-from google.appengine.api import users as gae_users
-from google.appengine.ext import webapp
-from google.appengine.ext.webapp import template
 import webapp2
+from google.appengine.api import users as gae_users
+from google.appengine.ext.webapp import template
+from typing import List
 
 from rogerthat.bizz import channel
 from rogerthat.models.news import NewsStream, NewsGroup, NewsSettingsService
@@ -50,37 +50,39 @@ class NewsAdminHandler(webapp2.RequestHandler):
 class NewsHandler(NewsAdminHandler):
 
     def get(self):
-        context = {'apps': []}
-        app_id = self.request.get("app_id", None)
-        if app_id:
-            ns_items = [NewsStream.create_key(app_id).get()]
+        context = {'streams': []}
+        community_id = self.request.get("community_id", None)
+        if community_id:
+            ns_items = [NewsStream.create_key(community_id).get()]
         else:
-            ns_items = [ns for ns in NewsStream.query()]
+            ns_items = [ns for ns in NewsStream.query()]  # type: List[NewsStream]
 
         data = {}
         for ns in ns_items:
-            data[ns.app_id] = {
+            data[ns.community_id] = {
                 'ns': ns,
                 'data': {
-                    'id': ns.app_id,
+                    'id': ns.community_id,
                     'stream_type': ns.stream_type,
                     'should_create_groups': ns.should_create_groups,
-                    'services_need_setup': False if app_id else ns.services_need_setup,
-                    'groups': NewsGroup.list_by_app_id(ns.app_id).count(None),
+                    'services_need_setup': False if community_id else ns.services_need_setup,
+                    'groups': NewsGroup.list_by_community_id(ns.community_id).count(None),
                     'services': []
                 },
                 'queries': []
             }
 
-            if data[ns.app_id]['data']['groups'] > 0:
-                if app_id or not data[ns.app_id]['data']['services_need_setup']:
+            if data[ns.community_id]['data']['groups'] > 0:
+                if community_id or not data[ns.community_id]['data']['services_need_setup']:
                     ids = [i for i in xrange(0, 21)]
                     ids.append(999)
                     for i in ids:
-                        data[ns.app_id]['queries'].append({'id': i,
-                                                           'rpc': NewsSettingsService.list_setup_needed(ns.app_id, i).count_async(None)})
+                        data[ns.community_id]['queries'].append({
+                            'id': i,
+                            'rpc': NewsSettingsService.list_setup_needed(ns.community_id, i).count_async(None)
+                        })
             else:
-                data[ns.app_id]['data']['services_need_setup'] = False
+                data[ns.community_id]['data']['services_need_setup'] = False
 
         for d in data.itervalues():
             setup_count = 0
@@ -92,12 +94,12 @@ class NewsHandler(NewsAdminHandler):
                     setup_count += c
                 d['data']['services'].append({'sni': qry['id'], 'c': c})
 
-            if app_id and setup_count == 0 and d['ns'].services_need_setup:
+            if community_id and setup_count == 0 and d['ns'].services_need_setup:
                 d['ns'].services_need_setup = False
                 d['ns'].put()
-        
-            context['apps'].append(d['data'])
+
+            context['streams'].append(d['data'])
 
         channel.append_firebase_params(context)
-        path = os.path.join(os.path.dirname(__file__), 'apps.html')
+        path = os.path.join(os.path.dirname(__file__), 'streams.html')
         self.response.out.write(template.render(path, context))

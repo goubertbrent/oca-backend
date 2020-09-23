@@ -96,17 +96,6 @@
       {{ 'rcc.please_enter_no_more_than_x_characters' | translate : { characters: 50 } }}
     </mat-error>
   </mat-form-field>
-  <div class="default-component-margin">
-    <mat-slide-toggle name="news_stream"
-                      [checked]="app.news_stream !== null" (change)="toggleNewsStream($event)">
-          {{ 'rcc.news_stream' | translate }}
-    </mat-slide-toggle>
-  </div>
-  <mat-form-field *ngIf="app.news_stream !== null">
-    <mat-select [placeholder]="'rcc.news_stream_type' | translate" [(ngModel)]="app.news_stream.type" name="news_stream_type">
-      <mat-option *ngFor="let type of newsStreamTypes" [value]="type.value" [innerText]="type.label | translate"></mat-option>
-    </mat-select>
-  </mat-form-field>
   <rcc-api-request-status [status]="createAppStatus$ | async"></rcc-api-request-status>
   <div fxLayoutAlign="space-between">
     <button type="button" mat-button mat-raised-button color="secondary" (click)="cancel()">

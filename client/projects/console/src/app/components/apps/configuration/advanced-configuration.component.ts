@@ -1,11 +1,14 @@
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { select, Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
-import { filterNull } from '../../../ngrx';
+import { switchMap } from 'rxjs/operators';
 import { ApiRequestStatus } from '../../../../../framework/client/rpc';
-import { ListEmbeddedAppsAction, UpdateRogerthatAppAction } from '../../../actions';
-import { getEmbeddedApps, getRogerthatApp, getRogerthatAppStatus } from '../../../console.state';
+import { UpdateRogerthatAppAction } from '../../../actions';
+import { CommunityService } from '../../../communities/community.service';
+import { Community } from '../../../communities/community/communities';
+import { getRogerthatApp, getRogerthatAppStatus } from '../../../console.state';
 import { EmbeddedApp, RogerthatApp } from '../../../interfaces';
+import { filterNull } from '../../../ngrx';
 
 @Component({
   selector: 'rcc-app-advanced-configuration',
@@ -13,7 +16,7 @@ import { EmbeddedApp, RogerthatApp } from '../../../interfaces';
   template: `
     <rcc-app-advanced-configuration-form
       [app]="app$ | async"
-      [embeddedApps]="embeddedApplications$ | async"
+      [communities]="communities$ | async"
       [status]="appStatus$ | async"
       (save)="save($event)">
     </rcc-app-advanced-configuration-form>`,
@@ -22,15 +25,17 @@ export class AppAdvancedConfigurationComponent implements OnInit {
   app$: Observable<RogerthatApp>;
   embeddedApplications$: Observable<EmbeddedApp[]>;
   appStatus$: Observable<ApiRequestStatus>;
+  communities$: Observable<Community[]>;
 
-  constructor(private store: Store) {
+  constructor(private store: Store,
+              private communityService: CommunityService) {
   }
 
   ngOnInit() {
-    this.store.dispatch(new ListEmbeddedAppsAction());
     this.app$ = this.store.pipe(select(getRogerthatApp), filterNull());
     this.appStatus$ = this.store.pipe(select(getRogerthatAppStatus));
-    this.embeddedApplications$ = this.store.pipe(select(getEmbeddedApps));
+    // TODO this should use the app service I think so we don't have a dependency on the community module
+    this.communities$ = this.app$.pipe(switchMap(app => this.communityService.getCommunities(app.country)));
   }
 
   save(app: RogerthatApp) {

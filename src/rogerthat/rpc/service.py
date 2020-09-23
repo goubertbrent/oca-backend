@@ -15,17 +15,16 @@
 #
 # @@license_version:1.7@@
 
-from copy import deepcopy
 import inspect
 import json
 import logging
 import os
 import random
-import re
 import threading
 import time
-from types import NoneType
 import uuid
+from copy import deepcopy
+from types import NoneType
 
 from google.appengine.ext import webapp, db
 from google.appengine.ext.deferred.deferred import PermanentTaskFailure
@@ -50,7 +49,6 @@ from rogerthat.translations import localize, DEFAULT_LANGUAGE
 from rogerthat.utils import now, privatize, channel, try_or_defer, \
     offload, OFFLOAD_TYPE_API, OFFLOAD_TYPE_CALLBACK_API, guid
 from rogerthat.utils.transactions import run_after_transaction
-
 
 ERROR_CODE_WARNING_THRESHOLD = 2000  # ServiceApiException errorcode >= 2000 is warning log on server
 
@@ -125,7 +123,7 @@ def service_api_callback(function, code):
                         callback_settings = ServiceCallBackSettings.create_key(profile.service_user).get()
                         if callback_settings:
                             is_solution = False
-                        else: 
+                        else:
                             logging.debug('callback %s is not implemented for solution %s', code, profile.user)
                             return
                 else:
@@ -303,7 +301,7 @@ def submit_service_api_callback(profile, service_api_callback, effective_kwargs=
         callback_name = call_dict.get("callback_name") if call_dict else None
         tag = call_dict.get("params", {}).get("tag") if call_dict else None
         logging.debug("callback_name: '%s' and tag: '%s'", callback_name, tag)
-        
+
         callback_settings = ServiceCallBackSettings.create_key(profile.service_user).get()
         if callback_settings:
             if callback_name:
@@ -333,7 +331,7 @@ def submit_service_api_callback(profile, service_api_callback, effective_kwargs=
         possible_callback = random.choice(possible_callbacks)
         uri = possible_callback.uri
         custom_headers = possible_callback.custom_headers
-        
+
     logging.info("Sending callback to %s, identifying through sik %s @ %s:\n%s"
                  % (profile.user, sik, uri, service_api_callback.call))
     if not (uri and sik):
@@ -466,7 +464,6 @@ class ServiceApiException(BusinessException):
     BASE_CODE_APP = 70000
     BASE_CODE_LOCATION = 80000
     BASE_CODE_NEWS = 90000
-    BASE_CODE_LOOK_AND_FEEL = 100000
     BASE_CODE_FORMS = 110000
     BASE_CODE_SOLUTIONS = 200000
 
@@ -765,7 +762,7 @@ def _process_callback_result(sik, result, raw_result_unicode, service_api_callba
             if service_api_callback.resultFunction:
                 callback_result = parse_parameter(u"result", service_callback_result_mapping[service_api_callback.resultFunction].meta[
                                                   u"kwarg_types"][u"result"], result["result"])
-                
+
                 if synchronous:
                     return callback_result
                 service_callback_result_mapping[service_api_callback.resultFunction](
@@ -829,7 +826,7 @@ def _validate_api_callback(result_f, error_f, target, alias, f):
             "Result and error processing functions must have a arg 'context' of type rogerthat.models.ClientCall.")
     if any(filter(lambda fn: len(fn.meta["kwarg_types"]) != 2, funcs)):
         raise ValueError("Result and error processing functions must have 2 arguments!")
-    
+
     if result_f:
         if f.meta["return_type"] != result_f.meta["kwarg_types"]["result"]:
             raise ValueError("Return value type and result function result argument types do not match!")

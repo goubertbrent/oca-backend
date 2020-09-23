@@ -27,7 +27,6 @@ from rogerthat.bizz.job import run_job
 from rogerthat.consts import NEWS_MATCHING_QUEUE
 from rogerthat.dal.profile import get_service_visible_non_transactional
 from rogerthat.dal.service import get_service_identity
-from rogerthat.models.elasticsearch import ElasticsearchSettings
 from rogerthat.models.news import NewsItem
 
 
@@ -61,9 +60,6 @@ def create_news_index(config):
     index = {
         'mappings': {
             'properties': {
-                'app_ids': {
-                    'type': 'keyword'
-                },
                 'community_ids': {
                     'type': 'keyword'
                 },
@@ -81,6 +77,7 @@ def create_news_index(config):
 
 @arguments(news_item=NewsItem)
 def re_index_news_item(news_item):
+    # type: (NewsItem) -> object
     if not news_item:
         return None
 
@@ -113,7 +110,6 @@ def re_index_news_item(news_item):
 
     timestamp = news_item.scheduled_at if news_item.scheduled_at else news_item.timestamp
     doc = {
-        'app_ids': news_item.app_ids,
         'community_ids': news_item.community_ids,
         'timestamp': datetime.utcfromtimestamp(timestamp).isoformat() + 'Z',
         'txt': txt
@@ -121,7 +117,7 @@ def re_index_news_item(news_item):
     return index_doc(config.news_index, news_id, doc)
 
 
-def find_news(app_id, search_string, cursor=None):
+def find_news(community_id, search_string, cursor=None):
     start_offset = long(cursor) if cursor else 0
     amount = 10
     if (start_offset + amount) > 10000:
@@ -136,7 +132,7 @@ def find_news(app_id, search_string, cursor=None):
         'query': {
             'bool': {
                 'filter': [
-                    {'term': {'app_ids': app_id}}
+                    {'term': {'community_ids': community_id}}
                 ],
                 'must': [
                     {'match_phrase': {'txt': search_string}}

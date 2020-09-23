@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, ViewEncapsulation } from '@angular/core';
 import { select, Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
-import { ToolbarItem, ToolbarItemTypes } from '../interfaces';
+import { ToolbarItem, ToolbarItemTypes } from '../toolbar.interfaces';
 import { getToolbarItems } from '../toolbar.state';
 
 @Component({
@@ -12,6 +12,8 @@ import { getToolbarItems } from '../toolbar.state';
 })
 export class ToolbarItemsComponent implements OnInit {
   toolbarItems$: Observable<ToolbarItem[]>;
+  ICON = ToolbarItemTypes.ICON;
+  BUTTON = ToolbarItemTypes.BUTTON;
 
   constructor(private store: Store) {
   }

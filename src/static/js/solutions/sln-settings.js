@@ -96,8 +96,6 @@ $(function () {
             renderAppSettings();
         } else if (page === 'roles') {
             renderRolesSettings();
-        } else if (page === 'broadcast') {
-            getBroadcastRssSettings(renderRssSettings);
         } else if (page === 'q-matic') {
             Requests.getQmaticSettings().then(renderQmaticSettings);
         } else if (page === 'jcc-appointments') {
@@ -756,100 +754,14 @@ $(function () {
         });
     }
 
-    function getBroadcastRssSettings(callback) {
-        if (LocalCache.broadcastRssSettings) {
-            callback(LocalCache.broadcastRssSettings);
-        } else {
-            sln.call({
-                url: "/common/broadcast/rss",
-                type: "GET",
-                success: function (data) {
-                    LocalCache.broadcastRssSettings = data;
-                    callback(data);
-                }
-            });
-        }
-    }
-
     function addBroadcastNewsPublisher() {
         $('li[section=section_roles]').find('a').click();
         renderRolesSettings();
         // show the add roles dialog with only news publisher option
         addRoles(false, false, true);
     }
-
-    $('#sln-set-broadcast-add-rss').click(addRssUrl);
     // add broadcast news publisher
     $('#broadcast_add_news_publisher').click(addBroadcastNewsPublisher);
-
-    function addRssUrl() {
-        var html = $.tmpl(templates.broadcast_rss_add_scraper, {
-            header: CommonTranslations.ADD,
-            cancelBtn: CommonTranslations.CANCEL,
-            submitBtn: CommonTranslations.SAVE,
-            CommonTranslations: CommonTranslations
-        });
-
-        var modal = sln.createModal(html);
-        $('button[action="submit"]', modal).click(function () {
-            var newRSSScraper = {
-                url: $("#rss-scraper-url").val(),
-                group_type: $("#rss-scraper-group_type").val(),
-                app_ids: $("#rss-scraper-app_ids").val().split("\n")
-            };
-
-            getBroadcastRssSettings(function (settings) {
-                var newSettings = Object.assign({}, settings, {scrapers: settings.scrapers.concat([newRSSScraper])});
-                saveRssSettings(newSettings);
-                modal.modal('hide');
-            });
-        });
-    }
-
-    function renderRssSettings(settings) {
-        var htmlElement = $('#sln-set-broadcast-rss-urls');
-        var html = $.tmpl(templates.broadcast_rss_settings, {
-            notify: settings.notify,
-            scrapers: settings.scrapers,
-            T: T,
-        });
-        htmlElement.html(html);
-        htmlElement.find('button[action="deleteRssUrl"]').click(deleteRssUrl);
-        var notifyCheckbox = htmlElement.find('#send-rss-notifications');
-        notifyCheckbox.change(function () {
-            getBroadcastRssSettings(function (settings) {
-                settings.notify = notifyCheckbox.prop('checked');
-                saveRssSettings(settings);
-            });
-        });
-    }
-
-    function deleteRssUrl() {
-        var url = $(this).attr('rss_url');
-        getBroadcastRssSettings(function (settings) {
-            settings.scrapers = settings.scrapers.filter(function (scraper) {
-                return scraper.url !== url;
-            });
-            saveRssSettings(settings);
-        });
-    }
-
-    function saveRssSettings(settings) {
-        Requests.saveRssSettings(settings, {showError: false}).then(function (data) {
-            LocalCache.broadcastRssSettings = data;
-            renderRssSettings(data);
-        }).catch(function (error) {
-            if (error.responseJSON) {
-                if (error.responseJSON.error === 'invalid_rss_links') {
-                    sln.alert(T('errors.invalid_rss_link', {url: error.responseJSON.data.invalid_links[0]}));
-                } else {
-                    sln.showAjaxError();
-                }
-            } else {
-                sln.showAjaxError();
-            }
-        });
-    }
 
     function avatarUpdated(url) {
         // Update in branding preview

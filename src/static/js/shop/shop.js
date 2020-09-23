@@ -1821,7 +1821,7 @@ $(function () {
             }
         });
     });
-    
+
     $('#export-cirklo-customers').click(function () {
     	 sln.call({
     		 url: '/internal/shop/rest/apps/all',

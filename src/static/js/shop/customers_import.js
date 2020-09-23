@@ -26,6 +26,9 @@ $(document).ready(function(){
         var fileInput = $('#customers_sheet')[0];
         sln.readFileData(fileInput, importCustomers);
     });
+    $('#import_country').change(function(){
+        getCommunities($(this).val());
+    });
 
     function updateProgressInfo() {
         var finished = success + failed;
@@ -57,7 +60,7 @@ $(document).ready(function(){
             type: 'post',
             data: {
                 import_id: importingId,
-                app_id: $('#app').val(),
+                community_id: $('#import_community_id').val(),
                 file_data: fileData,
             },
             success: function(result) {
@@ -77,6 +80,16 @@ $(document).ready(function(){
             },
             error: sln.showAjaxError
         });
+    }
+
+    async function getCommunities(country){
+        const communities = await (await fetch('/console-api/communities?country=' + country)).json();
+        const communitySelect = $('#import_community_id');
+        communitySelect.empty();
+        communitySelect.append('<option></option>');
+        for (const community of communities){
+            communitySelect.append(`<option value="${community.id}">${community.name}</option>`);
+        }
     }
 
 

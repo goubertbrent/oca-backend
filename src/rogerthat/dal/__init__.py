@@ -72,5 +72,5 @@ def put_in_chunks(to_put, is_ndb=False):
     if is_ndb:
         ndb.put_multi(to_put)
     else:
-        for chunk in chunks(to_put, 200):
+        for chunk in chunks(to_put, 500):
             db.put(chunk)

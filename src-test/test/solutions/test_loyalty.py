@@ -55,6 +55,7 @@ class LotteryTest(oca_unittest.TestCase):
         self.set_datastore_hr_probability(1)
 
         loyalty_module = SolutionModule.HIDDEN_CITY_WIDE_LOTTERY if city_wide_lottery else SolutionModule.LOYALTY
+        community = self.communities[2]
         service = create_flex_service(email,
                                       name="test",
                                       phone_number="",
@@ -64,9 +65,9 @@ class LotteryTest(oca_unittest.TestCase):
                                       loyalty_module],
                                       broadcast_types=[
                                       'test1', 'test2', 'test3'],
-                                      apps=[a.app_id for a in App.all()],
                                       allow_redeploy=False,
-                                      organization_type=org_type)
+                                      organization_type=org_type,
+                                      community_id=community.id)
 
         service_user = users.User(service.login)
         set_current_user(service_user)

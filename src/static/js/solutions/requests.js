@@ -128,9 +128,6 @@ RequestsService.prototype = {
         options.updatesCache = true;
         return this.put('/common/settings', data, options);
     },
-    saveRssSettings: function (data, options) {
-        return this.put('/common/broadcast/rss', data, options);
-    },
     sendMessageToServices: function (data, options) {
         return this.post('/common/inbox/services', data, options);
     },

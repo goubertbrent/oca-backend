@@ -35,6 +35,7 @@ from mcfw.cache import invalidate_cache
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from mcfw.utils import chunks
+from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.friends import INVITE_ID, INVITE_FACEBOOK_FRIEND, invite, breakFriendShip, makeFriends, userCode
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.maps.services import cleanup_map_index
@@ -52,8 +53,7 @@ from rogerthat.dal.profile import get_avatar_by_id, get_existing_profiles_via_fa
     get_existing_user_profiles, get_user_profile, get_profile_infos, get_profile_info, get_service_profile, \
     get_user_profiles, get_service_or_user_profile, get_deactivated_user_profile
 from rogerthat.dal.service import get_default_service_identity_not_cached, get_all_service_friend_keys_query, \
-    get_service_identities_query, get_all_archived_service_friend_keys_query, get_friend_serviceidentity_connection, \
-    get_default_service_identity
+    get_service_identities_query, get_all_archived_service_friend_keys_query, get_friend_serviceidentity_connection
 from rogerthat.models import FacebookUserProfile, Avatar, ProfilePointer, ShortURL, FacebookProfilePointer, \
     FacebookDiscoveryInvite, Message, ServiceProfile, UserProfile, ServiceIdentity, ProfileInfo, \
     App, \
@@ -492,7 +492,7 @@ def ack_facebook_invite(message):
     if not memberStatus.dismissed and message.buttons[memberStatus.button_index].id == INVITE_ID:
         profile = get_user_profile(message.invitee)
         if profile:
-            invite(message.invitor, message.invitee.email(), profile.name, None, profile.language, None, None,
+            invite(message.invitor, message.invitee.email(), None, profile.language, None, None,
                    get_app_id_from_app_user(message.invitor))
         else:
             logging.info('Invitee\'s profile doesn\'t exist anymore: %s', message.invitee)
@@ -552,16 +552,17 @@ def create_user_profile(app_user, name, language=None, ysaaa=False, owncloud_pas
                         tos_version=None, consent_push_notifications_shown=False, first_name=None, last_name=None,
                         community_id=0):
     name = _validate_name(name)
-
+    
+    # todo communities remove after testing
     app_id = get_app_id_from_app_user(app_user)
     app_model = get_app_by_id(app_id)
-    if community_id == 0:
+    if community_id:
+        azzert(community_id in app_model.community_ids, "Community was provided but not found in app.community_ids")
+    else:
         stack_stace = get_python_stack_trace(short=False)
         logging.error("create_user_profile community_id was not provided %s", stack_stace)
         azzert(len(app_model.community_ids) == 1, "Community was NOT provided but len(app.community_ids) != 1")
         community_id = app_model.community_ids[0]
-    else:
-        azzert(community_id in app_model.community_ids, "Community was provided but not found in app.community_ids")
 
     def trans_create(avatar_image):
         azzert(not get_user_profile(app_user, cached=False))
@@ -601,32 +602,30 @@ def create_user_profile(app_user, name, language=None, ysaaa=False, owncloud_pas
 @returns(tuple)
 @arguments(service_user=users.User, url=unicode, email=unicode)
 def put_loyalty_user(service_user, url, email):
-    su = None  # ShortURL
-    m = re.match("(HTTPS?://)(.*)/(M|S)/(.*)", url.upper())
-    if m:
+    short_url = None  # ShortURL
+    url_regex = re.match("(HTTPS?://)(.*)/(M|S)/(.*)", url.upper())
+    if url_regex:
         from rogerthat.pages.shortner import get_short_url_by_code
-        code = m.group(4)
-        su = get_short_url_by_code(code)
-        if su and not su.full.startswith("/q/i"):
-            su = None
+        code = url_regex.group(4)
+        short_url = get_short_url_by_code(code)
+        if short_url and not short_url.full.startswith("/q/i"):
+            short_url = None
 
-    if su:
-        si = None
-    else:
-        logging.debug('Create new unassigned short url, because the provided loyalty user URL is unkown (%s)', url)
-        si = get_default_service_identity(service_user)
-        su = generate_unassigned_short_urls(si.app_id, 1)[0]
-        url = su.full
+    if not short_url:
+        service_profile = get_service_profile(service_user)
+        community = get_community(service_profile.community_id)
+        logging.debug('Create new unassigned short url, because the provided loyalty user URL is unknown (%s)', url)
+        short_url = generate_unassigned_short_urls(community.default_app, 1)[0]
+        url = short_url.full
 
-    user_code = su.full[4:]
+    user_code = short_url.full[4:]
     pp = ProfilePointer.get(user_code)
     if pp:
         app_user = pp.user
     else:
         service_profile = get_service_profile(service_user)
-        si = si or get_default_service_identity(service_user)
-        app_id = si.app_id
-        app_user = put_loyalty_user_profile(email.strip(), app_id, user_code, su.key().id(),
+        community = get_community(service_profile.community_id)
+        app_user = put_loyalty_user_profile(email.strip(), community.default_app, user_code, short_url.key().id(),
                                             service_profile.defaultLanguage, service_profile.community_id)
 
     return url, app_user
@@ -682,29 +681,26 @@ def put_loyalty_user_profile(email, app_id, user_code, short_url_id, language, c
 
 
 @returns(tuple)
-@arguments(service_user=users.User, name=unicode, update_func=types.FunctionType, supported_app_ids=[unicode], community_id=(int, long))
-def create_service_profile(service_user, name, update_func=None, supported_app_ids=None, community_id=0):
+@arguments(service_user=users.User, name=unicode, update_func=types.FunctionType, community_id=(int, long))
+def create_service_profile(service_user, name, update_func=None, community_id=0):
     from rogerthat.bizz.service import create_default_qr_templates
     from rogerthat.bizz.news import create_default_news_settings
 
     name = _validate_name(name)
-
-    if supported_app_ids is None:
+    
+    if community_id:
+        community = get_community(community_id)
+        default_app_id = community.default_app
+    else:
         default_app = app.get_default_app()
         default_app_id = default_app.app_id if default_app else App.APP_ID_ROGERTHAT
-        supported_app_ids = [default_app_id]
-    else:
-        default_app_id = supported_app_ids[0]
-
-    app_model = get_app_by_id(default_app_id)
-    if community_id == 0:
+    
+        # todo communities remove after testing
         stack_stace =  get_python_stack_trace(short=False)
         logging.error("create_service_profile community_id was not provided %s", stack_stace)
+        app_model = get_app_by_id(default_app_id)
         azzert(len(app_model.community_ids) == 1, "Community was NOT provided but len(app.community_ids) != 1")
         community_id = app_model.community_ids[0]
-    else:
-        azzert(community_id in app_model.community_ids, "Community was provided but not found in app.community_ids")
-
 
     def trans_prepare_create():
         avatar, image = _create_new_avatar(service_user)
@@ -731,8 +727,8 @@ def create_service_profile(service_user, name, update_func=None, supported_app_i
         service_identity.shareSIDKey = share_sid_key
         service_identity.shareEnabled = False
         service_identity.creationTimestamp = now()
-        service_identity.defaultAppId = supported_app_ids[0]
-        service_identity.appIds = supported_app_ids
+        service_identity.defaultAppId = default_app_id
+        service_identity.appIds = [default_app_id]
 
         update_result = update_func(profile, service_identity) if update_func else None
 
@@ -741,7 +737,8 @@ def create_service_profile(service_user, name, update_func=None, supported_app_i
                                  ProfileHashIndex.create(service_user))
 
         deferred.defer(create_default_qr_templates, service_user, _transactional=True)
-        deferred.defer(create_default_news_settings, service_user, profile.organizationType, _transactional=True)
+        deferred.defer(create_default_news_settings, service_user, profile.organizationType, profile.community_id,
+                       _transactional=True)
 
         return profile, service_identity, update_result
 

@@ -72,8 +72,7 @@ class Test(oca_unittest.TestCase):
         service_user = users.User(email)
 
         create_service(email=email, name=name, password=u"test1", languages=[u"en"], solution=SOLUTION_FLEX,
-                       category_id=None, organization_type=ServiceProfile.ORGANIZATION_TYPE_PROFIT,
-                       fail_if_exists=False)
+                       organization_type=ServiceProfile.ORGANIZATION_TYPE_PROFIT)
 
         solutionSettings = SolutionSettings(key=SolutionSettings.create_key(service_user), name=name,
                             menu_item_color=None, address=u"lochristi", phone_number=None,

@@ -14,9 +14,11 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
+
 from mcfw.properties import unicode_property, typed_property
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.news.groups import get_group_id_for_type_and_app_id
+from rogerthat.bizz.news.groups import get_group_id_for_type_and_community
+from rogerthat.dal.profile import get_user_profile
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import expose
 from rogerthat.to import TO
@@ -26,7 +28,6 @@ from rogerthat.to.news import GetNewsGroupsResponseTO, GetNewsGroupsRequestTO, G
     SaveNewsGroupServicesRequestTO, SaveNewsGroupFiltersResponseTO, SaveNewsGroupFiltersRequestTO, \
     GetNewsGroupResponseTO, GetNewsGroupRequestTO, SaveNewsStatisticsResponseTO, SaveNewsStatisticsRequestTO, \
     GetNewsItemDetailsResponseTO, GetNewsItemDetailsRequestTO
-from rogerthat.utils.app import get_app_id_from_app_user
 
 
 class GetNewsRequestTO(TO):
@@ -99,10 +100,10 @@ def getNewsStreamItems(request):
     from rogerthat.bizz.news import get_items_for_user_by_group, get_items_for_user_by_service, \
         get_items_for_user_by_search_string
     app_user = users.get_current_user()
-    app_id = get_app_id_from_app_user(app_user)
     if request.filter:
         if request.filter.group_type and not request.filter.group_id:
-            request.filter.group_id = get_group_id_for_type_and_app_id(request.filter.group_type, app_id)
+            community_id = get_user_profile(app_user).community_id
+            request.filter.group_id = get_group_id_for_type_and_community(request.filter.group_type, community_id)
         if request.filter.search_string is not None:
             return get_items_for_user_by_search_string(app_user, request.filter.search_string, request.cursor)
         if request.filter.service_identity_email is not None:

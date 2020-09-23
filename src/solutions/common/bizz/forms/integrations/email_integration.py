@@ -24,8 +24,10 @@ from bs4 import BeautifulSoup
 from typing import Dict, List, Optional
 from webapp2 import RequestHandler
 
+from rogerthat.bizz.communities.communities import get_community
 from rogerthat.dal.app import get_app_by_id
-from rogerthat.models import ServiceProfile, App
+from rogerthat.models import ServiceProfile, App, ServiceIdentity
+from rogerthat.models.settings import ServiceInfo
 from rogerthat.rpc import users
 from rogerthat.service.api.system import get_identity
 from rogerthat.settings import get_server_settings, ServerSettings
@@ -121,7 +123,7 @@ class EmailFormIntegration(BaseFormIntegration):
 
 def _get_form_submission_email_html(settings, service_name, app, language, form, submission):
     # type: (ServerSettings, str, App, str, DynamicFormTO, FormSubmissionTO) -> str
-    signin_url = settings.get_signin_url(app.app_id)
+    signin_url = settings.get_signin_url()
     dashboard_url = '<a href="%s">%s</a>' % (signin_url, translate(language, 'dashboard').lower())
     footer_html = translate(language, 'forms_email_submission_footer', form_name=form.title, service_name=service_name,
                             dashboard_url=dashboard_url)
@@ -154,22 +156,21 @@ def _send_form_submission_email(emails, service_profile, form, submission, reply
     # type: (List[str], ServiceProfile, DynamicFormTO, FormSubmissionTO, str) -> None
     settings = get_server_settings()
 
-    with users.set_user(service_profile.service_user):
-        si = get_identity()
-
-    app = get_app_by_id(si.app_ids[0])
+    community = get_community(service_profile.community_id)
+    service_info = ServiceInfo.create_key(service_profile, ServiceIdentity.DEFAULT).get()
+    app = get_app_by_id(community.default_app)
     lang = get_solution_settings(service_profile.service_user).main_language
 
     mime_root = MIMEMultipart('related')
     mime_root['Subject'] = '%s - %s ' % (translate(lang, 'our-city-app').title(), form.title)
-    mime_root['From'] = '%s <%s>' % (app.name, app.dashboard_email_address)
+    mime_root['From'] = '%s <%s>' % (community.name, app.dashboard_email_address)
     mime_root['To'] = ', '.join(emails)
     mime_root['Reply-To'] = reply_to_email
 
     mime = MIMEMultipart('alternative')
     mime_root.attach(mime)
 
-    html_body = _get_form_submission_email_html(settings, si.name, app, lang, form, submission)
+    html_body = _get_form_submission_email_html(settings, service_info.name, app, lang, form, submission)
     body = BeautifulSoup(html_body, features='lxml').get_text('\n')
 
     mime.attach(MIMEText(body.encode('utf-8'), 'plain', 'utf-8'))

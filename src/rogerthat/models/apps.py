@@ -17,13 +17,9 @@
 
 from google.appengine.ext import ndb
 
-from mcfw.cache import CachedModelMixIn, invalidate_cache
-from mcfw.serialization import register, s_any, ds_any, List
 from mcfw.utils import Enum
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.models.common import NdbModel
-from rogerthat.rpc import users
-from rogerthat.utils.service import get_service_identity_tuple
 
 
 class AppAsset(ndb.Model):
@@ -109,76 +105,6 @@ class DefaultBranding(ndb.Model):
     def list_default(cls):
         keys = [map(ndb.Key, (cls, branding_type)) for branding_type in cls.TYPES]
         return ndb.get_multi(keys)
-
-
-class NavigationItem(ndb.Model):
-    action_type = ndb.StringProperty()  # null, action, click
-    # None means opening an activity with default functionality
-    # action means listing all services with that action and opening that action when clicked
-    # click means clicking on a service menu item (linked to service_email).
-    # If service_email is None -> the main service email is used
-    # (action and click should be the hashed tag of the service menu item)
-    action = ndb.StringProperty()  # news, messages, ...
-    icon = ndb.StringProperty()  # font-awesome icon name
-    icon_color = ndb.StringProperty()
-    text = ndb.StringProperty()  # translation key
-    collapse = ndb.BooleanProperty(default=False)  # deprecated, should be included in params insteaad
-    service_email = ndb.StringProperty()
-    params = ndb.JsonProperty()
-
-
-class ColorSettings(ndb.Model):
-    primary_color = ndb.StringProperty()
-    primary_color_dark = ndb.StringProperty()
-    primary_icon_color = ndb.StringProperty()
-    tint_color = ndb.StringProperty()  # ios only
-
-
-class HomescreenSettings(ndb.Model):
-    color = ndb.StringProperty()
-    items = ndb.LocalStructuredProperty(NavigationItem, repeated=True)
-    style = ndb.StringProperty()
-    header_image_url = ndb.StringProperty()
-
-
-class ToolbarSettings(ndb.Model):
-    items = ndb.LocalStructuredProperty(NavigationItem, repeated=True)
-
-
-class LookAndFeelServiceRoles(ndb.Model):
-    role_ids = ndb.IntegerProperty(repeated=True)
-    service_email = ndb.StringProperty()
-
-    @property
-    def service_identity_tuple(self):
-        return get_service_identity_tuple(users.User(self.service_email))
-
-
-class AppLookAndFeel(CachedModelMixIn, ndb.Model):
-    app_id = ndb.StringProperty()
-    colors = ndb.LocalStructuredProperty(ColorSettings)
-    homescreen = ndb.LocalStructuredProperty(HomescreenSettings)
-    toolbar = ndb.LocalStructuredProperty(ToolbarSettings)
-    roles = ndb.LocalStructuredProperty(LookAndFeelServiceRoles, repeated=True)
-
-    @classmethod
-    def create_key(cls, look_and_feel_id):
-        return ndb.Key(cls, look_and_feel_id)
-
-    @property
-    def id(self):
-        return self.key.id()
-
-    def invalidateCache(self):
-        from rogerthat.bizz.look_and_feel import get_look_and_feel_by_app_id
-        invalidate_cache(get_look_and_feel_by_app_id, self.app_id)
-
-    @classmethod
-    def get_by_app_id(cls, app_id):
-        return cls.query(cls.app_id == app_id)
-
-
-register(List(AppLookAndFeel), s_any, ds_any)
 
 
 class EmbeddedApplicationTag(Enum):

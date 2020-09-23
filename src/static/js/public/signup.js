@@ -75,11 +75,14 @@ $(function () {
             }
             return request;
         },
-        getAppInfo: function (appId, language, options) {
-            return this.get('/unauthenticated/osa/signup/app-info/' + appId + '?language=' + language, options);
+        getCommunityInfo: function (appId, language, options) {
+            return this.get('/unauthenticated/osa/signup/community-info/' + appId + '?language=' + language, options);
         },
-        getPrivacySettings: function (appId, language) {
-            return this.get('/unauthenticated/osa/signup/privacy-settings/' + appId + '?language=' + language);
+        getCommunities: function (country, options) {
+            return this.get('/unauthenticated/osa/signup/communities/' + country, options);
+        },
+        getPrivacySettings: function (communityId, language) {
+            return this.get('/unauthenticated/osa/signup/privacy-settings/' + communityId + '?language=' + language);
         },
         signup: function (data) {
             return this.post('/unauthenticated/osa/customer/signup', data, {showError: false});
@@ -115,7 +118,8 @@ $(function () {
         $('#back').click(previousStep);
 
         $('#language').change(languageChanged);
-        $('#app').change(appSelected);
+        $('#community').change(communitySelected);
+        $('#country').change(countrySelected);
         $('select').change(validateInput);
         $('input[type!=checkbox][type!=radio]').each(function () {
             var input = this;
@@ -130,7 +134,7 @@ $(function () {
 
         setTabs();
         if (typeof SIGNUP_APP_ID !== 'undefined' && SIGNUP_APP_ID) {
-            appSelected();
+            communitySelected();
         }
     }
 
@@ -159,27 +163,53 @@ $(function () {
         });
     }
 
-    function getSelectedApp() {
-        var appElem = $('#app option:selected');
-        if (!appElem || !appElem.val()) {
+    function getSelectedCommunity() {
+        var communityElem = $('#community option:selected');
+        if (!communityElem || !communityElem.val()) {
             return null;
         }
         return {
-            app_id: appElem.val().trim(),
-            name: appElem.text().trim(),
+            id: communityElem.val().trim(),
+            name: communityElem.text().trim(),
         };
     }
 
-    function appSelected() {
-        var app = getSelectedApp();
-        if (!app) {
+    function communitySelected() {
+        var community = getSelectedCommunity();
+        if (!community) {
             return;
         }
         $('#next').attr('disabled', true);
 
-        requests.getAppInfo(app.app_id, getSelectedLanguage()).then(function (appInfo) {
-            setEditableOrganizationTypes(appInfo.organization_types);
+        requests.getCommunityInfo(community.id, getSelectedLanguage()).then(function (communityInfo) {
+            setEditableOrganizationTypes(communityInfo.organization_types);
             $('#next').attr('disabled', false);
+        });
+    }
+
+    function getSelectedCountry(){
+        return $('#country').val();
+    }
+
+    function countrySelected(){
+        var country = getSelectedCountry();
+        if (!country) {
+            return;
+        }
+        $('#community-select-parent').show();
+        var communitySelect = $('#community');
+        requests.getCommunities(country).then(function (communities) {
+            communitySelect.empty();
+            var emptyOption = document.createElement('option');
+            emptyOption.innerText = '';
+            communitySelect.append(emptyOption);
+            for (var i = 0; i < communities.length; i++) {
+                var community = communities[i];
+                var option = document.createElement('option');
+                option.value = community.id;
+                option.innerText = community.name;
+                communitySelect.append(option);
+            }
         });
     }
 
@@ -206,13 +236,11 @@ $(function () {
             clearErrors(input);
             return;
         }
-        requests.getAppInfo(getSelectedApp().app_id, getSelectedLanguage()).then(function (appInfo) {
-            var country = appInfo.customer.country;
-            if (isDigit(vat[0])) {
-                vat = country + vat;
-            }
-            $('#enterprise_vat').val(vat);
-        });
+        var country = getSelectedCountry();
+        if (isDigit(vat[0])) {
+            vat = country + vat;
+        }
+        $('#enterprise_vat').val(vat);
     }
 
     function gatherFromInputs(divName) {
@@ -228,9 +256,9 @@ $(function () {
 
     function getSignupDetails(recaptchaToken) {
         return new Promise(function (resolve, reject) {
-            var app = getSelectedApp();
+            var community = getSelectedCommunity();
             var language = getSelectedLanguage();
-            requests.getAppInfo(app.app_id, language).then(function (appInfo) {
+            requests.getCommunityInfo(community.id, language).then(function (communityInfo) {
                 var consents = {};
                 for (var i = 0; i < privacySettings.length; i++) {
                     var group = privacySettings[i];
@@ -240,7 +268,7 @@ $(function () {
                     }
                 }
                 var args = {
-                    city_customer_id: appInfo.customer.id,
+                    city_customer_id: communityInfo.customer.id,
                     company: gatherFromInputs('enterprise'),
                     customer: gatherFromInputs('contact'),
                     recaptcha_token: recaptchaToken,
@@ -338,10 +366,10 @@ $(function () {
             }
         }
 
-        var selectedApp = getSelectedApp();
-        if (currentStep === 0 && selectedApp) {
-            requests.getAppInfo(selectedApp.app_id, getSelectedLanguage()).then(function (appInfo) {
-                if (Object.keys(appInfo.organization_types).length === 1) {
+        var selectedCommunity = getSelectedCommunity();
+        if (currentStep === 0 && selectedCommunity) {
+            requests.getCommunityInfo(selectedCommunity.id, getSelectedLanguage()).then(function (communityInfo) {
+                if (Object.keys(communityInfo.organization_types).length === 1) {
                     stepChanged(currentStep + 2);
                 } else {
                     stepChanged(currentStep + 1);
@@ -357,8 +385,8 @@ $(function () {
             return;
         }
         if (currentStep === 2) {
-            requests.getAppInfo(getSelectedApp().app_id, getSelectedLanguage()).then(function (appInfo) {
-                if (Object.keys(appInfo.organization_types).length === 1) {
+            requests.getCommunityInfo(getSelectedCommunity().id, getSelectedLanguage()).then(function (communityInfo) {
+                if (Object.keys(communityInfo.organization_types).length === 1) {
                     stepChanged(currentStep - 2);
                 } else {
                     stepChanged(currentStep - 1);
@@ -378,11 +406,11 @@ $(function () {
 
         /* refill some info from the previous one */
         if (currentStep === 2) {
-            var selectedApp = getSelectedApp();
-            var city = selectedApp.name;
+            var selectedCommunity = getSelectedCommunity();
+            var city = selectedCommunity.name;
             fillInput('enterprise_city', city);
             fillInput('contact_city', city);
-            getPrivacySettings(selectedApp.app_id);
+            getPrivacySettings(selectedCommunity.id);
         }
 
         if (currentStep === 3) {
@@ -391,8 +419,8 @@ $(function () {
         }
     }
 
-    function getPrivacySettings(appId) {
-        return requests.getPrivacySettings(appId, getSelectedLanguage()).then(function (settings) {
+    function getPrivacySettings(communityId) {
+        return requests.getPrivacySettings(communityId, getSelectedLanguage()).then(function (settings) {
             privacySettings = settings;
             var container1 = $('#privacy-settings-1');
             var container2 = $('#privacy-settings-2');

@@ -13,32 +13,19 @@ import { MatChipEvent } from '@angular/material/chips';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { MatSelect, MatSelectChange } from '@angular/material/select';
 import { TranslateService } from '@ngx-translate/core';
-import {
-  App,
-  AppStatisticsMapping,
-  BaseMedia,
-  CreateNews,
-  Gender,
-  MediaType,
-  NewsActionButton,
-  NewsActionButtonType,
-  NewsGroupType,
-  NewsLocation,
-  NewsOptions,
-  NewsTargetAudience,
-  UINewsActionButton,
-} from '@oca/web-shared';
+import { BaseMedia, Gender, MediaType, NewsActionButton, NewsGroupType, NewsLocation, NewsTargetAudience } from '@oca/web-shared';
 import { EASYMDE_OPTIONS } from '../../../../environments/config';
 import { DEFAULT_AVATAR_URL } from '../../../consts';
 import { BrandingSettings } from '../../../shared/interfaces/oca';
-import { ServiceIdentityInfo } from '../../../shared/interfaces/rogerthat';
 import { Loadable } from '../../../shared/loadable/loadable';
 import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
 import { GENDER_OPTIONS, NEWS_MEDIA_TYPE_OPTIONS } from '../../consts';
+import { CreateNews, NewsActionButtonType, NewsCommunity, NewsOptions, UINewsActionButton } from '../../news';
 import {
   NewsAppMapPickerDialogComponent,
   NewsAppMapPickerDialogData,
 } from '../news-app-map-picker-dialog/news-app-map-picker-dialog.component';
+
 
 @Component({
   selector: 'oca-edit-news',
@@ -49,9 +36,7 @@ import {
 export class EditNewsComponent implements OnChanges {
   @Input() published: boolean;
   @Input() status: Loadable;
-  @Input() apps: App[];
-  @Input() appStatistics: AppStatisticsMapping;
-  @Input() serviceInfo: ServiceIdentityInfo | null;
+  @Input() communities: NewsCommunity[];
   @Input() options: NewsOptions | null;
   @Input() remainingBudget: string;
   @Input() brandingSettings: BrandingSettings | null;
@@ -61,8 +46,8 @@ export class EditNewsComponent implements OnChanges {
   hasRegional = false;
   minDate = new Date();
   maxDate = new Date(this.minDate.getTime() + new Date(86400 * 29 * 1000).getTime());
-  defaultAppId: string;
-  appMapping: { [ key: string ]: App } = {};
+  defaultCommunityId: number;
+  communityMapping: { [ key: number ]: NewsCommunity } = {};
   reach: {
     total: string;
     cost: string;
@@ -102,17 +87,17 @@ export class EditNewsComponent implements OnChanges {
       this.groupTypeChanged();
       this.selectedMediaType = this.newsItem.media?.type ?? null;
     }
-    if (changes.serviceInfo && this.serviceInfo) {
-      this.defaultAppId = this.serviceInfo.default_app;
+    if (changes.options && this.options) {
+      this.defaultCommunityId = this.options.community_id;
     }
-    if ((changes.serviceInfo || changes.newsItem) && this.newsItem && this.serviceInfo) {
-      this.hasLocal = this.newsItem.app_ids.includes(this.serviceInfo.default_app);
+    if ((changes.options || changes.newsItem) && this.newsItem && this.options) {
+      this.hasLocal = this.newsItem.community_ids.includes(this.options.community_id);
       this.hasRegional = !this.hasLocal || this.isRegional();
     }
-    if (changes.apps && this.apps) {
-      this.appMapping = {};
-      for (const app of this.apps) {
-        this.appMapping[ app.id ] = app;
+    if (changes.communities && this.communities) {
+      this.communityMapping = {};
+      for (const community of this.communities) {
+        this.communityMapping[ community.id ] = community;
       }
     }
     if (changes.options && this.options) {
@@ -216,21 +201,20 @@ export class EditNewsComponent implements OnChanges {
   }
 
   toggleLocal() {
-    const defaultAppId = (this.serviceInfo as ServiceIdentityInfo).default_app;
-    let appIds: string[];
+    let communityIds: number[];
     if (this.hasLocal) {
-      appIds = this.newsItem.app_ids.filter(a => a !== defaultAppId);
+      communityIds = this.newsItem.community_ids.filter(a => a !== this.defaultCommunityId);
       this.hasRegional = true;
     } else {
-      appIds = [...this.newsItem.app_ids, defaultAppId];
+      communityIds = [...this.newsItem.community_ids, this.defaultCommunityId];
     }
-    this.newsItem = { ...this.newsItem, app_ids: appIds };
+    this.newsItem = { ...this.newsItem, community_ids: communityIds };
     this.hasLocal = !this.hasLocal;
   }
 
   toggleRegional() {
     if (this.hasRegional) {
-      this.newsItem = { ...this.newsItem, app_ids: [this.defaultAppId] };
+      this.newsItem = { ...this.newsItem, community_ids: [this.defaultCommunityId] };
       this.hasLocal = true;
     } else {
       this.newsItem = { ...this.newsItem, locations: null };
@@ -240,18 +224,18 @@ export class EditNewsComponent implements OnChanges {
   }
 
   regionalAppRemoved(event: MatChipEvent) {
-    this.appsChanged(this.newsItem.app_ids.filter(a => a !== event.chip.value));
+    this.communitiesChanged(this.newsItem.community_ids.filter(a => a !== event.chip.value));
   }
 
   addApp($event: MatSelectChange, matSelect: MatSelect) {
-    if (!this.newsItem.app_ids.includes($event.value)) {
-      this.newsItem = { ...this.newsItem, app_ids: [...this.newsItem.app_ids, $event.value] };
+    if (!this.newsItem.community_ids.includes($event.value)) {
+      this.newsItem = { ...this.newsItem, community_ids: [...this.newsItem.community_ids, $event.value] };
     }
     matSelect.value = null;
   }
 
-  appsChanged(apps: string[]) {
-    this.newsItem = { ...this.newsItem, app_ids: apps };
+  communitiesChanged(communities: number[]) {
+    this.newsItem = { ...this.newsItem, community_ids: communities };
   }
 
   openShop() {
@@ -296,18 +280,17 @@ export class EditNewsComponent implements OnChanges {
     }
     const config: MatDialogConfig<NewsAppMapPickerDialogData> = {
       data: {
-        appIds: this.newsItem.app_ids,
-        apps: this.apps,
-        appStatistics: this.appStatistics,
-        defaultAppId: this.defaultAppId,
+        selectedCommunityIds: this.newsItem.community_ids,
+        communityMapping: this.communityMapping,
+        defaultCommunity: this.defaultCommunityId,
         mapUrl: (this.options as NewsOptions).regional.map_url,
       },
       panelClass: 'map-panel',
     };
-    this._matDialog.open<NewsAppMapPickerDialogComponent, NewsAppMapPickerDialogData, string[]>(NewsAppMapPickerDialogComponent, config)
+    this._matDialog.open<NewsAppMapPickerDialogComponent, NewsAppMapPickerDialogData, number[]>(NewsAppMapPickerDialogComponent, config)
       .afterClosed().subscribe(result => {
       if (result) {
-        this.appsChanged(result);
+        this.communitiesChanged(result);
         this._changeDetectorRef.markForCheck();
       }
     });
@@ -356,6 +339,6 @@ export class EditNewsComponent implements OnChanges {
   }
 
   private isRegional() {
-    return this.newsItem.app_ids.filter(a => a !== 'rogerthat').length > 1;
+    return this.newsItem.community_ids.length > 1;
   }
 }

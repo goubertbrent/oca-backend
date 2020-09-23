@@ -1,19 +1,17 @@
 import { createEntityAdapter, EntityState } from '@ngrx/entity';
 import { createFeatureSelector, createSelector } from '@ngrx/store';
+import { CallStateType, initialStateResult, ResultState, NewsItem } from '@oca/web-shared';
+import { DEFAULT_LOADABLE, Loadable } from '../shared/loadable/loadable';
 import {
-  CallStateType,
   CityAppLocations,
   CreateNews,
-  initialStateResult,
-  NewsItem,
+  NewsCommunity,
   NewsItemList,
   NewsItemTimeStatistics,
+  NewsListItem,
   NewsOptions,
   NewsStats,
-  ResultState,
-} from '@oca/web-shared';
-import { DEFAULT_LOADABLE, Loadable } from '../shared/loadable/loadable';
-import { NewsListItem } from './news';
+} from './news';
 
 function selectNewsItemId(item: NewsItem) {
   return item.id;
@@ -33,6 +31,7 @@ export const initialNewsState: NewsState = {
   listStatus: DEFAULT_LOADABLE,
   newsOptions: initialStateResult,
   locations: DEFAULT_LOADABLE,
+  communities: initialStateResult,
 };
 
 export interface NewsItemsState extends EntityState<NewsListItem> {
@@ -48,6 +47,7 @@ export interface NewsState {
   listStatus: Loadable<NewsItemList>;
   newsOptions: ResultState<NewsOptions>;
   locations: Loadable<CityAppLocations>;
+  communities: ResultState<NewsCommunity[]>;
 }
 
 const featureSelector = createFeatureSelector<NewsState>('news');
@@ -65,3 +65,4 @@ export const getNewsOptions = createSelector(featureSelector, s => s.newsOptions
 export const getNewsOptionsError = createSelector(featureSelector, s =>
   s.newsOptions.state === CallStateType.ERROR ? s.newsOptions.error : null);
 export const getLocations = createSelector(featureSelector, s => s.locations);
+export const getNewsCommunities = createSelector(featureSelector, s => s.communities.result ?? []);

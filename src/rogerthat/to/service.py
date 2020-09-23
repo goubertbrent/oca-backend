@@ -68,7 +68,7 @@ class ServiceCallbackConfigurationRegexTO(object):
     regexes = unicode_list_property('regexes')
     callbacks = long_property('callbacks')
     custom_headers = unicode_property('custom_headers')
-    
+
 
     @staticmethod
     def fromModel(model):
@@ -176,7 +176,6 @@ class ServiceIdentityDetailsTO(ServiceIdentitySummaryTO):
     email_statistics = bool_property('117')
     app_ids_use_default = bool_property('119')
     app_ids = unicode_list_property('120')
-    app_names = unicode_list_property('121')
     can_edit_supported_apps = bool_property('122')
     content_branding_hash = unicode_property('124')
     home_branding_hash = unicode_property('125')
@@ -234,11 +233,7 @@ class ServiceIdentityDetailsTO(ServiceIdentitySummaryTO):
 
         details.app_ids_use_default = is_flag_set(ServiceIdentity.FLAG_INHERIT_APP_IDS,
                                                   service_identity.inheritanceFlags)
-        details.app_ids = []
-        details.app_names = []
-        for app in get_apps_by_id(service_identity.sorted_app_ids):
-            details.app_ids.append(app.app_id)
-            details.app_names.append(app.name)
+        details.app_ids = service_identity.appIds
         details.can_edit_supported_apps = service_profile.canEditSupportedApps
         details.content_branding_hash = service_identity.contentBrandingHash
 

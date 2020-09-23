@@ -19,82 +19,32 @@ import logging
 from datetime import date, datetime
 
 from google.appengine.ext import ndb, deferred, db
-from typing import Dict, List
+from typing import Dict, List, Tuple, Optional
 
-from mcfw.rpc import returns, arguments
 from rogerthat.bizz.job import run_job
-from rogerthat.bizz.news.groups import get_groups_for_app_id, \
-    update_stream_layout
-from rogerthat.bizz.roles import has_role
+from rogerthat.bizz.news.groups import update_stream_layout, get_groups_for_community
 from rogerthat.capi.news import updateBadgeCount
 from rogerthat.consts import NEWS_MATCHING_QUEUE
-from rogerthat.dal.friend import get_friends_map_cached, get_friends_map
+from rogerthat.dal.friend import get_friends_map_cached
 from rogerthat.dal.mobile import get_mobile_key_by_account
 from rogerthat.dal.profile import get_user_profile
-from rogerthat.dal.roles import get_service_roles_by_ids
-from rogerthat.dal.service import get_service_identity
 from rogerthat.models import UserProfile, UserProfileInfo
-from rogerthat.models.news import NewsItem, NewsSettingsUser, \
-    NewsSettingsUserGroup, NewsSettingsUserGroupDetails, NewsSettingsUserService, \
-    NewsSettingsService, NewsItemAddress, NewsGroup, NewsNotificationStatus, NewsNotificationFilter, \
-    NewsStream, NewsStreamCustomLayout, NewsItemActions, NewsMatchType
-from rogerthat.models.properties.friend import FriendDetail
+from rogerthat.models.news import NewsItem, NewsSettingsUser, NewsSettingsUserService, NewsItemAddress, NewsGroup, \
+    NewsNotificationStatus, NewsNotificationFilter, NewsStream, NewsItemActions, NewsMatchType, UserNewsGroupSettings
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import logError
-from rogerthat.to.friends import FRIEND_TYPE_SERVICE
 from rogerthat.to.news import UpdateBadgeCountRequestTO
 from rogerthat.utils import calculate_age_from_date, is_flag_set, get_epoch_from_datetime
-from rogerthat.utils.app import get_app_id_from_app_user
 from rogerthat.utils.location import haversine
-from rogerthat.utils.service import get_service_user_from_service_identity_user, \
-    remove_slash_default, add_slash_default
+from rogerthat.utils.service import remove_slash_default
 
 
-def setup_default_settings(app_user, set_last_used=False):
-    app_id = get_app_id_from_app_user(app_user)
+def setup_default_settings(app_user):
+    # type: (users.User) -> NewsSettingsUser
     s_key = NewsSettingsUser.create_key(app_user)
-    news_user_settings = s_key.get()  # type: NewsSettingsUser
-    if not news_user_settings:
-        logging.debug('debugging_news setup_default_settings creating user:%s', app_user)
-        news_user_settings = NewsSettingsUser(key=s_key)
-        news_user_settings.app_id = app_id
-        news_user_settings.last_get_groups_request = None
-        news_user_settings.group_ids = []
-        news_user_settings.groups = []
-
-    new_group_ids = []
-    if not news_user_settings.groups:
-        groups_dict = get_groups_for_app_id(app_id)
-        logging.debug('debugging_news setup_default_settings user:%s groups_dict:%s', app_user, groups_dict)
-        if groups_dict:
-            current_date = datetime.utcnow()
-            for group_type, groups in groups_dict.iteritems():
-                group_settings = NewsSettingsUserGroup()
-                group_settings.group_type = group_type
-                group_settings.order = groups[0].default_order
-                group_settings.details = []
-                for group in groups:
-                    group_settings_details = NewsSettingsUserGroupDetails()
-                    group_settings_details.group_id = group.group_id
-                    group_settings_details.order = 20 if group.regional else 10
-                    if group.default_notifications_enabled:
-                        group_settings_details.notifications = NewsNotificationFilter.ALL
-                    else:
-                        group_settings_details.notifications = NewsNotificationFilter.SPECIFIED
-
-                    group_settings_details.last_load_request = current_date
-
-                    group_settings.details.append(group_settings_details)
-
-                    news_user_settings.group_ids.append(group.group_id)
-                    new_group_ids.append(group.group_id)
-
-                news_user_settings.groups.append(group_settings)
-            if set_last_used:
-                news_user_settings.last_get_groups_request = current_date
-            news_user_settings.put()
-            deferred.defer(migrate_notification_settings_for_user, app_user, _queue=NEWS_MATCHING_QUEUE)
-
+    news_user_settings = NewsSettingsUser(key=s_key)
+    news_user_settings.last_get_groups_request = datetime.utcnow()
+    news_user_settings.put()
     return news_user_settings
 
 
@@ -104,20 +54,23 @@ def create_matches_for_news_item_key(news_item_key, old_group_ids, should_create
 
 
 def create_matches_for_news_item(news_item, old_group_ids, should_create_notification=False):
+    # type: (NewsItem, List[unicode], bool) -> None
     from rogerthat.bizz.news import do_callback_for_create, do_callback_for_update
-    logging.debug('debugging_news create_matches_for_news_item %s', news_item.id)
-    logging.debug('debugging_news old_group_ids: %s' % old_group_ids)
-    logging.debug('debugging_news new_group_ids: %s' % news_item.group_ids)
 
     if news_item.group_visible_until and NewsGroup.TYPE_POLLS in news_item.group_types:
         update_stream_layout(news_item.group_ids, NewsGroup.TYPE_POLLS, news_item.group_visible_until)
 
-    for group_id in news_item.group_ids:
-        if group_id in old_group_ids:
-            continue
-        deferred.defer(_update_service_filter, group_id, news_item.sender, _queue=NEWS_MATCHING_QUEUE)
-        run_job(_create_matches_for_news_item_qry, [group_id],
-                _create_matches_for_news_item_worker, [news_item.id, should_create_notification, group_id], worker_queue=NEWS_MATCHING_QUEUE)
+    deferred.defer(_update_service_filters, news_item.group_ids, news_item.sender, _queue=NEWS_MATCHING_QUEUE)
+    stream_keys = [NewsStream.create_key(community_id) for community_id in news_item.community_ids]
+    streams = {s.community_id: s for s in ndb.get_multi(stream_keys)}  # type: Dict[long, NewsStream]
+    for community_id in news_item.community_ids:
+        stream = streams[community_id]
+        stream_group_ids = [group_id for group_id in news_item.group_ids if group_id in stream.group_ids]
+        groups = ndb.get_multi([NewsGroup.create_key(group_id)
+                                for group_id in stream_group_ids])  # type: List[NewsGroup]
+        groups_info = {group.group_id: group.default_notifications_enabled for group in groups}
+        run_job(_get_users_by_community, [community_id], _process_news_item_for_user,
+                [news_item.id, should_create_notification, groups_info], worker_queue=NEWS_MATCHING_QUEUE)
 
     if old_group_ids:
         do_callback_for_update(news_item)
@@ -126,83 +79,73 @@ def create_matches_for_news_item(news_item, old_group_ids, should_create_notific
 
 
 @ndb.transactional(xg=True)
-def _update_service_filter(group_id, service_identity_user):
-    ng = NewsGroup.create_key(group_id).get()
-    if not ng.service_filter:
-        return
-    if service_identity_user in ng.services:
-        return
-    ng.services.append(service_identity_user)
-    ng.put()
+def _update_service_filters(group_ids, service_identity_user):
+    groups = ndb.get_multi([NewsGroup.create_key(group_id) for group_id in group_ids])  # type: List[NewsGroup]
+    to_put = []
+    for group in groups:
+        if not group.service_filter or service_identity_user in group.services:
+            continue
+        group.services.append(service_identity_user)
+        to_put.append(group)
+    ndb.put_multi(to_put)
 
 
-def _create_matches_for_news_item_qry(group_id):
-    return NewsSettingsUser.list_by_group_id(group_id)
+def _get_users_by_community(community_id):
+    return UserProfile.list_by_community(community_id, keys_only=True)
 
 
-@ndb.transactional(xg=True)
-@returns()
-@arguments(news_settings_key=ndb.Key, news_id=(int, long), should_create_notification=bool, group_id=unicode)
-def _create_matches_for_news_item_worker(news_settings_key, news_id, should_create_notification=False, group_id=None):
+def should_send_notification_for_group(user_group, send_notification_by_default, app_user, news_item_sender):
+    # type: (UserNewsGroupSettings, bool, users.User, users.User) -> bool
+    if not user_group or user_group.notifications == NewsNotificationFilter.NOT_SET:
+        return send_notification_by_default
+    if user_group.notifications in (NewsNotificationFilter.HIDDEN, NewsNotificationFilter.NONE):
+        return False
+    if user_group.notifications == NewsNotificationFilter.ALL:
+        user_svc_settings = NewsSettingsUserService.create_key(app_user, user_group.group_id, news_item_sender).get()
+        if user_svc_settings and user_svc_settings.notifications == NewsNotificationStatus.DISABLED:
+            return False
+        return True
+    if user_group.notifications == NewsNotificationFilter.SPECIFIED:
+        user_svc_settings = NewsSettingsUserService.create_key(app_user, user_group.group_id, news_item_sender).get()
+        if user_svc_settings and user_svc_settings.notifications == NewsNotificationStatus.ENABLED:
+            return True
+        return False
+    return send_notification_by_default
+
+
+def _process_news_item_for_user(profile_key, news_id, should_create_notification, groups_info):
+    # type: (db.Key, long, bool, Dict[unicode, bool]) -> None
     from rogerthat.bizz.news import create_notification
-    user_settings = news_settings_key.get()
+    app_user = users.User(profile_key.name())
+    keys = [NewsSettingsUser.create_key(app_user), NewsItem.create_key(news_id)]
+    user_settings, news_item = ndb.get_multi(keys)  # type: NewsSettingsUser, NewsItem
     if not user_settings:
         return
-    logging.debug('debugging_news _create_matches_for_news_id_worker user:%s news_id:%s',
-                  user_settings.app_user, news_id)
 
-    news_item = get_news_item(news_id)
     t = _create_news_item_match(user_settings, news_item)
     if not t:
         return
-    created_match, matches_location, group_ids = t
+    created_match, matches_location = t
     if not created_match:
         return
 
-    deferred.defer(calculate_and_update_badge_count, user_settings.app_user, group_ids, _transactional=True, _queue=NEWS_MATCHING_QUEUE)
+    group_ids = groups_info.keys()
+    deferred.defer(calculate_and_update_badge_count, app_user, group_ids, _queue=NEWS_MATCHING_QUEUE)
 
-    if not should_create_notification:
+    if not should_create_notification or is_flag_set(NewsItem.FLAG_SILENT, news_item.flags):
         return
 
     notification_group_id = None
-    if not is_flag_set(NewsItem.FLAG_SILENT, news_item.flags):
-        groups = []
-        for possible_group_id in group_ids:
-            g = user_settings.get_group(possible_group_id)
-            if g and g not in groups:
-                groups.append(g)
 
-        group_types_ordered = news_item.group_types_ordered
-        if not group_types_ordered:
-            group_types_ordered = news_item.group_types
-
-        sorted_groups = sorted(groups, key=lambda x: group_types_ordered.index(x.group_type))
-
-        for g in sorted_groups:
-            for d in g.details:
-                if notification_group_id:
-                    break
-                if d.group_id not in group_ids:
-                    continue
-                if d.notifications == NewsNotificationFilter.HIDDEN:
-                    continue
-                if d.notifications == NewsNotificationFilter.NONE:
-                    continue
-                if d.notifications == NewsNotificationFilter.ALL:
-                    nsus = NewsSettingsUserService.create_key(user_settings.app_user, d.group_id, news_item.sender).get()
-                    if nsus and nsus.notifications == NewsNotificationStatus.DISABLED:
-                        continue
-                    notification_group_id = d.group_id
-                    break
-                if d.notifications == NewsNotificationFilter.SPECIFIED:
-                    nsus = NewsSettingsUserService.create_key(user_settings.app_user, d.group_id, news_item.sender).get()
-                    if nsus and nsus.notifications == NewsNotificationStatus.ENABLED:
-                        notification_group_id = d.group_id
-                        break
-
-    if notification_group_id and notification_group_id == group_id:
-        deferred.defer(create_notification, user_settings.app_user, notification_group_id, news_item.id, location_match=matches_location,
-                       _transactional=True, _queue=NEWS_MATCHING_QUEUE)
+    for group_id in group_ids:
+        user_group = user_settings.get_group_by_id(group_id)
+        send_notification_by_default = groups_info[group_id]
+        if should_send_notification_for_group(user_group, send_notification_by_default, app_user, news_item.sender):
+            notification_group_id = group_id
+            break
+    if notification_group_id:
+        deferred.defer(create_notification, app_user, notification_group_id, news_item.id, matches_location,
+                       _queue=NEWS_MATCHING_QUEUE)
 
 
 def get_news_item_match_type(user_settings, news_item):
@@ -222,21 +165,8 @@ def get_news_item_match_type(user_settings, news_item):
         logging.debug('debugging_news user settings not found')
         return NewsMatchType.NO_MATCH
 
-    if not user_settings.group_ids:
-        logging.debug('debugging_news user groups empty')
-        return NewsMatchType.NO_MATCH
-
-    group_ids = list(set(news_item.group_ids) & set(user_settings.group_ids))
-    if not group_ids:
-        logging.debug('debugging_news no groups matches')
-        return NewsMatchType.NO_MATCH
-
     if not _match_target_audience_of_item(user_settings.app_user, news_item):
         logging.debug('debugging_news no target_audience match')
-        return NewsMatchType.NO_MATCH
-
-    if not _match_roles_of_item(user_settings.app_user, news_item):
-        logging.debug('debugging_news no roles match')
         return NewsMatchType.NO_MATCH
 
     if news_item.has_locations:
@@ -253,6 +183,7 @@ def get_news_item_match_type(user_settings, news_item):
 
 
 def _create_news_item_match(user_settings, news_item):
+    # type: (NewsSettingsUser, NewsItem) -> Optional[Tuple[bool, bool]]
     match_type = get_news_item_match_type(user_settings, news_item)
     if match_type == NewsMatchType.NO_MATCH:
         return
@@ -261,18 +192,7 @@ def _create_news_item_match(user_settings, news_item):
     if not news_item_actions:
         created_match = True
 
-    group_ids = list(set(news_item.group_ids) & set(user_settings.group_ids))
-    return created_match, match_type == NewsMatchType.LOCATION, group_ids
-
-
-@ndb.non_transactional
-def get_news_item(news_id):
-    return NewsItem.get_by_id(news_id)
-
-
-@ndb.non_transactional
-def get_news_group(group_id):
-    return NewsGroup.create_key(group_id).get()
+    return created_match, match_type == NewsMatchType.LOCATION
 
 
 def _match_target_audience_of_item(app_user, news_item):
@@ -303,18 +223,6 @@ def _match_target_audience_of_item(app_user, news_item):
         if remove_slash_default(news_item.sender) not in friends_map.friends:
             return False
     return True
-
-
-def _match_roles_of_item(app_user, news_item):
-    if not news_item.has_roles():
-        return True
-
-    service_user = get_service_user_from_service_identity_user(news_item.sender)
-    role_ids = news_item.role_ids
-    roles = [role for role in get_service_roles_by_ids(service_user, role_ids) if role is not None]
-    user_profile = get_user_profile(app_user)
-    service_identity = get_service_identity(news_item.sender)
-    return any([has_role(service_identity, user_profile, role) for role in roles])
 
 
 def _match_locations_of_item(app_user, news_item):
@@ -348,40 +256,22 @@ def should_match_location(ni_lat, ni_lon, ni_distance, my_lat, my_lon, my_distan
 
 
 def calculate_and_update_badge_count(app_user, group_ids):
-    news_settings_user = NewsSettingsUser.create_key(app_user).get()
+    user_profile = get_user_profile(app_user)
+    if not user_profile or not user_profile.mobiles:
+        logging.debug('Not updating badge count: no user profile or mobiles for user %s', app_user)
+        return
+    keys = [NewsGroup.create_key(group_id) for group_id in group_ids] + [NewsSettingsUser.create_key(app_user)]
+    models = ndb.get_multi(keys)
+    news_settings_user = models.pop()
     if not news_settings_user:
         return
-    user_profile = get_user_profile(app_user)
-    if not user_profile.mobiles:
-        logging.info('debugging_news No mobiles for user %s, not calculating badge count', app_user)
-        return
+    news_groups = models  # type: List[NewsGroup]
     mobiles = db.get([get_mobile_key_by_account(mobile_detail.account) for mobile_detail in user_profile.mobiles])
     to_put = []
-    news_groups = ndb.get_multi(NewsGroup.create_key(group_id) for group_id in group_ids)
-
-    news_stream = NewsStream.create_key(news_settings_user.app_id).get()
-    news_stream_layout = None
-    if news_stream:
-        if news_stream.custom_layout_id:
-            custom_layout = NewsStreamCustomLayout.create_key(news_stream.custom_layout_id, news_settings_user.app_id).get()
-            if custom_layout and custom_layout.layout:
-                news_stream_layout = custom_layout.layout
-        if not news_stream_layout:
-            news_stream_layout = news_stream.layout
-
-    news_stream_group_types = []
-    if news_stream_layout:
-        for l in news_stream_layout:
-            news_stream_group_types.extend(l.group_types)
-
     for news_group in news_groups:
-        details = news_settings_user.get_group_details(news_group.group_id)
-        if not details:
-            continue
-        if news_stream_group_types and news_group.group_type not in news_stream_group_types:
-            badge_count = 0
-        else:
-            badge_count = NewsItem.count_unread(news_group.group_id, get_epoch_from_datetime(details.last_load_request)).get_result()
+        details = news_settings_user.get_group_by_id(news_group.group_id)
+        start_timestamp = get_epoch_from_datetime(details.last_load_request) if details else 0
+        badge_count = NewsItem.count_unread(news_group.group_id, start_timestamp).get_result()
         to_put.extend(update_badge_count_user(app_user, news_group, badge_count, mobiles, save_capi_calls=False))
     db.put(to_put)
 
@@ -390,11 +280,8 @@ def update_badge_count_user(app_user, group_or_id, badge_count, mobiles=None, sa
     from rogerthat.bizz.news import update_badge_count_response_handler
     if not mobiles:
         user_profile = get_user_profile(app_user)
-        if not user_profile:
-            logging.debug('debugging_news update_badge_count_user failed no up %s', app_user)
-            return []
-        if not user_profile.mobiles:
-            logging.debug('debugging_news update_badge_count_user failed no mobiles %s', app_user)
+        if not user_profile or not user_profile.mobiles:
+            logging.debug('Not updating badge count: no user profile or mobiles for user %s', app_user)
             return []
         mobiles = db.get([get_mobile_key_by_account(mobile_detail.account) for mobile_detail in user_profile.mobiles])
     if isinstance(group_or_id, NewsGroup):
@@ -418,86 +305,36 @@ def update_badge_count_user(app_user, group_or_id, badge_count, mobiles=None, sa
     return capi_calls
 
 
-def _get_group_types_for_user(app_user):
-    # type: (NewsSettingsUser) -> Dict[str, List[str]]
-    # NewsSettingsUser should always exist
-    group_types = {}
-    s = NewsSettingsUser.create_key(app_user).get()  # type: NewsSettingsUser
-    if not s:
-        return group_types
-    for g in s.get_groups_sorted():
-        for d in g.get_details_sorted():
-            if d.notifications == NewsNotificationFilter.SPECIFIED:
-                if g.group_type not in group_types:
-                    group_types[g.group_type] = []
-                group_types[g.group_type].append(d.group_id)
-    return group_types
-
-
 def setup_notification_settings_for_user(app_user, service_identity_user):
-    group_types = _get_group_types_for_user(app_user)
-    if not group_types:
-        return
-    to_put = _setup_notification_settings_for_user(app_user, service_identity_user, group_types)
-    logging.debug('setup_notification_settings_for_user len(to_put): %s', len(to_put))
-    if to_put:
-        ndb.put_multi(to_put)
-
-
-def migrate_notification_settings_for_user(app_user):
-    group_types = _get_group_types_for_user(app_user)
-    logging.debug('migrate_notification_settings_for_user group_types: %s', group_types)
-
+    # type: (users.User, users.User) -> None
+    """Enables notifications for this service if one of the following conditions are true:
+    - the user has set his notification filter to 'specified'
+    - the user has not set his notification filter to anything (NewsNotificationFilter.NOT_SET), and the default
+    notification filter is set to NewsNotificationFilter.SPECIFIED
+    """
+    news_settings = NewsSettingsUser.create_key(app_user).get()  # type: NewsSettingsUser
+    user_profile = get_user_profile(app_user)
+    groups_dict = get_groups_for_community(user_profile.community_id)
     to_put = []
-    friend_map = get_friends_map(app_user)
-    for fd in friend_map.friendDetails:
-        if fd.type != FRIEND_TYPE_SERVICE:
-            continue
-        if fd.existence != FriendDetail.FRIEND_EXISTENCE_ACTIVE:
-            continue
-        service_identity_user = add_slash_default(users.User(fd.email))
-        # TODO: batch gets used by _setup_notification_settings_for_user
-        to_put.extend(_setup_notification_settings_for_user(app_user, service_identity_user, group_types))
-
-    logging.debug('migrate_notification_settings_for_user len(to_put): %s', len(to_put))
-
-    if to_put:
-        ndb.put_multi(to_put)
-
-
-def _setup_notification_settings_for_user(app_user, service_identity_user, group_types):
-    # type: (users.User, users.User, Dict[str, List[str]]) -> List[NewsSettingsUserService]
-    logging.debug('_setup_notification_settings_for_user siu: %s', service_identity_user)
-    logging.debug('_setup_notification_settings_for_user group_types: %s', group_types)
-    service_user = get_service_user_from_service_identity_user(service_identity_user)
-    nss = NewsSettingsService.create_key(service_user).get()
-    if not nss:
-        return []
-
-    notifications_enabled_for_group_ids = []
-    for group_type, group_ids in group_types.iteritems():
-        g = nss.get_group(group_type)
-        if not g:
-            continue
-        notifications_enabled_for_group_ids.extend(group_ids)
-
-    logging.debug('_setup_notification_settings_for_user notifications_enabled_for_group_ids: %s', notifications_enabled_for_group_ids)
-    if not notifications_enabled_for_group_ids:
-        return []
-
-    to_put = []
-    for group_id in notifications_enabled_for_group_ids:
-        nsus_key = NewsSettingsUserService.create_key(app_user, group_id, service_identity_user)
-        nsus = nsus_key.get()
-        if not nsus:
-            nsus = NewsSettingsUserService(key=nsus_key,
-                                           group_id=group_id,
-                                           notifications=NewsNotificationStatus.NOT_SET)
-
-        if nsus.notifications != NewsNotificationStatus.NOT_SET:
-            continue
-
-        nsus.notifications = NewsNotificationStatus.ENABLED
-        to_put.append(nsus)
-
-    return to_put
+    for groups in groups_dict.itervalues():
+        for group in groups:
+            group_id = group.group_id
+            user_group = news_settings.get_group_by_id(group_id)
+            should_enable_notifications = False
+            if user_group:
+                if user_group.notifications == NewsNotificationFilter.SPECIFIED:
+                    # User has manually enabled notifications for specific services
+                    should_enable_notifications = True
+                elif user_group.notifications == NewsNotificationFilter.NOT_SET:
+                    should_enable_notifications = group.default_notification_filter == NewsNotificationFilter.SPECIFIED
+            elif group.default_notification_filter == NewsNotificationFilter.SPECIFIED:
+                should_enable_notifications = True
+            if should_enable_notifications:
+                logging.debug('Enabling notifications for group %s(%s)', group.group_id, group.name)
+                key = NewsSettingsUserService.create_key(app_user, group_id, service_identity_user)
+                settings = key.get()  # type: NewsSettingsUserService
+                if not settings or settings.notifications != NewsNotificationStatus.ENABLED:
+                    settings = NewsSettingsUserService(key=key, group_id=group_id)
+                    settings.notifications = NewsNotificationStatus.ENABLED
+                    to_put.append(settings)
+    ndb.put_multi(to_put)

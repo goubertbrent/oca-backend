@@ -18,15 +18,15 @@
 import json
 import time
 
-from typing import List
+from typing import List, Union
 
 from mcfw.properties import long_list_property, typed_property, bool_property, long_property, unicode_property, \
     unicode_list_property, azzert, float_property
 from mcfw.serialization import s_long, ds_long, s_bool, s_unicode, ds_bool, ds_unicode, \
     get_list_serializer, get_list_deserializer
 from mcfw.utils import Enum
-from rogerthat.models import UserProfile, ServiceIdentity, NdbServiceProfile
-from rogerthat.models.news import NewsItem, NewsNotificationStatus, NewsMatchType
+from rogerthat.models import UserProfile, ServiceIdentity, NdbServiceProfile, ServiceProfile
+from rogerthat.models.news import NewsItem, NewsNotificationStatus, NewsMatchType, NewsGroup
 from rogerthat.models.properties.news import NewsItemStatistics
 from rogerthat.rpc import users
 from rogerthat.to import BaseButtonTO, TO, KeyValueLongTO
@@ -131,7 +131,7 @@ class NewsItemBasicStatisticTO(TO):
     age = typed_property('age', KeyValueLongTO, True)  # type: List[KeyValueLongTO]
 
     @classmethod
-    def from_point(cls, stats):
+    def from_point(cls, stats, total_only=False):
         from rogerthat.bizz.news.influx import get_age_field_key
         gender_stats = []
         age_stats = []
@@ -139,19 +139,34 @@ class NewsItemBasicStatisticTO(TO):
             total = 0
         else:
             total = stats['total']
-            for label in NewsItemStatistics.get_gender_labels():
-                value = stats.get(label) or 0
-                gender_stats.append(KeyValueLongTO(key=label.replace('gender-', ''), value=value))
-            for label in NewsItemStatistics.get_age_labels():
-                value = stats.get(get_age_field_key(label)) or 0
-                age_stats.append(KeyValueLongTO(key=label.replace('age-', ''), value=value))
-        return cls(total=total, gender=gender_stats, age=age_stats)
+            if not total_only:
+                for label in NewsItemStatistics.get_gender_labels():
+                    value = stats.get(label) or 0
+                    gender_stats.append(KeyValueLongTO(key=label.replace('gender-', ''), value=value))
+                for label in NewsItemStatistics.get_age_labels():
+                    value = stats.get(get_age_field_key(label)) or 0
+                    age_stats.append(KeyValueLongTO(key=label.replace('age-', ''), value=value))
+        result = cls(total=total)
+        if not total_only:
+            result.gender = gender_stats
+            result.age = age_stats
+        return result
 
 
 class NewsItemBasicStatisticsTO(TO):
     id = long_property('id')
     reached = typed_property('reached', NewsItemBasicStatisticTO)  # type: NewsItemBasicStatisticTO
     action = typed_property('action', NewsItemBasicStatisticTO)  # type: NewsItemBasicStatisticTO
+
+
+class NewsItemStatisticApp(TO):
+    app_id = unicode_property('app_id')
+    stats = typed_property('stats', NewsItemBasicStatisticsTO)  # type: NewsItemBasicStatisticsTO
+
+
+class NewsItemStatisticsPerApp(TO):
+    id = long_property('id')
+    results = typed_property('stats', NewsItemStatisticApp, True, default=[])  # type: List[NewsItemStatisticApp]
 
 
 class NewsItemTimeValueTO(TO):
@@ -243,13 +258,11 @@ class NewsItemTO(TO):
 
     sticky = bool_property('101')
     sticky_until = long_property('102')
-    app_ids = unicode_list_property('103')
+    community_ids = long_list_property('103')
     scheduled_at = long_property('105')
     published = bool_property('106')
 
     target_audience = typed_property('110', NewsTargetAudienceTO, False)
-    role_ids = long_list_property('111', default=[])
-    tags = unicode_list_property('112')
     group_type = unicode_property('114', default=None)
     locations = typed_property('locations', NewsLocationsTO)
     group_visible_until = long_property('group_visible_until')
@@ -258,19 +271,14 @@ class NewsItemTO(TO):
     def __init__(self, news_id=0, sender_email=None, sender_name=None, sender_avatar_id=0, sender_avatar_url=None,
                  title=None, message=None, image_url=None, buttons=None,
                  qr_code_content=None, qr_code_caption=None, version=0, timestamp=0, flags=0, news_type=1,
-                 sticky=False, sticky_until=0, app_ids=None, scheduled_at=0, published=False,
-                 target_audience=None, role_ids=None,
-                 tags=None, media=None, group_type=None, locations=None, group_visible_until=None,
+                 sticky=False, sticky_until=0, community_ids=None, scheduled_at=0, published=False,
+                 target_audience=None, media=None, group_type=None, locations=None, group_visible_until=None,
                  share_url=None):
 
-        if app_ids is None:
-            app_ids = []
+        if community_ids is None:
+            community_ids = []
         if buttons is None:
             buttons = []
-        if role_ids is None:
-            role_ids = []
-        if tags is None:
-            tags = []
 
         if buttons is None:
             buttons = []
@@ -292,27 +300,21 @@ class NewsItemTO(TO):
         self.media = media
         self.sticky = sticky
         self.sticky_until = sticky_until
-        self.app_ids = app_ids
+        self.community_ids = community_ids
         self.scheduled_at = scheduled_at
         if scheduled_at:
             self.timestamp = scheduled_at
         self.published = published
 
         self.target_audience = target_audience
-        self.role_ids = role_ids
-        self.tags = tags
         self.group_type = group_type
         self.locations = locations
         self.group_visible_until = group_visible_until
         self.share_url = share_url
 
-    def has_roles(self):
-        """Check if this news item has any assigned roles."""
-        return len(self.role_ids) > 0
-
     @classmethod
     def from_model(cls, model, base_url, service_profile, service_identity, share_url):
-        # type: (NewsItem, unicode, NdbServiceProfile, ServiceIdentity, unicode) -> NewsItemTO
+        # type: (NewsItem, unicode, Union[ServiceProfile, NdbServiceProfile], ServiceIdentity, unicode) -> NewsItemTO
         buttons = model.buttons.values() if model.buttons else []
 
         # set the target audience
@@ -348,9 +350,8 @@ class NewsItemTO(TO):
             locations = None
         return cls(model.id, sender_email, sender_name, sender_avatar_id, sender_avatar_url, model.title, model.message,
                    media and media.content, buttons, model.qr_code_content, model.qr_code_caption, model.version,
-                   model.timestamp, model.flags, model.type, model.sticky, model.sticky_until, model.app_ids,
-                   model.scheduled_at, model.published, target_audience,
-                   model.role_ids, model.tags, media, group_type, locations,
+                   model.timestamp, model.flags, model.type, model.sticky, model.sticky_until, model.community_ids,
+                   model.scheduled_at, model.published, target_audience, media, group_type, locations,
                    model.group_visible_until and long(time.mktime(model.group_visible_until.timetuple())),
                    share_url)
 
@@ -641,3 +642,42 @@ class NewsMobileConfigTO(object):
 class ServiceNewsGroupTO(TO):
     group_type = unicode_property('1')
     name = unicode_property('2')
+
+
+class NewsGroupTileTO(TO):
+    background_image_url = unicode_property('background_image_url')
+    promo_image_url = unicode_property('promo_image_url')
+    title = unicode_property('title')
+    subtitle = unicode_property('subtitle')
+
+    @classmethod
+    def from_model(cls, model):
+        """
+        Args:
+            model (rogerthat.models.news.NewsGroupTile)
+        """
+        if not model:
+            return None
+        return cls.from_dict(model.to_dict())
+
+
+class NewsGroupConfigTO(TO):
+    group_id = unicode_property('group_id')
+    name = unicode_property('name')
+    send_notifications = bool_property('send_notifications')
+    default_notifications_enabled = bool_property('default_notifications_enabled')
+    group_type = unicode_property('group_type')
+    tile = typed_property('tile', NewsGroupTileTO, False)
+
+    @classmethod
+    def from_model(cls, model):
+        # type: (NewsGroup) -> NewsGroupConfigTO
+        return cls.from_dict(model.to_dict(extra_properties=['group_id']))
+
+
+class NewsSettingsTO(TO):
+    stream_type = unicode_property('stream_type')
+
+
+class NewsSettingsWithGroupsTO(NewsSettingsTO):
+    groups = typed_property('1', NewsGroupConfigTO, True)

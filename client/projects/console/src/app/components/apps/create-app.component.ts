@@ -1,42 +1,23 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { NgForm } from '@angular/forms';
-import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Actions, ofType } from '@ngrx/effects';
+import { Actions } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
-import { Observable, Subscription } from 'rxjs';
+import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ApiRequestStatus } from '../../../../framework/client/rpc';
-import {
-  AppsActionTypes,
-  ClearAppAction,
-  CreateAppAction,
-  CreateAppCompleteAction,
-  GetContactsAction,
-  GetDeveloperAccountsAction,
-  GetReviewNotesListAction,
-} from '../../actions';
+import { ClearAppAction, CreateAppAction, GetContactsAction, GetDeveloperAccountsAction, GetReviewNotesListAction } from '../../actions';
 import * as states from '../../console.state';
 import { getReviewNotesList } from '../../console.state';
-import {
-  APP_TYPES,
-  AppTypes,
-  Contact,
-  COUNTRIES,
-  CreateAppPayload,
-  DeveloperAccount,
-  LANGUAGES,
-  NEWS_STREAM_TYPES,
-  NewsStreamTypes,
-  ReviewNotes,
-} from '../../interfaces';
+import { APP_TYPES, AppTypes, Contact, COUNTRIES, CreateAppPayload, DeveloperAccount, LANGUAGES, ReviewNotes } from '../../interfaces';
 
 @Component({
   selector: 'rcc-app-create',
-  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: 'create-app.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  encapsulation: ViewEncapsulation.None,
 })
-export class CreateAppComponent implements OnInit, OnDestroy {
+export class CreateAppComponent implements OnInit {
   @ViewChild('form', { static: true }) form: NgForm;
   app: CreateAppPayload;
   androidDeveloperAccounts$: Observable<DeveloperAccount[]>;
@@ -45,11 +26,8 @@ export class CreateAppComponent implements OnInit, OnDestroy {
   contacts$: Observable<Contact[]>;
   reviewNotes$: Observable<ReviewNotes[]>;
   appTypes = APP_TYPES;
-  newsStreamTypes = NEWS_STREAM_TYPES;
   languages = LANGUAGES;
   countries = COUNTRIES;
-
-  private _createAppSubscription: Subscription;
 
   constructor(private store: Store,
               private actions$: Actions,
@@ -74,7 +52,6 @@ export class CreateAppComponent implements OnInit, OnDestroy {
       title: '',
       main_language: 'nl',
       app_id: '',
-      auto_added_services: [],
       country: 'BE',
       official_id: null,
       contact: null,
@@ -82,16 +59,8 @@ export class CreateAppComponent implements OnInit, OnDestroy {
       ios_developer_account: null,
       android_developer_account: null,
       review_notes: null,
-      news_stream: null,
     };
-    this._createAppSubscription = this.actions$.pipe(ofType<CreateAppCompleteAction>(AppsActionTypes.CREATE_APP_COMPLETE))
-      .subscribe(action => this.router.navigate(['..', action.payload.app_id], { relativeTo: this.route }));
   }
-
-  ngOnDestroy() {
-    this._createAppSubscription.unsubscribe();
-  }
-
   create() {
     if (!this.form.form.valid) {
       return;
@@ -126,14 +95,6 @@ export class CreateAppComponent implements OnInit, OnDestroy {
       } else {
         this.app.dashboard_email_address = `${appTitle}@rogerth.at`;
       }
-    }
-  }
-
-  toggleNewsStream(e: MatSlideToggleChange) {
-    if (e.checked) {
-      this.app.news_stream = { type: NewsStreamTypes.CITY };
-    } else {
-      this.app.news_stream = null;
     }
   }
 

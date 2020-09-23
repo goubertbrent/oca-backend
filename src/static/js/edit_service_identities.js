@@ -241,7 +241,7 @@ var openEditServiceIdentityDialog = function(serviceIdentity, successCallback) {
     elemIdentityName.val(serviceIdentity.name).focus();
     elemIdentityQualifiedIdentifier.val(serviceIdentity.qualified_identifier);
     elemIdentityShareEnabled.attr('checked', serviceIdentity.recommend_enabled);
-    elemIdentitySupportedApps.text(serviceIdentity.app_names.join(', '));
+    elemIdentitySupportedApps.text(serviceIdentity.app_ids.join(', '));
     elemIdentitySupportedAppsHidden.val(serviceIdentity.app_ids.join(','));
 
     elemIdentityDescription.val(serviceIdentity.description).attr('disabled', false);
@@ -290,7 +290,7 @@ var openEditServiceIdentityDialog = function(serviceIdentity, successCallback) {
 
         if (serviceIdentity.app_ids_use_default)
             elemIdentitySupportedAppsCheckbox.change();
-        
+
         if (serviceIdentity.home_branding_use_default)
             elemIdentityHomeBrandingCheckbox.change();
 
@@ -395,11 +395,11 @@ var loadBrandings = function() {
 	                            brand.description + " [" + formattedDate + "]"));
 	            		elemIdentityMenuBranding.append($("<option></option>").val(brand.id).text(
 	                            brand.description + " [" + formattedDate + "]"));
-	            		
+
 	            	} else {
 	            		elemIdentityHomeBranding.append($("<option></option>").val(brand.id).text(
 	                            brand.description + " [" + formattedDate + "]"));
-	            	}               
+	            	}
             });
         }
     });
@@ -463,7 +463,7 @@ $(function() {
 
     elemIdentitySupportedAppsCheckbox = $("#identity_supported_apps_checkbox", createIdentityDialog).change(function() {
         if ($(this).is(':checked')) {
-            elemIdentitySupportedApps.text(defaultServiceIdentity.app_names.join(', '));
+            elemIdentitySupportedApps.text(defaultServiceIdentity.app_ids.join(', '));
             elemIdentitySupportedAppsHidden.val(defaultServiceIdentity.app_ids.join(','));
             elemIdentityUpdateSupportedApps.hide();
         } else if (canEditSupportedApps) {

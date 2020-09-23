@@ -3,14 +3,10 @@ import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
-import { CreateNews, NewsGroupType, NewsItemType } from '@oca/web-shared';
-import { SimpleDialogComponent, SimpleDialogData } from '@oca/web-shared';
-import { combineLatest, Observable } from 'rxjs';
-import { filter, take } from 'rxjs/operators';
-import { ServiceIdentityInfo } from '../../../shared/interfaces/rogerthat';
-import { NonNullLoadable } from '../../../shared/loadable/loadable';
-import { getServiceIdentityInfo } from '../../../shared/shared.state';
+import { NewsItemType, SimpleDialogComponent, SimpleDialogData, NewsGroupType } from '@oca/web-shared';
+import { take } from 'rxjs/operators';
 import { filterNull } from '../../../shared/util';
+import { CreateNews} from '../../news';
 import { SetNewNewsItemAction } from '../../news.actions';
 import { getNewsOptions, NewsState } from '../../news.state';
 
@@ -34,14 +30,9 @@ export class CreateNewsPageComponent implements OnInit {
       filterNull(),
       take(1),
     );
-    const serviceInfo$ = this.store.pipe(
-      select(getServiceIdentityInfo),
-      filter(i => i.data !== null),
-      take(1),
-    ) as Observable<NonNullLoadable<ServiceIdentityInfo>>;
     // TODO use root ngrx store instead of localStorage
     const itemFromStorage: Partial<CreateNews> | null = JSON.parse(localStorage.getItem('news.item') || '{}');
-    combineLatest([serviceInfo$, newsOptions$]).pipe(take(1)).subscribe(([serviceInfo, newsOptions]) => {
+    newsOptions$.subscribe(newsOptions => {
       if (newsOptions.groups.length === 0) {
         const config: MatDialogConfig<SimpleDialogData> = {
           data: {
@@ -53,14 +44,12 @@ export class CreateNewsPageComponent implements OnInit {
         this.matDialog.open(SimpleDialogComponent, config).afterClosed().subscribe(() => this.router.navigate(['news', 'list']));
         return;
       }
-      const data = serviceInfo.data;
       // Prefer city group type as default
       const groups = newsOptions.groups.concat().sort((first, second) => first.group_type === NewsGroupType.CITY ? -1 : 1);
       let item: CreateNews = {
-        app_ids: [data.default_app],
+        community_ids: [newsOptions.community_id],
         scheduled_at: null,
         media: null,
-        role_ids: [],
         message: '',
         title: '',
         target_audience: null,

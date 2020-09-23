@@ -2,14 +2,14 @@ import { ChangeDetectionStrategy, Component, OnInit, ViewEncapsulation } from '@
 import { select, Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { getSidebarItems } from '../../../../framework/client/nav/sidebar/sidebar.state';
+import { getSidebarItems } from '../../../../framework/client/nav/sidebar';
 import { NavigationItem } from '../../interfaces';
 
 @Component({
   selector: 'rcc-home-page',
+  templateUrl: 'home-page.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
-  templateUrl: 'home-page.component.html',
 })
 
 export class HomePageComponent implements OnInit {

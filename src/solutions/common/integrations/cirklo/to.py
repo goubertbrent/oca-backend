@@ -28,25 +28,6 @@ class WhitelistVoucherServiceTO(TO):
     accepted = bool_property('accepted')
 
 
-class UpdateVoucherServiceTO(TO):
-    provider = unicode_property('provider')
-    enabled = bool_property('enabled')
-
-
-class VoucherProviderTO(TO):
-    provider = unicode_property('provider')
-    enabled = bool_property('enabled')
-    can_enable = bool_property('can_enable')
-    enable_date = unicode_property('enable_date')
-
-    @classmethod
-    def from_model(cls, provider, can_enable, model):
-        return cls(provider=provider,
-                   enabled=model is not None,
-                   can_enable=can_enable,
-                   enable_date=model and (model.enable_date.isoformat() + 'Z'))
-
-
 def _get_search_data(whitelist_date, denied, merchant_registered, source):
     search_data = []
     if whitelist_date:

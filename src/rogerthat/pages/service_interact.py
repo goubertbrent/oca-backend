@@ -19,12 +19,13 @@ import logging
 import os
 
 from rogerthat.bizz import log_analysis
+from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.service import get_service_interact_qr_code_url, get_default_qr_template_by_app_id
 from rogerthat.bizz.system import qrcode
 from rogerthat.consts import DEBUG
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.friend import get_friends_map
-from rogerthat.dal.profile import get_user_profile
+from rogerthat.dal.profile import get_user_profile, get_service_profile
 from rogerthat.dal.service import get_service_interaction_def, get_service_identity
 from rogerthat.models import ProfilePointer, App
 from rogerthat.rpc import users
@@ -91,7 +92,10 @@ class ServiceInteractRequestHandler(webapp.RequestHandler):
             return self.return_error()
 
         si = get_service_identity(sid.service_identity_user)
-        app = get_app_by_id(si.app_id)
+        service_user = sid.user
+        service_profile = get_service_profile(service_user)
+        community = get_community(service_profile.community_id)
+        app = get_app_by_id(community.default_app)
 
         def show_unsupported_platform():
             languages = get_languages_from_header(self.request.headers.get('Accept-Language', None))
@@ -137,19 +141,19 @@ class ServiceInteractRequestHandler(webapp.RequestHandler):
             if user == si.service_user:
                 templ = "service_interact_yourself.html"
                 short_link = get_service_interact_qr_code_url(sid)
-            app_url = "%s://q/s/%s/%s" % (si.app_id, user_code, sid.key().id())
+            app_url = "%s://q/s/%s/%s" % (app.app_id, user_code, sid.key().id())
             server_settings = get_server_settings()
             set_cookie(self.response, server_settings.cookieQRScanName, "%s://i/qr?%s"
-                       % (si.app_id, urlencode((("success", "true"), ("url", app_url)))))
+                       % (app.app_id, urlencode((("success", "true"), ("url", app_url)))))
             user_friendmap = get_friends_map(user) if user else None
             path = os.path.join(_BASE_DIR, templ)
             self.response.out.write(template.render(path, {
                 'debug': DEBUG,
                 "continue": self.request.path_qs,
                 "service_identity": si,
-                "email": si.user.email(),
+                "email": service_user.email(),
                 "you": get_user_profile(user) if user else None,
-                "connected": remove_slash_default(si.user) in user_friendmap.friends if user_friendmap else None,
+                "connected": remove_slash_default(service_user) in user_friendmap.friends if user_friendmap else None,
                 "user": user,
                 "user_code": user_code,
                 'short_link': short_link,

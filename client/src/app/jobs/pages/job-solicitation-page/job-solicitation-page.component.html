@@ -23,7 +23,7 @@
                 [disabled]="sendButton.disabled"
                 [placeholder]="'oca.send_new_message' | translate"
                 matInput
-                matTextareaAutosize
+                [matTextareaAutosize]="true"
                 name="newMessage"></textarea>
   </mat-form-field>
   <button #sendButton [disabled]="isSendingMessage$ | async" mat-icon-button>

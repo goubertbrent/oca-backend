@@ -1,6 +1,6 @@
-import { CreateNews, NewsItem } from '@oca/web-shared';
-import { stateError, stateLoading, stateSuccess } from '@oca/web-shared';
+import { stateError, stateLoading, stateSuccess, NewsItem } from '@oca/web-shared';
 import { onLoadableError, onLoadableLoad, onLoadableSuccess } from '../shared/loadable/loadable';
+import { CreateNews} from './news';
 import { NewsActions, NewsActionTypes } from './news.actions';
 import { initialNewsState, newsAdapter, NewsState } from './news.state';
 
@@ -97,6 +97,12 @@ export function newsReducer(state: NewsState = initialNewsState, action: NewsAct
       return { ...state, locations: onLoadableSuccess(action.payload) };
     case NewsActionTypes.GET_LOCATIONS_FAILED:
       return { ...state, locations: onLoadableError(action.error, state.locations.data) };
+    case NewsActionTypes.GET_COMMUNITIES:
+      return { ...state, communities: stateLoading(initialNewsState.communities.result) };
+    case NewsActionTypes.GET_COMMUNITIES_COMPLETED:
+      return { ...state, communities: stateSuccess(action.payload) };
+    case NewsActionTypes.GET_COMMUNITIES_FAILED:
+      return { ...state, communities: stateError(action.error, initialNewsState.communities.result) };
   }
   return state;
 }
@@ -104,12 +110,11 @@ export function newsReducer(state: NewsState = initialNewsState, action: NewsAct
 function convertNewsItem(newsItem: NewsItem): CreateNews {
   return {
     action_button: newsItem.buttons.length ? newsItem.buttons[ 0 ] : null,
-    app_ids: newsItem.app_ids,
+    community_ids: newsItem.community_ids,
     id: newsItem.id,
     media: newsItem.media,
     message: newsItem.message,
     qr_code_caption: newsItem.qr_code_caption,
-    role_ids: newsItem.role_ids,
     scheduled_at: newsItem.scheduled_at ? new Date(newsItem.scheduled_at * 1000) : null,
     target_audience: newsItem.target_audience,
     title: newsItem.title,

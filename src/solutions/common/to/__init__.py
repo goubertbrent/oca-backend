@@ -192,7 +192,7 @@ class SolutionSettingsTO(TO):
 class SolutionRssScraperTO(TO):
     url = unicode_property('url')
     group_type = unicode_property('group_type')
-    app_ids = unicode_list_property('app_ids')
+    community_ids = long_list_property('community_ids')
 
 
 class SolutionRssSettingsTO(TO):
@@ -208,7 +208,7 @@ class SolutionRssSettingsTO(TO):
         return cls(notify=model.notify,
                    scrapers=[SolutionRssScraperTO(url=l.url,
                                                   group_type=l.group_type,
-                                                  app_ids=l.app_ids if l.app_ids else []) for l in model.rss_links])
+                                                  community_ids=l.community_ids) for l in model.rss_links])
 
 
 class ProvisionResponseTO(TO):

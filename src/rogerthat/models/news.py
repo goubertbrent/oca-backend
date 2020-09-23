@@ -22,9 +22,9 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from google.appengine.ext import ndb
 from google.appengine.ext.ndb.query import QueryOptions
-from typing import List
 
 from mcfw.utils import Enum
+from rogerthat.bizz.communities.models import Community
 from rogerthat.dal import parent_ndb_key
 from rogerthat.models.common import NdbModel
 from rogerthat.models.properties.news import NewsButtonsProperty
@@ -78,7 +78,7 @@ class NewsItem(NdbModel):
     MAX_TITLE_LENGTH = 80
     MAX_BUTTON_CAPTION_LENGTH = 15
 
-    # todo ruben news item
+    # todo news
     # delete properties? -> sticky/sticky_until/tags (already removed) statistics/statistics_type/rogered/reach/action_count/feeds/follow_count/image_id/users_that_rogered/broadcast_type
     # unindex -> has_locations/location_match_required/locations/media
 
@@ -99,7 +99,7 @@ class NewsItem(NdbModel):
     sticky_until = ndb.IntegerProperty(indexed=True, default=0)
 
     sender = ndb.UserProperty(indexed=True, required=True)  # service identity user
-    app_ids = ndb.StringProperty(indexed=True, repeated=True)
+    app_ids = ndb.StringProperty(indexed=True, repeated=True)  # TODO communities: remove after migration
     community_ids = ndb.IntegerProperty(repeated=True)  # type: List[long] # todo communities
     timestamp = ndb.IntegerProperty(indexed=True, required=True)  # type: long
     update_timestamp = ndb.IntegerProperty(indexed=True, default=0)
@@ -137,8 +137,6 @@ class NewsItem(NdbModel):
     target_audience_max_age = ndb.IntegerProperty(indexed=False, default=200)
     target_audience_gender = ndb.IntegerProperty(indexed=False, default=0)
     connected_users_only = ndb.BooleanProperty(indexed=False)
-
-    role_ids = ndb.IntegerProperty(indexed=False, repeated=True)
 
     tags = ndb.StringProperty(indexed=True, repeated=True)
     media = ndb.StructuredProperty(NewsMedia)  # type: NewsMedia
@@ -194,10 +192,6 @@ class NewsItem(NdbModel):
 
         return target_audience
 
-    def has_roles(self):
-        """Check if a news item has any assinged roles."""
-        return len(self.role_ids) > 0
-
     @classmethod
     def list_by_sender(cls, sender):
         qry = cls.query()
@@ -217,11 +211,10 @@ class NewsItem(NdbModel):
 
     @classmethod
     def list_published_by_group_id_sorted(cls, group_id):
-        qry = cls.query()
-        qry = qry.filter(cls.status == cls.STATUS_PUBLISHED)
-        qry = qry.filter(cls.group_ids == group_id)
-        qry = qry.order(-cls.published_timestamp)
-        return qry
+        return cls.query()\
+            .filter(cls.status == cls.STATUS_PUBLISHED)\
+            .filter(cls.group_ids == group_id)\
+            .order(-cls.published_timestamp)
 
     @classmethod
     def list_published_by_sender_and_group_id_sorted(cls, sender, group_id, keys_only=False):
@@ -234,11 +227,11 @@ class NewsItem(NdbModel):
 
     @classmethod
     def count_unread(cls, group_id, min_time, max_count=10):
-        qry = cls.query()
-        qry = qry.filter(cls.status == cls.STATUS_PUBLISHED)
-        qry = qry.filter(cls.group_ids == group_id)
-        qry = qry.filter(cls.published_timestamp > min_time)
-        return qry.count_async(max_count)
+        return cls.query() \
+            .filter(cls.status == cls.STATUS_PUBLISHED) \
+            .filter(cls.group_ids == group_id) \
+            .filter(cls.published_timestamp > min_time) \
+            .count_async(max_count)
 
     @classmethod
     def get_expired_sponsored_news_keys(cls):
@@ -376,31 +369,32 @@ class NewsStream(NdbModel):
     TYPE_CITY = u'city'
     TYPE_COMMUNITY = u'community'
 
-    stream_type = ndb.StringProperty(indexed=False, default=None)
+    stream_type = ndb.StringProperty(indexed=False, default=TYPE_CITY, choices=[TYPE_CITY, TYPE_COMMUNITY])
     should_create_groups = ndb.BooleanProperty(indexed=False)
     services_need_setup = ndb.BooleanProperty(indexed=True, default=False)
     layout = ndb.LocalStructuredProperty(NewsStreamLayout, repeated=True)
     custom_layout_id = ndb.StringProperty(indexed=False, default=None)
+    group_ids = ndb.StringProperty(indexed=False, repeated=True)
 
     @property
-    def app_id(self):
-        return self.key.id().decode('utf8')
+    def community_id(self):
+        return self.key.integer_id()
 
     @classmethod
-    def create_key(cls, app_id):
-        return ndb.Key(cls, app_id)
+    def create_key(cls, community_id):
+        return ndb.Key(cls, community_id) # todo communities pre-migration
 
 
 class NewsStreamCustomLayout(NdbModel):
     layout = ndb.LocalStructuredProperty(NewsStreamLayout, repeated=True)
 
     @property
-    def app_id(self):
-        return self.key.parent().id()
+    def community_id(self):
+        return self.key.parent().integer_id()
 
     @classmethod
-    def create_key(cls, uid, app_id):
-        return ndb.Key(cls, uid, parent=ndb.Key(cls, app_id))
+    def create_key(cls, uid, community_id):
+        return ndb.Key(cls, uid, parent=Community.create_key(community_id))
 
 
 class NewsGroupTile(NdbModel):
@@ -437,6 +431,13 @@ class NewsGroup(NdbModel):
     services = ndb.UserProperty(indexed=False, repeated=True)
 
     @property
+    def default_notification_filter(self):
+        if self.default_notifications_enabled:
+            return NewsNotificationFilter.ALL
+        else:
+            return NewsNotificationFilter.SPECIFIED
+
+    @property
     def group_id(self):
         return self.key.id().decode('utf8')
 
@@ -445,10 +446,12 @@ class NewsGroup(NdbModel):
         return ndb.Key(cls, uid)
 
     @classmethod
-    def list_by_app_id(cls, app_id):
-        qry = cls.query()
-        qry = qry.filter(cls.app_id == app_id)
-        return qry
+    def list_by_community_id(cls, community_id):
+        return cls.query().filter(cls.community_id == community_id)
+
+    @classmethod
+    def list_by_community_ids(cls, community_ids):
+        return cls.query().filter(cls.community_id.IN(community_ids))
 
     @classmethod
     def list_by_visibility_date(cls, d):
@@ -468,10 +471,11 @@ class NewsSettingsService(NdbModel):
     # 11 to 20 need broadcast type mapping
     # 999 skipped
 
-    default_app_id = ndb.StringProperty()
+    default_app_id = ndb.StringProperty()  # TODO communities: remove after migration
     community_id = ndb.IntegerProperty() # todo communities
     setup_needed_id = ndb.IntegerProperty()
-    groups = ndb.LocalStructuredProperty(NewsSettingsServiceGroup, repeated=True)  # type: List[NewsSettingsServiceGroup]
+    groups = ndb.LocalStructuredProperty(NewsSettingsServiceGroup,
+                                         repeated=True)  # type: List[NewsSettingsServiceGroup]
     duplicate_in_city_news = ndb.BooleanProperty(indexed=False, default=False)  # type: bool
 
     @property
@@ -483,12 +487,12 @@ class NewsSettingsService(NdbModel):
         return ndb.Key(cls, service_user.email(), parent=parent_ndb_key(service_user, namespace=cls.NAMESPACE))
 
     @classmethod
-    def list_by_app_id(cls, app_id):
-        return cls.query().filter(cls.default_app_id == app_id)
+    def list_by_community(cls, community_id):
+        return cls.query().filter(cls.community_id == community_id)
 
     @classmethod
-    def list_setup_needed(cls, app_id, sni):
-        return cls.list_by_app_id(app_id).filter(cls.setup_needed_id == sni)
+    def list_setup_needed(cls, community_id, sni):
+        return cls.list_by_community(community_id).filter(cls.setup_needed_id == sni)
 
     def get_group(self, group_type):
         for g in self.groups:
@@ -515,6 +519,8 @@ class NewsActionFlag(Enum):
 
 
 class NewsNotificationFilter(Enum):
+    # Default value, this way if we change the default notification settings, we don't have to update all user settings
+    NOT_SET = -2
     HIDDEN = -1
     NONE = 0
     ALL = 1
@@ -527,6 +533,7 @@ class NewsMatchType(Enum):
     LOCATION = 1
 
 
+# TODO communities: remove after migration
 class NewsSettingsUserGroupDetails(NdbModel):
     group_id = ndb.StringProperty()
     order = ndb.IntegerProperty()
@@ -534,6 +541,7 @@ class NewsSettingsUserGroupDetails(NdbModel):
     last_load_request = ndb.DateTimeProperty()
 
 
+# TODO communities: remove after migration
 class NewsSettingsUserGroup(NdbModel):
     group_type = ndb.StringProperty(required=True)
     order = ndb.IntegerProperty(required=True)
@@ -542,6 +550,12 @@ class NewsSettingsUserGroup(NdbModel):
 
     def get_details_sorted(self):
         return sorted(self.details, key=lambda k: k.order)
+
+
+class UserNewsGroupSettings(NdbModel):
+    group_id = ndb.StringProperty()
+    notifications = ndb.IntegerProperty(indexed=False, choices=NewsNotificationFilter.all())
+    last_load_request = ndb.DateTimeProperty(indexed=False)
 
 
 class NewsSettingsUser(NdbModel):
@@ -555,10 +569,13 @@ class NewsSettingsUser(NdbModel):
         NOTIFICATION_ENABLED_FOR_SPECIFIED: NewsNotificationFilter.SPECIFIED,
     }
 
-    app_id = ndb.StringProperty()
     last_get_groups_request = ndb.DateTimeProperty()
+
+    # TODO communities: remove after migration
     group_ids = ndb.StringProperty(repeated=True)  # type: List[str]
+    # TODO communities: remove after migration
     groups = ndb.LocalStructuredProperty(NewsSettingsUserGroup, repeated=True)  # type: List[NewsSettingsUserGroup]
+    group_settings = ndb.StructuredProperty(UserNewsGroupSettings, repeated=True)  # type: List[UserNewsGroupSettings]
 
     @property
     def app_user(self):
@@ -568,37 +585,20 @@ class NewsSettingsUser(NdbModel):
     def create_key(cls, app_user):
         return ndb.Key(cls, app_user.email(), parent=parent_ndb_key(app_user, namespace=cls.NAMESPACE))
 
-    @classmethod
-    def list_by_app_id(cls, app_id):
-        return cls.query().filter(cls.app_id == app_id)
+    def get_group_by_id(self, group_id):
+        # type: (unicode) -> Optional[UserNewsGroupSettings]
+        for g in self.group_settings:
+            if g.group_id == group_id:
+                return g
 
     @classmethod
     def list_by_group_id(cls, group_id):
-        return cls.query().filter(cls.group_ids == group_id)
-
-    def get_groups_sorted(self):
-        return sorted(self.groups, key=lambda k: k.order)
-
-    def get_group(self, group_id):
-        # type: (str) -> NewsSettingsUserGroup
-        for g in self.groups:
-            for d in g.details:
-                if d.group_id == group_id:
-                    return g
-        return None
-
-    def get_group_details(self, group_id):
-        # type: (str) -> NewsSettingsUserGroupDetails
-        for g in self.groups:
-            for d in g.details:
-                if d.group_id == group_id:
-                    return d
-        return None
+        return cls.query().filter(cls.group_settings.group_id == group_id)
 
 
 class NewsSettingsUserService(NdbModel):
-    group_id = ndb.StringProperty()
-    notifications = ndb.IntegerProperty()
+    group_id = ndb.StringProperty(required=True)
+    notifications = ndb.IntegerProperty(choices=NewsNotificationStatus.all())
 
     @classmethod
     def create_parent_key(cls, app_user, group_id):
@@ -690,109 +690,3 @@ class NewsItemActions(NdbModel):
             self.actions.remove(action)
         if action == NewsItemAction.PINNED:
             self.pinned_time = None
-
-
-class NewsItemMatch(NdbModel): # todo ruben nuke this and use NewsItemActions instead
-    REASON_BLOCKED = u'blocked'
-    REASON_FILTERED = u'filtered'
-    REASON_DELETED = u'deleted'
-    REASON_SERVICE_INVISIBLE = u'service_invisible'
-
-    update_time = ndb.DateTimeProperty(auto_now=True)
-    news_id = ndb.IntegerProperty()
-    location_match = ndb.BooleanProperty(indexed=False, default=False)
-    actions = ndb.StringProperty(repeated=True)  # type: List[str]
-    disabled = ndb.BooleanProperty(indexed=False)
-
-    # delete properties below this
-
-    publish_time = ndb.DateTimeProperty(default=None)
-    sort_time = ndb.DateTimeProperty()
-
-    sender = ndb.UserProperty()  # service identity user
-    group_ids = ndb.StringProperty(repeated=True)  # group_id can be None (service news, searching news)
-
-    visible = ndb.BooleanProperty()
-    invisible_reasons = ndb.StringProperty(repeated=True, indexed=False)
-
-    @property
-    def app_user(self):
-        return users.User(self.key.parent().id().decode('utf8'))
-
-    @property
-    def action_flags(self):
-        flags = 0
-        for k, v in ACTION_FLAG_MAPPING.iteritems():
-            if k in self.actions:
-                flags |= v
-        return flags
-
-    @classmethod
-    def create_key(cls, app_user, news_id):
-        return ndb.Key(cls, news_id, parent=parent_ndb_key(app_user, namespace=cls.NAMESPACE))
-
-    @classmethod
-    def create(cls, app_user, news_id, publish_time, sort_time, sender, group_ids=None, location_match=False):
-        return cls(key=cls.create_key(app_user, news_id),
-                   publish_time=publish_time,
-                   sort_time=sort_time,
-                   news_id=news_id,
-                   sender=sender,
-                   group_ids=group_ids or [],
-                   location_match=location_match,
-                   actions=[],
-                   disabled=False,
-                   visible=True,
-                   invisible_reasons=[])
-
-    @classmethod
-    def list_by_app_user(cls, app_user):
-        return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE))
-
-#     @classmethod
-#     def count_unread(cls, app_user, group_id, d, max_count=10):
-#         return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE))\
-#             .filter(cls.group_ids == group_id)\
-#             .filter(cls.visible == True)\
-#             .filter(cls.publish_time > d)\
-#             .count_async(max_count)
-#
-#     @classmethod
-#     def list_by_group_id(cls, app_user, group_id):
-#         return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE))\
-#             .filter(cls.group_ids == group_id)
-#
-#     @classmethod
-#     def list_visible_by_group_id(cls, app_user, group_id):
-#         return cls.list_by_group_id(app_user, group_id)\
-#             .filter(cls.visible == True)\
-#             .order(-NewsItemMatch.sort_time)
-#
-#     @classmethod
-#     def list_by_sender(cls, app_user, sender, group_id):
-#         return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE))\
-#             .filter(cls.sender == sender)\
-#             .filter(cls.group_ids == group_id)
-#
-#     @classmethod
-#     def list_visible_by_sender_and_group_id(cls, app_user, sender, group_id):
-#         return cls.list_by_sender(app_user, sender, group_id)\
-#             .filter(cls.visible == True)\
-#             .order(-NewsItemMatch.sort_time)
-
-    @classmethod
-    def list_by_action(cls, app_user, action):
-        return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE))\
-            .filter(cls.actions == action)\
-            .filter(cls.visible == True)\
-            .order(-NewsItemMatch.update_time)
-
-#     @classmethod
-#     def list_by_news_id(cls, news_id):
-#         return cls.query().filter(cls.news_id == news_id)
-#
-#     @classmethod
-#     def list_by_news_and_group_id(cls, news_id, group_id):
-#         return cls.query()\
-#             .filter(cls.news_id == news_id)\
-#             .filter(cls.group_ids == group_id)

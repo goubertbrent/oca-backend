@@ -15,7 +15,7 @@
 #
 # @@license_version:1.7@@
 
-from mcfw.properties import unicode_property, long_property, typed_property, unicode_list_property, long_list_property
+from mcfw.properties import unicode_property, long_property, typed_property, long_list_property
 from rogerthat.to import TO
 
 from rogerthat.to.news import NewsItemTO, NewsActionButtonTO, NewsTargetAudienceTO, BaseMediaTO, NewsLocationsTO, \
@@ -28,10 +28,9 @@ class CreateNewsItemTO(TO):
     action_button = typed_property('action_button', NewsActionButtonTO)
     type = long_property('type')
     qr_code_caption = unicode_property('qr_code_caption')
-    app_ids = unicode_list_property('app_ids')
+    community_ids = long_list_property('community_ids')
     scheduled_at = long_property('scheduled_at')
     target_audience = typed_property('target_audience', NewsTargetAudienceTO)
-    role_ids = long_list_property('role_ids')
     tag = unicode_property('tag')
     media = typed_property('media', BaseMediaTO)
     group_type = unicode_property('group_type')

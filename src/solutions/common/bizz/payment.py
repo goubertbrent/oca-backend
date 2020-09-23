@@ -17,14 +17,14 @@
 
 from google.appengine.ext import db
 
+from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.payment import get_api_module
 from rogerthat.consts import DEBUG
-from rogerthat.dal.service import get_service_identity
+from rogerthat.dal.profile import get_service_profile
 from rogerthat.models import ServiceIdentity
 from rogerthat.rpc import users
 from rogerthat.service.api.payments import list_providers, put_provider
 from rogerthat.to.payment import ServicePaymentProviderTO, PAYMENT_SETTINGS_MAPPING, ServicePaymentProviderFeeTO
-from rogerthat.utils.service import create_service_identity_user
 from solutions.common.bizz import broadcast_updates_pending
 from solutions.common.dal import get_solution_settings, get_solution_identity_settings, \
     get_solution_settings_or_identity_settings
@@ -101,11 +101,11 @@ def get_providers_settings(service_user, service_identity):
 
 
 def get_visible_payment_providers(service_user, service_identity, test_mode):
-    default_app_id = get_service_identity(create_service_identity_user(service_user, service_identity)).defaultAppId
+    community = get_community(get_service_profile(service_user).community_id)
     providers = []
-    if DEBUG or default_app_id.startswith('osa-'):
+    if DEBUG or community.demo:
         return ['payconiq']
-    if default_app_id.startswith('be-'):
+    if community.country == 'BE':
         providers.append('payconiq')
     return providers
 

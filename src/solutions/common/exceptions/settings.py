@@ -16,8 +16,13 @@
 # @@license_version:1.7@@
 
 from mcfw.exceptions import HttpBadRequestException
+from solutions import translate
 
 
 class InvalidRssLinksException(HttpBadRequestException):
-    def __init__(self, invalid_links):
-        super(InvalidRssLinksException, self).__init__('invalid_rss_links', {'invalid_links': invalid_links})
+    def __init__(self, invalid_links, language):
+        args = {
+            'message': translate(language, 'errors.invalid_rss_link', url=invalid_links[0]),
+            'invalid_links': invalid_links
+        }
+        super(InvalidRssLinksException, self).__init__('oca.error', args)

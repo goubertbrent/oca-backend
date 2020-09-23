@@ -553,34 +553,34 @@ class ListUpdateAction(argparse.Action):
 
 
 def export_icon(icon, size, filename, font, color):
-    border_padding = 2
-    inner_size = size - 2 * border_padding
     image = Image.new("RGBA", (size, size), color=(0,0,0,0))
 
     draw = ImageDraw.Draw(image)
 
     # Initialize font
+    border_padding = 3
+    inner_size = size - 2 * border_padding
     font = ImageFont.truetype(font, inner_size)
 
     # Determine the dimensions of the icon
     width,height = draw.textsize(icons[icon], font=font)
 
-    draw.text(((inner_size - width) / 2, (inner_size - height) / 2), icons[icon],
+    draw.text(((size - width) / 2, (size - height) / 2), icons[icon],
             font=font, fill=color)
 
     # Get bounding box
     bbox = image.getbbox()
 
     # Create an alpha mask
-    imagemask = Image.new("L", (inner_size, inner_size), 0)
+    imagemask = Image.new("L", (size, size), 0)
     drawmask = ImageDraw.Draw(imagemask)
 
     # Draw the icon on the mask
-    drawmask.text(((inner_size - width) / 2, (inner_size - height) / 2), icons[icon],
+    drawmask.text(((size - width) / 2, (size - height) / 2), icons[icon],
         font=font, fill=255)
 
     # Create a solid color image and apply the mask
-    iconimage = Image.new("RGBA", (inner_size,inner_size), color)
+    iconimage = Image.new("RGBA", (size,size), color)
     iconimage.putalpha(imagemask)
 
     if bbox:

@@ -1,18 +1,12 @@
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
-import { select, Store } from '@ngrx/store';
+import { Store } from '@ngrx/store';
 import { ErrorService } from '@oca/web-shared';
 import { of, timer } from 'rxjs';
-import { catchError, first, map, mergeMap, retryWhen, switchMap, take } from 'rxjs/operators';
+import { catchError, map, mergeMap, retryWhen, switchMap, take } from 'rxjs/operators';
 import { RootState } from '../reducers';
 import { transformErrorResponse } from './errors/errors';
 import {
-  GetAppsAction,
-  GetAppsCompleteAction,
-  GetAppsFailedAction,
-  GetAppStatisticsAction,
-  GetAppStatisticsCompleteAction,
-  GetAppStatisticsFailedAction,
   GetBrandingSettingFailedAction,
   GetBrandingSettingsAction,
   GetBrandingSettingsCompleteAction,
@@ -21,9 +15,6 @@ import {
   GetBudgetFailedAction,
   GetGlobalConfigAction,
   GetGlobalConfigCompleteAction,
-  GetInfoAction,
-  GetInfoCompleteAction,
-  GetInfoFailedAction,
   GetSolutionSettingsAction,
   GetSolutionSettingsCompleteAction,
   GetSolutionSettingsFailedAction,
@@ -37,7 +28,6 @@ import {
   UpdateLogoFailedAction,
 } from './shared.actions';
 import { SharedService } from './shared.service';
-import { getApps, getAppStatistics, getServiceIdentityInfo } from './shared.state';
 
 @Injectable({ providedIn: 'root' })
 export class SharedEffects {
@@ -49,45 +39,6 @@ export class SharedEffects {
       map(data => new GetGlobalConfigCompleteAction(data)),
       retryWhen(attempts => attempts.pipe(mergeMap(() => timer(2000)))),
     ))));
-
-  getInfo$ = createEffect( () => this.actions$.pipe(
-    ofType<GetInfoAction>(SharedActionTypes.GET_INFO),
-    switchMap(() => this.store.pipe(select(getServiceIdentityInfo), first())),
-    switchMap(info => {
-      if (info.success && info.data) {
-        return of(new GetInfoCompleteAction(info.data));
-      }
-      return this.sharedService.getServiceIdentityInfo().pipe(
-        map(data => new GetInfoCompleteAction(data)),
-        catchError(err => of(new GetInfoFailedAction(transformErrorResponse(err)))));
-    }),
-  ));
-
-   getApps$ = createEffect(() => this.actions$.pipe(
-    ofType<GetAppsAction>(SharedActionTypes.GET_APPS),
-    switchMap(() => this.store.pipe(select(getApps), first())),
-    switchMap(apps => {
-      if (apps.success && apps.data && apps.data.length) {
-        return of(new GetAppsCompleteAction(apps.data));
-      }
-      return this.sharedService.getApps().pipe(
-        map(data => new GetAppsCompleteAction(data)),
-        catchError(err => of(new GetAppsFailedAction(transformErrorResponse(err)))));
-    }),
-  ));
-
-   getAppStatistics$ = createEffect(() => this.actions$.pipe(
-    ofType<GetAppStatisticsAction>(SharedActionTypes.GET_APP_STATISTICS),
-    switchMap(() => this.store.pipe(select(getAppStatistics), first())),
-    switchMap(apps => {
-      if (Object.keys(apps).length) {
-        return of(new GetAppStatisticsCompleteAction(Object.values(apps)));
-      }
-      return this.sharedService.getAppStatistics().pipe(
-        map(data => new GetAppStatisticsCompleteAction(data)),
-        catchError(err => of(new GetAppStatisticsFailedAction(transformErrorResponse(err)))));
-    }),
-  ));
 
    getBudget$ = createEffect(() => this.actions$.pipe(
     ofType<GetBudgetAction>(SharedActionTypes.GET_BUDGET),

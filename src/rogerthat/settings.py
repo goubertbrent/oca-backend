@@ -188,10 +188,10 @@ class ServerSettings(CachedModelMixIn, db.Model):
         logging.info("ServerSettings removed from cache.")
         get_server_settings.invalidate_cache()
 
-    def get_signin_url(self, app_id):
+    def get_signin_url(self):
         for url, path in chunks(self.customSigninPaths, 2):
             if path.startswith('/customers/signin'):
-                return 'https://%s%s/%s' % (url, path, app_id)
+                return 'https://%s%s' % (url, path)
         return self.baseUrl
 
 

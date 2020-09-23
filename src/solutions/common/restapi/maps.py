@@ -18,11 +18,11 @@
 from mcfw.consts import REST_TYPE_TO
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
+from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.service import validate_app_admin
-from rogerthat.dal.service import get_service_identity
+from rogerthat.dal.profile import get_service_profile
 from rogerthat.rpc import users
 from rogerthat.rpc.users import get_current_session
-from rogerthat.utils.service import create_service_identity_user
 from solutions.common.bizz.maps import get_map_settings, save_map_settings
 from solutions.common.to.reports import MapConfigTO
 
@@ -31,9 +31,7 @@ from solutions.common.to.reports import MapConfigTO
 @returns(MapConfigTO)
 @arguments(map_tag=unicode)
 def rest_get_map_settings(map_tag):
-    service_user = users.get_current_user()
-    app_id = get_service_identity(create_service_identity_user(service_user)).defaultAppId
-    validate_app_admin(service_user, [app_id])
+    app_id = _check_permissions()
     return MapConfigTO.from_model(get_map_settings(app_id, map_tag))
 
 
@@ -41,8 +39,13 @@ def rest_get_map_settings(map_tag):
 @returns(MapConfigTO)
 @arguments(map_tag=unicode, data=MapConfigTO)
 def rest_put_map_settings(map_tag, data):
-    service_user = users.get_current_user()
-    app_id = get_service_identity(create_service_identity_user(service_user)).defaultAppId
-    validate_app_admin(service_user, [app_id])
+    app_id = _check_permissions()
     is_shop_user = get_current_session().shop
     return MapConfigTO.from_model(save_map_settings(app_id, map_tag, data, is_shop_user))
+
+
+def _check_permissions():
+    service_user = users.get_current_user()
+    community = get_community(get_service_profile(service_user).community_id)
+    validate_app_admin(service_user, [community.default_app])
+    return community.default_app

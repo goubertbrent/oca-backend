@@ -18,13 +18,17 @@
 import json
 import logging
 
+import webapp2
 from google.appengine.ext import webapp
+
 from mcfw.properties import azzert
+from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.friend_helper import FriendHelper
 from rogerthat.bizz.service.i18n import excel_export, excel_import
 from rogerthat.dal.friend import get_friends_map
-from rogerthat.dal.service import get_friend_serviceidentity_connection, get_service_identity
-from rogerthat.models import ServiceIdentity, ProfileHashIndex
+from rogerthat.dal.profile import get_service_profile
+from rogerthat.dal.service import get_friend_serviceidentity_connection
+from rogerthat.models import ProfileHashIndex
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.templates import render
@@ -33,9 +37,7 @@ from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import safe_file_name, filename_friendly_time
 from rogerthat.utils.channel import broadcast_via_iframe_result
 from rogerthat.utils.crypto import md5_hex
-from rogerthat.utils.service import add_slash_default, create_service_identity_user
-import webapp2
-
+from rogerthat.utils.service import add_slash_default
 
 try:
     from cStringIO import StringIO
@@ -137,7 +139,7 @@ class PostEditableTranslationSetExcelHandler(webapp2.RequestHandler):
             book = xlrd.open_workbook(file_contents=file_.read())
 
             excel_import(service_user, book)
-        except BusinessException, be:
+        except BusinessException as be:
             self.response.out.write(broadcast_via_iframe_result(
                 u'rogerthat.service.translations.post_result', error=be.message))
             return
@@ -151,23 +153,17 @@ class PostEditableTranslationSetExcelHandler(webapp2.RequestHandler):
 
 class GetServiceAppHandler(webapp2.RequestHandler):
 
-    def get_default_app_id(self, user_hash, identity):
+    def get_default_app_id(self, user_hash):
         index = ProfileHashIndex.get(ProfileHashIndex.create_key(user_hash))
         if not index:
             logging.debug('No profile found with user_hash %s', user_hash)
             return None
-
-        si_user = create_service_identity_user(index.user, identity)
-        si = get_service_identity(si_user)
-        if not si:
-            logging.debug('Service identity not found: %s', si_user.email())
-            return None
-        return si.app_id
+        profile = get_service_profile(index.user)
+        if not profile:
+            logging.debug('Profile not found: %s', index.user)
+        community = get_community(profile.community_id)
+        return community.default_app
 
     def get(self):
         user_hash = self.request.GET['user']
-        identity = self.request.GET.get('service_identity', ServiceIdentity.DEFAULT)
-        if identity == 'None':
-            identity = ServiceIdentity.DEFAULT
-
-        self.response.out.write(json.dumps(dict(app_id=self.get_default_app_id(user_hash, identity))))
+        self.response.out.write(json.dumps({'app_id': self.get_default_app_id(user_hash)}))

@@ -122,3 +122,15 @@ class NewsOptionsTO(TO):
     media_types = unicode_list_property('media_types')
     location_filter_enabled = bool_property('location_filter_enabled')
     action_buttons = typed_property('action_buttons', NewsActionButtonFactory(), True)
+    service_name = unicode_property('service_name')
+    community_id = long_property('community_id')
+
+
+class NewsCommunityTO(TO):
+    id = long_property('id')
+    name = unicode_property('name')
+    total_user_count = long_property('total_user_count')
+
+    @classmethod
+    def from_model(cls, m, total_user_count):
+        return NewsCommunityTO(id=m.id, name=m.name, total_user_count=total_user_count)

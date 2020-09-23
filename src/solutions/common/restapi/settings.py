@@ -20,6 +20,7 @@ from datetime import datetime
 from mcfw.consts import REST_TYPE_TO
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments
+from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.service import re_index_map_only
 from rogerthat.rpc import users
@@ -27,7 +28,7 @@ from rogerthat.utils import try_or_defer
 from rogerthat.utils.service import create_service_identity_user
 from shop.bizz import get_customer_consents, update_customer_consents
 from shop.dal import get_customer
-from solutions.common.bizz.settings import get_service_info, update_service_info, get_consents_for_app
+from solutions.common.bizz.settings import get_service_info, update_service_info, get_consents_for_community
 from solutions.common.integrations.cirklo.cirklo import check_merchant_whitelisted
 from solutions.common.integrations.cirklo.models import CirkloMerchant,\
     CirkloCity
@@ -59,14 +60,13 @@ def rest_save_service_info(data):
 def rest_get_privacy_settings():
     customer = get_customer(users.get_current_user())
     consents = get_customer_consents(customer.user_email)
-    return get_consents_for_app(customer.default_app_id, customer.language, consents.types)
+    return get_consents_for_community(customer.community_id, customer.language, consents.types)
 
 
 @rest('/common/settings/privacy', 'put')
 @returns()
 @arguments(data=UpdatePrivacySettingsTO)
 def save_consent(data):
-    from solutions.common.dal.cityapp import get_service_user_for_city
     customer = get_customer(users.get_current_user())
     context = u'User dashboard'
     headers = get_headers_for_consent(GenericRESTRequestHandler.getCurrentRequest())
@@ -77,8 +77,8 @@ def save_consent(data):
         if data.enabled:
             cirklo_merchant = cirklo_merchant_key.get()  # type: CirkloMerchant
             if not cirklo_merchant:
-                service_user = get_service_user_for_city(customer.default_app_id)
-                city_id = CirkloCity.get_by_service_email(service_user.email()).city_id
+                community = get_community(customer.community_id)
+                city_id = CirkloCity.get_by_service_email(community.main_service).city_id
 
                 cirklo_merchant = CirkloMerchant(key=cirklo_merchant_key)
                 cirklo_merchant.creation_date = datetime.utcfromtimestamp(customer.creation_time)

@@ -15,20 +15,12 @@
 #
 # @@license_version:1.7@@
 
-import json
-
 from mcfw.properties import bool_property, unicode_property, long_property, typed_property, unicode_list_property, \
     long_list_property, float_property
-from rogerthat.models.apps import LookAndFeelServiceRoles, AppLookAndFeel, ToolbarSettings, HomescreenSettings, \
-    NavigationItem, ColorSettings
-from rogerthat.models.properties.app import AutoConnectedService
 from rogerthat.models.properties.friend import FriendDetail
 from rogerthat.models.properties.oauth import OAuthSettings
-from rogerthat.rpc import users
 from rogerthat.to import TO
 from rogerthat.utils.app import get_human_user_from_app_user
-from rogerthat.utils.crypto import sha256_hex
-from rogerthat.utils.service import create_service_identity_user
 
 
 class AppInfoTO(object):
@@ -96,14 +88,12 @@ class AppTO(TO):
     ios_app_id = unicode_property('ios_app_id')
     android_app_id = unicode_property('android_app_id')
     creation_time = long_property('creation_time')
-    auto_connected_services = typed_property('auto_connected_services', AutoConnectedService, True)
     is_default = bool_property('is_default')
     user_regex = unicode_property('user_regex')
     dashboard_email_address = unicode_property('dashboard_email_address')
     admin_services = unicode_list_property('admin_services')
     demo = bool_property('demo')
     beta = bool_property('beta')
-    chat_enabled = bool_property('chat_enabled')
     mdp_client_id = unicode_property('mdp_client_id')
     mdp_client_secret = unicode_property('mdp_client_secret')
     contact_email_address = unicode_property('contact_email_address')
@@ -112,15 +102,14 @@ class AppTO(TO):
     owncloud_admin_username = unicode_property('owncloud_admin_username')
     owncloud_admin_password = unicode_property('owncloud_admin_password')
     main_service = unicode_property('main_service')
-    embedded_apps = unicode_list_property('embedded_apps')
     default_app_name_mapping = unicode_property('default_app_name_mapping')
+    country = unicode_property('country')
+    community_ids = long_list_property('community_ids')
+    service_filter_type = long_property('service_filter_type')
 
     @classmethod
     def from_model(cls, model):
-        """
-        Args:
-            model (rogerthat.models.App)
-        """
+        # type: (rogerthat.models.App) -> AppTO
         app = cls()
         app.id = model.app_id
         app.name = model.name
@@ -132,10 +121,6 @@ class AppTO(TO):
         app.ios_app_id = model.ios_app_id
         app.android_app_id = model.android_app_id
         app.creation_time = model.creation_time
-        if model.auto_connected_services:
-            app.auto_connected_services = list(model.auto_connected_services)
-        else:
-            app.auto_connected_services = []
         app.is_default = model.is_default
         app.user_regex = model.user_regex
         app.dashboard_email_address = model.dashboard_email_address
@@ -143,20 +128,17 @@ class AppTO(TO):
         app.demo = model.demo
         app.beta = model.beta
         app.secure = model.secure
-        app.chat_enabled = model.chat_enabled
         app.mdp_client_id = model.mdp_client_id
         app.mdp_client_secret = model.mdp_client_secret
         app.contact_email_address = model.contact_email_address
         app.owncloud_base_uri = model.owncloud_base_uri
         app.owncloud_admin_username = model.owncloud_admin_username
         app.owncloud_admin_password = model.owncloud_admin_password
-        app.embedded_apps = model.embedded_apps if model.embedded_apps else []
         app.default_app_name_mapping = model.default_app_name_mapping
+        app.country = model.country
+        app.community_ids = model.community_ids
+        app.service_filter_type = model.service_filter_type
         return app
-
-
-class NewsStreamTO(object):
-    type = unicode_property('1')
 
 
 class CreateAppTO(TO):
@@ -165,8 +147,6 @@ class CreateAppTO(TO):
     app_type = long_property('app_type')
     dashboard_email_address = unicode_property('4')
     main_language = unicode_property('main_language')
-    auto_added_services = unicode_list_property('auto_added_services', default=[])
-    news_stream = typed_property('6', NewsStreamTO, False, default=None)
     country = unicode_property('country')
     official_id = long_property('official_id')
     ios_developer_account = long_property('ios_developer_account')
@@ -301,236 +281,6 @@ class DefaultBrandingTO(object):
         return cls(model.key.id(), model.branding, model.app_ids, model.branding_type, model.is_default)
 
 
-class NavigationItemTO(object):
-    # for these types the 'action' needs to be hashed when sent to the user
-    HASHED_ACTION_TYPES = ('action', 'click')
-
-    action_type = unicode_property('1')  # null, action, click, cordova
-    # None means opening an activity
-    # action means listing all services with that action and opening that action when clicked
-    # click means clicking on a service menu item (linked to service_email).
-    # If service_email is None -> the main service email is used
-    # (action and click should be the hashed tag of the service menu item)
-    action = unicode_property('2')  # news, messages, ...
-    icon = unicode_property('3')  # font-awesome icon name
-    icon_color = unicode_property('4')
-    text = unicode_property('5')  # translation key
-    # deprecated, should be included in params insteaad
-    collapse = bool_property('6', default=False)
-    service_email = unicode_property('7')
-    # json string, KeyValueTO will only support string values
-    params = unicode_property('8', default=None)
-
-    def __init__(self, action_type=None, action=None, icon=None, icon_color=None, text=None, collapse=False,
-                 service_email=None, params=None):
-        self.action_type = action_type
-        self.action = action
-        self.icon = icon
-        self.icon_color = icon_color
-        self.text = text
-        self.collapse = collapse
-        self.service_email = service_email
-        self.params = params
-
-    @classmethod
-    def from_model(cls, model):
-        """
-        Args:
-            model (rogerthat.models.apps.NavigationItem)
-        """
-        collapse = model.collapse or model.params.get('collapse', False) if model.params else False
-        return cls(model.action_type, model.action, model.icon, model.icon_color, model.text, collapse,
-                   model.service_email, unicode(json.dumps(model.params or {})))
-
-    def to_model(self):
-        return NavigationItem(
-            action_type=self.action_type,
-            action=self.action,
-            icon=self.icon,
-            icon_color=self.icon_color,
-            text=self.text,
-            service_email=self.service_email,
-            params=json.loads(self.params) if self.params else None
-        )
-
-
-class ColorSettingsTO(object):
-    primary_color = unicode_property('1')
-    primary_color_dark = unicode_property('2')
-    # Unused but released in iOS in some apps so we have to keep this
-    secondary_color = unicode_property('3', default=None)
-    primary_icon_color = unicode_property('4')
-    tint_color = unicode_property('5')
-
-    def __init__(self, primary_color=None, primary_color_dark=None, primary_icon_color=None,
-                 tint_color=None):
-        self.primary_color = primary_color
-        self.primary_color_dark = primary_color_dark
-        self.secondary_color = None
-        self.primary_icon_color = primary_icon_color
-        self.tint_color = tint_color
-
-    @classmethod
-    def from_model(cls, model):
-        """
-        Args:
-            model (rogerthat.models.apps.ColorSettings)
-        """
-        return cls(model.primary_color, model.primary_color_dark, model.primary_icon_color, model.tint_color)
-
-    def to_model(self):
-        return ColorSettings(
-            primary_color=self.primary_color,
-            primary_color_dark=self.primary_color_dark,
-            primary_icon_color=self.primary_icon_color,
-            tint_color=self.tint_color
-        )
-
-
-class HomeScreenSettingsTO(object):
-    STYLE_NEWS = u'news'
-    STYLE_MESSAGES = u'messages'
-
-    color = unicode_property('1')
-    items = typed_property('2', NavigationItemTO, True)
-    style = unicode_property('3')
-    header_image_url = unicode_property('4')
-
-    def __init__(self, color=None, items=None, style=None, header_image_url=None):
-        self.color = color
-        self.items = items if items else []
-        self.style = style
-        self.header_image_url = header_image_url
-
-    @classmethod
-    def from_model(cls, model):
-        """
-        Args:
-            model (rogerthat.models.apps.HomescreenSettings)
-        """
-        return cls(model.color, [NavigationItemTO.from_model(item) for item in model.items], model.style,
-                   model.header_image_url)
-
-    def to_model(self):
-        return HomescreenSettings(
-            color=self.color,
-            items=[item.to_model() for item in self.items],
-            style=self.style,
-            header_image_url=self.header_image_url
-        )
-
-
-class ToolbarSettingsTO(object):
-    items = typed_property('1', NavigationItemTO, True)  # type: list of NavigationItemTO
-
-    def __init__(self, items=None):
-        self.items = items if items else []
-
-    @classmethod
-    def from_model(cls, model):
-        """
-        Args:
-            model (rogerthat.models.apps.ToolbarSettings)
-        """
-        return cls([NavigationItemTO.from_model(item) for item in model.items])
-
-    def to_model(self):
-        return ToolbarSettings(
-            items=[item.to_model() for item in self.items]
-        )
-
-
-class LookAndFeelTO(object):
-    colors = typed_property('1', ColorSettingsTO, False)
-    homescreen = typed_property('2', HomeScreenSettingsTO, False)
-    toolbar = typed_property('3', ToolbarSettingsTO, False)
-
-    def __init__(self, colors=None, homescreen=None, toolbar=None):
-        self.colors = colors
-        self.homescreen = homescreen
-        self.toolbar = toolbar
-
-    @classmethod
-    def from_model(cls, model):
-        """
-        Args:
-            model (rogerthat.models.apps.AppLookAndFeel)
-
-        Returns:
-
-        """
-        colors = ColorSettingsTO.from_model(model.colors)
-        homescreen = HomeScreenSettingsTO.from_model(model.homescreen)
-        toolbar = ToolbarSettingsTO.from_model(model.toolbar)
-
-        for ni in homescreen.items + toolbar.items:
-            if ni.action_type in NavigationItemTO.HASHED_ACTION_TYPES:
-                ni.action = sha256_hex(ni.action).decode('utf8')
-
-        return cls(colors, homescreen, toolbar)
-
-
-class LookAndFeelServiceRolesTO(object):
-    role_ids = long_list_property('1')
-    service_email = unicode_property('2')
-    service_identity = unicode_property('3')
-
-    def __init__(self, role_ids=None, service_email=None, service_identity=None):
-        self.role_ids = role_ids if role_ids else []
-        self.service_email = service_email
-        self.service_identity = service_identity
-
-    def to_model(self):
-        service_identity_user = create_service_identity_user(users.User(self.service_email), self.service_identity)
-        return LookAndFeelServiceRoles(
-            role_ids=self.role_ids,
-            service_email=service_identity_user.email()
-        )
-
-    @classmethod
-    def from_model(cls, model):
-        """
-        Args:
-            model (LookAndFeelServiceRoles)
-        """
-        service_user, service_identity, = model.service_identity_tuple
-        return cls(model.role_ids, service_user.email(), service_identity)
-
-
-class AppLookAndFeelTO(LookAndFeelTO):
-    id = long_property('50')
-    app_id = unicode_property('51')
-    roles = typed_property('52', LookAndFeelServiceRolesTO, True)
-
-    def __init__(self, role_id=None, colors=None, homescreen=None, toolbar=None, app_id=None, roles=None):
-        self.id = role_id
-        self.app_id = app_id
-        self.roles = roles if roles else []
-        super(AppLookAndFeelTO, self).__init__(colors, homescreen, toolbar)
-
-    @classmethod
-    def from_model(cls, model):
-        """
-        Args:
-            model (AppLookAndFeel)
-        """
-        colors = ColorSettingsTO.from_model(model.colors)
-        homescreen = HomeScreenSettingsTO.from_model(model.homescreen)
-        toolbar = ToolbarSettingsTO.from_model(model.toolbar)
-        app_id = model.app_id
-        roles = [LookAndFeelServiceRolesTO.from_model(role) for role in model.roles] if model.roles else []
-        return cls(model.id, colors, homescreen, toolbar, app_id, roles)
-
-    def to_model(self):
-        return AppLookAndFeel(
-            app_id=self.app_id,
-            colors=self.colors.to_model(),
-            homescreen=self.homescreen.to_model(),
-            toolbar=self.toolbar.to_model(),
-            roles=[role.to_model() for role in self.roles]
-        )
-
-
 class PutLoyaltyUserResultTO(object):
     url = unicode_property('1')
     email = unicode_property('2')
@@ -551,17 +301,6 @@ class UpdateAppAssetRequestTO(AppAssetTO):
 
 class UpdateAppAssetResponseTO(object):
     pass
-
-
-class UpdateLookAndFeelResponseTO(object):
-    pass
-
-
-class UpdateLookAndFeelRequestTO(object):
-    look_and_feel = typed_property('1', LookAndFeelTO, False)
-
-    def __init__(self, look_and_feel=None):
-        self.look_and_feel = look_and_feel
 
 
 class AppTranslationTO(object):
@@ -633,46 +372,3 @@ class UpdateEmbeddedAppsRequestTO(GetEmbeddedAppsResponseTO):
 
 class UpdateEmbeddedAppsResponseTO(TO):
     pass
-
-
-class NewsGroupTileTO(TO):
-    background_image_url = unicode_property('background_image_url')
-    promo_image_url = unicode_property('promo_image_url')
-    title = unicode_property('title')
-    subtitle = unicode_property('subtitle')
-
-    @classmethod
-    def from_model(cls, model):
-        """
-        Args:
-            model (rogerthat.models.news.NewsGroupTile)
-        """
-        if not model:
-            return None
-        return cls.from_dict(model.to_dict())
-
-
-class NewsGroupTO(TO):
-    group_id = unicode_property('group_id')
-    name = unicode_property('name')
-    send_notifications = bool_property('send_notifications')
-    default_notifications_enabled = bool_property('default_notifications_enabled')
-    group_type = unicode_property('group_type')
-    tile = typed_property('tile', NewsGroupTileTO, False)
-
-    @classmethod
-    def from_model(cls, model):
-        """
-        Args:
-            model (rogerthat.models.news.NewsGroup)
-        """
-        return cls.from_dict(model.to_dict(extra_properties=['group_id']))
-
-
-class NewsSettingsTO(object):
-    groups = typed_property('1', NewsGroupTO, True)
-
-    def __init__(self, groups=None):
-        if groups is None:
-            groups = []
-        self.groups = groups

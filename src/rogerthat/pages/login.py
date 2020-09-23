@@ -163,7 +163,7 @@ class SetPasswordHandler(SessionHandler):
         passwordHash = sha256_hex(password)
         profile = get_service_or_user_profile(user)
         if not profile:
-            profile = create_user_profile(user, data['n'], language)
+            profile = create_user_profile(user, data['n'], language) # todo communities set community_id
             update_password_hash(profile, passwordHash, now_)
         else:
             def update():
@@ -177,7 +177,7 @@ class SetPasswordHandler(SessionHandler):
             profile = db.run_in_transaction(update)
 
         if isinstance(profile, UserProfile):
-            hookup_with_default_services.schedule(user, ipaddress=os.environ.get('HTTP_X_FORWARDED_FOR', None))
+            hookup_with_default_services.schedule(user)
 
         self.start_session(user, data["c"])
 

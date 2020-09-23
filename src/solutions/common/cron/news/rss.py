@@ -15,33 +15,31 @@
 #
 # @@license_version:1.7@@
 
-from datetime import datetime
 import logging
 import rfc822
+from datetime import datetime
 from urlparse import urlparse
 from xml.dom import minidom
 
-from bs4 import BeautifulSoup
 import dateutil.parser
+from bs4 import BeautifulSoup
 from dateutil.relativedelta import relativedelta
 from google.appengine.api import urlfetch
 from google.appengine.ext import webapp, ndb
 
 from mcfw.properties import unicode_property, typed_property
 from rogerthat.bizz.job import run_job
-from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE, DEBUG
+from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
 from rogerthat.models.news import NewsGroup
 from rogerthat.to import TO
 from rogerthat.to.push import remove_html
 from rogerthat.utils import now, get_epoch_from_datetime
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
-from solutions.common.cron.news import html_unescape, \
-    create_news_item, update_news_item, news_item_hash, delete_news_item, \
-    is_html
+from solutions.common.cron.news import html_unescape, create_news_item, update_news_item, news_item_hash, \
+    delete_news_item, is_html
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionRssScraperSettings, SolutionRssScraperItem
 from solutions.common.utils import html_to_markdown
-
 
 BROADCAST_TYPE_NEWS = u"News"
 BROADCAST_TYPE_EVENTS = u"Events"
@@ -91,8 +89,6 @@ def _worker(rss_settings_key):
                           rss_link.group_type)
             can_delete = False
             continue
-
-        app_ids = rss_link.app_ids if rss_link.app_ids else None
 
         dry_run = not rss_link.dry_runned
         if dry_run:
@@ -168,9 +164,11 @@ def _worker(rss_settings_key):
                                 if timestamp > now():
                                     timestamp = None
 
-                        tasks.append(create_task(create_news_item, sln_settings, rss_link.group_type, scraped_item.message,
-                                                 scraped_item.title, scraped_item.url, False if dry_run else rss_settings.notify,
-                                                 scraped_item.image_url, new_key, app_ids=app_ids, timestamp=timestamp))
+                        tasks.append(
+                            create_task(create_news_item, sln_settings, rss_link.group_type, scraped_item.message,
+                                        scraped_item.title, scraped_item.url, False if dry_run else rss_settings.notify,
+                                        scraped_item.image_url, new_key, community_ids=rss_link.community_ids,
+                                        timestamp=timestamp))
                 to_put.append(new_item)
 
     scraped_items = sorted([s for s in scraped_items if s.date], key=lambda x: x.date)  # oldest items first
@@ -325,9 +323,8 @@ def _get_date(current_date, min_date, date_str, dry_run=False, log_dates=False):
     else:
         logging.error('could not parse date %s', date_str)
         return None
-    
-    return _correct_midnight_times(current_date, date)   
-    
+
+    return _correct_midnight_times(current_date, date)
 
 
 def _flavor_rss_items(doc, rss_url, service_user=None, service_identity=None, dry_run=False):
@@ -337,7 +334,7 @@ def _flavor_rss_items(doc, rss_url, service_user=None, service_identity=None, dr
     base_url = '%s://%s' % (parsed_url.scheme, parsed_url.netloc)
     current_date = datetime.now()
     min_date = datetime.now() - relativedelta(days=20)
-    
+
     for i, item in enumerate(doc.getElementsByTagName('item')):
         log_dates = i < 5
         try:
@@ -406,7 +403,7 @@ def _flavor_atom_items(doc, rss_url, service_user=None, service_identity=None, d
         to = AtomEntry.from_element(element)
         if not to:
             continue
-        
+
         description = None
         if to.summary:
             description = to.summary.value
@@ -420,7 +417,7 @@ def _flavor_atom_items(doc, rss_url, service_user=None, service_identity=None, d
                 description = html_to_markdown(description_html, base_url)
         if not description:
             continue
-        
+
         url = None
         image_url = None
         for link in to.links:

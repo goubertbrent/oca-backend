@@ -53,10 +53,6 @@ class SolutionStaticContent(db.Model):
                                 parent=parent_key(service_user, SOLUTION_COMMON))
 
     @classmethod
-    def get_all_keys(cls):
-        return db.Query(cls, keys_only=True)
-
-    @classmethod
     def list(cls, service_user):
         return cls.all().ancestor(parent_key(service_user, SOLUTION_COMMON))
 

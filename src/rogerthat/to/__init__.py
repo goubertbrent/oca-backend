@@ -538,7 +538,7 @@ del WidgetResultMapping
 del MessageTypeMapping
 
 
-class KeyValueLongTO(object):
+class KeyValueLongTO(TO):
     key = unicode_property('1')
     value = long_property('2')
 
@@ -547,7 +547,7 @@ class KeyValueLongTO(object):
         self.value = value
 
 
-class UploadInfoTO(object):
+class UploadInfoTO(TO):
     url = unicode_property('1')
     max_size = long_property('2')
     file_types = unicode_list_property('3')

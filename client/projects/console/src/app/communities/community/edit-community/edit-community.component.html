@@ -1,0 +1,12 @@
+<mat-toolbar>
+  <a mat-icon-button routerLink="/communities">
+    <mat-icon>arrow_back</mat-icon>
+  </a>
+  <h1 class="flex-grow">Community</h1>
+</mat-toolbar>
+<mat-progress-bar *ngIf="communityLoading$ | async" mode="indeterminate"></mat-progress-bar>
+<rcc-community-form (saved)="save($event)"
+                    [apps]="apps$ | async"
+                    [community]="community$ | async"
+                    [embeddedApps]="embeddedApps$ | async"
+                    [loading]="communityLoading$ | async"></rcc-community-form>

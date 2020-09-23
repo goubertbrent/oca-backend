@@ -18,12 +18,13 @@
 import logging
 from types import NoneType
 
-from google.appengine.ext import deferred, db
+from google.appengine.ext import deferred, db, ndb
 
 from mcfw.cache import invalidate_model_cache, invalidate_cache
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz import roles
+from rogerthat.bizz.communities.models import Community
 from rogerthat.bizz.forms import delete_forms_by_service
 from rogerthat.bizz.friends import breakFriendShip
 from rogerthat.bizz.job import run_job
@@ -32,7 +33,6 @@ from rogerthat.bizz.service import remove_service_identity_from_index
 from rogerthat.bizz.system import delete_service_finished
 from rogerthat.bizz.user import delete_account
 from rogerthat.dal import put_and_invalidate_cache, parent_key
-from rogerthat.dal.app import get_apps_by_keys
 from rogerthat.dal.mobile import get_user_active_mobiles
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.roles import get_service_grants
@@ -45,8 +45,7 @@ from rogerthat.rpc import users
 from rogerthat.rpc.models import Session, ServiceLog
 from rogerthat.rpc.service import BusinessException
 from rogerthat.utils.app import create_app_user
-from rogerthat.utils.service import create_service_identity_user, \
-    get_service_user_from_service_identity_user
+from rogerthat.utils.service import create_service_identity_user
 
 
 class DeleteServiceTasks(db.Model):
@@ -55,13 +54,9 @@ class DeleteServiceTasks(db.Model):
 
 def validate_delete_service(service_user):
     # type: (users.User) -> None
-    all_app_ids = set()
-    for service_identity in get_service_identities(service_user):
-        all_app_ids.update(service_identity.appIds)
-    apps = get_apps_by_keys([App.create_key(app_id) for app_id in all_app_ids])
-    for app in apps:
-        if app.main_service == service_user.email():
-            raise BusinessException('Cannot delete main service of app %s' % app.app_id)
+    community = Community.list_by_main_service(service_user).get()
+    if community:
+        raise BusinessException('Cannot delete main service of community %s(%s)' % (community.id, community.name))
 
 
 @returns(NoneType)
@@ -99,31 +94,13 @@ def _break_friends(fsic_key):
 
 
 def remove_autoconnected_service(service_user):
-    run_job(_get_all_apps_keys_query, [], _remove_autoconnected_service, [service_user])
-
-
-def _remove_autoconnected_service(app_key, service_user):
-    def trans():
-        app = db.get(app_key)
-        identities = list()
-        for acs in app.auto_connected_services:
-            if get_service_user_from_service_identity_user(users.User(acs.service_identity_email)).email() == service_user.email():
-                identities.append(acs.service_identity_email)
-
-        updated = False
-        if identities:
-            updated = True
-            for service_identity_email in identities:
-                app.auto_connected_services.remove(service_identity_email)
-
-        if service_user.email() in app.admin_services:
-            updated = True
-            app.admin_services.remove(service_user.email())
-
-        if updated:
-            app.put()
-
-    db.run_in_transaction(trans)
+    to_put = []
+    service_email = service_user.email()
+    for community in Community.list_by_auto_connected(service_email):  # type: Community
+        community.auto_connected_services = [acs for acs in community.auto_connected_services
+                                             if not acs.service_identity_email.startswith(service_email)]
+        to_put.append(community)
+    ndb.put_multi(to_put)
 
 
 def _delete_roles(parent_service_user, service_user):

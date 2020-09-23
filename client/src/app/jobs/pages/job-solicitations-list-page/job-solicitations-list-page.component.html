@@ -11,7 +11,7 @@
          *ngFor="let solicitation of solicitations$ | async"
          [class.solicitation-active]="rla.isActive"
          [class.solicitation-unread]="solicitation.status === unread"
-         [routerLink]="solicitation.id"
+         [routerLink]="[solicitation.id]"
          mat-list-item
          role="listitem"
          routerLinkActive>

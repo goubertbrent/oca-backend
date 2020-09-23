@@ -16,12 +16,12 @@
 # @@license_version:1.7@@
 
 import base64
+from collections import defaultdict
 import json
 import logging
+from random import choice
 import types
 import uuid
-from collections import defaultdict
-from random import choice
 
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
@@ -30,6 +30,7 @@ from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, parse_complex_value
 from mcfw.utils import chunks
+from rogerthat.bizz.communities.communities import get_communities_by_id
 from rogerthat.bizz.friends import ack_invitation_by_invitation_secret, makeFriends, ORIGIN_YSAAA, \
     REGISTRATION_ORIGIN_QR, ACCEPT_AND_CONNECT_ID, register_result_response_receiver, REGISTRATION_ORIGIN_DEFAULT, \
     REGISTRATION_ORIGIN_OAUTH, ORIGIN_USER_INVITE
@@ -76,6 +77,13 @@ from rogerthat.utils.transactions import run_in_xg_transaction, run_in_transacti
 from rogerthat.utils.translations import localize_app_translation
 
 
+@arguments(app_id=unicode)
+def get_communities_by_app_id( app_id):
+    # type: (unicode) -> List[dict]
+    app = get_app_by_id(app_id)
+    return [{'id': c.id, 'name': c.name} for c in get_communities_by_id(app.community_ids)]
+
+
 def get_device_name(hardware_model, sim_carrier_name):
     if hardware_model and sim_carrier_name:
         return u"%s (%s)" % (hardware_model, sim_carrier_name)
@@ -101,8 +109,8 @@ def get_device_names_of_my_mobiles(human_user, language, app_id, device_id):
 
 
 @returns(types.TupleType)
-@arguments(human_user=users.User, name=unicode, first_name=unicode, last_name=unicode, app_id=unicode, use_xmpp_kick_channel=bool, 
-           gcm_registration_id=unicode, language=unicode, ysaaa=bool, firebase_registration_id=unicode, 
+@arguments(human_user=users.User, name=unicode, first_name=unicode, last_name=unicode, app_id=unicode, use_xmpp_kick_channel=bool,
+           gcm_registration_id=unicode, language=unicode, ysaaa=bool, firebase_registration_id=unicode,
            hardware_model=unicode, sim_carrier_name=unicode, tos_version=(int, long, types.NoneType),
            consent_push_notifications_shown=bool, anonymous_account=unicode, community_id=(int, long))
 def register_mobile(human_user, name=None, first_name=None, last_name=None, app_id=App.APP_ID_ROGERTHAT, use_xmpp_kick_channel=True,
@@ -171,8 +179,7 @@ def register_mobile(human_user, name=None, first_name=None, last_name=None, app_
             create_owncloud_account(
                 app_user, app.owncloud_base_uri, app.owncloud_admin_username, app.owncloud_admin_password, owncloud_password)
 
-        reactivate_user_profile(
-            deactivated_user_profile, app_user, owncloud_password, tos_version, consent_push_notifications_shown, community_id=community_id)
+        reactivate_user_profile(deactivated_user_profile, app_user, owncloud_password, tos_version, consent_push_notifications_shown, community_id)
         ActivationLog(timestamp=now(), email=app_user.email(), mobile=mobile,
                       description="Reactivate user account by registering a mobile").put()
 
@@ -380,8 +387,8 @@ def send_welcome_message(user):
 
 @returns(Mobile)
 @arguments(mobile_account=unicode, mobileInfo=MobileInfoTO, invitor_code=unicode, invitor_secret=unicode,
-           ipaddress=unicode, anonymous_account=unicode)
-def finish_registration(mobile_account, mobileInfo, invitor_code, invitor_secret, ipaddress, anonymous_account=None):
+           anonymous_account=unicode)
+def finish_registration(mobile_account, mobileInfo, invitor_code, invitor_secret, anonymous_account=None):
     from rogerthat.service.api import friends as service_api_friends
     m = get_mobile_by_account(mobile_account)
     mobile_key = m.key()
@@ -423,7 +430,7 @@ def finish_registration(mobile_account, mobileInfo, invitor_code, invitor_secret
 
         put_and_invalidate_cache(mobile, ms, my_profile)
 
-        deferred.defer(_finishup_mobile_registration, mobile, invitor_code, invitor_secret, ipaddress, ms_key,
+        deferred.defer(_finishup_mobile_registration, mobile, invitor_code, invitor_secret, ms_key,
                        _transactional=True, _queue=FAST_QUEUE)
 
         return mobile, my_profile
@@ -455,17 +462,7 @@ def finish_registration(mobile_account, mobileInfo, invitor_code, invitor_secret
                 services_to_connect.add(service_identity_user)
 
             for autoconnect_service_email in registration.installation.auto_connected_services:
-                if "/" in autoconnect_service_email:
-                    autoconnect_service_identity_user = users.User(autoconnect_service_email)
-                else:
-                    autoconnect_service_identity_user = create_service_identity_user(
-                        users.User(autoconnect_service_email))
-
-                if autoconnect_service_identity_user in services_to_connect:
-                    continue
-                si = get_service_identity(autoconnect_service_identity_user)
-                if si and user_app_id in si.appIds:
-                    services_to_connect.add(autoconnect_service_identity_user)
+                services_to_connect.add(add_slash_default(users.User(autoconnect_service_email)))
 
             for service_to_connect in services_to_connect:
                 try_or_defer(makeFriends, mobile.user, service_to_connect, original_invitee=None, servicetag=None,
@@ -544,14 +541,13 @@ def migrate_anonymous_account(anonymous_account, new_app_user):
     deferred.defer(archiveUserDataAfterDisconnect, anonymous_user, anonymous_friend_map, anonymous_user_profile, False)
 
 
-def _finishup_mobile_registration_step2(mobile_key, invitor_code, invitor_secret, ipaddress, majorVersion,
-                                        minorVersion):
+def _finishup_mobile_registration_step2(mobile_key, invitor_code, invitor_secret):
     mobile = db.get(mobile_key)
     mobile_user = mobile.user
     server_settings = get_server_settings()
 
     def trans():  # Operates on 2 entity groups
-        hookup_with_default_services.schedule(mobile_user, ipaddress)
+        hookup_with_default_services.schedule(mobile_user)
         if invitor_code and invitor_secret:
             pp = ProfilePointer.get(invitor_code)
             if not pp:
@@ -579,7 +575,7 @@ def _finishup_mobile_registration_step2(mobile_key, invitor_code, invitor_secret
     db.run_in_transaction_options(xg_on, trans)
 
 
-def _finishup_mobile_registration(mobile, invitor_code, invitor_secret, ipaddress, ms_key):
+def _finishup_mobile_registration(mobile, invitor_code, invitor_secret, ms_key):
     mobile_user = mobile.user
     app_settings = get_app_settings(get_app_id_from_app_user(mobile_user))
     user_profile = get_user_profile(mobile_user)
@@ -598,9 +594,8 @@ def _finishup_mobile_registration(mobile, invitor_code, invitor_secret, ipaddres
         request.settings = SettingsTO.fromDBSettings(app_settings, user_profile, mobile_settings)
         updateSettings(update_settings_response_handler, logError, mobile_user, request=request)
 
-        deferred.defer(_finishup_mobile_registration_step2, mobile.key(), invitor_code, invitor_secret, ipaddress,
-                       mobile_settings.majorVersion, mobile_settings.minorVersion, _transactional=True,
-                       _queue=FAST_QUEUE)
+        deferred.defer(_finishup_mobile_registration_step2, mobile.key(), invitor_code, invitor_secret,
+                       _transactional=True, _queue=FAST_QUEUE)
 
     xg_on = db.create_transaction_options(xg=True)
     db.run_in_transaction_options(xg_on, trans)

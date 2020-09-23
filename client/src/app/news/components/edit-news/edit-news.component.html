@@ -143,7 +143,7 @@
         <oca-news-item-preview class="preview"
                                [avatarUrl]="brandingSettings?.avatar_url || DEFAULT_AVATAR_URL"
                                [date]="newsItem.scheduled_at || minDate"
-                               [name]="serviceInfo?.name"
+                               [name]="options?.service_name"
                                [newsItem]="newsItem" *ngIf="stepper.selectedIndex === 0">
         </oca-news-item-preview>
 
@@ -175,7 +175,7 @@
               <ng-container *ngIf="newsItem.locations">
                 <oca-news-location class="toggle-margin"
                                    name="locations"
-                                   [appId]="defaultAppId"
+                                   [communityId]="defaultCommunityId"
                                    [disabled]="published"
                                    [(ngModel)]="newsItem.locations"></oca-news-location>
               </ng-container>
@@ -201,53 +201,53 @@
                 class="toggle-margin"
                 (toggleChange)="toggleRegional()"
                 [checked]="hasRegional"
-                [disabled]="newsItem.locations || published">
+                [disabled]="newsItem.locations !== null || published">
                 {{ 'oca.broadcast-regionally' | translate }}
               </mat-slide-toggle>
-              <p class="toggle-indent" [ngClass]="{'disabled': newsItem.locations || published}">{{ 'oca.broadcast-regionally-description' | translate }}</p>
+              <p class="toggle-indent" [ngClass]="{'disabled': newsItem.locations || published}">
+                {{ 'oca.broadcast-regionally-description' | translate }}
+              </p>
 
               <ng-container *ngIf="hasRegional">
                 <div *ngIf="options?.regional.map_url as mapUrl else appSelectTemplate" class="map-container">
-                  <oca-news-app-map-picker name="app_ids"
+                  <oca-news-app-map-picker name="community_ids"
                                            (click)="openMapDialog()"
-                                           (ngModelChange)="appsChanged($event)"
-                                           [appStatistics]="appStatistics"
-                                           [apps]="apps"
-                                           [defaultAppId]="defaultAppId"
+                                           (ngModelChange)="communitiesChanged($event)"
+                                           [communityMapping]="communityMapping"
+                                           [defaultCommunityId]="defaultCommunityId"
                                            [mapUrl]="mapUrl"
-                                           [ngModel]="newsItem.app_ids"
+                                           [ngModel]="newsItem.community_ids"
                                            [readonly]="true"
                                            [showLegend]="false"></oca-news-app-map-picker>
                 </div>
                 <p>{{ 'oca.broadcast-map-explanation' | translate }}</p>
                 <ng-template #appSelectTemplate>
                   <mat-chip-list>
+                        <ng-container *ngFor="let communityId of newsItem.community_ids">
                     <mat-chip (removed)="regionalAppRemoved($event)"
-                              *ngFor="let appId of newsItem.app_ids"
-                              [removable]="appId !== defaultAppId && !published"
-                              [value]="appId">
-                      {{ appMapping[appId] ? appMapping[appId]?.name : appId }}
-                      <span *ngIf="appStatistics[appId] as stats">
-                        &nbsp;-&nbsp;{{'oca.user_count' | translate : {count: stats.total_user_count} }}
+                              [removable]="communityId !== defaultCommunityId && !published"
+                              *ngIf="communityMapping[communityId] as community"
+                              [value]="communityId">
+                      {{ community.name }}
+                      <span>
+                        &nbsp;-&nbsp;{{'oca.user_count' | translate : {count: community.total_user_count} }}
                       </span>
-                      <mat-icon *ngIf="appId !== defaultAppId && !published" matChipRemove>cancel</mat-icon>
+                      <mat-icon *ngIf="communityId !== defaultCommunityId && !published" matChipRemove>cancel</mat-icon>
                     </mat-chip>
+                              </ng-container>
                   </mat-chip-list>
                   <mat-form-field *ngIf="!published">
                     <mat-label>{{ 'oca.add_app' | translate }}</mat-label>
                     <mat-select #select (selectionChange)="addApp($event, select)">
-                      <mat-option *ngFor="let app of apps" [value]="app.id">
-                        {{app.name}}
-                        <span *ngIf="appStatistics[app.id] as stats">
-                        &nbsp;-&nbsp;{{'oca.user_count' | translate : {count: stats.total_user_count} }}
-                      </span>
+                      <mat-option *ngFor="let community of communities" [value]="community.id">
+                        {{ community.name }} - {{'oca.user_count' | translate : {count: community.total_user_count} }}
                       </mat-option>
                     </mat-select>
                   </mat-form-field>
                 </ng-template>
-                <oca-news-reach [appIds]="newsItem.app_ids"
-                                [appStatistics]="appStatistics"
-                                [defaultAppId]="defaultAppId"></oca-news-reach>
+                <oca-news-reach [communityIds]="newsItem.community_ids"
+                                [communityMapping]="communityMapping"
+                                [defaultCommunityId]="defaultCommunityId"></oca-news-reach>
                 <p class="budget-line">{{ 'oca.budget' | translate }}: <b>{{ remainingBudget }}</b>
                   <mat-icon [matTooltip]="'oca.broadcast-budget-explanation' | translate">info</mat-icon>
                 </p>
@@ -266,7 +266,7 @@
                   [disabled]="published">
                 {{ 'oca.limit_by_age_and_gender' | translate }}
               </mat-slide-toggle>
-              <div *ngIf="targetAudienceToggle.checked" class="form-group">
+              <div *ngIf="newsItem.target_audience && targetAudienceToggle.checked" class="form-group">
                 <br>
                 <div>
                   <mat-form-field style="margin-right: 16px;">
@@ -411,7 +411,7 @@
         <oca-news-item-preview class="preview"
                                [avatarUrl]="brandingSettings?.avatar_url || DEFAULT_AVATAR_URL"
                                [date]="newsItem.scheduled_at || minDate"
-                               [name]="serviceInfo?.name"
+                               [name]="options?.service_name"
                                [newsItem]="newsItem" *ngIf="stepper.selectedIndex > 0">
         </oca-news-item-preview>
 

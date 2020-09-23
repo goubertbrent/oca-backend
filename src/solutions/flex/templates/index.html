@@ -62,7 +62,6 @@ var LocalCache = {};
 var modules = {};
 var ORGANIZATION_TYPES = {{ organization_types_json }};
 var templates = {{ templates|safe }};
-var newsReviewEnabled = {% if news_review_enabled %}true{% else %}false{% endif %};
 var LOGO_LANGUAGES = [{% for lang in logo_languages %}"{{ lang }}",{% endfor %}];
 var DEBUG = {% if debug %}true{% else %}false{% endif %};
 var LANGUAGE = "{{ language }}";

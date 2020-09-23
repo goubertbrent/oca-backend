@@ -23,7 +23,6 @@ from datetime import datetime
 
 from google.appengine.api import urlfetch
 from google.appengine.ext import ndb
-from typing import Dict, Tuple, List, Generator, Iterable
 
 from rogerthat.bizz.job import run_job, MODE_BATCH
 from rogerthat.consts import DEBUG
@@ -81,9 +80,6 @@ def create_events_index():
     request = {
         'mappings': {
             'properties': {
-                'app_ids': {
-                    'type': 'keyword',
-                },
                 'community_id': {
                     'type': 'keyword',
                 },
@@ -122,10 +118,7 @@ def _index_event(event):
     if event.deleted:
         yield {'delete': {'_id': event.key.urlsafe()}}
     else:
-        # TODO: in order to make it possible to order by start date, we should create a new document for
-        # every occurrence of an event, which is not great.
         doc = {
-            'app_ids': event.app_ids,
             'community_id': event.community_id,
             'service': event.service_user.email(),
             'title': event.title,
@@ -166,7 +159,7 @@ def delete_events_from_index(keys):
         execute_bulk_request(ElasticsearchSettings.create_key().get(), operations)
 
 
-def search_events(start_date, end_date, app_id=None, service=None, search_string=None, cursor=None, amount=50):
+def search_events(start_date, end_date, community_id=0, service=None, search_string=None, cursor=None, amount=50):
     start_offset = long(cursor) if cursor else 0
 
     if (start_offset + amount) > 10000:
@@ -198,8 +191,8 @@ def search_events(start_date, end_date, app_id=None, service=None, search_string
             '_score'
         ]
     }
-    if app_id:
-        qry['query']['bool']['filter'].append({'term': {'app_ids': app_id}})
+    if community_id:
+        qry['query']['bool']['filter'].append({'term': {'community_id': community_id}})
     if service:
         qry['query']['bool']['filter'].append({'term': {'service': service}})
     if search_string:

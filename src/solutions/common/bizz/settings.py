@@ -17,7 +17,7 @@
 
 import base64
 import logging
-from urlparse import urlparse, ParseResult
+from urlparse import urlparse
 
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred, ndb
@@ -25,10 +25,11 @@ from google.appengine.ext import db, deferred, ndb
 from mcfw.consts import MISSING
 from mcfw.exceptions import HttpNotFoundException
 from mcfw.rpc import returns, arguments
+from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.service import _validate_service_identity
 from rogerthat.consts import FAST_QUEUE
 from rogerthat.dal import put_and_invalidate_cache
-from rogerthat.dal.app import get_app_by_id, get_apps_by_id
+from rogerthat.dal.app import get_apps_by_id
 from rogerthat.models import ServiceIdentity
 from rogerthat.models.maps import MapServiceMediaItem
 from rogerthat.models.news import MediaType
@@ -50,11 +51,10 @@ from solutions.common.dal import get_solution_settings, get_solution_main_brandi
 from solutions.common.exceptions.settings import InvalidRssLinksException
 from solutions.common.models import SolutionSettings, \
     SolutionBrandingSettings, SolutionRssScraperSettings, SolutionRssLink, SolutionMainBranding, \
-    SolutionIdentitySettings, SolutionServiceConsent
-from solutions.common.to import SolutionSettingsTO, SolutionRssSettingsTO
+    SolutionServiceConsent
+from solutions.common.to import SolutionSettingsTO
 from solutions.common.to.settings import ServiceInfoTO, PrivacySettingsTO, PrivacySettingsGroupTO
 from solutions.common.utils import is_default_service_identity, send_client_action
-from typing import Tuple, Optional
 
 
 SLN_LOGO_WIDTH = 640
@@ -230,6 +230,11 @@ def _validate_rss_urls(urls):
     return valid_urls, invalid_urls
 
 
+@ndb.non_transactional()
+def _get_lang(service_user):
+    return get_solution_settings(service_user).main_language
+
+
 @ndb.transactional()
 def save_rss_urls(service_user, service_identity, data):
     # type: (users.User, unicode, SolutionRssSettingsTO) -> SolutionRssScraperSettings
@@ -245,7 +250,7 @@ def save_rss_urls(service_user, service_identity, data):
                 current_dict[rss_links.url] = rss_links.dry_runned
     _, invalid_urls = _validate_rss_urls({scraper.url for scraper in data.scrapers if scraper.url not in current_dict})
     if invalid_urls:
-        raise InvalidRssLinksException(invalid_urls)
+        raise InvalidRssLinksException(invalid_urls, _get_lang(service_user))
 
     rss_settings.notify = data.notify
     scraper_urls = []
@@ -254,17 +259,10 @@ def save_rss_urls(service_user, service_identity, data):
         if scraper.url in scraper_urls:
             continue
         scraper_urls.append(scraper.url)
-        app_ids = [app_id for app_id in scraper.app_ids if app_id]
-        app_models = get_apps_by_id(app_ids)
-        community_ids = set()
-        for app_model in app_models:
-            for community_id in app_model.community_ids:
-                community_ids.add(community_id)
         rss_links.append(SolutionRssLink(url=scraper.url,
                                          dry_runned=current_dict.get(scraper.url, False),
                                          group_type=scraper.group_type if scraper.group_type else None,
-                                         app_ids=app_ids,
-                                         community_ids=list(community_ids)))
+                                         community_ids=scraper.community_ids))
     rss_settings.rss_links = [rss_link for rss_link in reversed(rss_links)]
     rss_settings.put()
     return rss_settings
@@ -405,13 +403,13 @@ def get_cirklo_privacy_groups(lang):
     return groups
 
 
-def get_consents_for_app(app_id, lang, user_consent_types):
+def get_consents_for_community(community_id, lang, user_consent_types):
     from markdown import Markdown
     from solutions.common.markdown_newtab import NewTabExtension
-    app = get_app_by_id(app_id)
-    if not app:
-        raise HttpNotFoundException('app_not_found', {'app_id': app_id})
-    service_user = users.User(app.main_service)
+    community = get_community(community_id)
+    if not community:
+        raise HttpNotFoundException('Community %s not found' % community_id)
+    service_user = users.User(community.main_service)
     city_service_settings = get_solution_settings(service_user)
     groups = [
         PrivacySettingsGroupTO(

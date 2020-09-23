@@ -1,12 +1,14 @@
 <div class="stats-container" #container>
   <oca-loadable [loadable]="statistics">
-    <ng-container *ngIf="statistics.data?.results.length > 0">
+    <ng-container *ngIf="(statistics.data?.results.length || 0) > 0">
       <mat-card>
         <mat-card-title>{{ 'oca.top_merchants' | translate }}</mat-card-title>
         <mat-card-content>
           <google-chart class="merchants-chart"
-                        *ngIf="chart" [type]="chart.type" [data]="chart.data"
-                        [columnNames]="chart.columns"
+                        *ngIf="chart"
+                        [type]="chart.type"
+                        [data]="chart.data"
+                        [columns]="chart.columns"
                         [options]="chart.options"></google-chart>
         </mat-card-content>
       </mat-card>

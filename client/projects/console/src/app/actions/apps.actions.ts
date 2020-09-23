@@ -20,15 +20,12 @@ import {
   DefaultBranding,
   EditAppAssetPayload,
   GenerateImagesPayload,
-  NewsGroup,
-  NewsSettings,
   PatchAppCompletePayload,
   PatchAppPayload,
   QrCodeTemplate,
   RogerthatApp,
   SaveChangesPayload,
   UpdateAppImagePayload,
-  UpdateNewsImagePayload,
 } from '../interfaces';
 
 export const enum AppsActionTypes {
@@ -173,12 +170,6 @@ export const enum AppsActionTypes {
   BULK_UPDATE_APPS_COMPLETE = '[RCC:apps] Bulk update apps complete',
   BULK_UPDATE_APPS_FAILED = '[RCC:apps] Bulk update apps failed',
   CLEAR_BULK_UPDATE = '[RCC:apps] Clear bulk update',
-  GET_NEWS_SETTINGS = '[RCC:apps] Get news settings',
-  GET_NEWS_SETTINGS_COMPLETE = '[RCC:apps] Get news settings complete',
-  GET_NEWS_SETTINGS_FAILED = '[RCC:apps] Get news settings failed',
-  UPDATE_NEWS_GROUP_IMAGE = '[RCC:apps] Update news group image',
-  UPDATE_NEWS_GROUP_IMAGE_COMPLETE = '[RCC:apps] Update news group image complete',
-  UPDATE_NEWS_GROUP_IMAGE_FAILED = '[RCC:apps] Update news group image failed',
 }
 
 export class SearchAppsAction implements Action {
@@ -575,7 +566,7 @@ export class CreateAppAssetFailedAction implements Action {
 export class RemoveAppAssetAction implements Action {
   readonly type = AppsActionTypes.REMOVE_APP_ASSET;
 
-  constructor(public payload: { appId: string, data:AppAsset }) {
+  constructor(public payload: { appId: string, data: AppAsset }) {
   }
 }
 
@@ -1120,45 +1111,6 @@ export class ClearBulkUpdateAction {
   readonly type = AppsActionTypes.CLEAR_BULK_UPDATE;
 }
 
-export class GetNewsSettingsAction implements Action {
-  readonly type = AppsActionTypes.GET_NEWS_SETTINGS;
-}
-
-export class GetNewsSettingsCompleteAction implements Action {
-  readonly type = AppsActionTypes.GET_NEWS_SETTINGS_COMPLETE;
-
-  constructor(public payload: NewsSettings) {
-  }
-}
-
-export class GetNewsSettingsFailedAction implements Action {
-  readonly type = AppsActionTypes.GET_NEWS_SETTINGS_FAILED;
-
-  constructor(public payload: ApiRequestStatus) {
-  }
-}
-
-export class UpdateNewsGroupImageAction implements Action {
-  readonly type = AppsActionTypes.UPDATE_NEWS_GROUP_IMAGE;
-
-  constructor(public groupId: string, public payload: UpdateNewsImagePayload) {
-  }
-}
-
-export class UpdateNewsGroupImageCompleteAction implements Action {
-  readonly type = AppsActionTypes.UPDATE_NEWS_GROUP_IMAGE_COMPLETE;
-
-  constructor(public payload: NewsGroup) {
-  }
-}
-
-export class UpdateNewsGroupImageFailedAction implements Action {
-  readonly type = AppsActionTypes.UPDATE_NEWS_GROUP_IMAGE_FAILED;
-
-  constructor(public payload: ApiRequestStatus) {
-  }
-}
-
 export type AppsActions
   = SearchAppsAction
   | SearchAppsInitAction
@@ -1297,8 +1249,4 @@ export type AppsActions
   | BulkUpdateAppsAction
   | BulkUpdateAppsCompleteAction
   | BulkUpdateAppsFailedAction
-  | ClearBulkUpdateAction
-  | GetNewsSettingsAction
-  | GetNewsSettingsCompleteAction
-  | GetNewsSettingsFailedAction
-  | UpdateNewsGroupImageAction;
+  | ClearBulkUpdateAction;

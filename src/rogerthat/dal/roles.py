@@ -17,6 +17,8 @@
 
 from types import NoneType
 
+from typing import List
+
 from mcfw.rpc import arguments, returns
 from rogerthat.dal import parent_key
 from rogerthat.dal.profile import get_user_profile
@@ -31,6 +33,7 @@ from rogerthat.utils.service import get_service_identity_tuple
 @returns([ServiceIdentity])
 @arguments(user=users.User, app_id=unicode, organization_type=int, cached=bool)
 def get_service_identities_via_user_roles(user, app_id=None, organization_type=ServiceProfile.ORGANIZATION_TYPE_UNSPECIFIED, cached=True):
+    # type: (users.User, unicode, int, bool) -> List[ServiceIdentity]
     """
     Returns a list of service identities for which the user has an administration role
     """
@@ -39,6 +42,7 @@ def get_service_identities_via_user_roles(user, app_id=None, organization_type=S
     service_identity_users = (users.User(si_email) for si_email, roles in user_profile.grants.iteritems()
                               if [role for role in roles if role in ROLES])
     return get_service_identities_by_service_identity_users(service_identity_users, app_id, organization_type)
+
 
 @returns([GrantTO])
 @arguments(service_user=users.User, filtered_service_identity=unicode, filtered_role_id=(NoneType, int, long),

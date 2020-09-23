@@ -44,6 +44,8 @@ def start_job():
     return get_server_settings().baseUrl + redirect_url
 
 
+# TODO communities: check if this needs to be changed.
+# If not, change service_identity.app_id to get_community(service_profile.community_id).default_app
 def mapper(service_identity):
     # type: (ServiceIdentity) -> GeneratorType
     service_profile = get_service_profile(service_identity.service_user)

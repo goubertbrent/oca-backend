@@ -6,22 +6,10 @@ import { Action, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable, of } from 'rxjs';
 import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '../simple-dialog';
-import { ApiError, ErrorAction } from './error';
+import { ApiError, ErrorAction, ErrorActionCreator, ErrorActionCreatorOrErrorAction } from './error';
 import { ErrorHandlingModule } from './error-handling.module';
+import { ERROR_HANDLING_TRANSLATIONS, ErrorServiceTranslations } from './providers';
 
-/**
- * Translation keys used by this service. Must be provided via injection token.
- */
-export interface ErrorServiceTranslations {
-  error: string;
-  knownErrorKey: string;
-  unknownError: string;
-  retry: string;
-  close: string;
-}
-
-/** Injection token that can be used to specify translation keys used by this service. */
-export const ERROR_HANDLING_TRANSLATIONS = new InjectionToken<ErrorServiceTranslations>('error-handling-translations');
 
 @Injectable({ providedIn: ErrorHandlingModule })
 export class ErrorService {
@@ -63,19 +51,23 @@ export class ErrorService {
     return this.translate.instant(this.translationKeys.unknownError);
   }
 
-  toAction(action: new(error: string) => ErrorAction, error: any): Observable<ErrorAction> {
+  toAction<T extends string>(action: ErrorActionCreatorOrErrorAction<T>, error: any): Observable<ErrorAction> {
     const message = this.getMessage(error);
-    return of(new action(message));
+    if (isActionCreator(action)) {
+      return of(action({ error: message }));
+    } else {
+      return of(new action(message));
+    }
   }
 
   /**
    * Shows a snackbar or dialog with a 'retry' button to retry the failed action
    * Defaults to showing a snackbar with a duration of 10 seconds.
    */
-  handleError<T>(originalAction: Action,
-                 failAction: new(error: string) => ErrorAction,
-                 error: any,
-                 options?: { duration?: number; format?: 'dialog' | 'toast', canRetry?: boolean }): Observable<Action> {
+  handleError<T extends string>(originalAction: Action,
+                                failAction: ErrorActionCreatorOrErrorAction<T>,
+                                error: any,
+                                options?: { duration?: number; format?: 'dialog' | 'toast', canRetry?: boolean }): Observable<Action> {
     const format = options?.format ?? 'toast';
     const retry = options?.canRetry ?? true;
     const clickAction: { action: Action, text: string } | undefined = retry ? {
@@ -115,4 +107,8 @@ export class ErrorService {
     }
     return dialog;
   }
+}
+
+function isActionCreator<T extends string>(obj: ErrorActionCreatorOrErrorAction<T>): obj is ErrorActionCreator<T> {
+  return 'type' in obj;
 }

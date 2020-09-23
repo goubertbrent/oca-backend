@@ -40,13 +40,14 @@ from lxml import etree, html
 import solutions
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
+from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.friends import ACCEPT_AND_CONNECT_ID
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.rtemail import generate_user_specific_link, EMAIL_REGEX
 from rogerthat.bizz.service import get_and_validate_service_identity_user, FriendNotFoundException
 from rogerthat.dal import put_and_invalidate_cache, parent_key_unsafe
 from rogerthat.dal.app import get_app_by_id
-from rogerthat.dal.profile import get_profile_infos, get_user_profile
+from rogerthat.dal.profile import get_profile_infos, get_user_profile, get_service_profile
 from rogerthat.models import Message, App
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
@@ -1505,21 +1506,17 @@ def send_styled_inbox_forwarders_email_lottery_not_configured(service_user, serv
     service_email = sln_settings.login.email() if sln_settings.login else service_user.email()
 
     settings = get_server_settings()
+    service_profile = get_service_profile(service_user)
+    community = get_community(service_profile.community_id)
 
-    users.set_user(service_user)
-    try:
-        si = system.get_identity(service_identity)
-    finally:
-        users.clear_user()
-
-    app = get_app_by_id(si.app_ids[0])
+    app = get_app_by_id(community.default_app)
 
     subject = common_translate(sln_settings.main_language, 'loyalty-lottery-configure-email-subject')
 
     mimeRoot = MIMEMultipart('related')
     mimeRoot['Subject'] = subject
     mimeRoot['From'] = settings.senderEmail if app.type == App.APP_TYPE_ROGERTHAT else (
-        "%s <%s>" % (app.name, app.dashboard_email_address))
+        "%s <%s>" % (community.name, app.dashboard_email_address))
     mimeRoot['To'] = ', '.join(sln_i_settings.inbox_mail_forwarders)
 
     mime = MIMEMultipart('alternative')
@@ -1531,7 +1528,7 @@ def send_styled_inbox_forwarders_email_lottery_not_configured(service_user, serv
                  ' background: #3abb9e; padding: 8px 16px 8px 16px; text-decoration: none;'
     if_email_footer_1 = common_translate(sln_settings.main_language, 'if-email-footer-1',
                                          service_name=sln_settings.name,
-                                         app_name=app.name)
+                                         app_name=community.name)
     if_email_footer_2 = common_translate(sln_settings.main_language, 'if-email-footer-2')
     if_email_footer_3 = common_translate(sln_settings.main_language, 'if-email-footer-3')
     if_email_footer_4 = common_translate(sln_settings.main_language, 'if-email-footer-4')

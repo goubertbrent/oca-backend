@@ -22,34 +22,24 @@ from types import NoneType
 
 from google.appengine.ext import db
 
-from mcfw.consts import MISSING
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz import app as bizz_app
-from rogerthat.bizz.app import get_app_statistics
-from rogerthat.bizz.look_and_feel import put_app_look_and_feel, delete_app_look_and_feel, list_app_look_and_feel, \
-    test_app_look_and_feel
-from rogerthat.bizz.service import validate_app_admin, get_and_validate_service_identity_user, InvalidValueException, \
-    get_and_validate_app_id_for_service_identity_user
+from rogerthat.bizz.communities.communities import get_community
+from rogerthat.bizz.service import validate_app_admin, get_and_validate_app_id_for_service_identity_user
 from rogerthat.dal.app import get_app_translations
 from rogerthat.dal.friend import get_friends_map_key_by_user
-from rogerthat.dal.profile import get_user_profiles_by_app_id
+from rogerthat.dal.profile import get_user_profiles_by_app_id, get_service_profile
 from rogerthat.dal.registration import list_installations_by_app, get_installation_logs_by_installation, \
     get_mobiles_and_profiles_for_installations
 from rogerthat.dal.service import get_default_service_identity
-from rogerthat.exceptions.look_and_feel import LookAndFeelNotFoundException, StyleNotFoundInNavigationItemsException
-from rogerthat.models import ServiceIdentity, Installation, ServiceProfile
-from rogerthat.models.apps import AppLookAndFeel
-from rogerthat.models.properties.app import AutoConnectedService
+from rogerthat.models import Installation, ServiceProfile
 from rogerthat.rpc import users
 from rogerthat.rpc.models import ServiceAPICallback
 from rogerthat.rpc.rpc import mapping
 from rogerthat.rpc.service import service_api, service_api_callback
 from rogerthat.to.app import AppInfoTO, AppUserListResultTO, AppUserTO, AppSettingsTO, PutLoyaltyUserResultTO, \
-    AppLookAndFeelTO, NavigationItemTO, HomeScreenSettingsTO, AppTranslationTO
+    AppTranslationTO
 from rogerthat.to.installation import InstallationListTO, InstallationLogTO, InstallationTO
-from rogerthat.to.messaging import BaseMemberTO
-from rogerthat.to.statistics import AppServiceStatisticsTO
-from rogerthat.utils import colorscale
 from rogerthat.utils.app import create_app_user, get_app_user_tuple
 from rogerthat.utils.crypto import decrypt, encrypt
 from rogerthat.utils.service import add_slash_default
@@ -81,24 +71,6 @@ def del_user_regexes(app_id, regexes):
     service_user = users.get_current_user()
     validate_app_admin(service_user, [app_id])
     bizz_app.del_user_regexes(service_user, app_id, regexes)
-
-
-@service_api(function=u'app.add_auto_connected_services')
-@returns(NoneType)
-@arguments(app_id=unicode, services=[AutoConnectedService], auto_connect_now=bool)
-def add_auto_connected_services(app_id, services, auto_connect_now=True):
-    service_user = users.get_current_user()
-    validate_app_admin(service_user, [app_id])
-    bizz_app.add_auto_connected_services(app_id, services, auto_connect_now)
-
-
-@service_api(function=u'app.delete_auto_connected_service')
-@returns(NoneType)
-@arguments(app_id=unicode, service_identity_email=unicode)
-def delete_auto_connected_service(app_id, service_identity_email):
-    service_user = users.get_current_user()
-    validate_app_admin(service_user, [app_id])
-    bizz_app.delete_auto_connected_service(service_user, app_id, service_identity_email)
 
 
 @service_api(function=u'app.put_profile_data')
@@ -192,7 +164,7 @@ def get_settings(app_id=None):
     """
     service_user = users.get_current_user()
     if not app_id:
-        app_id = get_default_service_identity(service_user).app_id
+        app_id = get_community(get_service_profile(service_user).community_id).default_app
 
     validate_app_admin(service_user, [app_id])
     return AppSettingsTO.from_model(bizz_app.get_app_settings(app_id))
@@ -211,7 +183,7 @@ def put_settings(settings, app_id=None):
     """
     service_user = users.get_current_user()
     if not app_id:
-        app_id = get_default_service_identity(service_user).app_id
+        app_id = get_community(get_service_profile(service_user).community_id).default_app
 
     validate_app_admin(service_user, [app_id])
     return AppSettingsTO.from_model(bizz_app.put_settings(app_id, settings))
@@ -228,152 +200,6 @@ def put_loyalty_user(url, email):
     human_user, result.app_id = get_app_user_tuple(app_user)
     result.email = human_user.email()
     return result
-
-
-@service_api(function=u'app.get_statistics')
-@returns([AppServiceStatisticsTO])
-@arguments(app_ids=[unicode], service_identity=unicode)
-def get_statistics(app_ids, service_identity=None):
-    service_user = users.get_current_user()
-    get_and_validate_service_identity_user(service_user, service_identity)
-    return get_app_statistics(app_ids)
-
-
-@service_api(function=u'app.list_look_and_feel')
-@returns([AppLookAndFeelTO])
-@arguments(app_id=unicode)
-def list_look_and_feel(app_id):
-    service_user = users.get_current_user()
-    validate_app_admin(service_user, [app_id])
-    return [AppLookAndFeelTO.from_model(model) for model in list_app_look_and_feel(app_id)]
-
-
-@returns()
-@arguments(parent_name=unicode, ni=NavigationItemTO)
-def _complete_and_validate_navigation_item(parent_name, ni):
-    if ni.action_type is MISSING:
-        ni.action_type = None
-    if ni.action is MISSING:
-        raise InvalidValueException(u"%s.items.action" % parent_name, u"Action is a required field")
-    if ni.icon is MISSING:
-        raise InvalidValueException(u"%s.items.icon" % parent_name, u"Icon is a required field")
-    if ni.icon_color is MISSING:
-        ni.icon_color = None
-    if ni.text is MISSING:
-        raise InvalidValueException(u"%s.items.text" % parent_name, u"Text is a required field")
-    if ni.collapse is MISSING:
-        ni.collapse = False
-    if ni.service_email is MISSING:
-        ni.service_email = None
-    if ni.params is MISSING:
-        ni.params = None if not ni.collapse else json.dumps({'collapse': True}).decode('utf-8')
-
-
-@returns()
-@arguments(look_and_feel=AppLookAndFeelTO)
-def _complete_and_validate_look_and_feel(look_and_feel):
-    if look_and_feel.id is MISSING:
-        look_and_feel.id = None
-    if look_and_feel.app_id is MISSING:
-        raise InvalidValueException(u"app_id", u"App id is a required field")
-
-    if look_and_feel.roles is MISSING:
-        look_and_feel.roles = []
-    for r in look_and_feel.roles:
-        if r.role_ids is MISSING:
-            raise InvalidValueException(u"roles.role_ids", u"Role ids is a required field")
-        if r.service_email is MISSING:
-            raise InvalidValueException(u"roles.service_email", u"Service email is a required field")
-        if r.service_identity is MISSING:
-            r.service_identity = ServiceIdentity.DEFAULT
-
-    look_and_feel.colors.secondary_color = None
-    if look_and_feel.colors.primary_color is MISSING:
-        raise InvalidValueException(u"colors.primary_color", u"Primary color is a required field")
-    if look_and_feel.colors.primary_color_dark is MISSING:
-        look_and_feel.colors.primary_color_dark = colorscale(look_and_feel.colors.primary_color, 0.6)
-    if look_and_feel.colors.primary_icon_color is MISSING:
-        raise InvalidValueException(u"colors.primary_icon_color", u"Primary icon color is a required field")
-    if look_and_feel.colors.tint_color is MISSING:
-        raise InvalidValueException(u"colors.tint_color", u"Tint color is a required field")
-
-    if look_and_feel.homescreen.color is MISSING:
-        raise InvalidValueException(u"homescreen.color", u"Color is a required field")
-    if look_and_feel.homescreen.style is MISSING:
-        raise InvalidValueException(u"homescreen.style", u"Style is a required field")
-    if look_and_feel.homescreen.style not in [HomeScreenSettingsTO.STYLE_NEWS, HomeScreenSettingsTO.STYLE_MESSAGES]:
-        raise InvalidValueException(u"homescreen.style", u"Style should be 'news' or 'messages'")
-    if look_and_feel.homescreen.header_image_url is MISSING:
-        look_and_feel.homescreen.header_image_url = None
-
-    activity_names = set()
-    if look_and_feel.homescreen.items is MISSING:
-        look_and_feel.homescreen.items = []
-    if not look_and_feel.homescreen.items:
-        raise InvalidValueException(u"homescreen.items", u"Items cannot be empty")
-
-    for ni in look_and_feel.homescreen.items:
-        _complete_and_validate_navigation_item(u"homescreen", ni)
-        if ni.action_type is None:
-            activity_names.add(ni.action)
-
-    if look_and_feel.toolbar.items is MISSING:
-        look_and_feel.toolbar.items = []
-    if len(look_and_feel.toolbar.items) != 4:
-        look_and_feel.toolbar.items = look_and_feel.toolbar.items[:4]
-    for ni in look_and_feel.toolbar.items:
-        _complete_and_validate_navigation_item(u"toolbar", ni)
-        if ni.action_type is None:
-            activity_names.add(ni.action)
-
-    if look_and_feel.homescreen.style not in activity_names:
-        raise StyleNotFoundInNavigationItemsException(look_and_feel.homescreen.style)
-
-
-@service_api(function=u'app.put_look_and_feel')
-@returns(AppLookAndFeelTO)
-@arguments(look_and_feel=AppLookAndFeelTO)
-def put_look_and_feel(look_and_feel):
-    service_user = users.get_current_user()
-    validate_app_admin(service_user, [look_and_feel.app_id])
-
-    _complete_and_validate_look_and_feel(look_and_feel)
-    if not look_and_feel.roles:
-        raise InvalidValueException(u"roles", u"Roles is a required field")
-    look_and_feel_model = put_app_look_and_feel(look_and_feel)
-    return AppLookAndFeelTO.from_model(look_and_feel_model)
-
-
-@service_api(function=u'app.test_look_and_feel')
-@returns()
-@arguments(look_and_feel=AppLookAndFeelTO, members=[BaseMemberTO])
-def test_look_and_feel(look_and_feel, members):
-    service_user = users.get_current_user()
-
-    app_ids = set()
-    app_ids.add(look_and_feel.app_id)
-    for m in members:
-        app_ids.add(m.app_id)
-    validate_app_admin(service_user, list(app_ids))
-
-    if look_and_feel:
-        _complete_and_validate_look_and_feel(look_and_feel)
-    test_app_look_and_feel(look_and_feel, members)
-
-
-@service_api(function=u'app.delete_look_and_feel')
-@returns()
-@arguments(look_and_feel_id=(int, long))
-def delete_look_and_feel(look_and_feel_id):
-    service_user = users.get_current_user()
-
-    look_and_feel = AppLookAndFeel.get_by_id(look_and_feel_id)
-    if not look_and_feel:
-        raise LookAndFeelNotFoundException(look_and_feel_id)
-
-    validate_app_admin(service_user, [look_and_feel.app_id])
-
-    delete_app_look_and_feel(look_and_feel_id)
 
 
 @service_api(function=u'app.get_translations')

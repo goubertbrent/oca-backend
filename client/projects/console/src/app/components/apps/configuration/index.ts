@@ -7,7 +7,3 @@ export * from './build-settings.component';
 export * from './build-settings-form.component';
 export * from './shared-configuration.component';
 export * from './basic-configuration-form.component';
-export * from './news-settings.component';
-export * from './news-settings-form.component';
-export * from './news-group.component';
-export * from './news-group-form.component';

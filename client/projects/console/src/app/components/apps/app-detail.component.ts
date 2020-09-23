@@ -5,16 +5,14 @@ import { TranslateService } from '@ngx-translate/core';
 import { Observable, Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { DialogService, PromptDialogResult } from '../../../../framework/client/dialog';
-import { SecondarySidebarItem, SidebarTitle } from '../../../../framework/client/nav/sidebar/interfaces';
-import { AddToolbarItemAction, RemoveToolbarItemAction } from '../../../../framework/client/nav/toolbar/actions';
-import { ToolbarItem, ToolbarItemTypes } from '../../../../framework/client/nav/toolbar/interfaces';
-import { filterNull } from '../../ngrx';
+import { SecondarySidebarItem, SidebarTitle } from '../../../../framework/client/nav/sidebar';
+import { AddToolbarItemAction, RemoveToolbarItemAction, ToolbarItem, ToolbarItemTypes } from '../../../../framework/client/nav/toolbar';
 import { ApiError, ApiRequestStatus } from '../../../../framework/client/rpc';
 import * as actions from '../../actions';
 import * as states from '../../console.state';
 import { getApp, getRevertChangesStatus, getSaveChangesStatus } from '../../console.state';
 import { App, GitStatus } from '../../interfaces';
-import { ConsoleState } from '../../reducers';
+import { filterNull } from '../../ngrx';
 import { ConsoleConfig } from '../../services';
 
 @Component({

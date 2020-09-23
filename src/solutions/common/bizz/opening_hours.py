@@ -17,19 +17,15 @@
 
 from __future__ import unicode_literals
 
-from datetime import datetime
 
 from babel.dates import format_date, get_day_names, format_time
-from typing import List
 
 from mcfw.exceptions import HttpBadRequestException
 from rogerthat.bizz.opening_hours import is_always_open, is_always_closed
 from rogerthat.models import OpeningHours, OpeningPeriod, OpeningHourException
-from rogerthat.rpc import users
 from solutions import translate
 from solutions.common.bizz import broadcast_updates_pending
 from solutions.common.dal import get_solution_settings
-from solutions.common.to.opening_hours import OpeningHoursTO
 
 
 DAY_MAPPING = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']

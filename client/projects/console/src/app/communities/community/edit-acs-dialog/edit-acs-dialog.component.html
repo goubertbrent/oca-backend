@@ -1,0 +1,28 @@
+<h2 matDialogTitle>{{ (isNew ? 'rcc.add_auto_connected_service' : 'rcc.edit_auto_connected_service') | translate }}</h2>
+<form (ngSubmit)="submit()" [formGroup]="serviceFormGroup">
+  <mat-dialog-content>
+    <mat-form-field>
+      <mat-label>{{ 'rcc.service_identity_email' | translate }}</mat-label>
+      <input formControlName="service_email"
+             matInput
+             required
+             type="email">
+      <mat-error *ngIf="serviceFormGroup.controls.service_email.errors?.required">
+        {{ 'rcc.email_is_required' | translate }}
+      </mat-error>
+    </mat-form-field>
+    <div>
+      <mat-slide-toggle formControlName="removable">
+        {{ 'rcc.removable' | translate }}
+      </mat-slide-toggle>
+    </div>
+  </mat-dialog-content>
+  <mat-dialog-actions>
+    <button type="button" mat-raised-button (click)="cancel()">
+      {{ 'rcc.cancel' | translate }}
+    </button>
+    <button [disabled]="serviceFormGroup.invalid" color="primary" mat-raised-button>
+      {{ 'rcc.save' | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>
