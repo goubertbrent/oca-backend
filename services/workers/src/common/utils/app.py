@@ -20,6 +20,7 @@ from google.appengine.api import users
 from common.mcfw.properties import azzert
 from common.mcfw.rpc import returns, arguments
 
+
 APP_ID_ROGERTHAT = u"rogerthat"
 
 
@@ -48,8 +49,7 @@ def get_app_user_tuple_by_email(app_user_email):
     if ':' in app_user_email:
         human_user_email, app_id = app_user_email.split(':')
     else:
-        from rogerthat.dal import app
-        human_user_email, app_id = app_user_email, app.get_default_app().app_id
+        human_user_email, app_id = app_user_email, APP_ID_ROGERTHAT
     return users.User(human_user_email), app_id
 
 

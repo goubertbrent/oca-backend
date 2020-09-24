@@ -18,12 +18,12 @@
 import sys
 
 from google.appengine.ext import db, ndb
-import yaml
 
 from common.mcfw.consts import MISSING
 from common.mcfw.properties import azzert
 from common.mcfw.rpc import returns, arguments
-from common.utils import bizz_check
+from common.utils import bizz_check, BusinessException
+import yaml
 
 
 try:
@@ -166,7 +166,6 @@ def populate_model_by_yaml(model, stream):
     bizz_check(d, "Empty yaml")
     missing_properties = [propname for propname in model.properties() if propname not in d]
     if missing_properties:
-        from rogerthat.rpc.service import BusinessException
         raise BusinessException("Missing properties: %s" % ", ".join(missing_properties))
 
     for propname, propobject in model.properties().iteritems():

@@ -15,22 +15,23 @@
 #
 # @@license_version:1.7@@
 
+from collections import defaultdict
 import httplib
 import inspect
 import json
 import logging
 import threading
-from collections import defaultdict
 from types import NoneType
 
 import webapp2
 
-from mcfw.consts import AUTHENTICATED, NOT_AUTHENTICATED, REST_TYPE_NORMAL, REST_TYPE_TO
-from mcfw.exceptions import HttpException, HttpBadRequestException, HttpInternalServerErrorException, \
+from common.mcfw.consts import AUTHENTICATED, NOT_AUTHENTICATED, REST_TYPE_NORMAL, REST_TYPE_TO
+from common.mcfw.exceptions import HttpException, HttpBadRequestException, HttpInternalServerErrorException, \
     HttpForbiddenException
-from mcfw.rpc import run, parse_parameters, serialize_complex_value, ErrorResponse, parse_complex_value, \
+from common.mcfw.rpc import run, parse_parameters, serialize_complex_value, ErrorResponse, parse_complex_value, \
     MissingArgumentException
-from rogerthat.consts import DEBUG
+from common.setup_functions import DEBUG
+
 
 _rest_handlers = defaultdict(dict)
 _precall_hooks = []
