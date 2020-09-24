@@ -22,7 +22,7 @@ from google.appengine.ext import ndb
 from mcfw.utils import Enum
 from rogerthat.models.common import NdbModel
 from rogerthat.rpc import users
-from rogerthat.utils.service import create_service_identity_user
+from rogerthat.utils.service import add_slash_default
 
 
 class CommunityAutoConnectedService(NdbModel):
@@ -31,7 +31,7 @@ class CommunityAutoConnectedService(NdbModel):
     
     @property
     def service_identity_email(self):
-        return create_service_identity_user(self.service_email).email()
+        return add_slash_default(users.User(self.service_email)).email()
 
 
 class AppFeatures(Enum):

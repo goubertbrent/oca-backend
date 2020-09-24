@@ -313,6 +313,8 @@ def setup_notification_settings_for_user(app_user, service_identity_user):
     notification filter is set to NewsNotificationFilter.SPECIFIED
     """
     news_settings = NewsSettingsUser.create_key(app_user).get()  # type: NewsSettingsUser
+    if not news_settings:
+        return
     user_profile = get_user_profile(app_user)
     groups_dict = get_groups_for_community(user_profile.community_id)
     to_put = []
