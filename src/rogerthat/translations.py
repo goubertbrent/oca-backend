@@ -87,8 +87,8 @@ D["en"] = {
 """reports_around_you""": u"""Reports around you""",
 """no_reports_at_location""": u"""#### No reports.\n\nThere are no reports at this location. Zoom out on the the map to see more.""",
 
-"""services_around_you""": u"""Services around you""",
-"""no_services_at_location""": u"""#### No services.\n\nThere are no services at this location. Zoom out on the the map to see more.""",
+"""services_around_you""": u"""Near you""",
+"""no_services_at_location""": u"""#### Nothing to see near you.\n\nNothing was found at this location. Zoom out on the the map to see more.""",
 
 """open""": u"""Open""",
 """closed""": u"""Closed""",
@@ -1800,8 +1800,8 @@ D["nl"] = {
 """reports_around_you""": u"""Meldingen rondom u""",
 """no_reports_at_location""": u"""#### Geen meldingen.\n\nEr zijn geen meldingen op deze locatie. Zoom uit op de map om meer te kunnen zien.""",
 
-"""services_around_you""": u"""Diensten rondom u""",
-"""no_services_at_location""": u"""#### Geen diensten.\n\nEr zijn geen diensten op deze locatie. Zoom uit op de map om meer te kunnen zien.""",
+"""services_around_you""": u"""In je buurt""",
+"""no_services_at_location""": u"""#### Niets in je buurt te zien.\n\nEr is niets gevonden op deze locatie. Zoom uit op de kaart om meer te kunnen zien.""",
 
 """open""": u"""Open""",
 """closed""": u"""Gesloten""",
