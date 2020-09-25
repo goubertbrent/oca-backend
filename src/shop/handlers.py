@@ -79,6 +79,7 @@ from solutions.common.restapi.services import do_create_service
 from solutions.common.to.settings import PrivacySettingsGroupTO
 from markdown import Markdown
 from solutions.common.markdown_newtab import NewTabExtension
+from rogerthat.translations import DEFAULT_LANGUAGE
 
 try:
     from cStringIO import StringIO
@@ -390,6 +391,8 @@ class CustomerSignupHandler(PublicPageHandler):
 
     def get(self):
         language = (self.request.get('language') or self.language).split('_')[0]
+        if language not in LEGAL_LANGUAGES:
+            language = DEFAULT_LANGUAGE
         solution_server_settings = get_solution_server_settings()
         version = get_current_document_version(DOC_TERMS_SERVICE)
         legal_language = get_legal_language(language)
