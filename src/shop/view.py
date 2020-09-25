@@ -1758,10 +1758,9 @@ def check_only_one_city_service(customer_id, service):
         community = get_community(service.community_id)
         customer = Customer.get_by_id(customer_id)  # type: Customer
         customers = Customer.list_enabled_by_organization_type_in_community(service.community_id, OrganizationType.CITY) \
-            .fetch(None)  # type: List[Customer]
+            .fetch(None)  # type: List[Customer]]
         settings = {s.service_user.email(): s for s in
-                    db.get([SolutionSettings.create_key(customer.service_user) for customer in customers
-                            if customer.service_email])}
+                    db.get([SolutionSettings.create_key(c.service_user) for c in customers if c.service_email])}
         for other_customer in customers:  # type: Customer
             sln_settings = settings.get(other_customer.service_email)
             if sln_settings and other_customer.service_email != customer.service_email \
