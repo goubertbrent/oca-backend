@@ -21,7 +21,7 @@
     		{% for stream in streams %}
     		<tr>
 	    		<td>
-	    			<p>{{ stream.id }}</p>
+	    			<p>{{ stream.id }}<br/> {{ stream.name }}</p>
 	    		</td>
 	    		<td>
 	    			<p>Stream type: {{ stream.stream_type }}</p>
@@ -39,11 +39,7 @@
 		    				{% if s.sni == 999 %}
 		    					<p>SKIPPED: {{ s.c }}</p>
 		    				{% else %}
-		    					{% if s.sni < 11 %}
-		    						<p><a href="/mobiadmin/google/news/services/setup?community_id={{ stream.id }}&sni={{ s.sni }}" role="button" class="btn btn-primary">Next group {{ s.sni }} ({{ s.c }})</a></p>
-		    					{% else %}
-		    						<p><a href="/mobiadmin/google/news/services/setup?community_id={{ stream.id }}&sni={{ s.sni }}" role="button" class="btn btn-primary">Next mapping {{ s.sni }} ({{ s.c }})</a></p>
-		    					{% endif %}
+		    					<p><a href="/mobiadmin/google/news/services/setup?community_id={{ stream.id }}&sni={{ s.sni }}" role="button" class="btn btn-primary">Next group {{ s.sni }} ({{ s.c }})</a></p>
 		    				{% endif %}
 		    			{% endif %}
 	    			{% endfor %}

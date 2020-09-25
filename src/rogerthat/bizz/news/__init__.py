@@ -128,7 +128,7 @@ def create_default_news_settings(service_user, organization_type, community_id):
         if nss.groups:
             nss.setup_needed_id = 0
         else:
-            nss.setup_needed_id = random.randint(2, 10)
+            nss.setup_needed_id = 2
     nss.put()
 
     if news_stream and not news_stream.services_need_setup and nss.setup_needed_id != 0:

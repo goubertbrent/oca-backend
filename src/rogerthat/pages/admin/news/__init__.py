@@ -18,14 +18,15 @@
 import logging
 import os
 
-import webapp2
 from google.appengine.api import users as gae_users
 from google.appengine.ext.webapp import template
-from typing import List
+import webapp2
 
 from rogerthat.bizz import channel
+from rogerthat.bizz.communities.models import Community
 from rogerthat.models.news import NewsStream, NewsGroup, NewsSettingsService
 from rogerthat.settings import get_server_settings
+from typing import List
 
 
 def authorize_admin():
@@ -59,11 +60,15 @@ class NewsHandler(NewsAdminHandler):
             ns_items = [ns for ns in NewsStream.query()]  # type: List[NewsStream]
 
         data = {}
+        communities = {community.id: community.name for community in Community.query()}
         for ns in ns_items:
+            if not ns.community_id:
+                continue
             data[ns.community_id] = {
                 'ns': ns,
                 'data': {
                     'id': ns.community_id,
+                    'name': communities[ns.community_id],
                     'stream_type': ns.stream_type,
                     'should_create_groups': ns.should_create_groups,
                     'services_need_setup': False if community_id else ns.services_need_setup,
@@ -75,8 +80,7 @@ class NewsHandler(NewsAdminHandler):
 
             if data[ns.community_id]['data']['groups'] > 0:
                 if community_id or not data[ns.community_id]['data']['services_need_setup']:
-                    ids = [i for i in xrange(0, 21)]
-                    ids.append(999)
+                    ids = [0, 1, 2, 999]
                     for i in ids:
                         data[ns.community_id]['queries'].append({
                             'id': i,
