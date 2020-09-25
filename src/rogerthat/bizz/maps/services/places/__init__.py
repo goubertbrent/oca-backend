@@ -16,7 +16,6 @@
 # @@license_version:1.7@@
 
 import json
-import logging
 import os
 
 from mcfw.properties import unicode_property

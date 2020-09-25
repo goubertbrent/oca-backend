@@ -14,20 +14,29 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
-
 import logging
+from collections import OrderedDict
 from datetime import datetime
 from types import NoneType
 
+import cloudstorage
+import xlwt
+from babel.dates import format_datetime
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
+from typing import List
 
 from mcfw.exceptions import HttpForbiddenException
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.communities.models import Community
+from rogerthat.bizz.gcs import get_serving_url
+from rogerthat.bizz.maps.services.places import get_place_types
+from rogerthat.consts import EXPORTS_BUCKET, SCHEDULED_QUEUE
 from rogerthat.dal.profile import get_service_profile
+from rogerthat.models import ServiceIdentity, ServiceProfile
+from rogerthat.models.settings import ServiceInfo
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, \
@@ -100,6 +109,80 @@ def _check_is_city(city_service_user, customer=None):
     if not community.can_edit_services(city_service_user) or (customer and customer.community_id != community_id):
         raise HttpForbiddenException()
     return community
+
+
+@rest('/common/services/export', 'get', read_only_access=False)
+@returns(dict)
+@arguments()
+def rest_export_services():
+    city_service_user = users.get_current_user()
+    city_sln_settings = get_solution_settings(city_service_user)
+    community = _check_is_city(city_service_user)
+
+    customers = [c for c in Customer.list_by_community_id(community.id)
+                 if not c.service_disabled_at]  # type: List[Customer]
+    service_infos = {s.service_user: s for s in ndb.get_multi([
+        ServiceInfo.create_key(customer.service_user, ServiceIdentity.DEFAULT)
+        for customer in customers if customer.service_email])
+                     }
+    result = []
+    language = city_sln_settings.main_language
+    place_types = get_place_types(language)
+    name_field = translate(language, 'reservation-name')
+
+    email = translate(language, 'Email')
+    phone_number = translate(language, 'Phone number')
+    service_created = translate(language, 'creation_date')
+    address = translate(language, 'address')
+    place_type = translate(language, 'oca.place_type')
+    organization_type = translate(language, 'organization_type')
+
+    excel_date_format = xlwt.XFStyle()
+    excel_date_format.num_format_str = 'dd/mm/yyyy'
+    row_style = {
+        service_created: excel_date_format,
+    }
+
+    from rogerthat.translations import localize
+    org_types = {
+            ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT: localize(language, 'Associations'),
+            ServiceProfile.ORGANIZATION_TYPE_PROFIT: localize(language, 'Merchants'),
+            ServiceProfile.ORGANIZATION_TYPE_CITY: localize(language, 'Community Services'),
+            ServiceProfile.ORGANIZATION_TYPE_EMERGENCY: localize(language, 'Care'),
+            ServiceProfile.ORGANIZATION_TYPE_UNSPECIFIED: localize(language, 'Services'),
+        }
+
+    for customer in customers:
+        service_info = service_infos.get(customer.service_user) or ServiceInfo()  # type: ServiceInfo
+        d = OrderedDict()
+        d[name_field] = service_info.name or customer.name
+        d[email] = customer.user_email
+        d[phone_number] = service_info.main_phone_number or ''
+        d[service_created] = datetime.utcfromtimestamp(customer.creation_time)
+        d[address] = service_info.main_address(city_sln_settings.locale) or ''
+        d[place_type] = place_types.get(service_info.main_place_type) or ''
+        d[organization_type] = org_types.get(customer.organization_type)
+        result.append(d)
+
+    result.sort(key=lambda d: d[name_field])
+
+    date = format_datetime(datetime.now(), locale=city_sln_settings.locale, format='medium')
+    gcs_path = '/%s/customers/%d/export-%s.xlsx' % (EXPORTS_BUCKET, community.id, date.replace(' ', '-'))
+    with cloudstorage.open(gcs_path, 'w') as gcs_file:
+        book = xlwt.Workbook(encoding='utf-8')
+        sheet = book.add_sheet(translate(language, 'services'))  # type: xlwt.Worksheet
+        columns = result[0].keys()
+        for column_index, column_name in enumerate(columns):
+            sheet.write(0, column_index, column_name)
+        for row_number, row in enumerate(result):
+            for column_index, column_name in enumerate(columns):
+                sheet.write(row_number + 1, column_index, row[column_name], row_style.get(column_name, xlwt.Style.default_style))
+        book.save(gcs_file)
+
+    deferred.defer(cloudstorage.delete, gcs_path, _countdown=86400, _queue=SCHEDULED_QUEUE)
+    return {
+        'url': get_serving_url(gcs_path)
+    }
 
 
 @rest('/common/services/get', 'get', read_only_access=True)

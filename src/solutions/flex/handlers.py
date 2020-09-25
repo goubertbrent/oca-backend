@@ -110,6 +110,7 @@ MODULES_JS_TEMPLATE_MAPPING = {
         'services/service_form',
         'services/modules_list',
         'services/service_search',
+        'services/service_export',
         'settings/app_settings',
         'settings/paddle'
     ],

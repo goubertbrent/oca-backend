@@ -29,7 +29,8 @@
 
     function init() {
         initServicesList();
-        $('.search-services').click(searchServices);
+        $('#search-services').click(searchServices);
+        $('#export-services-btn').click(exportServices);
         ROUTES.services = router;
     }
 
@@ -294,6 +295,20 @@
         }
 
         sln.serviceSearch(input, ORGANIZATION_TYPES, null, serviceSelected);
+    }
+
+    function exportServices(){
+        var html = $.tmpl(templates['services/service_export'], {});
+        sln.createModal(html, function(modal) {
+            $('#submit-export-services', modal).click(function(){
+                sln.showProcessing();
+                Requests.exportServices().then(function(result){
+                    sln.hideProcessing();
+                    var url = result.url;
+                    window.open(url, '_blank');
+                });
+            });
+        });
     }
 
     function servicesChannelUpdates(data) {
