@@ -731,6 +731,30 @@ def _get_request_header(header_name):
         logging.warn('Failed to get header %s' % header_name, exc_info=1)
 
 
+def get_backend_service():
+    service_name = u'service-backend'
+    if DEBUG:
+        return service_name
+    current_version = get_current_version()
+    if not current_version:
+        return None
+    if ':' in current_version:
+        return None
+    return u'%s-dot-%s' % (current_version, service_name)
+
+
+def get_current_version():
+    if DEBUG:
+        return os.environ.get('SERVER_PORT')
+    return os.environ.get('GAE_VERSION')
+
+
+def get_current_service():
+    if DEBUG:
+        return os.environ.get('SERVER_PORT')
+    return os.environ.get('GAE_SERVICE')
+
+
 def clamp(val, minimum=0, maximum=255):
     if val < minimum:
         return minimum

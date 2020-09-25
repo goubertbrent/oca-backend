@@ -348,8 +348,13 @@ def _new_deferred_run(data):
             users.set_deferred_user(current_user)
 
         try:
-            from rogerthat.utils import get_current_queue
-            logging.debug('Queue: %s\ndeferred.run(%s.%s%s%s)',
+            from rogerthat.utils import get_current_queue, get_current_version
+            if DEBUG:
+                prefix = u'%s -> ' % get_current_version()
+            else:
+                prefix = u''
+            logging.debug('%sQueue: %s\ndeferred.run(%s.%s%s%s)',
+                          prefix,
                           get_current_queue(),
                           func.__module__, func.__name__,
                           "".join((",\n             %s" % repr(a) for a in args)),

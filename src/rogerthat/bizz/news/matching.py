@@ -15,11 +15,10 @@
 #
 # @@license_version:1.7@@
 
-import logging
 from datetime import date, datetime
+import logging
 
 from google.appengine.ext import ndb, deferred, db
-from typing import Dict, List, Tuple, Optional
 
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.news.groups import update_stream_layout, get_groups_for_community
@@ -34,9 +33,11 @@ from rogerthat.models.news import NewsItem, NewsSettingsUser, NewsSettingsUserSe
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import logError
 from rogerthat.to.news import UpdateBadgeCountRequestTO
-from rogerthat.utils import calculate_age_from_date, is_flag_set, get_epoch_from_datetime
+from rogerthat.utils import calculate_age_from_date, is_flag_set, get_epoch_from_datetime,\
+    get_backend_service
 from rogerthat.utils.location import haversine
 from rogerthat.utils.service import remove_slash_default
+from typing import Dict, List, Tuple, Optional
 
 
 def setup_default_settings(app_user):
@@ -70,7 +71,7 @@ def create_matches_for_news_item(news_item, old_group_ids, should_create_notific
                                 for group_id in stream_group_ids])  # type: List[NewsGroup]
         groups_info = {group.group_id: group.default_notifications_enabled for group in groups}
         run_job(_get_users_by_community, [community_id], _process_news_item_for_user,
-                [news_item.id, should_create_notification, groups_info], worker_queue=NEWS_MATCHING_QUEUE)
+                [news_item.id, should_create_notification, groups_info], worker_queue=NEWS_MATCHING_QUEUE, job_target=get_backend_service())
 
     if old_group_ids:
         do_callback_for_update(news_item)
