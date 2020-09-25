@@ -126,6 +126,6 @@ def get_all_community_countries():
 def connect_auto_connected_service(community_id, new_acs):
     # type: (int, List[CommunityAutoConnectedService]) -> None
     for acs in new_acs:
-        helper = FriendHelper.serialize(users.User(acs.service_email), FRIEND_TYPE_SERVICE)
+        helper = FriendHelper.serialize(users.User(acs.service_identity_email), FRIEND_TYPE_SERVICE)
         run_job(get_user_profiles_by_community, [community_id],
                 hookup_with_default_services.run_for_auto_connected_service, [[acs], helper])

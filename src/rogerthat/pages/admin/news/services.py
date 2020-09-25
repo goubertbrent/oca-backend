@@ -56,6 +56,9 @@ class SetupNewsServiceHandler(NewsAdminHandler):
         if not community_id or not sni:
             self.redirect('/mobiadmin/google/news')
             return
+        
+        if community_id:
+            community_id = long(community_id)
 
         sni = int(sni)
         qry = NewsSettingsService.list_setup_needed(community_id, sni)
@@ -220,6 +223,9 @@ class ListNewsServiceHandler(NewsAdminHandler):
         if not community_id or not sni:
             self.redirect('/mobiadmin/google/news')
             return
+        
+        if community_id:
+            community_id = long(community_id)
 
         sni = int(sni)
         qry = NewsSettingsService.list_setup_needed(community_id, sni)

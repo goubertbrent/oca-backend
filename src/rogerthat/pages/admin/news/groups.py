@@ -27,8 +27,9 @@ from rogerthat.pages.admin.news import NewsAdminHandler
 class NewsGroupsHandler(NewsAdminHandler):
 
     def get(self):
-        community_id = long(self.request.get("community_id", None))
+        community_id = self.request.get("community_id", None)
         if community_id:
+            community_id = long(community_id)
             qry = NewsGroup.list_by_community_id(community_id)
         else:
             qry = NewsGroup.query()

@@ -53,6 +53,7 @@ class NewsHandler(NewsAdminHandler):
         context = {'streams': []}
         community_id = self.request.get("community_id", None)
         if community_id:
+            community_id = long(community_id)
             ns_items = [NewsStream.create_key(community_id).get()]
         else:
             ns_items = [ns for ns in NewsStream.query()]  # type: List[NewsStream]
