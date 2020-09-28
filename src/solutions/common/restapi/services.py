@@ -167,7 +167,7 @@ def rest_export_services():
     result.sort(key=lambda d: d[name_field])
 
     date = format_datetime(datetime.now(), locale=city_sln_settings.locale, format='medium')
-    gcs_path = '/%s/customers/%d/export-%s.xlsx' % (EXPORTS_BUCKET, community.id, date.replace(' ', '-'))
+    gcs_path = '/%s/customers/%d/export-%s.xls' % (EXPORTS_BUCKET, community.id, date.replace(' ', '-'))
     with cloudstorage.open(gcs_path, 'w') as gcs_file:
         book = xlwt.Workbook(encoding='utf-8')
         sheet = book.add_sheet(translate(language, 'services'))  # type: xlwt.Worksheet
