@@ -311,7 +311,7 @@ var showServiceTab = function() {
     showTab(TAB_IDS[0]);
 };
 
-async function getCommunities(country, communityId){
+async function getServiceCommunities(country, communityId){
     const communities = await (await fetch('/console-api/communities?country=' + country)).json();
     const communitySelect = $('#service_community');
     communitySelect.empty();
@@ -399,7 +399,7 @@ var customerSelected = function(customer) {
                     });
                 });
                 currentCustomer.service = service;
-                getCommunities(currentCustomer.country, service.community_id);
+                getServiceCommunities(currentCustomer.country, service.community_id);
 
                 if (service.modules.indexOf('broadcast') == -1) {
                     $('#form_broadcast_types', createServiceForm).hide();

@@ -371,7 +371,7 @@ var startOnSitePayment = function (customerId, customerName, customerUserEmail, 
     });
 };
 
-var prepareNewCustomer = function () {
+function prepareNewCustomer() {
     currentCustomer = {
         creating : true,
         country : 'BE'
@@ -386,7 +386,22 @@ var prepareNewCustomer = function () {
     });
     // Show the buttons (they are hidden after searching for a customer)
     $('#customer_form .modal-footer').show();
-};
+    $('#customer_form #country').off('change').on('change', function(){
+        var country = $(this).val();
+        getCustomerCommunities(country);
+    });
+    getCustomerCommunities(currentCustomer.country);
+}
+
+async function getCustomerCommunities(country){
+    const communities = await (await fetch('/console-api/communities?country=' + country)).json();
+    const communitySelect = $('#customer_form #customer-community-id');
+    communitySelect.empty();
+    communitySelect.append('<option></option>');
+    for (const community of communities){
+        communitySelect.append(`<option value="${community.id}">${community.name}</option>`);
+    }
+}
 
 var prepareSearchCustomer = function () {
     currentCustomer = {};
@@ -1528,10 +1543,11 @@ $(function () {
         var zipcode = $('#customer_form #zipcode').val();
         var city = $('#customer_form #city').val();
         var country = $('#customer_form #country').val();
+        var communityId = $('#customer_form #customer-community-id').val();
         var language = $('#customer_form').find('#language').val();
         var prospect = $('#customer_form').data('prospect');
         var type = parseInt($('#customer_form #customer_organization_type').val());
-        if (!(name && address1 && zipcode && city && country && type)) {
+        if (!(name && address1 && zipcode && city && country && type) || (!customerId && !communityId)) {
             $('#new_customer_error').show()
                 .find('span').text('Not all required fields are filled');
             return;
@@ -1553,21 +1569,20 @@ $(function () {
             url: '/internal/shop/rest/customer/put',
             type: 'POST',
             data: {
-                data: JSON.stringify({
-                    force: force,
-                    organization_type: type,
-                    name: name,
-                    address1: address1,
-                    address2: address2,
-                    zip_code: zipcode,
-                    city: city,
-                    country: country,
-                    language: language,
-                    vat: vat,
-                    prospect_id: prospect ? prospect.id : null,
-                    customer_id: customerId,
-                    team_id: parseInt(teamId)
-                })
+                force: force,
+                organization_type: type,
+                name: name,
+                address1: address1,
+                address2: address2,
+                zip_code: zipcode,
+                city: city,
+                country: country,
+                language: language,
+                vat: vat,
+                prospect_id: prospect ? prospect.id : null,
+                customer_id: customerId,
+                team_id: parseInt(teamId),
+                community_id: communityId ? parseInt(communityId) : undefined,
             },
             success: function (data) {
                 if (data.success) {

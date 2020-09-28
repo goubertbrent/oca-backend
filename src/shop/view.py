@@ -1401,17 +1401,17 @@ Description:
 @returns(CustomerReturnStatusTO)
 @arguments(customer_id=(int, long, NoneType), name=unicode, address1=unicode, address2=unicode, zip_code=unicode,
            city=unicode, country=unicode, language=unicode, vat=unicode, organization_type=(int, long),
-           prospect_id=unicode, force=bool, team_id=(int, long, NoneType))
+           prospect_id=unicode, force=bool, team_id=(int, long, NoneType), community_id=(int, long))
 def put_customer(customer_id, name, address1, address2, zip_code, city, country, language, vat, organization_type,
-                 prospect_id=None, force=False, team_id=None):
+                 prospect_id=None, force=False, team_id=None, community_id=0):
     try:
         customer = create_or_update_customer(gusers.get_current_user(), customer_id, vat, name, address1, address2,
                                              zip_code, city, country, language, organization_type, prospect_id, force,
-                                             team_id) # todo communities set community_id
+                                             team_id, community_id=community_id)
         audit_log(customer.id, u"Save Customer.", prospect_id=prospect_id)
-    except DuplicateCustomerNameException, ex:
+    except DuplicateCustomerNameException as ex:
         return CustomerReturnStatusTO.create(False, warning=ex.message)
-    except BusinessException, be:
+    except BusinessException as be:
         return CustomerReturnStatusTO.create(False, be.message)
 
     return CustomerReturnStatusTO.create(customer=CustomerTO.fromCustomerModel(customer, True, is_admin(gusers.get_current_user())))
