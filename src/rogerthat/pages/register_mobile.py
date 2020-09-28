@@ -376,7 +376,7 @@ class VerifyEmailWithPinHandler(webapp.RequestHandler):
 
         if version >= 4:
             communities = get_communities_by_app_id(app_id)
-            if communities:
+            if communities and len(communities) > 1:
                 installation_log_community = InstallationLog(parent=registration.installation,
                                                              timestamp=now(),
                                                              registration=registration,
@@ -533,7 +533,7 @@ class CommonRegistrationHandler(webapp.RequestHandler):
 
         if version >= 4:
             communities = get_communities_by_app_id(app_id)
-            if communities:
+            if communities and len(communities) > 1:
                 self.to_put.append(InstallationLog(parent=installation,
                                                    timestamp=now(),
                                                    description="User needs to pick a community"))
