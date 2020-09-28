@@ -323,8 +323,6 @@ def create_or_update_customer(current_user, customer_id, vat, name, address1, ad
         raise NotOperatingInCountryException(country)
     if language not in OFFICIALLY_SUPPORTED_LANGUAGES:
         raise InvalidLanguageException(language)
-    if not customer_id and not community_id:
-        raise EmptyValueException('community_id') # todo communities check if correct
 
     regio_manager = RegioManager.get(RegioManager.create_key(current_user.email())) if current_user else None
     customer_team_id = regio_manager.team_id if regio_manager else team_id
