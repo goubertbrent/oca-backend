@@ -450,6 +450,7 @@ var customerSelected = function(customer) {
                 });
             }
         }
+        getServiceCommunities(customer.country, null);
     }
 };
 
