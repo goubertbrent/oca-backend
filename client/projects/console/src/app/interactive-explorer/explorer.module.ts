@@ -29,7 +29,7 @@ import { ScriptsService } from './scripts.service';
 import * as translations from './translations.json';
 
 const monacoConfig: NgxMonacoEditorConfig = {
-  baseUrl: environment.production ? '/static/client/assets' : '/assets',
+  baseUrl: environment.production ? '/static/console/assets' : '/assets',
   defaultOptions: {
     scrollBeyondLastLine: false,
     theme: 'vs-dark',
