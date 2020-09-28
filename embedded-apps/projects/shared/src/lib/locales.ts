@@ -27,10 +27,10 @@ export function getLocaleFromLanguage(language: string) {
 }
 
 export function getLanguage(language: string) {
-  language = language.replace('_', '-')
+  language = language.replace('_', '-');
   const split = language.split('-');
   for (const lang of SUPPORTED_LANGUAGES) {
-    if (lang.startsWith(language) || split[ 0 ] === language) {
+    if (lang.startsWith(language) || split[ 0 ] === lang) {
       return lang;
     }
   }
