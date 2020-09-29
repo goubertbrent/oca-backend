@@ -20,6 +20,7 @@ import logging
 from base64 import b64encode
 from datetime import datetime, date
 
+import zeep
 from babel.dates import format_time, format_date
 from functools32 import lru_cache
 from google.appengine.ext import deferred, ndb
@@ -29,7 +30,7 @@ from requests.auth import HTTPBasicAuth
 from typing import List, Dict
 from zeep import Client, Transport
 from zeep.helpers import serialize_object
-from zeep.xsd import CompoundValue
+from zeep.xsd import CompoundValue, Schema
 
 from mcfw.cache import cached
 from mcfw.exceptions import HttpBadRequestException
@@ -337,7 +338,7 @@ def handle_method(service_user, email, method, params, tag, service_identity, us
             result = add_appointment_to_calendar(settings, app_user, json_data['appointmentID'])
         else:
             if method == JccApiMethod.bookGovAppointmentExtendedDetails:
-                if 'isRecurring' not in json_data['appDetail']:
+                if _should_add_recurring(client) and 'isRecurring' not in json_data['appDetail']:
                     json_data['appDetail']['isRecurring'] = False
 
             result = _do_call(client, method, json_data)
@@ -352,3 +353,12 @@ def handle_method(service_user, email, method, params, tag, service_identity, us
         sln_settings = get_solution_settings(service_user)
         response.error = translate(sln_settings.main_language, 'error-occured-unknown')
     return response
+
+
+def _should_add_recurring(client):
+    # type: (Client) -> bool
+    types = client.wsdl.types  # type: Schema
+    for type_ in types.types:  # type: zeep.xsd.Type
+        if isinstance(type_, zeep.xsd.ComplexType) and type_.name == 'AppointmentFullDetaildWithFullCustomerDetailsType':
+            return any(name == 'isRecurring' for name, element in type_.elements)
+    return False
