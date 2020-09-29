@@ -50,9 +50,6 @@
             return;
         }
         var setPasswordRoute = '/customers/setpassword';
-        if (SIGNUP_APP_ID) {
-            setPasswordRoute += '/' + SIGNUP_APP_ID;
-        }
         sln.call({
             url: '/mobi/rest/user/reset_password',
             type: 'post',

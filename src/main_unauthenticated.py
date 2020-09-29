@@ -65,6 +65,7 @@ handlers = [
     RedirectRoute('/customers/signup-password', CustomerSignupPasswordHandler, 'signup_set_password', strict_slash=True),
     RedirectRoute('/customers/resetpassword', CustomerResetPasswordHandler, 'reset_password', strict_slash=True),
     RedirectRoute('/customers/signin', CustomerSigninHandler, 'signin', strict_slash=True),
+    Route('/customers/signin/<app_id:[^/]+>', CustomerSigninHandler, 'signin_app'),
     RedirectRoute('/customers/signup', CustomerSignupHandler, 'signup', strict_slash=True),
     RedirectRoute('/customers/consent/cirklo', CustomerCirkloAcceptHandler, 'consent_cirklo_accept'),
     RedirectRoute('/vouchers/cirklo/signup', VouchersCirkloSignupHandler, 'cirklo_signup'),

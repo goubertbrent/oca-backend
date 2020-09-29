@@ -359,14 +359,9 @@ class PublicPageHandler(webapp2.RequestHandler):
     def render(self, template_name, **params):
         if not params.get('language'):
             params['language'] = self.language
-        app_id = self.request.route_kwargs.get('app_id')
-        params['app_id'] = app_id or ''
         routes = ['signin', 'signup', 'reset_password', 'set_password']
         for route_name in routes:
-            if app_id:
-                url = self.url_for(route_name + '_app', app_id=app_id)
-            else:
-                url = self.url_for(route_name)
+            url = self.url_for(route_name)
             params[route_name + '_url'] = url
         template_path = 'public/%s.html' % template_name
         return SHOP_JINJA_ENVIRONMENT.get_template(template_path).render(params)
@@ -383,7 +378,7 @@ class PublicPageHandler(webapp2.RequestHandler):
 
 class CustomerSigninHandler(PublicPageHandler):
 
-    def get(self):
+    def get(self, app_id=None):
         self.response.write(self.render('signin'))
 
 

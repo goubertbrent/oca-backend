@@ -133,9 +133,6 @@ $(function () {
         }, null, false, 3000, true);
 
         setTabs();
-        if (typeof SIGNUP_APP_ID !== 'undefined' && SIGNUP_APP_ID) {
-            communitySelected();
-        }
     }
 
     function setTabs() {
