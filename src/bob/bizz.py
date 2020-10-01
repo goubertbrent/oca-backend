@@ -22,13 +22,14 @@ from rogerthat.bizz.app import AppDoesNotExistException
 from rogerthat.dal.app import get_app_by_id
 
 
-@arguments(app_id=unicode, ios_app_id=unicode)
-def set_ios_app_id(app_id, ios_app_id):
+@arguments(app_id=unicode, ios_app_id=unicode, ios_dev_team=unicode)
+def set_ios_app_id(app_id, ios_app_id, ios_dev_team):
     def trans():
         app = get_app_by_id(app_id)
         if not app:
             raise AppDoesNotExistException(app_id)
         app.ios_app_id = ios_app_id
+        app.ios_dev_team = ios_dev_team
         app.put()
 
     db.run_in_transaction(trans)

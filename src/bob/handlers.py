@@ -42,7 +42,8 @@ class SetIosAppIdHandler(webapp2.RequestHandler):
         data = json.loads(self.request.body)
         app_id = data['app_id']
         ios_app_id = data['ios_app_id']
+        ios_dev_team = data['ios_dev_team']
         try:
-            set_ios_app_id(app_id, ios_app_id)
+            set_ios_app_id(app_id, ios_app_id, ios_dev_team)
         except AppDoesNotExistException:
             self.abort(httplib.NOT_FOUND)
