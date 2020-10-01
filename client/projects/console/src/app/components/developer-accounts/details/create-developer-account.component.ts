@@ -30,8 +30,8 @@ export class CreateDeveloperAccountComponent implements OnInit, OnDestroy {
     this.status$ = this.store.select(getCreateDeveloperAccountStatus);
     this.sub = this.status$.pipe(
       filter(s => s.success),
-      withLatestFrom(<Observable<DeveloperAccount>>this.store.select(getDeveloperAccount)))
-      .subscribe(([ _, developerAccount ]) => this.router.navigate([ '..', developerAccount.organization ], { relativeTo: this.route }),
+      withLatestFrom(this.store.select(getDeveloperAccount) as Observable<DeveloperAccount>))
+      .subscribe(([ _, developerAccount ]) => this.router.navigate([ '..', developerAccount.id ], { relativeTo: this.route }),
       );
   }
 

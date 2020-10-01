@@ -35,6 +35,7 @@ def rest_get_app_info(app_name):
     if not app_mapping:
         raise HttpNotFoundException('app_not_found')
     app = get_app_by_id(app_mapping.app_id)
+    # TODO: Should not use SolutionBrandingSettings (use the app icon from the app itself)
     branding_settings = SolutionBrandingSettings.get_by_user(users.User(app.main_service))
     return {
         'app_id': app_mapping.app_id,

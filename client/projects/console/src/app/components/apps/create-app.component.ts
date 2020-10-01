@@ -10,6 +10,7 @@ import { ClearAppAction, CreateAppAction, GetContactsAction, GetDeveloperAccount
 import * as states from '../../console.state';
 import { getReviewNotesList } from '../../console.state';
 import { APP_TYPES, AppTypes, Contact, COUNTRIES, CreateAppPayload, DeveloperAccount, LANGUAGES, ReviewNotes } from '../../interfaces';
+import { kebabCase } from './util';
 
 @Component({
   selector: 'rcc-app-create',
@@ -73,7 +74,7 @@ export class CreateAppComponent implements OnInit {
   }
 
   setAppId() {
-    let appId = `${this.app.country.toLocaleLowerCase()}-${this.kebabCase(this.app.title)}`;
+    let appId = `${this.app.country.toLocaleLowerCase()}-${kebabCase(this.app.title)}`;
     if (this.app.app_type === AppTypes.ENTERPRISE) {
       appId = `em-${appId}`;
     }
@@ -89,7 +90,7 @@ export class CreateAppComponent implements OnInit {
     }
 
     if (this.app.title) {
-      const appTitle = this.kebabCase(this.app.title);
+      const appTitle = kebabCase(this.app.title);
       if (this.app.app_type === AppTypes.CITY_APP) {
         this.app.dashboard_email_address = `${appTitle}@ourcityapps.com`;
       } else {
@@ -97,6 +98,4 @@ export class CreateAppComponent implements OnInit {
       }
     }
   }
-
-  kebabCase = (string: string) => string.replace(/\s+/g, '-').toLowerCase();
 }

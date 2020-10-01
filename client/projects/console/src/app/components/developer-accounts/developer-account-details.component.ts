@@ -27,7 +27,7 @@ export class DeveloperAccountDetailsComponent implements OnInit {
 
   ngOnInit() {
     this.store.dispatch(new ClearDeveloperAccountAction());
-    this.store.dispatch(new GetDeveloperAccountAction(this.route.snapshot.params.accountId));
+    this.store.dispatch(new GetDeveloperAccountAction({id: parseInt(this.route.snapshot.params.accountId, 10)}));
     this.title$ = this.store.pipe(select(getDeveloperAccount), filterNull(), map(d => ({
       isTranslation: false,
       label: d.name,

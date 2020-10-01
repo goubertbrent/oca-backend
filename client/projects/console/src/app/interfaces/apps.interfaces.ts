@@ -184,6 +184,7 @@ export interface RogerthatApp {
   user_regex: string;
   community_ids: number[];
   service_filter_type: AppServiceFilter;
+  default_app_name_mapping: string | null;
 }
 
 export const enum AppTypes {

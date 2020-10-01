@@ -1,7 +1,6 @@
 export interface DeveloperAccount {
-  readonly id?: number;
+  readonly id: number;
   type: 'android' | 'ios';
-  organization: string;
   name: string;
   account_email: string;
   ios_dev_team: string | null;

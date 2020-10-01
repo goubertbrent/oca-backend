@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { NgForm } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable } from 'rxjs';
@@ -60,7 +61,10 @@ export class AppBasicConfigurationFormComponent implements OnInit {
     return this.app.app_type === AppTypes.CITY_APP;
   }
 
-  submit() {
+  submit(form: NgForm) {
+    if (form.invalid) {
+      return;
+    }
     const payload: PatchAppPayload = {
       title: this.app.title,
       app_type: this.app.app_type,

@@ -46,7 +46,7 @@ export class ClearDeveloperAccountAction implements Action {
 export class GetDeveloperAccountAction implements Action {
   readonly type = DeveloperAccountsActionTypes.GET_DEVELOPER_ACCOUNT;
 
-  constructor(public payload: string) {
+  constructor(public payload: { id: number }) {
   }
 }
 

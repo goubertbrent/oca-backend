@@ -3,6 +3,7 @@ import { NgForm } from '@angular/forms';
 import { ApiRequestStatus } from '../../../../../framework/client/rpc';
 import { Community } from '../../../communities/community/communities';
 import { AppServiceFilter, RogerthatApp } from '../../../interfaces';
+import { kebabCase } from '../util';
 
 @Component({
   selector: 'rcc-app-advanced-configuration-form',
@@ -19,6 +20,8 @@ export class AppAdvancedConfigurationFormComponent {
     { value: AppServiceFilter.COMMUNITIES, label: 'Filtered by communities' },
   ];
 
+  kebabCase = kebabCase;
+
   private _app: RogerthatApp;
 
   get app() {
@@ -31,7 +34,7 @@ export class AppAdvancedConfigurationFormComponent {
 
   submit(form: NgForm) {
     if (form.form.valid) {
-      this.save.emit({ ...this.app });
+      this.save.emit({ ...this.app, default_app_name_mapping: kebabCase(this.app.default_app_name_mapping!!) });
     }
   }
 }

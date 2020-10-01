@@ -780,7 +780,7 @@ def get_profile_phone_numbers_to(user_profile_info):
 
 
 def _update_profile_phone_number(app_user, request, is_update=False):
-    # type: (users.User, ProfileAddressTO, bool) -> UserProfileInfoAddress
+    # type: (users.User, ProfilePhoneNumberTO, bool) -> UserProfileInfoAddress
     upi_key = UserProfileInfo.create_key(app_user)
     profile_info = upi_key.get()
     if not profile_info:

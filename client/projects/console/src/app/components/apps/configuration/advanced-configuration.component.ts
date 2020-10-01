@@ -7,7 +7,7 @@ import { UpdateRogerthatAppAction } from '../../../actions';
 import { CommunityService } from '../../../communities/community.service';
 import { Community } from '../../../communities/community/communities';
 import { getRogerthatApp, getRogerthatAppStatus } from '../../../console.state';
-import { EmbeddedApp, RogerthatApp } from '../../../interfaces';
+import { RogerthatApp } from '../../../interfaces';
 import { filterNull } from '../../../ngrx';
 
 @Component({
@@ -23,7 +23,6 @@ import { filterNull } from '../../../ngrx';
 })
 export class AppAdvancedConfigurationComponent implements OnInit {
   app$: Observable<RogerthatApp>;
-  embeddedApplications$: Observable<EmbeddedApp[]>;
   appStatus$: Observable<ApiRequestStatus>;
   communities$: Observable<Community[]>;
 

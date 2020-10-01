@@ -1,6 +1,6 @@
 <rcc-api-request-status [status]="status"></rcc-api-request-status>
 <div class="default-component-margin " *ngIf="app && rogerthatApp">
-  <form novalidate (submit)="submit()" #form="ngForm">
+  <form novalidate (submit)="submit(form)" #form="ngForm">
     <div class="form-row">
       <mat-form-field>
         <input matInput name="name"

@@ -4,6 +4,13 @@
     <mat-slide-toggle name="demo" [(ngModel)]="app.demo">{{ 'rcc.demo_app' | translate }}</mat-slide-toggle>
   </div>
   <mat-form-field>
+    <mat-label>Url name (for example <b>{{ kebabCase(app.name) }}</b>)</mat-label>
+    <input matInput name="default_app_name_mapping"
+           [(ngModel)]="app.default_app_name_mapping"
+           required>
+    <mat-hint>This is used for web functionality on https://onzestad.app</mat-hint>
+  </mat-form-field>
+  <mat-form-field>
     <input matInput name="android_app_id"
            [placeholder]="'rcc.android_app_id' | translate"
            [(ngModel)]="app.android_app_id"

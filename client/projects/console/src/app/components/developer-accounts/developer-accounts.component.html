@@ -1,10 +1,10 @@
 <mat-card class="developer-card" *ngFor="let account of developerAccounts$ | async">
   <mat-card-header>
     <mat-card-title>{{ account.name }}</mat-card-title>
-    <mat-card-subtitle>{{ account.apple_developer_account }}</mat-card-subtitle>
+    <mat-card-subtitle>{{ account.iphone_distribution }}</mat-card-subtitle>
   </mat-card-header>
   <mat-card-actions fxLayoutAlign="end center">
-    <a [routerLink]="account.organization" mat-button>
+    <a [routerLink]="account.id" mat-button>
       {{ 'rcc.edit' | translate }}
     </a>
     <button type="button" mat-button color="warn" (click)="confirmRemove(account)">

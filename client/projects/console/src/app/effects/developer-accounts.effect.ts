@@ -24,7 +24,7 @@ export class DeveloperAccountsEffects {
 
   @Effect() getDeveloperAccount$ = this.actions$.pipe(
     ofType<actions.GetDeveloperAccountAction>(actions.DeveloperAccountsActionTypes.GET_DEVELOPER_ACCOUNT),
-    switchMap(action => this.devAccountsService.getDeveloperAccount(action.payload).pipe(
+    switchMap(action => this.devAccountsService.getDeveloperAccount(action.payload.id).pipe(
       map(payload => new actions.GetDeveloperAccountCompleteAction(payload)),
       catchError(error => handleApiError(actions.GetDeveloperAccountFailedAction, error)),
     )));

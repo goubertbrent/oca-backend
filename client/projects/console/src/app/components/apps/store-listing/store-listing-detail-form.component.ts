@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  OnChanges,
+  OnInit,
+  Output,
+  SimpleChanges,
+  ViewEncapsulation,
+} from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatChipInputEvent } from '@angular/material/chips';
 import { Observable } from 'rxjs';
@@ -18,6 +28,7 @@ import {
 @Component({
   selector: 'rcc-store-listing-detail-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  encapsulation: ViewEncapsulation.None,
   templateUrl: 'store-listing-detail-form.component.html',
 })
 export class StoreListingDetailFormComponent implements OnInit, OnChanges {
@@ -55,7 +66,7 @@ export class StoreListingDetailFormComponent implements OnInit, OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes.developerAccounts && changes.developerAccounts.currentValue) {
-      const devAccounts = <DeveloperAccount[]>changes.developerAccounts.currentValue;
+      const devAccounts = changes.developerAccounts.currentValue as DeveloperAccount[];
       this.androidDeveloperAccounts = devAccounts.filter(d => d.type === 'android');
       this.iosDeveloperAccounts = devAccounts.filter(d => d.type === 'ios');
     }
@@ -68,13 +79,13 @@ export class StoreListingDetailFormComponent implements OnInit, OnChanges {
 
   addLocale(event: MatChipInputEvent) {
     if (!this.app.other_languages.includes(event.value) && !this.isMainLanguage(event.value) && this.getLanguage(event.value)) {
-      this.app.other_languages = [ ...<string[]>this.app.other_languages, event.value ];
+      this.app.other_languages = [ ...this.app.other_languages as string[], event.value ];
     }
     this.languageFormControl.reset();
   }
 
   removeLanguage(langCode: string) {
-    this.app.other_languages = (<string[]>this.app.other_languages).filter(lang => lang !== langCode);
+    this.app.other_languages = (this.app.other_languages as string[]).filter(lang => lang !== langCode);
   }
 
   submit() {
