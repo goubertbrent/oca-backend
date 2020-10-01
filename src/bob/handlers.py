@@ -29,10 +29,10 @@ from rogerthat.bizz.app import AppDoesNotExistException
 def _validate_request(handler):
     solution_server_settings = get_solution_server_settings()
     secret = handler.request.headers.get("X-BOB-SECRET")
-    if not solution_server_settings.bob_api_secret:
-        logging.error("bob_api_secret is not set yet")
+    if not solution_server_settings.jenkins_incoming_secret:
+        logging.error("jenkins_incoming_secret is not set yet")
         handler.abort(401)
-    if secret != solution_server_settings.bob_api_secret:
+    if secret != solution_server_settings.jenkins_incoming_secret:
         handler.abort(401)
 
 

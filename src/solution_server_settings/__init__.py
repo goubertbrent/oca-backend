@@ -32,8 +32,11 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
                                      doc="The facebook id of the users that will be added as administrator on newly created apps (if facebook is enabled)",
                                      order=1)
     bob_api_secret = add_meta(db.StringProperty(indexed=False),
-                              doc="The secret used for incoming api request",
+                              doc="The secret used for outgoing api request to bob.ourcityapp.xyz",
                               order=2)
+    jenkins_incoming_secret = add_meta(db.StringProperty(indexed=False),
+                                       doc="The secret used for incoming api request from jenkins",
+                                       order=2)
     appcfg_server_url = add_meta(db.StringProperty(indexed=False),
                                  doc='App configurator server url',
                                  order=2)
