@@ -55,7 +55,8 @@ class WebRequestHandler(webapp2.RequestHandler):
         self.response.set_cookie(COOKIE_KEY, str(session.id), max_age=SESSION_EXPIRE_TIME, httponly=True)
 
     def get_language(self):
-        return get_current_web_session().language
+        session = get_current_web_session()
+        return session.language if session else get_language_from_request(self.request)
 
 
 def handle_web_request(request, response):
