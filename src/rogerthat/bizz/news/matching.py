@@ -79,16 +79,18 @@ def create_matches_for_news_item(news_item, old_group_ids, should_create_notific
         do_callback_for_create(news_item)
 
 
-@ndb.transactional(xg=True)
 def _update_service_filters(group_ids, service_identity_user):
-    groups = ndb.get_multi([NewsGroup.create_key(group_id) for group_id in group_ids])  # type: List[NewsGroup]
-    to_put = []
-    for group in groups:
-        if not group.service_filter or service_identity_user in group.services:
-            continue
-        group.services.append(service_identity_user)
-        to_put.append(group)
-    ndb.put_multi(to_put)
+    for group_id in group_ids:
+        deferred.defer(_update_service_filter, group_id, service_identity_user, _queue=NEWS_MATCHING_QUEUE)
+
+
+@ndb.transactional(xg=True)
+def _update_service_filter(group_id, service_identity_user):
+    group = NewsGroup.create_key(group_id).get()
+    if not group.service_filter or service_identity_user in group.services:
+        return
+    group.services.append(service_identity_user)
+    group.put()
 
 
 def _get_users_by_community(community_id):
