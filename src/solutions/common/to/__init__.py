@@ -321,7 +321,7 @@ class EventMediaTO(TO):
 
         if event.source == Event.SOURCE_UITDATABANK_BE and 'uitdatabank.be' in model.url:
             # For events from uit (95% of events), use their thumbnail service
-            thumbnail_url = '%s?width=152&height=152&crop=auto&scale=both' % model.url
+            thumbnail_url = '%s?width=152&height=152&crop=auto&scale=both' % model.url.replace('http://', 'https://')
         else:
             # TODO: create own thumbnail service
             # For now we just return the original url
