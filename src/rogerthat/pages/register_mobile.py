@@ -836,6 +836,7 @@ class RegisterDeviceHandler(webapp.RequestHandler):
         hardware_model = self.request.get("hardware_model", None)
         sim_carrier_name = self.request.get("sim_carrier_name", None)
         anonymous_account = self.request.get("anonymous_account", None)
+        community_id = self.request.get("community_id", None)
         language = _get_language_from_request(self.request)
         
         if anonymous_account:
@@ -875,6 +876,12 @@ class RegisterDeviceHandler(webapp.RequestHandler):
         installation_log = InstallationLog(parent=registration.installation, timestamp=now(),
                                            description="Continued with registering device, the following device '%s' is registered and %s are unregistered" % (
                                                device_name, registration.device_names))
+        
+        if not community_id:
+            community_id = 0
+        community_id = long(community_id)
+        installation_log_community = InstallationLog(parent=registration.installation, timestamp=now(),
+                                                     description="Devices community with id '%s'" % (community_id))
 
         tos_version = None
         if tos_age:
@@ -890,7 +897,8 @@ class RegisterDeviceHandler(webapp.RequestHandler):
                                                                            sim_carrier_name=sim_carrier_name,
                                                                            tos_version=tos_version,
                                                                            consent_push_notifications_shown=consent_push_notifications_shown,
-                                                                           anonymous_account=anonymous_account)
+                                                                           anonymous_account=anonymous_account,
+                                                                           community_id=community_id)
 
         headers = get_headers_for_consent(self.request)
         if tos_version:
@@ -900,8 +908,8 @@ class RegisterDeviceHandler(webapp.RequestHandler):
 
         registration.installation.mobile = registration.mobile
         registration.installation.profile = get_user_profile(app_user)
-        db.put([registration, registration.installation, installation_log])
-        send_installation_progress_callback(registration.installation, [installation_log])
+        db.put([registration, registration.installation, installation_log, installation_log_community])
+        send_installation_progress_callback(registration.installation, [installation_log, installation_log_community])
         self.response.out.write(json.dumps(dict(account=account.to_dict(),
                                                 age_and_gender_set=age_and_gender_set)))
 
