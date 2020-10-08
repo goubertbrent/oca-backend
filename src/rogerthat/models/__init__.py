@@ -853,6 +853,7 @@ class UserProfile(Profile, BaseUserProfile, ArchivedModel):
     version = db.IntegerProperty(indexed=False,
                                  default=0)  # bumped every time that FriendTO-related properties are updated
     # TODO communities: remove usage of app_id
+    # todo lets keep the app_id property for the index and future cleanup of apps
     app_id = db.StringProperty(indexed=True, default=App.APP_ID_ROGERTHAT)  # Needed for querying
     profileData = db.TextProperty()  # a JSON string containing extra profile fields
     unsubscribed_from_reminder_email = db.BooleanProperty(indexed=False, default=False)

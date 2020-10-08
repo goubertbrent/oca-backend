@@ -201,11 +201,11 @@ class NewsItem(NdbModel):
         return qry
 
     @classmethod
-    def list_published_by_sender(cls, sender, app_id, keys_only=False):
+    def list_published_by_sender(cls, sender, community_id, keys_only=False):
         qry = cls.query(default_options=QueryOptions(keys_only=keys_only))
         qry = qry.filter(cls.status == cls.STATUS_PUBLISHED)
         qry = qry.filter(cls.sender == sender)
-        qry = qry.filter(cls.app_ids == app_id)
+        qry = qry.filter(cls.community_ids == community_id)
         qry = qry.order(-cls.published_timestamp)
         return qry
 

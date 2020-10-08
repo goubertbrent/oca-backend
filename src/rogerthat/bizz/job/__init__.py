@@ -25,6 +25,8 @@ from google.appengine.ext.deferred import deferred
 from mcfw.properties import azzert
 from mcfw.utils import chunks
 from rogerthat.consts import HIGH_LOAD_CONTROLLER_QUEUE, HIGH_LOAD_WORKER_QUEUE
+from rogerthat.utils import get_backend_service
+
 
 MODE_SINGLE = 1
 MODE_BATCH = 2
@@ -32,7 +34,7 @@ MODE_BATCH = 2
 
 def run_job(qry_function, qry_function_args, worker_function, worker_function_args, mode=MODE_SINGLE,
             batch_size=50, batch_timeout=0, qry_transactional=False, worker_queue=HIGH_LOAD_WORKER_QUEUE,
-            controller_queue=HIGH_LOAD_CONTROLLER_QUEUE, job_target=None):
+            controller_queue=HIGH_LOAD_CONTROLLER_QUEUE):
     qry_function_args = qry_function_args or []
     worker_function_args = worker_function_args or []
     azzert(inspect.isfunction(qry_function), 'Only functions allowed for argument qry_function')
@@ -42,6 +44,7 @@ def run_job(qry_function, qry_function_args, worker_function, worker_function_ar
     azzert(isinstance(worker_function_args, list), 'worker_function_args must be a list')
     azzert(batch_size <= 500)
     # batch_size shouldn't be too high in case your keys are large, else you might go over the max task size of 100KB
+    job_target = get_backend_service()
     deferred.defer(_run_qry, qry_function, qry_function_args, worker_function, worker_function_args, mode, batch_size,
                    batch_timeout, qry_transactional=qry_transactional, worker_queue=worker_queue,
                    controller_queue=controller_queue, _transactional=db.is_in_transaction(), _queue=controller_queue, _target=job_target)

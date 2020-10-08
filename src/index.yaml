@@ -315,7 +315,7 @@ indexes:
 - kind: NewsItem
   properties:
   - name: status
-  - name: app_ids
+  - name: community_ids
   - name: sender
   - name: published_timestamp
     direction: desc

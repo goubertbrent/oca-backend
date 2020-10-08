@@ -532,13 +532,13 @@ def get_items_for_user_by_service(app_user, service_identity_email, group_id=Non
         deferred.defer(update_badge_count_user, app_user, group_id, 0)
 
     batch_count = 50 if cursor else 10
-    app_id = get_app_id_from_app_user(app_user)
 
     service_identity_user = add_slash_default(users.User(service_identity_email))
     if group_id:
         qry = NewsItem.list_published_by_sender_and_group_id_sorted(service_identity_user, group_id, keys_only=True)
     else:
-        qry = NewsItem.list_published_by_sender(service_identity_user, app_id, keys_only=True)
+        user_profile = get_user_profile(app_user)
+        qry = NewsItem.list_published_by_sender(service_identity_user, user_profile.community_id, keys_only=True)
 
     items, new_cursor, has_more = qry.fetch_page(
         batch_count, start_cursor=Cursor.from_websafe_string(cursor) if cursor else None, keys_only=True)
