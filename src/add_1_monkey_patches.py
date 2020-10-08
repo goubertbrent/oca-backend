@@ -310,6 +310,7 @@ _old_deferred_defer = deferred.defer
 def _new_deferred_defer(obj, *args, **kwargs):
     # Sets current user and fixes an issue where the transactional argument wasn't supplied when the task is too large
     from rogerthat.rpc import users
+    from rogerthat.utils import get_backend_service
     from mcfw.consts import MISSING
     if users.get_current_deferred_user() == MISSING:
         kwargs['__user'] = users.get_current_user()
@@ -325,6 +326,8 @@ def _new_deferred_defer(obj, *args, **kwargs):
     taskargs["headers"].update(kwargs.pop("_headers", {}))
     queue = kwargs.pop("_queue", deferred.deferred._DEFAULT_QUEUE)
     pickled = deferred.serialize(obj, *args, **kwargs)
+    if not taskargs["target"] and taskargs["countdown"] is None: # Don't increase too high otherwise keepalive_task will break
+        taskargs["target"] = get_backend_service()
     try:
         task = taskqueue.Task(payload=pickled, **taskargs)
         return task.add(queue, transactional=transactional)
