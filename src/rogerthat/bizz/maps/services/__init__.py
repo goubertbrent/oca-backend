@@ -392,20 +392,19 @@ def save_map_service(service_identity_user):
             continue
         if smd.tag in ('when_where',):
             continue
-        if smd.link or smd.screenBranding or smd.staticFlowKey or smd.form_id or smd.embeddedApp:
-            url_dict = {
-                'action_type': 'click',
-                'action': smd.hashed_tag,
-                'title': translator.translate(ServiceTranslation.HOME_TEXT, smd.label, lang),
-                'service': email
-            }
-            icon = smd.iconName if smd.iconName and smd.iconName.startswith('fa-') else None
-            item = MapServiceListItem(role_ids=['%s' % role for role in smd.roles],
-                                      item=LinkListSectionItemTO(icon=icon or 'fa-rocket',
-                                                                 icon_color=smd.iconColor,
-                                                                 title=url_dict['title'],
-                                                                 url='open://%s' % json.dumps(url_dict)))
-            map_service.vertical_items.append(item)
+        url_dict = {
+            'action_type': 'click',
+            'action': smd.hashed_tag,
+            'title': translator.translate(ServiceTranslation.HOME_TEXT, smd.label, lang),
+            'service': email
+        }
+        icon = smd.iconName if smd.iconName and smd.iconName.startswith('fa-') else None
+        item = MapServiceListItem(role_ids=['%s' % role for role in smd.roles],
+                                  item=LinkListSectionItemTO(icon=icon or 'fa-rocket',
+                                                             icon_color=smd.iconColor,
+                                                             title=url_dict['title'],
+                                                             url='open://%s' % json.dumps(url_dict)))
+        map_service.vertical_items.append(item)
 
     map_service.put()
     return map_service
