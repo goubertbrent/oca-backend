@@ -989,12 +989,13 @@ def _search_place_types(search_query, lang):
     result_data = es_request(path, urlfetch.POST, qry)
 
     if result_data['hits']['hits']:
+        search_query_lowercase = search_query.lower()
         hit = result_data['hits']['hits'][0]
         for title in hit['_source']['title_en']:
-            if title == search_query:
+            if title.lower() == search_query_lowercase:
                 return hit['_id']
         for title in hit['_source']['title_nl']:
-            if title == search_query:
+            if title.lower() == search_query_lowercase:
                 return hit['_id']
     return None
 

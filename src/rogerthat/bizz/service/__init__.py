@@ -2230,7 +2230,7 @@ def get_search_fields(service_user, service_identity_user):
         logging.warn('skipping place_types in get_search_fields for service_user:%s identifier:%s', service_user,
                      service_identity.identifier)
         return service_identity.name.lower(), list(tags), fields
-
+    fields.append(search.TextField(name='keywords', value=' '.join(service_info.keywords)))
     for place_type in service_info.place_types:
         place_details = get_place_details(place_type, 'en')
         if not place_details:
