@@ -28,7 +28,8 @@ from rogerthat.bizz.communities.to import BaseCommunityTO
 from rogerthat.bizz.friend_helper import FriendHelper
 from rogerthat.bizz.job import hookup_with_default_services, run_job
 from rogerthat.dal.profile import get_user_profiles_by_community
-from rogerthat.models import ServiceIdentity
+from rogerthat.models import ServiceIdentity, App, NdbUserProfile,\
+    NdbServiceProfile
 from rogerthat.rpc import users
 from rogerthat.to.friends import FRIEND_TYPE_SERVICE
 from rogerthat.utils.service import add_slash_default
@@ -57,6 +58,43 @@ def create_community(data):
     community.put()
     deferred.defer(setup_news_stream_community, community.id)
     return community
+
+
+def delete_community(community_id, delete=False):
+    from shop.models import Customer
+    logging.debug("delete_community id:%s", community_id)
+    community = get_community(community_id)
+    if not community:
+        logging.debug("community not found")
+        raise Exception('community_not_found')
+
+    can_delete = True
+    app_ids = [a.app_id for a in App.list_by_community_id(community_id)]
+    if app_ids:
+        logging.debug("community used in apps:%s", app_ids)
+        can_delete = False
+
+    user_profile_count = NdbUserProfile.list_by_community(community_id).count(None)
+    if user_profile_count > 0:
+        logging.debug("community used in users:%s", user_profile_count)
+        can_delete = False
+
+    service_profile_count = NdbServiceProfile.list_by_community(community_id).count(None)
+    if service_profile_count > 0:
+        logging.debug("community used in services:%s", service_profile_count)
+        can_delete = False
+
+    customer_count = Customer.list_by_community_id(community_id).count(None)
+    if customer_count > 0:
+        logging.debug("community used in customers:%s", customer_count)
+        can_delete = False
+
+    if not can_delete:
+        raise Exception('community_in_use')
+
+    logging.debug("Its okay to delete")
+    if delete:
+        community.key.delete()
 
 
 def update_community(community_id, data):

@@ -211,6 +211,10 @@ class App(CachedModelMixIn, db.Model):
     @classmethod
     def list_by_admin_service(cls, service_email):
         return cls.all().filter('admin_services', service_email)
+    
+    @classmethod
+    def list_by_community_id(cls, community_id):
+        return cls.all().filter('community_ids', community_id)
 
 
 class AppNameMapping(NdbModel):
@@ -1180,6 +1184,10 @@ class NdbServiceProfile(NdbProfile, BaseServiceProfile):
     @classmethod
     def _class_key(cls):
         return ['Profile', 'ServiceProfile']
+    
+    @classmethod
+    def list_by_community(cls, community_id):
+        return cls.query(cls.community_id == community_id)
 
 
 class ServiceProfile(Profile, BaseServiceProfile):
