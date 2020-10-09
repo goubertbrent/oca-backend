@@ -1577,7 +1577,7 @@ def rest_put_order_contact(customer_id, order_number, contact_id):
 def create_new_order(customer_id, contact_id, items, charge_interval=None, replace=False):
     try:
         create_order(customer_id, contact_id, items, charge_interval, replace,
-                     regio_manager_user=gusers.get_current_user())
+                     regio_manager_user=gusers.get_current_user(), should_auto_sign=True)
         return CreateOrderReturnStatusTO.create(True)
     except ReplaceBusinessException as e:
         return CreateOrderReturnStatusTO.create(False, e.message, True)

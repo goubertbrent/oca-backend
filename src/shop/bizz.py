@@ -407,8 +407,9 @@ def create_or_update_customer(current_user, customer_id, vat, name, address1, ad
 
 @returns(Order)
 @arguments(customer_or_id=(Customer, int, long), contact_or_id=(Contact, int, long), items=[OrderItemTO],
-           charge_interval=(int, long), replace=bool, regio_manager_user=gusers.User)
-def create_order(customer_or_id, contact_or_id, items, charge_interval=1, replace=False, regio_manager_user=None):
+           charge_interval=(int, long), replace=bool, regio_manager_user=gusers.User, should_auto_sign=bool)
+def create_order(customer_or_id, contact_or_id, items, charge_interval=1, replace=False, regio_manager_user=None,
+                 should_auto_sign=False):
     if isinstance(customer_or_id, Customer):
         customer = customer_or_id
     else:
@@ -516,20 +517,14 @@ def create_order(customer_or_id, contact_or_id, items, charge_interval=1, replac
 
         put_and_invalidate_cache(order, customer)
 
-        # sign orders that cost nothing.
-        if total_vat_incl == 0.0:
-            deferred.defer(sign_order, customer_id, order.order_number, u'', True, _countdown=2, _transactional=True,
-                           _queue=FAST_QUEUE)
-
         return order
 
-    def sign_demo_order(o_number):
-        if get_community(customer.community_id).demo:
-            # sign the order and do not create a charge
-            sign_order(customer_id, o_number, u'', no_charge=True)
-
     order = run_in_transaction(trans, True)
-    sign_demo_order(order.order_number)
+
+    # sign orders that either cost nothing or are made for a demo community
+    if should_auto_sign and total_vat_incl == 0.0 or get_community(customer.community_id).demo:
+        deferred.defer(sign_order, customer_id, order.order_number, u'', no_charge=True, _countdown=2,
+                       _transactional=db.is_in_transaction(), _queue=FAST_QUEUE)
     return order
 
 
@@ -2221,7 +2216,7 @@ def put_customer_with_service(service, name, address1, address2, zip_code, city,
             item.count = Product.get_by_code(product_code).default_count
             item.comment = u''
             order_items.append(item)
-            order = create_order(customer, contact, order_items)
+            order = create_order(customer, contact, order_items, should_auto_sign=False)
             order.status = Order.STATUS_SIGNED
             with closing(StringIO()) as pdf:
                 generate_order_or_invoice_pdf(pdf, customer, order, contact)
