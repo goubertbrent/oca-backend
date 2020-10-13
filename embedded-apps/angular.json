@@ -468,8 +468,7 @@
               "projects/cirklo/src/favicon.ico",
               "projects/cirklo/src/assets",
               {
-                // Don't include all icons to save 500Kb in the final .zip
-                "glob": "**/(cart|arrow-back|arrow-back-sharp|chevron-down|chevron-up|chevron-back|chevron-forward|close|map|call|mail|globe|time|trash-outline|add|business).svg",
+                "glob": "**/*.svg",
                 "input": "node_modules/ionicons/dist/ionicons/svg",
                 "output": "./svg"
               }
@@ -605,8 +604,7 @@
               "projects/trash-calendar/src/favicon.ico",
               "projects/trash-calendar/src/assets",
               {
-                // Don't include all icons to save 500Kb in the final .zip
-                "glob": "**/(arrow-back|arrow-back-sharp|chevron-down|chevron-up|chevron-back|chevron-forward|close|radio-button-off|search-sharp|close-sharp|checkmark-circle|settings-outline|notifications-outline).svg",
+                "glob": "**/*.svg",
                 "input": "node_modules/ionicons/dist/ionicons/svg",
                 "output": "./svg"
               }

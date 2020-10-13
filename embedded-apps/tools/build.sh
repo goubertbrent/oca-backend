@@ -17,6 +17,8 @@ dist_dir=${current_dir}/../dist
 cd ${dist_dir}/${project}
 indexpath="$dist_dir/$project/index.html"
 python ../../tools/set-version.py $(realpath "$indexpath")
+node ../../tools/remove-unused-svg.js "$dist_dir"/$project
 zip_path=${current_dir}/../"${project}".zip
+rm -f "$zip_path"
 zip -qr "$zip_path" .
 cd -
