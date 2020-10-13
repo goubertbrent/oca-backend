@@ -8,23 +8,12 @@ import { LOCALE_ID, Provider } from '@angular/core';
 registerLocaleData(localeEnGB);
 registerLocaleData(localeNl);
 
-export const DEFAULT_LOCALE = 'nl';
-// en-GB to avoid the month/day/year date formatting that americans use
-export const SUPPORTED_LOCALES: string[] = ['en-GB', 'nl'];
-// Must match filenames of the files in assets/i18n
+export const DEFAULT_LOCALE = 'en-GB';
+// en-GB first to avoid US formatting in non US countries
+export const SUPPORTED_LOCALES: string[] = ['en-GB', 'en-US', 'nl'];
+// Must match filenames of the files in assets/i18n for *all* embedded apps
 export const SUPPORTED_LANGUAGES = ['en', 'nl'];
 export const DEFAULT_LANGUAGE = 'nl';
-
-export function getLocaleFromLanguage(language: string) {
-  language = language.replace('_', '-');
-  const split = language.split('-');
-  for (const locale of SUPPORTED_LOCALES) {
-    if (locale.startsWith(language) || split[ 0 ] === locale.split('-')[ 0 ]) {
-      return locale;
-    }
-  }
-  return DEFAULT_LOCALE;
-}
 
 export function getLanguage(language: string) {
   language = language.replace('_', '-');
@@ -38,8 +27,15 @@ export function getLanguage(language: string) {
 }
 
 function getLocale() {
-  if (SUPPORTED_LOCALES.includes(navigator.language)) {
-    return navigator.language;
+  const userLocale = navigator.language.replace('_', '-');
+  if (SUPPORTED_LOCALES.includes(userLocale)) {
+    return userLocale;
+  }
+  const language = userLocale.split('-')[ 0 ];
+  for (const locale of SUPPORTED_LOCALES) {
+    if (locale.startsWith(language)) {
+      return locale;
+    }
   }
   return DEFAULT_LOCALE;
 }
