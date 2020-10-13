@@ -22,6 +22,7 @@ from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from google.appengine.ext import ndb
 from oauth2client.contrib.appengine import CredentialsNDBProperty
+from typing import List
 
 from mcfw.utils import Enum
 from rogerthat.dal import parent_ndb_key
@@ -338,16 +339,22 @@ class SolutionCalendar(NdbModel):
 
 class EventAnnouncement(NdbModel):
     image_url = ndb.TextProperty()
-    color_theme = ndb.TextProperty()
     title = ndb.TextProperty()
     description = ndb.TextProperty()
+    language = ndb.TextProperty()
+
+
+class EventTitle(NdbModel):
+    text = ndb.TextProperty()
+    theme = ndb.TextProperty()
+    language = ndb.TextProperty()
 
 
 class EventAnnouncements(NdbModel):
-    title = ndb.TextProperty()
-    title_theme = ndb.TextProperty()
-    items = ndb.LocalStructuredProperty(EventAnnouncement, repeated=True)  # type: List[EventAnnouncement]
+    # One model per supported language
+    titles = ndb.StructuredProperty(EventTitle, repeated=True, indexed=False)  # type: List[EventTitle]
+    items = ndb.StructuredProperty(EventAnnouncement, repeated=True, indexed=False)  # type: List[EventAnnouncement]
 
     @classmethod
-    def create_key(cls):
-        return ndb.Key(cls, u'EventAnnouncements')
+    def create_key(cls, country_code):
+        return ndb.Key(cls, country_code)

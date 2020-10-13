@@ -21,18 +21,14 @@ import datetime
 import time
 import urllib
 
-from google.appengine.ext import ndb
-
 from mcfw.consts import MISSING
 from mcfw.properties import unicode_property, long_property, bool_property, typed_property, long_list_property, \
     unicode_list_property, float_property
 from mcfw.rpc import parse_complex_value, serialize_complex_value
-from rogerthat.models import NdbProfile
 from rogerthat.settings import get_server_settings
 from rogerthat.to import ReturnStatusTO, TO
 from rogerthat.to.messaging import AttachmentTO
 from rogerthat.utils import get_epoch_from_datetime
-from rogerthat.utils.app import get_human_user_from_app_user
 from solutions import translate as common_translate
 from solutions.common.models import SolutionInboxMessage, SolutionBrandingSettings, SolutionSettings, \
     SolutionIdentitySettings
@@ -424,6 +420,19 @@ class EventItemTO(TO):
         if service_user and event_service_user != service_user:
             item.calendar_id = obj.organization_type
         return item
+
+
+class EventAnnouncementTO(TO):
+    image_url = unicode_property('image_url', default=None)
+    color_theme = unicode_property('color_theme', default=None)
+    title = unicode_property('title', default=None)
+    description = unicode_property('description', default=None)
+
+
+class EventAnnouncementsTO(TO):
+    items = typed_property('items', EventAnnouncementTO, True)
+    title = unicode_property('title', default=None)
+    title_theme = unicode_property('title_theme', default=None)
 
 
 class CreateEventItemTO(EventItemTO):

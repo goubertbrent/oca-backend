@@ -11,7 +11,7 @@
   <ng-container *ngIf="announcementList$ | async as announcementList">
     <h2 *ngIf="announcementList.title" style.color="var(--ion-color-{{announcementList.title_theme || 'dark' }})"
         class="ion-padding-start section-title">{{ announcementList.title }}</h2>
-    <ion-card *ngFor="let announcement of announcementList.items" [color]="announcement.color_theme">
+    <ion-card *ngFor="let announcement of announcementList.items">
       <img *ngIf="announcement.image_url" [src]="announcement.image_url">
       <ion-card-header>
         <ion-card-title>{{ announcement.title }}</ion-card-title>

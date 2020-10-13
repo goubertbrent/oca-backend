@@ -1,6 +1,5 @@
 export interface EventAnnouncement {
   image_url?: string;
-  color_theme?: string;
   title?: string;
   description?: string;
 }

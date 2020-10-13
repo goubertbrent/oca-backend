@@ -18,31 +18,30 @@
 from __future__ import unicode_literals
 
 import base64
-from cgi import FieldStorage
-from datetime import datetime, timedelta
 import json
 import logging
+from cgi import FieldStorage
+from datetime import datetime, timedelta
 from types import NoneType
 
-from google.appengine.ext import deferred, ndb
+import dateutil.parser
 import httplib2
+import pytz
+from babel.dates import format_datetime
+from dateutil.relativedelta import relativedelta
+from google.appengine.ext import deferred, ndb
+from icalendar import Calendar, Event as ICalenderEvent, vText, vCalAddress
 from oauth2client import client
 from oauth2client.client import HttpAccessTokenRefreshError
 
-from babel.dates import format_datetime
-import dateutil.parser
-from dateutil.relativedelta import relativedelta
-from icalendar import Calendar, Event as ICalenderEvent, vText, vCalAddress
 from mcfw.consts import MISSING
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.communities.models import AppFeatures
-import pytz
 from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_ndb_key
 from rogerthat.dal.app import get_app_by_id
-from rogerthat.dal.profile import get_service_profile
-from rogerthat.dal.service import get_service_identity
+from rogerthat.dal.profile import get_service_profile, get_user_profile
 from rogerthat.models import App
 from rogerthat.models.utils import ndb_allocate_ids
 from rogerthat.rpc import users
@@ -63,8 +62,7 @@ from solutions.common.models import SolutionSettings
 from solutions.common.models.agenda import SolutionCalendar, SolutionGoogleCredentials, Event, EventPeriod, \
     EventCalendarType, EventDate, EventMedia, EventMediaType, EventAnnouncements
 from solutions.common.to import EventItemTO, SolutionGoogleCalendarStatusTO, SolutionGoogleCalendarTO, \
-    CreateEventItemTO
-
+    CreateEventItemTO, EventAnnouncementsTO, EventAnnouncementTO
 
 try:
     from cStringIO import StringIO
@@ -424,12 +422,27 @@ def solution_load_events(service_user, email, method, params, tag, service_ident
 def get_events_announcements(service_user, email, method, params, tag, service_identity, user_details):
     r = SendApiCallCallbackResultTO()
 
-    announcements = EventAnnouncements.create_key().get()
+    user_profile = get_user_profile(user_details[0].toAppUser())
+    country = get_community(user_profile.community_id).country
+    announcements = EventAnnouncements.create_key(country).get()  # type: EventAnnouncements
     if not announcements:
-        r.error = u'No announcements'
+        r.result = json.dumps(EventAnnouncementsTO(items=[]).to_dict()).decode('utf-8')
         return r
-
-    r.result = json.dumps(announcements.to_dict()).decode('utf-8')
+    desired_lang = user_profile.language  # type: unicode
+    result = EventAnnouncementsTO(items=[])
+    for title in announcements.titles:
+        if desired_lang.startswith(title.language):
+            result.title = title.text
+            result.title_theme = title.theme
+            break
+    for announcement in announcements.items:
+        if desired_lang.startswith(announcement.language):
+            item = EventAnnouncementTO()
+            item.title = announcement.title
+            item.description = announcement.description
+            item.image_url = announcement.image_url
+            result.items.append(item)
+    r.result = json.dumps(result.to_dict()).decode('utf-8')
     return r
 
 
