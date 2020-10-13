@@ -22,8 +22,9 @@
 }
 
 #main_container {
-    background: url(/static/images/public/cirklo_background.jpg) no-repeat;
+    background: url(/static/images/public/cirklo_background.jpeg) no-repeat;
     background-size: cover;
+    background-position: top center;
 }
 
 #header {
