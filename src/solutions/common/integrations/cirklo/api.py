@@ -114,6 +114,9 @@ def get_cirklo_vouchers_services():
 
         for service_info, merchant in zip(models, osa_merchants):
             customer = customers_dict[merchant.customer_id]
+            if not customer.service_user:
+                merchant.key.delete()
+                continue
             cirklo_merchant = cirklo_dict.get(customer.user_email)
             should_save = False
             if cirklo_merchant:

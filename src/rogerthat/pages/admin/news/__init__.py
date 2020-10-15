@@ -64,6 +64,8 @@ class NewsHandler(NewsAdminHandler):
         for ns in ns_items:
             if not ns.community_id:
                 continue
+            if ns.community_id not in communities:
+                continue
             data[ns.community_id] = {
                 'ns': ns,
                 'data': {
