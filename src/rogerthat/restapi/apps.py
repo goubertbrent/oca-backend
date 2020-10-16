@@ -36,14 +36,14 @@ from rogerthat.exceptions.branding import BrandingValidationException, BadBrandi
 from rogerthat.models import QRTemplate
 from rogerthat.rpc.service import ServiceApiException
 from rogerthat.to import FileTO, UploadInfoTO
-from rogerthat.to.app import AppTO, AppQRTemplateTO, CreateAppTO, CreateAppQRTemplateTO, AppAssetFullTO, \
+from rogerthat.to.app import AppTO, AppQRTemplateTO, CreateAppQRTemplateTO, AppAssetFullTO, \
     DefaultBrandingTO, AppSettingsTO, PatchAppTO
 from rogerthat.to.branding import BrandingTO
 
 
 @rest('/console-api/apps', 'post', type=REST_TYPE_TO)
 @returns(AppTO)
-@arguments(data=CreateAppTO)
+@arguments(data=dict)
 def api_create_app(data):
     try:
         return AppTO.from_model(create_app(data))

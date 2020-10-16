@@ -158,7 +158,8 @@ def get_community_countries():
 
 
 def get_all_community_countries():
-    return [{'code': c.country, 'name': Locale('en', c.country).territory_name} for c in Community.list_countries()]
+    return [{'code': c.country, 'name': Locale('en', 'GB').territories[c.country]}
+            for c in Community.list_countries() if c.country]
 
 
 def connect_auto_connected_service(community_id, new_acs):

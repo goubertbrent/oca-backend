@@ -274,41 +274,41 @@ def is_valid_app_id(app_id):
 
 
 @returns(App)
-@arguments(data=CreateAppTO)
+@arguments(data=dict)
 def create_app(data):
-    # type: (CreateAppTO) -> App
+    # type: (dict) -> App
     from solutions.common.bizz.location_data_import import import_location_data
     from solutions.common.bizz.participation.proxy import register_app
+    create_app_to = CreateAppTO.from_dict(data)
+    if not is_valid_app_id(create_app_to.app_id):
+        raise InvalidAppIdException(create_app_to.app_id)
 
-    if not is_valid_app_id(data.app_id):
-        raise InvalidAppIdException(data.app_id)
-
-    def trans(create_app_to):
+    def trans():
         app_key = App.create_key(create_app_to.app_id)
         if App.get(app_key):
             raise DuplicateAppIdException(create_app_to.app_id)
         embedded_app_ids = [key.id().decode('utf-8')
-                            for key in EmbeddedApplication.list_by_app_type(data.app_type).fetch(keys_only=True)]
+                            for key in EmbeddedApplication.list_by_app_type(create_app_to.app_type).fetch(keys_only=True)]
         app = App(
             key=app_key,
-            type=data.app_type,
+            type=create_app_to.app_type,
             name=create_app_to.title,
             is_default=False,
             android_app_id=u'com.mobicage.rogerthat.%s' % create_app_to.app_id.replace('-', '.'),
-            dashboard_email_address=data.dashboard_email_address,
+            dashboard_email_address=create_app_to.dashboard_email_address,
             creation_time=now(),
-            country=data.country,
+            country=create_app_to.country,
             embedded_apps=embedded_app_ids,
         )
         app_settings = AppSettings(key=AppSettings.create_key(app.app_id),
                                    background_fetch_timestamps=[21600] if app.type == App.APP_TYPE_CITY_APP else [])
         db.put((app, app_settings))
 
-        deferred.defer(register_app, create_app_to.app_id, data.ios_developer_account, _transactional=True)
+        deferred.defer(register_app, create_app_to.app_id, create_app_to.ios_developer_account, _transactional=True)
         deferred.defer(create_app_group, create_app_to.app_id)
-        if data.official_id:
-            deferred.defer(import_location_data, app.app_id, app.country, data.official_id, _transactional=True)
-        appcfg_data = create_app_to.to_dict()
+        if create_app_to.official_id:
+            deferred.defer(import_location_data, app.app_id, app.country, create_app_to.official_id, _transactional=True)
+        appcfg_data = data.copy()
         server_settings = get_server_settings()
         appcfg_data['app_constants'] = {
             'EMAIL_HASH_ENCRYPTION_KEY': server_settings.emailHashEncryptionKey,
@@ -331,7 +331,7 @@ def create_app(data):
             raise HttpException.from_urlfetchresult(response)
         return app
 
-    return run_in_xg_transaction(trans, data)
+    return run_in_xg_transaction(trans)
 
 
 @returns(App)
