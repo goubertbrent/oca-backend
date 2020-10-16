@@ -312,9 +312,9 @@ def create_app(data):
         server_settings = get_server_settings()
         appcfg_data['app_constants'] = {
             'EMAIL_HASH_ENCRYPTION_KEY': server_settings.emailHashEncryptionKey,
-            'REGISTRATION_EMAIL_SIGNATURE': server_settings.registrationEmailSignature,
-            'REGISTRATION_MAIN_SIGNATURE': server_settings.registrationMainSignature,
-            'REGISTRATION_PIN_SIGNATURE': server_settings.registrationPinSignature,
+            'REGISTRATION_EMAIL_SIGNATURE': base64.b64decode(server_settings.registrationEmailSignature),
+            'REGISTRATION_MAIN_SIGNATURE': base64.b64decode(server_settings.registrationMainSignature),
+            'REGISTRATION_PIN_SIGNATURE': base64.b64decode(server_settings.registrationPinSignature),
             'GOOGLE_MAPS_KEY': server_settings.googleMapsKey,
         }
         appcfg_data['cloud_constants'] = {
