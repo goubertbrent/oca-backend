@@ -1,10 +1,10 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { FormArray, FormBuilder, Validators } from '@angular/forms';
 import { select, Store } from '@ngrx/store';
 import { ErrorService, NewsGroupType } from '@oca/web-shared';
 import { IFormArray, IFormBuilder, IFormGroup } from '@rxweb/types';
 import { Observable, Subject } from 'rxjs';
-import { GetGlobalConfigAction } from '../../../shared/shared.actions';
+import { filter, takeUntil } from 'rxjs/operators';
 import { NewsCommunity, RssScraper, RssSettings } from '../../news';
 import { GetCommunities } from '../../news.actions';
 import { NewsService } from '../../news.service';
@@ -33,6 +33,7 @@ export class NewsSettingsPageComponent implements OnInit, OnDestroy {
   scraperFormGroup: IFormGroup<RssScraper>;
   editingScraper: RssScraper | null = null;
   editingIndex = -1;
+  communityNameMapping = new Map<number, string>();
 
   private formBuilder: IFormBuilder;
   private destroyed$ = new Subject();
@@ -40,6 +41,7 @@ export class NewsSettingsPageComponent implements OnInit, OnDestroy {
   constructor(formBuilder: FormBuilder,
               private store: Store,
               private errorService: ErrorService,
+              private changeDetectorRef: ChangeDetectorRef,
               private newsService: NewsService) {
     this.formBuilder = formBuilder;
   }
@@ -52,6 +54,12 @@ export class NewsSettingsPageComponent implements OnInit, OnDestroy {
     this.scraperFormGroup = this.newScraperGroup();
     this.store.dispatch(new GetCommunities());
     this.communities$ = this.store.pipe(select(getNewsCommunities));
+    this.communities$.pipe(takeUntil(this.destroyed$)).subscribe(communities => {
+      for (const community of communities) {
+        this.communityNameMapping.set(community.id, community.name);
+      }
+      this.changeDetectorRef.markForCheck();
+    });
     this.newsService.getRssSettings().subscribe(settings => {
       for (const scraper of settings.scrapers) {
         this.scrapers.push(this.newScraperGroup());
