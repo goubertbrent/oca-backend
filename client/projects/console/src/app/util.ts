@@ -19,7 +19,7 @@ export function normalizeColorOutput(input: string | null) {
 export abstract class AbstractControlValueAccessor implements ControlValueAccessor {
   onTouched: () => void;
   onChange: (_: any) => void;
-  private _value: any = null;
+  protected _value: any = null;
 
   get value(): any {
     return this._value;

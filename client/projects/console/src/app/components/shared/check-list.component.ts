@@ -1,39 +1,50 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { ControlValueAccessor } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, Input, ViewChild } from '@angular/core';
+import { ControlValueAccessor, FormControl } from '@angular/forms';
+import { MatSelectionList, MatSelectionListChange } from '@angular/material/list';
 import { CheckListItem } from '../../interfaces';
 import { AbstractControlValueAccessor, makeNgModelProvider } from '../../util';
 
-// TODO might want to change this by MatSelectionList
 @Component({
   selector: 'rcc-check-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: 'check-list.component.html',
-  providers: [ makeNgModelProvider(CheckListComponent) ],
+  providers: [makeNgModelProvider(CheckListComponent)],
 })
 export class CheckListComponent extends AbstractControlValueAccessor implements ControlValueAccessor {
-  get items() {
-    return this.value || [];  // From AbstractControlValueAccessor
-  }
+  @ViewChild(MatSelectionList, { static: true }) selectionList: MatSelectionList;
+  formControl = new FormControl([]);
 
-  set items(items: CheckListItem[]) {
-    this.value = items; // From AbstractControlValueAccessor
-    this.onTouched();
-  }
+  @Input() options: CheckListItem[] = [];
 
   get allChecked() {
-    return this.items.every(i => i.checked);
+    return this.value?.length === this.options.length;
   }
 
   get allUnchecked() {
-    return this.items.every(i => !i.checked);
+    return this.value?.length === 0;
   }
 
-  setAll(checked: boolean) {
-    this.items = this.items.map(item => ({ ...item, checked }));
+  writeValue(value: any) {
+    super.writeValue(value);
+    this.formControl.setValue(value, { emitEvent: false });
   }
 
-  onModelChange(value: CheckListItem) {
-    this.items = JSON.parse(JSON.stringify((this.items)));
+  private setValue(value: any[]){
+    this.value = value;
+    this.onTouched();
   }
 
+  selectionChange($event: MatSelectionListChange) {
+    this.setValue($event.source._value as any[]);
+  }
+
+  selectAll() {
+    this.selectionList.selectAll();
+    this.setValue(this.selectionList._value as any[]);
+  }
+
+  deselectAll() {
+    this.selectionList.deselectAll();
+    this.setValue(this.selectionList._value as any[]);
+  }
 }

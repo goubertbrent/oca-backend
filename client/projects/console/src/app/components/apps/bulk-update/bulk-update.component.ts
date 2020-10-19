@@ -21,7 +21,7 @@ import { App, AppMetaData, AppTypes, BuildType, BulkUpdatePayload } from '../../
       [defaultMetaDataStatus]="defaultMetaDataStatus$ | async"
       [appsStatus]="appsStatus$ | async"
       [updateStatus]="updateStatus$ | async"
-      (start)="startBuilds($event)">
+      (startBulkUpdate)="startBuilds($event)">
     </rcc-bulk-update-form>
   `,
 })

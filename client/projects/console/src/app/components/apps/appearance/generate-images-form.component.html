@@ -13,8 +13,7 @@
   <rcc-api-request-status [status]="status"></rcc-api-request-status>
   <div class="form-row">
     <h3>{{ 'rcc.images' | translate }}</h3>
-    <rcc-check-list [(ngModel)]="imagesList" (ngModelChange)="setImages($event)" name="images"
-                    #images="ngModel"></rcc-check-list>
+    <rcc-check-list [(ngModel)]="payload.types" [options]="imagesList" name="images" #images="ngModel"></rcc-check-list>
     <mat-error *ngIf="!payload.types.length && images.touched">
       {{ 'rcc.please_select_at_least_x_items' | translate : {items: 1} }}
     </mat-error>

@@ -7,9 +7,7 @@ export interface NavigationItem {
   label: string;
 }
 
-
 export interface CheckListItem {
   label: Observable<string>;
   value: any;
-  checked: boolean;
 }

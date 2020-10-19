@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { ApiRequestStatus } from '../../../../../framework/client/rpc';
@@ -19,11 +19,14 @@ import { cloneDeep } from '../../../util';
   changeDetection: ChangeDetectionStrategy.Default,
   templateUrl: 'bulk-update-form.component.html',
 })
-export class BulkUpdateFormComponent implements OnInit, OnChanges {
+export class BulkUpdateFormComponent implements OnChanges {
   public buildTypes: BuildType[] = Object.keys(BUILD_TYPE_STRINGS).map(i => parseInt(i));
   languages: Language[];
   // selections
-  buildTypeList: CheckListItem[];
+  buildTypeList: CheckListItem[] = this.buildTypes.map(type => ({
+    label: this.translate.get(this.buildType(type)),
+    value: type,
+  }));
   appList: CheckListItem[] = [];
   // release notes (metadata)
   currentMetadata: AppMetaData;
@@ -31,7 +34,8 @@ export class BulkUpdateFormComponent implements OnInit, OnChanges {
   @Input() updateStatus: ApiRequestStatus;
   @Input() appsStatus: ApiRequestStatus;
   @Input() defaultMetaDataStatus: ApiRequestStatus;
-  @Output() start = new EventEmitter<BulkUpdatePayload>();
+  @Output() startBulkUpdate = new EventEmitter<BulkUpdatePayload>();
+
   private metadataChanged = false;
 
   constructor(private translate: TranslateService) {
@@ -59,15 +63,6 @@ export class BulkUpdateFormComponent implements OnInit, OnChanges {
     this._bulkUpdateOptions = cloneDeep(value);
   }
 
-  ngOnInit() {
-    // build types check list
-    this.buildTypeList = this.buildTypes.map(type => <CheckListItem>{
-      label: this.translate.get(this.buildType(type)),
-      value: type,
-      checked: true,
-    });
-  }
-
   ngOnChanges(changes: SimpleChanges) {
     if (changes.apps || changes.defaultMetaData) {
       if (this.apps.length) {
@@ -80,20 +75,11 @@ export class BulkUpdateFormComponent implements OnInit, OnChanges {
     }
   }
 
-  setBuildTypes(items: CheckListItem[]) {
-    this.bulkUpdateOptions.types = items.filter(item => item.checked).map(item => item.value);
-  }
-
-  setApps(items: CheckListItem[]) {
-    this.bulkUpdateOptions.app_ids = items.filter(item => item.checked).map(item => item.value);
-  }
-
   createAppCheckList() {
-    this.appList = this.apps.map(app => <CheckListItem>{
+    this.appList = this.apps.map(app => ({
       label: of(`${app.title} (${app.app_id})`),
       value: app.app_id,
-      checked: false,
-    });
+    }));
   }
 
   getLanguages() {
@@ -117,25 +103,25 @@ export class BulkUpdateFormComponent implements OnInit, OnChanges {
     languageCode = languageCode.split('-')[ 0 ];
     const metadata = this.defaultMetaData.find(m => m.language === languageCode);
     if (metadata) {
-      return <AppMetaData>metadata;
+      return metadata as AppMetaData;
     }
     // Fallback to english
-    return <AppMetaData>this.defaultMetaData.find(m => m.language === 'en');
+    return this.defaultMetaData.find(m => m.language === 'en') as AppMetaData;
   }
 
   createMetaData() {
     this.bulkUpdateOptions.metadata = this.languages.map(language => {
       const metadata = this.getDefaultMetaData(language.code);
-      return <AppMetaData>{
+      return {
         language: language.code,
         release_notes: metadata.release_notes,
-      };
+      } as AppMetaData;
     });
     this.currentMetadata = this.bulkUpdateOptions.metadata[ 0 ];
   }
 
   getLanguageMetaData(languageCode: string): AppMetaData {
-    return <AppMetaData>this.bulkUpdateOptions.metadata.find(m => m.language === languageCode);
+    return this.bulkUpdateOptions.metadata.find(m => m.language === languageCode) as AppMetaData;
   }
 
   currentMetadataChanged(text: string) {
@@ -155,6 +141,6 @@ export class BulkUpdateFormComponent implements OnInit, OnChanges {
       // keep the metadata of apps set as-is
       options.metadata = [];
     }
-    this.start.emit(options);
+    this.startBulkUpdate.emit(options);
   }
 }

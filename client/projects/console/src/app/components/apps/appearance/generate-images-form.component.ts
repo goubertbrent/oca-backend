@@ -1,14 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  ElementRef,
-  EventEmitter,
-  Input,
-  OnInit,
-  Output,
-  ViewChild,
-} from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { ApiRequestStatus } from '../../../../../framework/client/rpc';
 import { AppImageInfo, CheckListItem, GenerateImagesPayload } from '../../../interfaces';
@@ -19,23 +9,13 @@ import { ImageSelector } from '../../../util';
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: 'generate-images-form.component.html',
 })
-export class AppearanceGenerateImagesFormComponent extends ImageSelector implements OnInit {
-  private excludedImages = [ 'about_footer' ];
+export class AppearanceGenerateImagesFormComponent extends ImageSelector {
+  payload: GenerateImagesPayload = {
+    file: null,
+    types: [],
+  };
+  private excludedImages = ['about_footer'];
 
-  @Input() set imagesInfo(info: AppImageInfo[]) {
-    if (info) {
-      this._imagesInfo = info.filter(i => !this.excludedImages.includes(i.type));
-      this.imagesList = this.imagesInfo.map(i => <CheckListItem>{
-        label: this.translate.stream(`rcc.${ i.type }`),
-        value: i.type,
-        checked: true,
-      });
-    }
-  }
-
-  get imagesInfo(): AppImageInfo[] {
-    return this._imagesInfo;
-  }
 
   @Input() status: ApiRequestStatus;
   @Input() generateStatus: ApiRequestStatus;
@@ -44,7 +24,20 @@ export class AppearanceGenerateImagesFormComponent extends ImageSelector impleme
 
   @ViewChild('file', { static: true }) file: ElementRef;
 
-  payload: GenerateImagesPayload;
+  get imagesInfo(): AppImageInfo[] {
+    return this._imagesInfo;
+  }
+
+  @Input() set imagesInfo(info: AppImageInfo[]) {
+    if (info) {
+      this._imagesInfo = info.filter(i => !this.excludedImages.includes(i.type));
+      this.imagesList = this.imagesInfo.map(i => ({
+        label: this.translate.stream(`rcc.${i.type}`),
+        value: i.type,
+      }));
+      this.payload.types = this.imagesList.map(item => item.value);
+    }
+  }
   imagesList: CheckListItem[];
   errorMessage: string;
 
@@ -55,13 +48,6 @@ export class AppearanceGenerateImagesFormComponent extends ImageSelector impleme
   constructor(private translate: TranslateService,
               private cdRef: ChangeDetectorRef) {
     super();
-  }
-
-  ngOnInit() {
-    this.payload = <GenerateImagesPayload>{
-      file: null,
-      types: [],
-    };
   }
 
   onFileSelected(file: File) {
@@ -82,10 +68,6 @@ export class AppearanceGenerateImagesFormComponent extends ImageSelector impleme
       this.file.nativeElement.value = '';
     }
     this.cdRef.markForCheck();
-  }
-
-  setImages(items: CheckListItem[]) {
-    this.payload.types = items.filter(item => item.checked).map(item => item.value);
   }
 
   submit() {

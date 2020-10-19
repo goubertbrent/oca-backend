@@ -3,7 +3,7 @@
   <form novalidate #buildsForm="ngForm">
     <div class="form-row">
       <h3>{{ 'rcc.platform' | translate }}</h3>
-      <rcc-check-list [(ngModel)]="buildTypeList" (ngModelChange)="setBuildTypes($event)" #buildTypes="ngModel"
+      <rcc-check-list [(ngModel)]="bulkUpdateOptions.types" [options]="buildTypeList" #buildTypes="ngModel"
                       name="build_types"></rcc-check-list>
       <mat-error *ngIf="!bulkUpdateOptions.types.length && buildTypes.touched">
         {{ 'rcc.please_select_at_least_x_items' | translate : {items: 1} }}
@@ -19,7 +19,7 @@
     <div class="form-row">
       <h3>{{ 'rcc.apps' | translate }}</h3>
       <rcc-api-request-status [status]="appsStatus"></rcc-api-request-status>
-      <rcc-check-list [(ngModel)]="appList" (ngModelChange)="setApps($event)" name="app_ids"
+      <rcc-check-list [(ngModel)]="bulkUpdateOptions.app_ids" [options]="appList" name="app_ids"
                       #appIds="ngModel"></rcc-check-list>
       <mat-error *ngIf="!bulkUpdateOptions.app_ids.length && appIds.touched">
         {{ 'rcc.please_select_at_least_x_items' | translate : {items: 1} }}
