@@ -41,6 +41,10 @@ export class CommunityService {
     return this.http.put<Community>(`/console-api/communities/${communityId}`, value);
   }
 
+  deleteCommunity(communityId: number) {
+    return this.http.delete(`/console-api/communities/${communityId}`);
+  }
+
   getNewsSettings(communityId: number) {
     return this.http.get<NewsSettingsWithGroups>(`/console-api/communities/${communityId}/news-settings`);
   }

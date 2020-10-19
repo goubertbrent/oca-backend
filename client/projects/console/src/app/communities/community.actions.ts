@@ -1,6 +1,21 @@
 import { createAction, props } from '@ngrx/store';
 import { Community, CreateCommunity } from './community/communities';
 
+export const loadCommunities = createAction(
+  '[Community] Load Communities',
+  props<{ country: string }>(),
+);
+
+export const loadCommunitiesSuccess = createAction(
+  '[Community] Load Communities Success',
+  props<{ communities: Community[] }>(),
+);
+
+export const loadCommunitiesFailure = createAction(
+  '[Community] Load Communities Failure',
+  props<{ error: string }>(),
+);
+
 export const loadCommunity = createAction(
   '[Community] Load Community',
   props<{ id: number }>(),
@@ -43,5 +58,20 @@ export const updateCommunitySuccess = createAction(
 
 export const updateCommunityFailure = createAction(
   '[Community] Update Community Failure',
+  props<{ error: string }>(),
+);
+
+export const deleteCommunity = createAction(
+  '[Community] Delete Community',
+  props<{ id: number }>(),
+);
+
+export const deleteCommunitySuccess = createAction(
+  '[Community] Delete Community Success',
+  props<{ id: number }>(),
+);
+
+export const deleteCommunityFailure = createAction(
+  '[Community] Delete Community Failure',
   props<{ error: string }>(),
 );

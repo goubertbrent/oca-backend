@@ -62,37 +62,37 @@ def create_community(data):
 
 def delete_community(community_id, delete=False):
     from shop.models import Customer
-    logging.debug("delete_community id:%s", community_id)
+    logging.debug('Checking if community can be deleted: %s', community_id)
     community = get_community(community_id)
     if not community:
-        logging.debug("community not found")
-        raise Exception('community_not_found')
+        logging.debug('Community not found')
+        raise Exception('Community not found')
 
     can_delete = True
     app_ids = [a.app_id for a in App.list_by_community_id(community_id)]
     if app_ids:
-        logging.debug("community used in apps:%s", app_ids)
+        logging.debug('community used in apps:%s', app_ids)
         can_delete = False
 
     user_profile_count = NdbUserProfile.list_by_community(community_id).count(None)
     if user_profile_count > 0:
-        logging.debug("community used in users:%s", user_profile_count)
+        logging.debug('community used in users:%s', user_profile_count)
         can_delete = False
 
     service_profile_count = NdbServiceProfile.list_by_community(community_id).count(None)
     if service_profile_count > 0:
-        logging.debug("community used in services:%s", service_profile_count)
+        logging.debug('community used in services:%s', service_profile_count)
         can_delete = False
 
     customer_count = Customer.list_by_community_id(community_id).count(None)
     if customer_count > 0:
-        logging.debug("community used in customers:%s", customer_count)
+        logging.debug('community used in customers:%s', customer_count)
         can_delete = False
 
     if not can_delete:
-        raise Exception('community_in_use')
+        raise Exception('This community is still in use and cannot be deleted')
 
-    logging.debug("Its okay to delete")
+    logging.debug('Its okay to delete')
     if delete:
         community.key.delete()
 

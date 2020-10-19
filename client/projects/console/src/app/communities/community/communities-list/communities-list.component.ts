@@ -1,40 +1,41 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { Observable, Subject } from 'rxjs';
+import { select, Store } from '@ngrx/store';
+import { IFormControl } from '@rxweb/types';
+import { Observable } from 'rxjs';
+import { getCommunities } from '../../communities.selectors';
+import { deleteCommunity, loadCommunities } from '../../community.actions';
 import { CommunityService } from '../../community.service';
 import { Community } from '../communities';
 
 @Component({
-  selector: 'oca-communities-list',
+  selector: 'rcc-communities-list',
   templateUrl: './communities-list.component.html',
   styleUrls: ['./communities-list.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CommunitiesListComponent implements OnInit {
-  countryFormControl = new FormControl('BE', Validators.required);
+  countryFormControl = new FormControl('BE', Validators.required) as IFormControl<string>;
   formGroup = new FormGroup({
     country: this.countryFormControl,
   });
   countries$: Observable<{ code: string; name: string; }[]>;
-  communities$ = new Subject<Community[]>();
+  communities$: Observable<Community[]>;
 
   constructor(private communityService: CommunityService,
-              private changeDetectionRef: ChangeDetectorRef) {
+              private store: Store) {
   }
 
   ngOnInit(): void {
+    this.store.dispatch(loadCommunities({ country: this.countryFormControl.value! }));
     this.countries$ = this.communityService.getCountries();
-    this.fetchCommunities(this.countryFormControl.value);
+    this.communities$ = this.store.pipe(select(getCommunities));
     this.countryFormControl.valueChanges.subscribe(country => {
-      this.fetchCommunities(country);
+      this.store.dispatch(loadCommunities({ country: country! }));
     });
   }
 
-  fetchCommunities(country: string) {
-    this.communityService.getCommunities(country).subscribe(communities => {
-      this.communities$.next(communities);
-      this.changeDetectionRef.markForCheck();
-    });
+  deleteCommunity(id: number) {
+    this.store.dispatch(deleteCommunity({ id }));
   }
-
 }

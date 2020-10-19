@@ -18,7 +18,7 @@ from mcfw.consts import REST_TYPE_TO
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.communities.communities import create_community, get_community, get_communities_by_country, \
-    update_community, get_all_community_countries
+    update_community, get_all_community_countries, delete_community
 from rogerthat.bizz.communities.news import get_news_settings, upload_news_background_image, update_news_stream
 from rogerthat.bizz.communities.to import CommunityTO, BaseCommunityTO
 from rogerthat.to.news import NewsSettingsTO, NewsGroupConfigTO, NewsSettingsWithGroupsTO
@@ -57,6 +57,13 @@ def rest_get_community(community_id):
 @arguments(community_id=(int, long), data=BaseCommunityTO)
 def rest_update_community(community_id, data):
     return CommunityTO.from_model(update_community(community_id, data))
+
+
+@rest('/console-api/communities/<community_id:\d+>', 'delete')
+@returns()
+@arguments(community_id=(int, long))
+def rest_delete_community(community_id):
+    delete_community(community_id, True)
 
 
 @rest('/console-api/communities/<community_id:\d+>/news-settings', 'get')

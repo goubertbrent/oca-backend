@@ -17,7 +17,6 @@ import { CommunityService } from '../../community.service';
 export class CreateCommunityComponent implements OnInit {
   apps$: Observable<SimpleApp[]>;
   embeddedApps$: Observable<EmbeddedApp[]>;
-  community$: Observable<Community>;
   communityLoading$: Observable<boolean>;
 
   constructor(private store: Store,

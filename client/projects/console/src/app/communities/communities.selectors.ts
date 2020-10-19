@@ -4,5 +4,6 @@ import { CommunitiesState, communityFeatureKey } from './community.reducer';
 
 const feat = createFeatureSelector<CommunitiesState>(communityFeatureKey);
 
+export const getCommunities = createSelector(feat, s => s.communities.result ?? []);
 export const isCommunityLoading = createSelector(feat, s => s.community.state === CallStateType.LOADING);
 export const getCommunity = createSelector(feat, s => s.community.result);

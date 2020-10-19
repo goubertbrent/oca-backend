@@ -7,10 +7,13 @@
     </mat-select>
   </mat-form-field>
 </form>
-<mat-nav-list>
-  <a *ngFor="let community of communities$ | async" [routerLink]="[community.id]" mat-list-item>
-    {{ community.name }}
-  </a>
+<mat-nav-list class="community-list">
+  <mat-list-item *ngFor="let community of communities$ | async">
+    <a [routerLink]="[community.id]" matLine>{{ community.name }}</a>
+    <button type="button" mat-icon-button (click)="deleteCommunity(community.id)">
+      <mat-icon>delete</mat-icon>
+    </button>
+  </mat-list-item>
 </mat-nav-list>
 
 <div class="fab-bottom-right">
