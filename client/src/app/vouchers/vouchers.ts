@@ -35,6 +35,4 @@ export interface CirkloSettings {
   signup_name_nl: string | null;
   signup_name_fr: string | null;
   signup_mail: SignupMails | null;
-  signup_mail_id_accepted: string | null;
-  signup_mail_id_denied: string | null;
 }

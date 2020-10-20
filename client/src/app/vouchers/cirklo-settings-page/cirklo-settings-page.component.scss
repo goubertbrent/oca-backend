@@ -8,3 +8,15 @@
 .full-width {
   width: 100%;
 }
+
+.image-container {
+  display: flex;
+  align-items: center;
+  row-gap: 16px;
+  flex-direction: column;
+  margin-bottom: 16px;
+
+  img {
+    height: 100px;
+  }
+}

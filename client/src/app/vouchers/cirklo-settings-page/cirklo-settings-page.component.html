@@ -13,15 +13,27 @@
   <mat-form-field class="full-width">
     <mat-label>Logo url</mat-label>
     <input formControlName="logo_url" matInput>
+    <button (click)="changeLogo()" mat-icon-button matSuffix type="button">
+      <mat-icon>insert_photo</mat-icon>
+    </button>
     <mat-hint>This logo is the one shown on vouchers in the app</mat-hint>
   </mat-form-field>
+  <div *ngIf="formGroup.controls.logo_url.value as logo" class="image-container">
+    <img [src]="logo" alt="Logo"/>
+  </div>
   <h2>Signup</h2>
   <mat-slide-toggle formControlName="signup_enabled" style="margin-bottom: 8px">Signup enabled</mat-slide-toggle>
   <mat-form-field class="full-width">
     <mat-label>Signup Logo url</mat-label>
     <input formControlName="signup_logo_url" matInput>
+    <button (click)="changeSignupLogo()" mat-icon-button matSuffix type="button">
+      <mat-icon>insert_photo</mat-icon>
+    </button>
     <mat-hint>Logo shown on the cirklo-only signup page</mat-hint>
   </mat-form-field>
+  <div *ngIf="formGroup.controls.signup_logo_url.value as signupLogo" class="image-container">
+    <img [src]="signupLogo" alt="Signup logo"/>
+  </div>
   <mat-form-field class="full-width">
     <mat-label>Signup name NL</mat-label>
     <input formControlName="signup_name_nl" matInput>
