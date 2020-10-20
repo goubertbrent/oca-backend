@@ -157,7 +157,7 @@ def _send_form_submission_email(emails, service_profile, form, submission, reply
     settings = get_server_settings()
 
     community = get_community(service_profile.community_id)
-    service_info = ServiceInfo.create_key(service_profile, ServiceIdentity.DEFAULT).get()
+    service_info = ServiceInfo.create_key(service_profile.service_user, ServiceIdentity.DEFAULT).get()
     app = get_app_by_id(community.default_app)
     lang = get_solution_settings(service_profile.service_user).main_language
 
