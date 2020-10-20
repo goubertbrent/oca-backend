@@ -2221,7 +2221,8 @@ def get_search_fields(service_user, service_identity_user):
     tags = {
         SearchTag.community(community.id),
         SearchTag.country(community.country),
-        SearchTag.environment(community.demo)
+        SearchTag.environment(community.demo),
+        SearchTag.organization_type(service_profile.organizationType),
     }
     keys = [ServiceInfo.create_key(service_user, service_identity.identifier),
             CirkloMerchant.create_key(service_user.email())]

@@ -211,7 +211,7 @@ class App(CachedModelMixIn, db.Model):
     @classmethod
     def list_by_admin_service(cls, service_email):
         return cls.all().filter('admin_services', service_email)
-    
+
     @classmethod
     def list_by_community_id(cls, community_id):
         return cls.all().filter('community_ids', community_id)
@@ -1078,9 +1078,25 @@ class BaseServiceProfile(object):
     FLAG_CLEAR_BROADCAST_SETTINGS_CACHE = 1
     FLAGS = (FLAG_CLEAR_BROADCAST_SETTINGS_CACHE,)
 
+    ORGANIZATION_TYPE_TRANSLATION_KEYS = {
+        ORGANIZATION_TYPE_NON_PROFIT: 'Associations',
+        ORGANIZATION_TYPE_PROFIT: 'Merchants',
+        ORGANIZATION_TYPE_CITY: 'Community Services',
+        ORGANIZATION_TYPE_EMERGENCY: 'Care',
+        ORGANIZATION_TYPE_UNSPECIFIED: 'Services',
+    }
+
+    ORGANIZATION_TYPE_ICONS = {
+        ORGANIZATION_TYPE_NON_PROFIT: 'fa-users',
+        ORGANIZATION_TYPE_PROFIT: 'fa-shopping-bag',
+        ORGANIZATION_TYPE_CITY: '',
+        ORGANIZATION_TYPE_EMERGENCY: 'fa-heart',
+        ORGANIZATION_TYPE_UNSPECIFIED: '',
+    }
+
     @property
     def usesHttpCallback(self):
-        return not self.callBackURI is None
+        return self.callBackURI is not None
 
     def callbackEnabled(self, callback):
         return self.callbacks & callback == callback
@@ -1108,13 +1124,7 @@ class BaseServiceProfile(object):
 
     @staticmethod
     def localized_plural_organization_type(organization_type, language, app_id):
-        translation_keys = {
-            ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT: 'Associations',
-            ServiceProfile.ORGANIZATION_TYPE_PROFIT: 'Merchants',
-            ServiceProfile.ORGANIZATION_TYPE_CITY: 'Community Services',
-            ServiceProfile.ORGANIZATION_TYPE_EMERGENCY: 'Care',
-            ServiceProfile.ORGANIZATION_TYPE_UNSPECIFIED: 'Services',
-        }
+        translation_keys = BaseServiceProfile.ORGANIZATION_TYPE_TRANSLATION_KEYS
         if organization_type not in translation_keys:
             raise ValueError('Missing translation for organizationType %s' % organization_type)
         return localize_app_translation(language, translation_keys[organization_type], app_id)
@@ -1184,7 +1194,7 @@ class NdbServiceProfile(NdbProfile, BaseServiceProfile):
     @classmethod
     def _class_key(cls):
         return ['Profile', 'ServiceProfile']
-    
+
     @classmethod
     def list_by_community(cls, community_id):
         return cls.query(cls.community_id == community_id)

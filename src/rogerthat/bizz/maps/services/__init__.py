@@ -40,7 +40,7 @@ from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_user_profile, get_service_profile
 from rogerthat.dal.service import get_service_menu_items
 from rogerthat.models import UserProfileInfo, OpeningHours, ServiceIdentity, \
-    ServiceTranslation, ServiceRole, UserProfile, App, AppServiceFilter
+    ServiceTranslation, ServiceRole, UserProfile, App, AppServiceFilter, ServiceProfile
 from rogerthat.models.elasticsearch import ElasticsearchSettings
 from rogerthat.models.maps import MapConfig, MapSavedItem, MapService, \
     MapServiceListItem
@@ -65,6 +65,8 @@ from rogerthat.utils.service import add_slash_default, remove_slash_default, \
     create_service_identity_user
 
 SERVICES_TAG = 'services'
+
+ORGANIZATION_TYPE_SEARCH_PREFIX = 'organization-type-'
 
 OPENING_HOURS_GREEN_COLOR = u'51bd13'
 OPENING_HOURS_RED_COLOR = u'b01717'
@@ -94,6 +96,11 @@ class SearchTag(object):
     @staticmethod
     def place_type(place_type):
         return 'place_type#%s' % place_type
+
+    @staticmethod
+    def organization_type(organization_type):
+        # type: (int) -> unicode
+        return 'organization_type#%d' % organization_type
 
 
 def get_clean_language_code(lang):
@@ -132,8 +139,13 @@ def get_map(app_user):
                                 MapFunctionality.SEARCH,
                                 MapFunctionality.SAVE]
 
-    action_place_types = ['restaurant', 'bar', 'supermarket', 'bakery', 'butcher_shop', 'clothing_store', 'pharmacy', 'establishment_poi']
-    response.action_chips = []
+    action_place_types = ['restaurant', 'bar', 'supermarket', 'bakery', 'butcher_shop', 'clothing_store', 'pharmacy',
+                          'establishment_poi']
+    response.action_chips = [
+        get_organization_type_search_suggestion(ServiceProfile.ORGANIZATION_TYPE_PROFIT, language),
+        get_organization_type_search_suggestion(ServiceProfile.ORGANIZATION_TYPE_EMERGENCY, language),
+        get_organization_type_search_suggestion(ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT, language),
+    ]
     for place_type in action_place_types:
         place_details = get_place_details(place_type, language)
         if not place_details:
@@ -151,6 +163,12 @@ def get_map(app_user):
     return response
 
 
+def get_organization_type_search_suggestion(organization_type, language):
+    translation = localize(language, ServiceProfile.ORGANIZATION_TYPE_TRANSLATION_KEYS[organization_type])
+    icon = ServiceProfile.ORGANIZATION_TYPE_ICONS[organization_type]
+    return SearchSuggestionTO(icon=icon, title=translation)
+
+
 @returns(GetMapSearchSuggestionsResponseTO)
 @arguments(app_user=users.User, request=GetMapSearchSuggestionsRequestTO)
 def get_map_search_suggestions(app_user, request):
@@ -160,11 +178,17 @@ def get_map_search_suggestions(app_user, request):
     lang = user_profile.language
 
     start_time = time.time()
-    place_types = _suggest_place_types(request.search.query, get_clean_language_code(lang))
+    suggestions = _suggest_place_types(request.search.query, get_clean_language_code(lang))
+    logging.warning(suggestions)
     took_time = time.time() - start_time
     logging.info('debugging.services._suggest_place_types _search {0:.3f}s'.format(took_time))
-    for place_type in place_types:
-        place_details = get_place_details(place_type, lang)
+    for suggestion in suggestions:
+        if suggestion.startswith(ORGANIZATION_TYPE_SEARCH_PREFIX):
+            organization_type = int(suggestion.replace(ORGANIZATION_TYPE_SEARCH_PREFIX, ''))
+            translation_key = ServiceProfile.ORGANIZATION_TYPE_TRANSLATION_KEYS[organization_type]
+            response.items.append(MapSearchSuggestionKeywordTO(text=localize(lang, translation_key)))
+            continue
+        place_details = get_place_details(suggestion, lang)
         if not place_details:
             continue
         response.items.append(MapSearchSuggestionKeywordTO(text=place_details.title))
@@ -199,19 +223,31 @@ def get_map_items(app_user, request):
     app = get_app_by_id(app_id)
     tags, community_ids = get_tags_app(app)
 
-    place_type_tags = []
+    search_tags = []
     if request.search:
         user_profile = get_user_profile(app_user)
         lang = user_profile.language
         start_time = time.time()
-        place_type = _search_place_types(request.search.query, get_clean_language_code(lang))
+        place_type_or_org_type = _search_place_types_and_organization_types(request.search.query,
+                                                                            get_clean_language_code(lang))
         took_time = time.time() - start_time
-        if place_type:
-            place_type_tags = [SearchTag.place_type(place_type)]
+        if place_type_or_org_type:
+            if place_type_or_org_type.startswith(ORGANIZATION_TYPE_SEARCH_PREFIX):
+                organization_type = _get_organization_type_from_search_result(place_type_or_org_type)
+                search_tags = [SearchTag.organization_type(organization_type)]
+            else:
+                search_tags = [SearchTag.place_type(place_type_or_org_type)]
         logging.info('debugging.services._search_place_types _search {0:.3f}s'.format(took_time))
-        logging.debug('get_map_items.search: "%s" -> %s', request.search.query, place_type_tags)
-    return _get_items(app_user, tags, place_type_tags, center_lat, center_lon, distance, cursor=request.cursor,
-                      search=None if place_type_tags else request.search, community_ids=community_ids)
+        logging.debug('get_map_items.search: "%s" -> %s', request.search.query, search_tags)
+    return _get_items(app_user, tags, search_tags, center_lat, center_lon, distance, cursor=request.cursor,
+                      search=None if search_tags else request.search, community_ids=community_ids)
+
+
+def _get_organization_type_from_search_result(result):
+    organization_type = int(result.replace(ORGANIZATION_TYPE_SEARCH_PREFIX, ''))
+    if organization_type not in ServiceProfile.ORGANIZATION_TYPE_TRANSLATION_KEYS:
+        logging.error('Invalid organization type for search result: %s -> %s', result)
+    return organization_type
 
 
 @returns(GetMapItemDetailsResponseTO)
@@ -945,6 +981,21 @@ def _index_doc_place_type(place_type, doc):
     yield doc
 
 
+def _index_organization_types():
+    operations = []
+    for organization_type, translation_key in ServiceProfile.ORGANIZATION_TYPE_TRANSLATION_KEYS.iteritems():
+        if organization_type == ServiceProfile.ORGANIZATION_TYPE_UNSPECIFIED:
+            continue
+        operations.append({'index': {'_id': ORGANIZATION_TYPE_SEARCH_PREFIX + str(organization_type)}})
+        doc = {}
+        for language in ['en', 'nl']:
+            translation = localize(language, translation_key)
+            doc['title_' + language] = [translation]
+            doc['suggestion_' + language] = [translation]
+        operations.append(doc)
+    return execute_bulk_request(_get_elasticsearch_place_type_index(), operations)
+
+
 def _re_index_place_type(place_type):
     return execute_bulk_request(_get_elasticsearch_place_type_index(), _index_place_type(place_type))
 
@@ -954,7 +1005,13 @@ def _re_index_place_types():
     return execute_bulk_request(_get_elasticsearch_place_type_index(), operations)
 
 
-def _search_place_types(search_query, lang):
+def index_search_keywords():
+    _index_organization_types()
+    _re_index_place_types()
+
+
+def _search_place_types_and_organization_types(search_query, lang):
+    # type: (str, str) -> Optional[str]
     qry = {
         'size': 3,
         'from': 0,
@@ -1001,6 +1058,7 @@ def _search_place_types(search_query, lang):
 
 
 def _suggest_place_types(qry, lang):
+    # type: (str, str) -> List[str]
     qry = {
         'size': 3,
         'from': 0,

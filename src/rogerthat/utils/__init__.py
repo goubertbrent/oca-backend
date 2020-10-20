@@ -734,7 +734,7 @@ def _get_request_header(header_name):
 def get_backend_service():
     service_name = u'service-backend'
     if DEBUG:
-        return service_name
+        return None
     current_version = get_current_version()
     if not current_version:
         return None
