@@ -11,7 +11,8 @@
   </mat-form-field>
   <mat-form-field class="field">
     <mat-label>Country</mat-label>
-    <select formControlName="country" required matNativeControl>
+    <select formControlName="country" matNativeControl>
+      <option>None</option>
       <option *ngFor="let country of countries" [value]="country.code">{{ country.name }}</option>
     </select>
   </mat-form-field>

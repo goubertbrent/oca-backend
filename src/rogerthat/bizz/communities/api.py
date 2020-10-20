@@ -34,7 +34,7 @@ def rest_get_community_countries():
 @rest('/console-api/communities', 'get')
 @returns([CommunityTO])
 @arguments(country=unicode)
-def rest_get_communities(country='BE'):
+def rest_get_communities(country=None):
     return [CommunityTO.from_model(c) for c in get_communities_by_country(country, live_only=False)]
 
 

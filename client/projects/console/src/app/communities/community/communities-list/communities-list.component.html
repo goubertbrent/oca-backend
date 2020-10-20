@@ -3,6 +3,7 @@
   <mat-form-field>
     <mat-label>Country</mat-label>
     <mat-select [formControl]="countryFormControl">
+      <mat-option [value]="null">None</mat-option>
       <mat-option *ngFor="let country of countries$ | async" [value]="country.code">{{ country.name }}</mat-option>
     </mat-select>
   </mat-form-field>

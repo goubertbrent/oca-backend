@@ -25,8 +25,8 @@ export class CommunityService {
     return this.http.get<{ code: string; name: string; }[]>('/console-api/communities/countries');
   }
 
-  getCommunities(country: string) {
-    return this.http.get<Community[]>('/console-api/communities', { params: new HttpParams({ fromObject: { country } }) });
+  getCommunities(country: string | null) {
+    return this.http.get<Community[]>('/console-api/communities', { params: new HttpParams({ fromObject: { country: country ?? '' } }) });
   }
 
   getCommunity(id: number) {

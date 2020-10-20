@@ -141,6 +141,8 @@ def _populate_community(community, data):
 
 def get_communities_by_country(country_code, live_only=True):
     # type: (str, bool) -> Iterable[Community]
+    if not country_code:
+        country_code = None
     qry = Community.list_by_country(country_code)  # type: Iterable[Community]
     if live_only:
         result = (c for c in qry if c.signup_enabled)

@@ -52,7 +52,7 @@ export class CommunityFormComponent implements OnInit {
   ngOnInit(): void {
     this.formGroup = this.formBuilder.group<CreateCommunity>({
       auto_connected_services: [[]],
-      country: ['', Validators.required],
+      country: [''],
       name: ['', Validators.required],
       default_app: ['', Validators.required],
       embedded_apps: [[]],

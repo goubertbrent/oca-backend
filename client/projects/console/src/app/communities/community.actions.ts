@@ -3,7 +3,7 @@ import { Community, CreateCommunity } from './community/communities';
 
 export const loadCommunities = createAction(
   '[Community] Load Communities',
-  props<{ country: string }>(),
+  props<{ country: string | null }>(),
 );
 
 export const loadCommunitiesSuccess = createAction(

@@ -2220,10 +2220,11 @@ def get_search_fields(service_user, service_identity_user):
 
     tags = {
         SearchTag.community(community.id),
-        SearchTag.country(community.country),
         SearchTag.environment(community.demo),
         SearchTag.organization_type(service_profile.organizationType),
     }
+    if community.country:
+        tags.add(SearchTag.country(community.country))
     keys = [ServiceInfo.create_key(service_user, service_identity.identifier),
             CirkloMerchant.create_key(service_user.email())]
     service_info, cirklo_merchant = ndb.get_multi(keys)  # type: ServiceInfo, CirkloMerchant
