@@ -203,7 +203,7 @@ $(function () {
     };
 
     function reloadMenu() {
-        return Requests.getMenu({cached: false}).then(function () {
+        return Requests.getMenu({cached: false}).then(function (menu) {
             editedMenu = JSON.parse(JSON.stringify(menu));
             renderMenu(editedMenu);
         });
