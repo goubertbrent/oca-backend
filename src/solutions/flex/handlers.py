@@ -282,7 +282,11 @@ class FlexHomeHandler(webapp2.RequestHandler):
         elif session_.service_identity:
             session_ = set_service_identity(session_, None)
 
-        must_check_tos = not session_.layout_only and not session_.shop
+        # Dont require terms of use for:
+        # - shop users (admins)
+        # - cities logging in on other services their dashboard (layout_only)
+        # - cirklo-only customers
+        must_check_tos = not session_.layout_only and not session_.shop and not sln_settings.ciklo_vouchers_only()
         service_profile = get_service_profile(service_user)
         if must_check_tos:
             lastest_tos_version = get_current_document_version(DOC_TERMS_SERVICE)
