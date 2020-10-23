@@ -9,6 +9,7 @@ import { CirkloSettings, SignupLanguageProperty, SignupMails } from '../vouchers
 import { GetCirkloSettingsAction, SaveCirkloSettingsAction } from '../vouchers.actions';
 import { areCirkloSettingsLoading, getCirkloSettings } from '../vouchers.selectors';
 
+// TODO: move this page to admin settings
 @Component({
   selector: 'oca-cirklo-settings-page',
   templateUrl: './cirklo-settings-page.component.html',

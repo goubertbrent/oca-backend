@@ -7,7 +7,7 @@
   <button (click)="refresh()" [disabled]="loading$ | async" mat-icon-button [matTooltip]="'oca.refresh' | translate">
     <mat-icon>refresh</mat-icon>
   </button>
-  <a mat-icon-button routerLink="settings">
+  <a mat-icon-button routerLink="settings" *ngIf="isShopUser$ | async">
     <mat-icon>settings</mat-icon>
   </a>
 </mat-toolbar>

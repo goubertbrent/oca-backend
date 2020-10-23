@@ -15,10 +15,11 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule, Routes } from '@angular/router';
 import { EffectsModule } from '@ngrx/effects';
-import { StoreModule } from '@ngrx/store';
+import { Store, StoreModule } from '@ngrx/store';
 import { TranslateModule } from '@ngx-translate/core';
 import { ERROR_HANDLING_TRANLATIONS_PROVIDER } from '../../environments/config';
 import { MAT_PAGINATOR_INTL_PROVIDER } from '../shared/i18n/material-components';
+import { GetGlobalConfigAction } from '../shared/shared.actions';
 import { CirkloSettingsPageComponent } from './cirklo-settings-page/cirklo-settings-page.component';
 import { VouchersPageComponent } from './vouchers-page/vouchers-page.component';
 import { WhitelistDialogComponent } from './vouchers-page/whitelist-dialog.component';
@@ -59,4 +60,7 @@ const routes: Routes = [
   ],
 })
 export class VouchersModule {
+  constructor(private store: Store) {
+    this.store.dispatch(new GetGlobalConfigAction());
+  }
 }

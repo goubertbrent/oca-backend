@@ -6,6 +6,7 @@ import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { isShopUser } from '../../shared/shared.state';
 import { VoucherService, VouchersServiceList } from '../vouchers';
 import { GetServicesAction, WhitelistVoucherServiceAction } from '../vouchers.actions';
 import { getVoucherList, getVoucherServices, voucherServicesLoading } from '../vouchers.selectors';
@@ -22,6 +23,7 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
 
   displayedColumns: (keyof VoucherService)[] = ['name', 'email', 'creation_date', 'address', 'whitelist_date', 'merchant_registered'];
   loading$: Observable<boolean>;
+  isShopUser$: Observable<boolean>;
   voucherList$: Observable<VouchersServiceList>;
   dataSource = new MatTableDataSource<VoucherService>();
   allServices: VoucherService[];
@@ -45,6 +47,7 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
     this.getServices();
     this.voucherList$ = this.store.pipe(select(getVoucherList));
     this.loading$ = this.store.pipe(select(voucherServicesLoading));
+    this.isShopUser$ = this.store.pipe(select(isShopUser));
   }
 
   ngOnDestroy() {
@@ -91,7 +94,7 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
       message,
       yes: this.translate.instant('oca.reservation-approve'),
       no: this.translate.instant('oca.reservation-decline'),
-      cancel: this.translate.instant('Cancel'),
+      cancel: this.translate.instant('oca.Cancel'),
     };
     const dialog = this.matDialog.open(WhitelistDialogComponent, { data });
     dialog.afterClosed().subscribe((result?: WhitelistDialogResult) => {
