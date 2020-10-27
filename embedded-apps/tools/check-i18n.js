@@ -2,8 +2,8 @@ import {readdirSync, readFileSync, realpathSync} from 'fs';
 import {readdir} from 'fs/promises'
 import {dirname, join} from 'path'
 
-
-const projects = ['hoplr', 'oca', 'cirklo', 'trash-calendar'];
+const angularJson = JSON.parse(readFileSync('../angular.json'));
+const projects = Object.keys(angularJson.projects).filter(p => angularJson.projects[p].projectType === 'application');
 const currentFolder = realpathSync(dirname(''));
 
 checkProjects(projects, join(currentFolder, '..', 'projects')).catch(err => {

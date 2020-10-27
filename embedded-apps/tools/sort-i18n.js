@@ -1,6 +1,8 @@
 import {readdirSync, readFileSync, realpathSync, writeFileSync} from 'fs'
 import {dirname, join} from 'path'
 
+const angularJson = JSON.parse(readFileSync('../angular.json'));
+const projects = Object.keys(angularJson.projects).filter(p => angularJson.projects[p].projectType === 'application');
 const currentFolder = realpathSync(dirname(''));
 
 function sortTranslations(file) {
@@ -23,7 +25,6 @@ function sortObject(object) {
   return sortedObj;
 }
 
-const projects = ['hoplr', 'oca', 'cirklo', 'trash-calendar'];
 for (const project of projects) {
   const dir = join(currentFolder, '..', 'projects', project, 'src', 'assets', 'i18n');
   const files = readdirSync(dir);

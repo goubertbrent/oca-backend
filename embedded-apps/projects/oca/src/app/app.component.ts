@@ -1,7 +1,6 @@
 import { Location } from '@angular/common';
 import { ChangeDetectionStrategy, Component, NgZone, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
-import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { AlertController, Platform } from '@ionic/angular';
 import { AlertOptions } from '@ionic/core';
@@ -19,7 +18,6 @@ import { DEFAULT_LOCALE, getLanguage, setColor } from '@oca/shared';
 })
 export class AppComponent {
   constructor(private platform: Platform,
-              private splashScreen: SplashScreen,
               private statusBar: StatusBar,
               private rogerthatService: RogerthatService,
               private translate: TranslateService,
@@ -34,7 +32,6 @@ export class AppComponent {
   async initializeApp() {
     this.translate.setDefaultLang(DEFAULT_LOCALE);
     await this.platform.ready();
-    this.splashScreen.hide();
     this.platform.backButton.subscribe(async () => {
       if (this.shouldExitApp()) {
         this.exit();

@@ -1,0 +1,7 @@
+<ion-content class="ion-padding">
+  <h1>{{ 'participation_moneybox' | translate }}</h1>
+  <ng-container>
+    <ion-spinner *ngIf="isLoading$ | async"></ion-spinner>
+    <div [innerHTML]="city.result?.info | markdown" *ngIf="city$ | async as city"></div>
+  </ng-container>
+</ion-content>

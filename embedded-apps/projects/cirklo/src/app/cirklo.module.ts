@@ -13,7 +13,6 @@ import {
   Routes,
   UrlTree,
 } from '@angular/router';
-import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { IonicModule, IonicRouteStrategy, Platform } from '@ionic/angular';
 import { EffectsModule } from '@ngrx/effects';
@@ -123,7 +122,6 @@ const routes: Routes = [
   providers: [
     CanActivateRoute,
     StatusBar,
-    SplashScreen,
     CUSTOM_LOCALE_PROVIDER,
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
   ],

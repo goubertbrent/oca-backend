@@ -1,6 +1,5 @@
 import { Location } from '@angular/common';
 import { ChangeDetectionStrategy, Component, NgZone, ViewEncapsulation } from '@angular/core';
-import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { AlertController, Config, Platform } from '@ionic/angular';
 import { AlertOptions } from '@ionic/core';
@@ -20,7 +19,6 @@ import { map, take } from 'rxjs/operators';
 })
 export class CirkloAppComponent {
   constructor(private platform: Platform,
-              private splashScreen: SplashScreen,
               private statusBar: StatusBar,
               private rogerthatService: RogerthatService,
               private translate: TranslateService,
@@ -35,7 +33,6 @@ export class CirkloAppComponent {
 
   async initializeApp() {
     this.translate.setDefaultLang(DEFAULT_LOCALE);
-    this.splashScreen.hide();
     this.platform.backButton.subscribe(async () => {
       if (await this.shouldExitApp()) {
         this.exit();

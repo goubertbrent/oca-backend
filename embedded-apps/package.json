@@ -9,6 +9,7 @@
     "start-hoplr": "ng serve --project=hoplr",
     "start-cirklo": "ng serve --project=cirklo",
     "start-trash": "ng serve --project=trash-calendar",
+    "start-participation": "ng serve --project=participation",
     "build": "tools/build.sh",
     "build-debug": "ng build --source-map=false && rm -f oca.zip && cd www && zip -qr ../oca.zip .",
     "test": "ng test",
@@ -41,7 +42,8 @@
     "core-js": "^3.6.5",
     "ionic-selectable": "^4.7.1",
     "marked": "^1.2.0",
-    "rogerthat-plugin": "git+https://github.com/our-city-app/cordova-mobicage-plugin.git#794d66a3e9847cd8f500ddf7b297bcc1f6ae469f",
+    "ngx-joyride": "^2.3.1",
+    "rogerthat-plugin": "git+https://github.com/our-city-app/cordova-mobicage-plugin.git#3a5d2be9cd10b99fb4506c1cab1c33a93b5b67e9",
     "rxjs": "~6.6.3",
     "tslib": "^2.0.3",
     "zone.js": "~0.11.1"

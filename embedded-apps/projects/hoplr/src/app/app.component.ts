@@ -1,7 +1,6 @@
 import { Location } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, NgZone, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
-import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { Platform } from '@ionic/angular';
 import { Actions, ofType } from '@ngrx/effects';
@@ -25,7 +24,6 @@ export class AppComponent {
   loadingUserInfo$: Observable<boolean>;
 
   constructor(private platform: Platform,
-              private splashScreen: SplashScreen,
               private statusBar: StatusBar,
               private rogerthatService: RogerthatService,
               private translate: TranslateService,
@@ -49,7 +47,6 @@ export class AppComponent {
       // @ts-ignore
       const hasCordova = typeof cordova !== 'undefined';
       if (hasCordova) {
-        this.splashScreen.hide();
         this.platform.backButton.subscribe(() => {
           if (this.shouldExitApp()) {
             this.exit();
