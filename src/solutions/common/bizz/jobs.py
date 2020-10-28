@@ -30,6 +30,7 @@ from shop.dal import get_customer
 from solutions.common import SOLUTION_COMMON
 from solutions.common.consts import OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings
+from solutions.common.integrations.cirklo.models import CirkloMerchant
 from solutions.common.utils import create_service_identity_user_wo_default
 
 
@@ -86,6 +87,7 @@ def _delete_solution_models(service_user, service_identity, solutions, delete_sv
                 deferred.defer(_delete_solution_models, service_user, service_identity,
                                solutions, delete_svc, _transactional=True)
             elif delete_svc and service_identity is None:
+                CirkloMerchant.create_key(service_user.email()).delete()
                 deferred.defer(delete_service.job, service_user, service_user, _transactional=True)
             return False
     while db.run_in_transaction(trans):
