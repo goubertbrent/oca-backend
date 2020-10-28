@@ -183,7 +183,8 @@ def rest_news_get_communities():
     service_user = users.get_current_user()
     service_profile = get_service_profile(service_user)
     community = get_community(service_profile.community_id)
-    communities = get_communities_by_country(community.country)
+    communities = [c for c in get_communities_by_country(community.country, live_only=False)
+                   if c.demo == community.demo]
     stats = get_statistics([community.id for community in communities])
     return [NewsCommunityTO.from_model(community, community_stats.total_user_count)
             for community, community_stats in zip(communities, stats)]
