@@ -838,7 +838,7 @@ indexes:
   - name: closed_time
     direction: desc
 
-- kind: SolutionDiscussionGroup
+- kind: DiscussionGroup
   ancestor: yes
   properties:
   - name: topic

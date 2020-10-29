@@ -16,9 +16,11 @@
 # @@license_version:1.7@@
 
 from mcfw.properties import unicode_property, long_property
+from rogerthat.to import TO
+from solutions.common.models.discussion_groups import DiscussionGroup
 
 
-class DiscussionGroupTO(object):
+class DiscussionGroupTO(TO):
     id = long_property('1')
     topic = unicode_property('2')
     description = unicode_property('3')
@@ -27,8 +29,5 @@ class DiscussionGroupTO(object):
 
     @classmethod
     def from_model(cls, model):
-        to = cls()
-        for prop in dir(DiscussionGroupTO):
-            if not prop.startswith('__') and not callable(getattr(DiscussionGroupTO, prop)):
-                setattr(to, prop, getattr(model, prop))
-        return to
+        # type: (DiscussionGroup) -> DiscussionGroupTO
+        return cls(**model.to_dict(include=['id', 'topic', 'description', 'message_key', 'creation_timestamp']))

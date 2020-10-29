@@ -19,6 +19,7 @@ from datetime import datetime, date
 
 from google.appengine.api import users
 from google.appengine.ext import ndb
+from typing import List
 
 from mcfw.rpc import parse_complex_value, serialize_complex_value
 from rogerthat.to import TO
@@ -60,15 +61,14 @@ class NdbModel(ndb.Model):
         return prop
 
     def to_dict(self, extra_properties=None, include=None, exclude=None):
+        # type: (List[str], List[str], List[str]) -> dict
         """
             Converts the model to a JSON serializable dictionary
 
         Args:
-            extra_properties (list[unicode]): Extra properties to add that are present as an @property of the model
-            include(set): Optional set of property names to include, default all.
-            exclude(set): Optional set of property names to skip, default none.
-        Returns:
-            dict
+            extra_properties: Extra properties to add that are present as an @property of the model
+            include: Optional set of property names to include, default all.
+            exclude: Optional set of property names to skip, default none.
         """
         exclude = exclude or []
         if not extra_properties:

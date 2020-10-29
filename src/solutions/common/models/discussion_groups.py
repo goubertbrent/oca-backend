@@ -15,13 +15,15 @@
 #
 # @@license_version:1.7@@
 
-from google.appengine.ext import db
+from google.appengine.ext import db, ndb
+from typing import List
 
-from rogerthat.dal import parent_key
-from rogerthat.models import KeyValueProperty
+from rogerthat.dal import parent_key, parent_ndb_key
+from rogerthat.models import KeyValueProperty, NdbModel
 from solutions.common import SOLUTION_COMMON
 
 
+# TODO: remove after migration
 class SolutionDiscussionGroup(db.Model):
     topic = db.StringProperty()
     description = db.TextProperty()
@@ -42,8 +44,36 @@ class SolutionDiscussionGroup(db.Model):
         return db.Key.from_path(cls.kind(), discussion_group_id, parent=cls._create_parent_key(service_user))
 
     @classmethod
-    def list(cls, service_user, order_by=None, keys_only=False):
-        qry = cls.all(keys_only=keys_only).ancestor(cls._create_parent_key(service_user))
+    def list(cls, service_user, order_by=None):
+        qry = cls.all(ancestor=cls._create_parent_key(service_user))
         if order_by:
-            qry.order(order_by)
+            qry = qry.order(order_by)
         return qry
+
+
+class DiscussionGroup(NdbModel):
+    topic = ndb.StringProperty()
+    description = ndb.TextProperty()
+    members = ndb.StringProperty(repeated=True)  # type: List[str]
+    message_key = ndb.StringProperty(indexed=False)
+    creation_timestamp = ndb.IntegerProperty(indexed=False)
+
+    @property
+    def id(self):
+        return self.key.id()
+
+    @staticmethod
+    def _create_parent_key(service_user):
+        return parent_ndb_key(service_user, SOLUTION_COMMON)
+
+    @classmethod
+    def create_key(cls, service_user, discussion_group_id):
+        return ndb.Key(cls, discussion_group_id, parent=cls._create_parent_key(service_user))
+
+    @classmethod
+    def list(cls, service_user):
+        return cls.query().ancestor(cls._create_parent_key(service_user))
+
+    @classmethod
+    def list_ordered(cls, service_user):
+        return cls.list(service_user).order(cls.topic)

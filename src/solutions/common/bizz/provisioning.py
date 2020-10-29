@@ -93,7 +93,7 @@ from solutions.common.models import SolutionMainBranding, SolutionSettings, Solu
     SolutionAutoBroadcastTypes, SolutionQR, RestaurantMenu, SolutionModuleAppText
 from solutions.common.models.agenda import SolutionCalendar
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe
-from solutions.common.models.discussion_groups import SolutionDiscussionGroup
+from solutions.common.models.discussion_groups import DiscussionGroup
 from solutions.common.models.group_purchase import SolutionGroupPurchase
 from solutions.common.models.loyalty import SolutionLoyaltySettings, SolutionLoyaltyLottery, \
     SolutionLoyaltyIdentitySettings
@@ -1749,13 +1749,10 @@ def delete_discussion_groups(sln_settings, current_coords, service_menu):
     _default_delete(sln_settings, current_coords, service_menu)
 
     def trans():
-        for k in SolutionDiscussionGroup.list(service_user, keys_only=True):
+        for k in DiscussionGroup.list(service_user).fetch(keys_only=True):
             delete_discussion_group(service_user, k.id())
 
-    if db.is_in_transaction():
-        on_trans_committed(trans)
-    else:
-        db.run_in_transaction(trans)
+    on_trans_committed(trans) if db.is_in_transaction() else trans()
 
 
 @returns([SolutionServiceMenuItem])

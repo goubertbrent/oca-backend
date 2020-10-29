@@ -18,19 +18,18 @@
 import json
 import logging
 from datetime import datetime
+from types import NoneType
 
 from babel.dates import format_datetime, get_timezone
-from google.appengine.ext import db
-from types import NoneType
+from google.appengine.ext import db, ndb
+from typing import Optional
 
 from mcfw.consts import MISSING
 from mcfw.exceptions import HttpNotFoundException
 from mcfw.rpc import returns, arguments
-from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.models import Message
 from rogerthat.models.properties.forms import FormResult
-from rogerthat.models.properties.keyvalue import KVStore
-from rogerthat.models.utils import allocate_id
+from rogerthat.models.utils import ndb_allocate_id
 from rogerthat.rpc import users
 from rogerthat.service.api import messaging
 from rogerthat.to.messaging import MemberTO
@@ -39,12 +38,11 @@ from rogerthat.to.messaging.service_callback_results import PokeCallbackResultTO
     FormAcknowledgedCallbackResultTO, MessageCallbackResultTypeTO, TYPE_MESSAGE
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import now
-from rogerthat.utils.transactions import run_in_xg_transaction, on_trans_committed
 from solutions import translate
 from solutions.common.dal import get_solution_settings
 from solutions.common.handlers import JINJA_ENVIRONMENT
 from solutions.common.models import SolutionSettings, SolutionMainBranding
-from solutions.common.models.discussion_groups import SolutionDiscussionGroup
+from solutions.common.models.discussion_groups import DiscussionGroup
 
 try:
     from cStringIO import StringIO
@@ -52,10 +50,11 @@ except ImportError:
     from StringIO import StringIO
 
 
-@returns(SolutionDiscussionGroup)
+@returns(DiscussionGroup)
 @arguments(service_user=users.User, discussion_group_id=(int, long))
 def get_discussion_group(service_user, discussion_group_id):
-    return SolutionDiscussionGroup.get(SolutionDiscussionGroup.create_key(service_user, discussion_group_id))
+    # type: (users.User, int) -> Optional[DiscussionGroup]
+    return DiscussionGroup.create_key(service_user, discussion_group_id).get()
 
 
 @returns(str)
@@ -68,15 +67,17 @@ def get_discussion_group_pdf(service_user, discussion_group_id):
 
     sln_settings = get_solution_settings(service_user)
     fetch_messages = True
-    messages = list()
+    messages = []
+    cursor = None
     while fetch_messages:
-        result = messaging.list_chat_messages(discussion_group.message_key)
+        result = messaging.list_chat_messages(discussion_group.message_key, cursor)
+        cursor = result.cursor
         messages += result.messages
-        if not (result.cursor and len(result.messages) > 0):
+        if not (cursor and len(result.messages) > 0):
             fetch_messages = False
 
-    avatars = dict()
-    dates = dict()
+    avatars = {}
+    dates = {}
     for message in messages:
         if message.sender is None:
             # Message is sent by the service user
@@ -85,9 +86,6 @@ def get_discussion_group_pdf(service_user, discussion_group_id):
                                                   language=sln_settings.main_language,
                                                   avatar_url=None,
                                                   app_id='')
-        # if message.sender and message.sender.email not in avatars:
-        #     avatar_id = long(message.sender.avatar_url.split('/')[-1])
-        #     avatars[message.sender.email] = 'data:image/png;base64,%s' % base64.b64encode(get_avatar_cached(avatar_id, 50))
         dates[message.message_key] = format_datetime(datetime.utcfromtimestamp(message.timestamp),
                                                      locale=sln_settings.main_language,
                                                      tzinfo=get_timezone(sln_settings.timezone))
@@ -104,37 +102,35 @@ def get_discussion_group_pdf(service_user, discussion_group_id):
     return output_stream.getvalue()
 
 
-@returns([SolutionDiscussionGroup])
+@returns([DiscussionGroup])
 @arguments(service_user=users.User)
 def get_discussion_groups(service_user):
-    return list(SolutionDiscussionGroup.list(service_user, order_by='topic'))
+    return DiscussionGroup.list_ordered(service_user).fetch(None)
 
 
-@returns(SolutionDiscussionGroup)
+@returns(DiscussionGroup)
 @arguments(service_user=users.User, topic=unicode, description=unicode, discussion_group_id=(int, long, NoneType))
 def put_discussion_group(service_user, topic, description, discussion_group_id=None):
     is_new = discussion_group_id is None
     if is_new:
-        discussion_group_id = allocate_id(SolutionDiscussionGroup)
+        discussion_group_id = ndb_allocate_id(DiscussionGroup)
 
         # Create the chat in Rogerthat
         from solutions.common.bizz.messaging import POKE_TAG_DISCUSSION_GROUPS
         tag = json.dumps({'id': discussion_group_id,
                           '__rt__.tag': POKE_TAG_DISCUSSION_GROUPS})
-        members = list()
+        members = []
         flags = messaging.ChatFlags.ALLOW_ANSWER_BUTTONS | messaging.ChatFlags.ALLOW_PICTURE
         message_key = messaging.start_chat(members, topic, description, tag=tag, flags=flags, default_sticky=True)
 
-    key = SolutionDiscussionGroup.create_key(service_user, discussion_group_id)
-
-    def trans(is_new):
+    @ndb.transactional()
+    def trans():
+        key = DiscussionGroup.create_key(service_user, discussion_group_id)
         if is_new:
             # Create the model
-            discussion_group = SolutionDiscussionGroup(key=key, message_key=message_key, creation_timestamp=now())
-            discussion_group.members = KVStore(key)
-            discussion_group.members.from_json_dict(dict(members=list()))
+            discussion_group = DiscussionGroup(key=key, message_key=message_key, creation_timestamp=now())
         else:
-            discussion_group = SolutionDiscussionGroup.get(key)
+            discussion_group = key.get()
             if not discussion_group:
                 raise HttpNotFoundException()
 
@@ -143,14 +139,14 @@ def put_discussion_group(service_user, topic, description, discussion_group_id=N
         discussion_group.put()
         return discussion_group
 
-    return run_in_xg_transaction(trans, is_new)
+    return trans()
 
 
 @returns()
 @arguments(service_user=users.User, discussion_group_id=(int, long))
 def delete_discussion_group(service_user, discussion_group_id):
-    key = SolutionDiscussionGroup.create_key(service_user, discussion_group_id)
-    discussion_group = SolutionDiscussionGroup.get(key)
+    key = DiscussionGroup.create_key(service_user, discussion_group_id)
+    discussion_group = key.get()  # type: DiscussionGroup
     if not discussion_group:
         raise HttpNotFoundException()
 
@@ -159,12 +155,7 @@ def delete_discussion_group(service_user, discussion_group_id):
         message = translate(sln_settings.main_language, 'discussion_group_stopped')
         messaging.send_chat_message(discussion_group.message_key, message)
         messaging.update_chat(discussion_group.message_key, flags=messaging.ChatFlags.READ_ONLY)
-
-    def trans():
-        discussion_group = db.get(key)
-        discussion_group.members.clear()  # clears the buckets
-        discussion_group.delete()
-    db.run_in_transaction(trans)
+    key.delete()
 
 
 @returns(PokeCallbackResultTO)
@@ -176,10 +167,10 @@ def poke_discussion_groups(service_user, email, tag, result_key, context, servic
     result = PokeCallbackResultTO()
 
     widget = MultiSelectTO()
-    widget.choices = list()
-    widget.values = list()
+    widget.choices = []
+    widget.values = []
     app_user_email = user_details[0].toAppUser().email()
-    for discussion_group in SolutionDiscussionGroup.list(service_user):
+    for discussion_group in DiscussionGroup.list(service_user):
         widget.choices.append(ChoiceTO(label=discussion_group.topic, value=unicode(discussion_group.id)))
         if app_user_email in discussion_group.members['members']:
             widget.values.append(unicode(discussion_group.id))
@@ -207,13 +198,13 @@ def poke_discussion_groups(service_user, email, tag, result_key, context, servic
     else:
         result.type = TYPE_MESSAGE
         result.value = MessageCallbackResultTypeTO()
-        result.value.answers = list()
+        result.value.answers = []
         result.value.dismiss_button_ui_flags = 0
         result.value.message = translate(sln_settings.main_language, u'no_discussion_groups_yet')
         result.value.tag = None
 
     result.value.alert_flags = Message.ALERT_FLAG_SILENT
-    result.value.attachments = list()
+    result.value.attachments = []
     result.value.branding = sln_main_branding.branding_key
     result.value.flags = Message.FLAG_AUTO_LOCK | Message.FLAG_ALLOW_DISMISS
     result.value.step_id = None
@@ -227,45 +218,44 @@ def poke_discussion_groups(service_user, email, tag, result_key, context, servic
            result_key=unicode, service_identity=unicode, user_details=[UserDetailsTO])
 def follow_discussion_groups(service_user, status, form_result, answer_id, member, message_key, tag, received_timestamp,
                              acked_timestamp, parent_message_key, result_key, service_identity, user_details):
-    if answer_id != FormTO.POSITIVE or form_result in (None, MISSING) or form_result.result in (None, MISSING) :
+    if answer_id != FormTO.POSITIVE or form_result in (None, MISSING) or form_result.result in (None, MISSING):
         return None
 
     app_user = user_details[0].toAppUser()
     app_user_email = app_user.email()
     selected_ids = map(long, form_result.result.values)
 
-    def rm_from_chat(parent_message_key):
-        messaging.delete_chat_members(parent_message_key, [MemberTO.from_user(app_user)])
+    to_add = []
+    to_remove = []
 
-    def add_to_chat(parent_message_key):
-        messaging.add_chat_members(parent_message_key, [MemberTO.from_user(app_user)])
-
+    @ndb.transactional(xg=True)
     def trans():
         followed_new_group = False
-        to_put = list()
-        for discussion_group in SolutionDiscussionGroup.list(service_user):
-            kv_store_dict = discussion_group.members.to_json_dict()
-            was_following = app_user_email in kv_store_dict['members']
+        to_put = []
+        for discussion_group in DiscussionGroup.list(service_user):  # type: DiscussionGroup
+            was_following = app_user_email in discussion_group.members
             now_following = discussion_group.id in selected_ids
 
             if was_following != now_following:
                 if now_following:
                     followed_new_group = True
                     logging.debug('Adding %s to discussion group "%s"', app_user_email, discussion_group.topic)
-                    kv_store_dict['members'].append(app_user_email)
-                    on_trans_committed(add_to_chat, discussion_group.message_key)
+                    discussion_group.members.append(app_user_email)
+                    to_add.append(discussion_group.message_key)
                 else:
                     logging.debug('Removing %s from discussion group "%s"', app_user_email, discussion_group.topic)
-                    kv_store_dict['members'].remove(app_user_email)
-                    on_trans_committed(rm_from_chat, discussion_group.message_key)
+                    discussion_group.members.remove(app_user_email)
+                    to_remove.append(discussion_group.message_key)
                 to_put.append(discussion_group)
-                # We need to set members again to force the KVStore to be put
-                discussion_group.members.from_json_dict(kv_store_dict)
         if to_put:
-            put_and_invalidate_cache(*to_put)
+            ndb.put_multi(to_put)
         return followed_new_group
 
-    followed_new_group = run_in_xg_transaction(trans)
+    followed_new_group = trans()
+    for group_key in to_add:
+        messaging.add_chat_members(group_key, [MemberTO.from_user(app_user)])
+    for group_key in to_remove:
+        messaging.delete_chat_members(group_key, [MemberTO.from_user(app_user)])
 
     sln_settings, sln_main_branding = db.get([SolutionSettings.create_key(service_user),
                                               SolutionMainBranding.create_key(service_user)])
@@ -274,8 +264,8 @@ def follow_discussion_groups(service_user, status, form_result, answer_id, membe
     result.type = TYPE_MESSAGE
     result.value = MessageCallbackResultTypeTO()
     result.value.alert_flags = Message.ALERT_FLAG_VIBRATE
-    result.value.answers = list()
-    result.value.attachments = list()
+    result.value.answers = []
+    result.value.attachments = []
     result.value.branding = sln_main_branding.branding_key
     result.value.dismiss_button_ui_flags = 0
     result.value.flags = Message.FLAG_AUTO_LOCK | Message.FLAG_ALLOW_DISMISS
@@ -288,26 +278,21 @@ def follow_discussion_groups(service_user, status, form_result, answer_id, membe
     return result
 
 
+@ndb.transactional()
 @returns()
 @arguments(service_user=users.User, parent_message_key=unicode, member=UserDetailsTO, timestamp=int,
            service_identity=unicode, tag=unicode)
 def discussion_group_deleted(service_user, parent_message_key, member, timestamp, service_identity, tag):
     app_user_email = member.toAppUser().email()
-    def trans():
-        discussion_group_id = json.loads(tag)['id']
-        discussion_group = get_discussion_group(service_user, discussion_group_id)
-        if not discussion_group:
-            logging.info('Discussion group %s not found', discussion_group_id)
-            return
+    discussion_group_id = json.loads(tag)['id']
+    discussion_group = get_discussion_group(service_user, discussion_group_id)
+    if not discussion_group:
+        logging.info('Discussion group %s not found', discussion_group_id)
+        return
 
-        kv_store_dict = discussion_group.members.to_json_dict()
-        members = kv_store_dict['members']
-        if app_user_email not in members:
-            logging.info('%s not found in discussion group %s', discussion_group_id)
-            return
+    if app_user_email not in discussion_group.members:
+        logging.info('%s not found in discussion group %s', discussion_group_id)
+        return
 
-        members.remove(app_user_email)
-        discussion_group.members.from_json_dict(kv_store_dict)
-        discussion_group.put()
-
-    run_in_xg_transaction(trans)
+    discussion_group.members.remove(app_user_email)
+    discussion_group.put()
