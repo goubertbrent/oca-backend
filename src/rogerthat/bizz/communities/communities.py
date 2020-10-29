@@ -160,7 +160,8 @@ def get_community_countries():
 
 
 def get_all_community_countries():
-    return [{'code': c.country, 'name': Locale('en', 'GB').territories[c.country]}
+    locale = Locale('en', 'GB')
+    return [{'code': c.country, 'name': locale.territories[c.country]}
             for c in Community.list_countries() if c.country]
 
 
