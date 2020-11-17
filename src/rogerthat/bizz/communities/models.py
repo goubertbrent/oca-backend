@@ -14,13 +14,12 @@
 # limitations under the License.
 #
 # @@license_version:1.5@@
-
 from __future__ import unicode_literals
-
 from google.appengine.ext import ndb
+from typing import List
 
 from mcfw.utils import Enum
-from rogerthat.models.common import NdbModel
+from rogerthat.models import NdbModel
 from rogerthat.rpc import users
 from rogerthat.utils.service import add_slash_default
 
@@ -28,7 +27,11 @@ from rogerthat.utils.service import add_slash_default
 class CommunityAutoConnectedService(NdbModel):
     service_email = ndb.StringProperty()
     removable = ndb.BooleanProperty(indexed=False, default=True)
-    
+
+    @property
+    def service_identity_email(self):
+        return create_service_identity_user(self.service_email).email()
+
     @property
     def service_identity_email(self):
         return add_slash_default(users.User(self.service_email)).email()
@@ -48,9 +51,13 @@ class AppFeatures(Enum):
     # Allows merchants to post in regional news
     NEWS_REGIONAL = 'news_regional'
 
+# These are features that are only enabled for a few communities
+class CustomizationFeatures(Enum):
+    # Store the user his home address in the app data of the main service
+    HOME_ADDRESS_IN_USER_DATA = 0
 
 
-class Community(NdbModel): # todo communities
+class Community(NdbModel):
     auto_connected_services = ndb.StructuredProperty(CommunityAutoConnectedService,
                                                      repeated=True)  # type: List[CommunityAutoConnectedService]
     country = ndb.StringProperty()  # 2 letter country code
@@ -62,6 +69,7 @@ class Community(NdbModel): # todo communities
     name = ndb.StringProperty()
     signup_enabled = ndb.BooleanProperty(default=True)
     features = ndb.StringProperty(repeated=True, choices=AppFeatures.all())  # type: List[str]
+    customization_features = ndb.IntegerProperty(repeated=True, choices=CustomizationFeatures.all())
 
     @property
     def auto_connected_service_emails(self):

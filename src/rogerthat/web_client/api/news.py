@@ -20,6 +20,7 @@ from __future__ import unicode_literals
 from datetime import datetime
 
 from google.appengine.ext import ndb
+from typing import Optional, Tuple
 
 from mcfw.exceptions import HttpNotFoundException
 from mcfw.restapi import rest, GenericRESTRequestHandler

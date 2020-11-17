@@ -1,0 +1,24 @@
+<h2 matDialogTitle>Add translation</h2>
+<mat-dialog-content>
+  <form [formGroup]="formGroup">
+    <mat-form-field>
+      <mat-label>{{ language.name }} translation</mat-label>
+      <input [matAutocomplete]="auto" formControlName="value" matInput required>
+      <mat-autocomplete #auto="matAutocomplete">
+        <mat-option *ngFor="let option of filteredTranslations$ | async" [value]="option.value">
+          {{ option.value }}
+        </mat-option>
+      </mat-autocomplete>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>Translation key</mat-label>
+      <input formControlName="key" matInput required>
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions>
+  <div>
+    <button mat-raised-button matDialogClose>Cancel</button>
+    <button (click)="closeWithResult()" mat-raised-button>Submit</button>
+  </div>
+</mat-dialog-actions>

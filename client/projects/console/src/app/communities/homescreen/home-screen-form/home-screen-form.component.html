@@ -1,0 +1,87 @@
+<form [formGroup]="homeScreenFormGroup" class="home-screen-form">
+  <h2>Content</h2>
+  <ng-container formGroupName="content">
+    <mat-form-field>
+      <mat-label>Type</mat-label>
+      <mat-select formControlName="type" required>
+        <mat-option *ngFor="let type of homeScreenTypes" [value]="type.type">{{ type.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <ng-container *ngIf="homeScreenFormGroup.controls.content.value?.type === HomeScreenContentTypeEnum.EmbeddedApp">
+      <mat-form-field>
+        <mat-label>Embedded app</mat-label>
+        <mat-select formControlName="embedded_app" required>
+          <mat-option *ngFor="let embeddedApp of embeddedApps" [value]="embeddedApp.name">
+            {{ embeddedApp.title }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>Service (email)</mat-label>
+        <input formControlName="service_email" matInput type="email">
+        <mat-hint>Used for user data / service data</mat-hint>
+      </mat-form-field>
+    </ng-container>
+  </ng-container>
+  <h2>Bottom sheet</h2>
+  <rcc-home-screen-bottom-sheet [formGroup]="homeScreenFormGroup.controls.bottom_sheet"
+                                [translations]="translations$ | async"
+                                [translationsMapping]="translationsMapping"
+                                (addTranslation)="addTranslation()"></rcc-home-screen-bottom-sheet>
+  <h2>Bottom navigation</h2>
+  <rcc-home-screen-bottom-navigation (addTranslationClicked)="addTranslation()"
+                                     [formGroup]="homeScreenFormGroup.controls.bottom_navigation"
+                                     [translationsMapping]="translationsMapping"
+                                     [translations]="translations$ | async"></rcc-home-screen-bottom-navigation>
+  <h2>Translations</h2>
+  <mat-form-field class="language-list">
+    <mat-chip-list #languagesChipList>
+      <mat-chip
+        (removed)="removeLanguage(language)"
+        *ngFor="let language of languages$ | async"
+        [removable]="true"
+        [selectable]="false">
+        {{ language.name }}
+        <mat-icon matChipRemove>cancel</mat-icon>
+      </mat-chip>
+      <input
+        #inputElement
+        (matChipInputTokenEnd)="addLanguage($event.value, inputElement)"
+        [formControl]="newLanguageControl"
+        [matAutocomplete]="newLanguageAutocomplete"
+        [matChipInputFor]="languagesChipList"
+        placeholder="New language...">
+    </mat-chip-list>
+    <mat-autocomplete #newLanguageAutocomplete="matAutocomplete"
+                      (optionSelected)="addLanguage($event.option.value, inputElement)">
+      <mat-option *ngFor="let lang of filteredLanguages$ | async" [value]="lang.code">
+        {{ lang.name }}
+      </mat-option>
+    </mat-autocomplete>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>Default language</mat-label>
+    <mat-select formControlName="default_language">
+      <mat-option *ngFor="let language of languages$ | async" [value]="language.code">{{ language.name }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-accordion>
+    <mat-expansion-panel *ngFor="let language of languages$ | async">
+      <mat-expansion-panel-header>
+        <mat-panel-title>{{ language.name }}</mat-panel-title>
+        <mat-panel-description *ngIf="homeScreenFormGroup.controls.translations.controls[language.code]?.invalid">
+          <mat-icon class="language-has-error" color="warn">error</mat-icon>
+          Missing translations
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+      <ng-template matExpansionPanelContent>
+        <!-- langFormGroup Should only be undefined when deleting a language-->
+        <rcc-home-screen-translations-editor
+          (removeTranslation)="removeTranslation($event)"
+          *ngIf="homeScreenFormGroup.controls.translations.controls[language.code] as langFormGroup"
+          [formGroup]="langFormGroup"
+          [translations]="translations$ | async"></rcc-home-screen-translations-editor>
+      </ng-template>
+    </mat-expansion-panel>
+  </mat-accordion>
+</form>

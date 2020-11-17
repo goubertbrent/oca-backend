@@ -15,15 +15,16 @@ import { MatInput } from '@angular/material/input';
 import { MatSelect } from '@angular/material/select';
 import { TranslateService } from '@ngx-translate/core';
 import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '@oca/web-shared';
+import { IFormBuilder, IFormGroup } from '@rxweb/types';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { EASYMDE_OPTIONS } from '../../../../environments/config';
-import { Controls, FormGroupTyped } from '../../../shared/util/forms';
 import {
   CONTRACT_TYPES,
   ContractType,
   EditJobOffer,
   JOB_DOMAINS,
+  JobDomain,
   JobMatched,
   JobMatchSource,
   JobOfferContactInformation,
@@ -51,7 +52,7 @@ export class JobEditorComponent implements AfterViewInit, OnDestroy {
   EASYMDE_OPTIONS = EASYMDE_OPTIONS;
   JOB_DOMAINS = JOB_DOMAINS;
   CONTRACT_TYPES = CONTRACT_TYPES;
-  formGroup: FormGroupTyped<EditJobOffer>;
+  formGroup: IFormGroup<EditJobOffer>;
 
   canSave = true;
   canPublish = false;
@@ -59,51 +60,55 @@ export class JobEditorComponent implements AfterViewInit, OnDestroy {
   canRemove = false;
 
   private destroyed$ = new Subject();
+  private formBuilder: IFormBuilder;
 
-  constructor(private fb: FormBuilder,
+  constructor(formBuilder: FormBuilder,
               private translate: TranslateService,
               private matDialog: MatDialog) {
-    const controls: Controls<EditJobOffer> = {
-      employer: fb.group({
-        name: fb.control('', Validators.required),
-      } as Controls<JobOfferEmployer>) as FormGroupTyped<JobOfferEmployer>,
-      function: fb.group({
-        title: fb.control('', [Validators.required]),
-        description: fb.control('', [Validators.required]),
-      } as Controls<JobOfferFunction>) as FormGroupTyped<JobOfferFunction>,
-      job_domains: fb.control([], Validators.required),
-      // @ts-ignore
-      location: fb.group({
-        city: fb.control('', Validators.required),
-        street: fb.control('', Validators.required),
-        street_number: fb.control('', Validators.required),
-        country_code: fb.control('', Validators.required),
-        postal_code: fb.control('', Validators.required),
-        geo_location: fb.control(null),
-      } as Controls<JobOfferLocation>) as FormGroupTyped<JobOfferLocation>,
-      contract: fb.group({
-        type: fb.control(ContractType.FULLTIME, Validators.required),
-      } as Controls<JobOfferContract>) as FormGroupTyped<JobOfferContract>,
-      contact_information: fb.group({
-        email: fb.control('', [Validators.required, Validators.email]),
-        phone_number: fb.control('', Validators.required),
-      } as Controls<JobOfferContactInformation>) as FormGroupTyped<JobOfferContactInformation>,
-      profile: fb.control('', Validators.required),
-      details: fb.control('', [Validators.required]),
-      status: fb.control(null, Validators.required),
-      start_date: fb.control(null),
-      match: fb.group({
-        source: fb.control(JobMatchSource.NO_MATCH),
-        platform: fb.control(null),
-      } as Controls<JobMatched>) as FormGroupTyped<JobMatched>,
-    };
-    this.formGroup = fb.group(controls) as FormGroupTyped<EditJobOffer>;
+    this.formBuilder = formBuilder;
+    this.formGroup = this.formBuilder.group<EditJobOffer>({
+      employer: this.formBuilder.group<JobOfferEmployer>({
+        name: this.formBuilder.control('', Validators.required),
+      }),
+      function: this.formBuilder.group<JobOfferFunction>({
+        title: this.formBuilder.control('', [Validators.required]),
+        description: this.formBuilder.control('', [Validators.required]),
+      }),
+      job_domains: this.formBuilder.control<JobDomain[]>([], Validators.required),
+      location: this.formBuilder.group<JobOfferLocation>({
+        city: this.formBuilder.control('', Validators.required),
+        street: this.formBuilder.control('', Validators.required),
+        street_number: this.formBuilder.control('', Validators.required),
+        country_code: this.formBuilder.control('', Validators.required),
+        postal_code: this.formBuilder.control('', Validators.required),
+        geo_location: this.formBuilder.control(null),
+      }),
+      contract: this.formBuilder.group<JobOfferContract>({
+        type: this.formBuilder.control(ContractType.FULLTIME, Validators.required),
+      }),
+      contact_information: this.formBuilder.group<JobOfferContactInformation>({
+        email: this.formBuilder.control('', [Validators.required, Validators.email]),
+        phone_number: this.formBuilder.control('', Validators.required),
+      }),
+      profile: this.formBuilder.control('', Validators.required),
+      details: this.formBuilder.control('', [Validators.required]),
+      status: this.formBuilder.control(null, Validators.required),
+      start_date: this.formBuilder.control(null),
+      match: this.formBuilder.group<JobMatched>({
+        source: this.formBuilder.control(JobMatchSource.NO_MATCH),
+        platform: this.formBuilder.control(null),
+      }),
+    });
   }
 
   private _disabled = false;
 
   get disabled() {
     return this._disabled;
+  }
+
+  get functionFormGroup() {
+    return this.formGroup.controls.function as IFormGroup<JobOfferFunction>;
   }
 
   @Input() set disabled(value: boolean) {
@@ -134,7 +139,7 @@ export class JobEditorComponent implements AfterViewInit, OnDestroy {
 
   submit() {
     if (this.checkValidity()) {
-      this.submitted.emit(this.formGroup.value);
+      this.submitted.emit(this.formGroup.value!);
     } else {
       const config: MatDialogConfig<SimpleDialogData> = {
         data: {
@@ -206,7 +211,7 @@ export class JobEditorComponent implements AfterViewInit, OnDestroy {
     // Only update the status in case everything else is ok, and then immediately save
     if (this.checkValidity()) {
       this.formGroup.controls.status.setValue(status);
-      this.submitted.emit(this.formGroup.value);
+      this.submitted.emit(this.formGroup.value!);
     }
   }
 

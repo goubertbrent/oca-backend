@@ -19,8 +19,8 @@ from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.models import ServiceIdentity
 from rogerthat.rpc import users
+from rogerthat.to.maps import OpeningHoursTO
 from solutions.common.bizz.opening_hours import put_opening_hours, get_opening_hours
-from solutions.common.to.opening_hours import OpeningHoursTO
 
 
 @rest('/common/settings/opening-hours', 'get', silent_result=True)

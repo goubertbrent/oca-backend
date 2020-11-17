@@ -172,6 +172,10 @@ class ServerSettings(CachedModelMixIn, db.Model):
                                                     doc='Worker service url',
                                                     order=500)
 
+    oca3ApiKey = add_meta(db.StringProperty(indexed=False),
+                                            doc='oca-dot-rogerthat-server.ew.r.appspot.com/api api key',
+                                            order=501)
+
     @property
     def senderEmail(self):
         return "Rogerthat Dashboard <%s>" % self.dashboardEmail

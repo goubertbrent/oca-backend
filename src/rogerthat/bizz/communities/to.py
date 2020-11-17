@@ -16,7 +16,8 @@
 # @@license_version:1.5@@
 from typing import List
 
-from mcfw.properties import unicode_property, long_property, bool_property, typed_property, unicode_list_property
+from mcfw.properties import unicode_property, long_property, bool_property, typed_property, unicode_list_property, \
+    long_list_property
 from rogerthat.to import TO
 
 
@@ -34,6 +35,7 @@ class BaseCommunityTO(TO):
     demo = bool_property('demo')
     embedded_apps = unicode_list_property('embedded_apps')
     features = unicode_list_property('features')
+    customization_features = long_list_property('customization_features')
     name = unicode_property('name')
     main_service = unicode_property('main_service')
     signup_enabled = bool_property('signup_enabled')

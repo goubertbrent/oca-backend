@@ -1,0 +1,14 @@
+<mat-toolbar>
+  <a mat-icon-button routerLink="/communities">
+    <mat-icon>arrow_back</mat-icon>
+  </a>
+  <h1 class="flex-grow">Home screen</h1>
+  <button type="button" (click)="testHomeScreen()" mat-stroked-button>Test</button>
+  <button type="button" (click)="publishHomeScreen()" mat-stroked-button>Publish</button>
+</mat-toolbar>
+<mat-progress-bar *ngIf="homeScreenLoading$ | async" mode="indeterminate"></mat-progress-bar>
+<rcc-home-screen-form *ngIf="homeScreen$ | async as homeScreen"
+                      class="home-screen-form"
+                      [embeddedApps]="embeddedApps$ | async"
+                      [defaultTranslations]="defaultTranslations$ | async"
+                      [homeScreen]="homeScreen" (saved)="updateHomeScreen($event)"></rcc-home-screen-form>

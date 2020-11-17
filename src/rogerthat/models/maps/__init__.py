@@ -129,6 +129,11 @@ class MapService(NdbModel):
     def service_identity_email(self):
         return self.key.id()
 
+    @property
+    def service_user(self):
+        from rogerthat.utils.service import get_service_user_from_service_identity_user
+        return get_service_user_from_service_identity_user(users.User(self.service_identity_email))
+
     @classmethod
     def create_key(cls, service_identity_email):
         return ndb.Key(cls, service_identity_email)

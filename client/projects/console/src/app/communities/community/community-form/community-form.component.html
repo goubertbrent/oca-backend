@@ -31,8 +31,14 @@
   </mat-form-field>
   <mat-form-field class="field">
     <mat-label>Enabled features</mat-label>
-    <mat-select formControlName="features" multiple required>
+    <mat-select formControlName="features" multiple>
       <mat-option *ngFor="let feature of features" [value]="feature.value">{{ feature.label }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-form-field class="field">
+    <mat-label>Customization features</mat-label>
+    <mat-select formControlName="customization_features" multiple>
+      <mat-option *ngFor="let feature of customizationFeatures" [value]="feature.value">{{ feature.label }}</mat-option>
     </mat-select>
   </mat-form-field>
 

@@ -5210,7 +5210,6 @@ translations = \
          u'oca.platform_name': u'Naam platform',
          u'oca.please_fill_in_required_fields': u'Gelieve alle verplichte velden in te vullen',
          u'oca.please_select_an_email_address': u'Selecteer een e-mailadres uit de lijst',
-         u'oca.please_fill_in_required_fields': u'Gelieve alle verplichte velden in te vullen',
          u'oca.preview_form': u'Bekijk op mobiel',
          u'oca.previously_upload_images': u'Eerder ge\xfcploade afbeeldingen',
          u'oca.production': u'Productie',

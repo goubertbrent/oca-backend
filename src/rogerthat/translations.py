@@ -61,6 +61,16 @@ D = { }
 # ###########################################################################################
 
 D["en"] = {
+"""website""": u"""Website""",
+"""email_verb""": u"""Email""",
+"""directions""": u"""Directions""",
+"""home""": u"""Home""",
+"""messages""": u"""Messages""",
+"""scan""": u"""Scan""",
+"""more""": u"""More""",
+"""settings""": u"""Settings""",
+"""other_city_services""": u"""Other city services""",
+"""other_municipality_services""": u"""Other municipality services""",
 """starting_this_week""": u"""Starting this week""",
 """app_jobs_title""": u"""Welcome to JOBS!""",
 """app_jobs_description""": u"""Looking for a new job challenge? From now on you will find all vacancies of local entrepreneurs, starting with those from your direct environment. Simply swipe through our local & regional job offers, supplemented with all vacancies from all over Flanders via the integration with VDAB. Set your preferences & get started. - Good luck!""",
@@ -1773,6 +1783,16 @@ Exactitude: %(accuracy)sm""",
 # ###########################################################################################
 
 D["nl"] = {
+"""website""": u"""Website""",
+"""email_verb""": u"""Mailen""",
+"""directions""": u"""Route""",
+"""home""": u"""Home""",
+"""messages""": u"""Berichten""",
+"""scan""": u"""Scan""",
+"""more""": u"""Meer""",
+"""settings""": u"""Instellingen""",
+"""other_city_services""": u"""Andere stadsdiensten""",
+"""other_municipality_services""": u"""Andere gemeentediensten""",
 """starting_this_week""": u"""Startende deze week""",
 """app_jobs_title""": u"""Welkom bij JOBS!""",
 """app_jobs_description""": u"""Op zoek naar een nieuwe job-uitdaging? Voortaan vind je hier alle vacatures van lokale ondernemers, beginnende met die uit jouw rechtsreekse omgeving. Swipe heel eenvoudig door onze lokale & regionale jobaanbiedingen, aangevuld met alle vacatures van over heel Vlaanderen via de integratie met VDAB. Stel je voorkeuren in & ga aan de slag. - Succes!""",

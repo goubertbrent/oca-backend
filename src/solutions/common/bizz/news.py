@@ -22,16 +22,16 @@ import json
 import logging
 from types import NoneType
 
+from babel.dates import format_datetime, get_timezone
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
 
-from babel.dates import format_datetime, get_timezone
 from mcfw.consts import MISSING
 from mcfw.exceptions import HttpForbiddenException
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.communities.communities import get_community, get_communities_by_id
-from rogerthat.bizz.communities.models import AppFeatures
+from rogerthat.bizz.communities.models import Community, AppFeatures
 from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_ndb_key
 from rogerthat.dal.profile import get_service_profile
@@ -51,7 +51,7 @@ from solutions.common.bizz import SolutionModule, OrganizationType
 from solutions.common.bizz.service import get_inbox_message_sender_details, new_inbox_message, \
     send_inbox_message_update, send_message_updates
 from solutions.common.dal import get_solution_settings
-from solutions.common.models import SolutionInboxMessage
+from solutions.common.models import SolutionInboxMessage, SolutionSettings
 from solutions.common.models.budget import Budget
 from solutions.common.models.news import NewsCoupon, SolutionNewsItem, NewsSettings, NewsSettingsTags, NewsReview, \
     CityAppLocations

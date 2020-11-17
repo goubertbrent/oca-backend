@@ -1,0 +1,6 @@
+runtime: python38
+service: oca
+instance_class: F1
+env_variables:
+  SERVER_SOFTWARE: "production"
+  FIRESTORE_PROJECT: our-city-app

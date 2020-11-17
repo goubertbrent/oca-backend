@@ -513,7 +513,7 @@ class NewsStreamItemTO(TO):
         to.message = news_item_to.message
         to.media = news_item_to.media
         to.buttons = news_item_to.buttons
-        if news_item_to.qr_code_content:
+        if news_item_to.qr_code_content and app_user:
             try:
                 content = json.loads(news_item_to.qr_code_content)
                 content['u'] = app_user.email()

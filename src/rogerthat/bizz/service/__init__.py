@@ -2093,6 +2093,7 @@ def bump_menuGeneration_of_all_identities_and_update_friends(service_user):
 @returns(ServiceMenuDetailTO)
 @arguments(service_user=users.User)
 def get_menu(service_user):
+    # type: (users.User) -> ServiceMenuDetailTO
     service_identity_user = create_service_identity_user(service_user)
     helper = FriendHelper.from_data_store(service_identity_user, FRIEND_TYPE_SERVICE)
     return ServiceMenuDetailTO.from_model(helper, False)

@@ -1,0 +1,8 @@
+<mat-form-field *ngFor="let translationKey of translations; trackBy: trackTranslation">
+  <mat-label>{{ translationKey.value }}</mat-label>
+  <textarea [formControl]="formGroup.controls[translationKey.key]" matInput required matTextareaAutosize></textarea>
+  <mat-hint>{{ translationKey.key }}</mat-hint>
+  <button mat-button matSuffix mat-icon-button (click)="removeTranslation.emit(translationKey)">
+    <mat-icon>delete</mat-icon>
+  </button>
+</mat-form-field>

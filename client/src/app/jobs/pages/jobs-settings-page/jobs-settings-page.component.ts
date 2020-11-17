@@ -3,10 +3,10 @@ import { FormBuilder, FormControl, FormGroupDirective, NgForm, NgModel, Validato
 import { MatChipInputEvent } from '@angular/material/chips';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { select, Store } from '@ngrx/store';
+import { IFormBuilder, IFormGroup } from '@rxweb/types';
 import { Observable, Subject } from 'rxjs';
 import { debounceTime, takeUntil } from 'rxjs/operators';
 import { filterNull } from '../../../shared/util';
-import { Controls, FormGroupTyped } from '../../../shared/util/forms';
 import { JobNotificationType, JobsSettings } from '../../jobs';
 import { GetJobSettingsAction, UpdateJobSettingsAction } from '../../jobs.actions';
 import { areJobSettingsLoading, getJobsSettings, JobsState } from '../../jobs.state';
@@ -38,7 +38,7 @@ export class JobsSettingsPageComponent implements OnInit, OnDestroy {
     { label: 'oca.new_solicitations', description: 'oca.job_notifications_new_description', value: JobNotificationType.NEW_SOLICITATION },
     { label: 'oca.hourly_summary', description: 'oca.job_notifications_hourly_description', value: JobNotificationType.HOURLY_SUMMARY },
   ];
-  formGroup: FormGroupTyped<JobsSettings>;
+  formGroup: IFormGroup<JobsSettings>;
   destroyed$ = new Subject();
   emailErrorMatcher: ErrorStateMatcher;
   lastSave = 0;
@@ -46,11 +46,11 @@ export class JobsSettingsPageComponent implements OnInit, OnDestroy {
 
   constructor(private store: Store<JobsState>,
               private fb: FormBuilder) {
-    const controls: Controls<JobsSettings> = {
-      emails: fb.control([Validators.email]),
-      notifications: fb.control([], []),
-    };
-    this.formGroup = fb.group(controls) as FormGroupTyped<JobsSettings>;
+    const formBuilder: IFormBuilder = fb;
+    this.formGroup = formBuilder.group<JobsSettings>({
+      emails: formBuilder.control<string[]>([], [Validators.email]),
+      notifications: formBuilder.control([], []),
+    });
     this.formGroup.valueChanges.pipe(
       takeUntil(this.destroyed$),
       debounceTime(this.AUTOSAVE_DELAY),
@@ -80,7 +80,7 @@ export class JobsSettingsPageComponent implements OnInit, OnDestroy {
       this.emailInput.control.markAsTouched();
       return;
     }
-    const currentEmails = this.formGroup.controls.emails.value;
+    const currentEmails = this.formGroup.controls.emails.value!;
     const newEmail = $event.value?.trim();
     if (newEmail && !currentEmails.includes(newEmail)) {
       this.formGroup.controls.emails.setValue([...currentEmails, newEmail]);
@@ -89,13 +89,13 @@ export class JobsSettingsPageComponent implements OnInit, OnDestroy {
   }
 
   removeEmail(email: string) {
-    this.formGroup.controls.emails.setValue(this.formGroup.controls.emails.value.filter(e => e !== email));
+    this.formGroup.controls.emails.setValue(this.formGroup.controls.emails.value!.filter(e => e !== email));
   }
 
   save() {
     if (this.formGroup.valid && this.emailInput.valid) {
       this.lastSave = new Date().getTime();
-      this.store.dispatch(new UpdateJobSettingsAction(this.formGroup.value));
+      this.store.dispatch(new UpdateJobSettingsAction(this.formGroup.value!));
     }
   }
 }

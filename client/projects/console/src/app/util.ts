@@ -1,5 +1,5 @@
 import { forwardRef } from '@angular/core';
-import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { ControlValueAccessor, FormArray, NG_VALUE_ACCESSOR } from '@angular/forms';
 
 export const COLOR_REGEXP = /^([a-f\d])([a-f\d])([a-f\d])$/i;
 
@@ -163,4 +163,24 @@ function arrayBufferToString(buf: ArrayBuffer) {
 
 export function cloneDeep<T>(object: T) {
   return JSON.parse(JSON.stringify(object)) as T;
+}
+
+/**
+ * Moves an item in a FormArray to another position.
+ * @param formArray FormArray instance in which to move the item.
+ * @param fromIndex Starting index of the item.
+ * @param toIndex Index to which he item should be moved.
+ */
+export function moveItemInFormArray(formArray: FormArray, fromIndex: number, toIndex: number): void {
+  if (fromIndex === toIndex) {
+    return;
+  }
+
+  const delta = toIndex > fromIndex ? 1 : -1;
+  for (let i = fromIndex; i * delta < toIndex * delta; i += delta) {
+    const previous = formArray.at(i);
+    const current = formArray.at(i + delta);
+    formArray.setControl(i, current);
+    formArray.setControl(i + delta, previous);
+  }
 }

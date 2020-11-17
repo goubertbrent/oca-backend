@@ -1,0 +1,74 @@
+<mat-list (cdkDropListDropped)="moveItem($event)" [cdkDropListDisabled]="editingIndex !== -1" cdkDropList>
+  <ng-container *ngFor="let item of formArray.controls; let index = index">
+    <mat-list-item *ngIf="editingIndex !== index; else editingTemplate" cdkDrag>
+      <p matLine [ngSwitch]="item.value.type">
+        {{ itemTypeLabels[item.value.type] }}
+        <ng-container *ngIf="item.value.title">
+          <ng-container *ngSwitchCase="LINK_ITEM">
+            - {{ translationsMapping[item.value.title] || item.value.title }}
+          </ng-container>
+        </ng-container>
+      </p>
+      <ng-container *ngIf="editingIndex === -1">
+        <button (click)="editItem(item.value, index)" mat-icon-button type="button">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button (click)="deleteItem(index)" mat-icon-button type="button">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </ng-container>
+      <mat-list *cdkDragPreview>
+        <mat-list-item>{{ itemTypeLabels[item.value.type] }}</mat-list-item>
+      </mat-list>
+    </mat-list-item>
+  </ng-container>
+</mat-list>
+<button (click)="addItem()" *ngIf="editingIndex === -1" mat-stroked-button type="button">Add item...</button>
+
+<ng-template #editingTemplate>
+  <mat-card class="edit-form">
+    <mat-form-field>
+      <mat-label>Type</mat-label>
+      <mat-select [formControl]="editingTypeControl" required>
+        <mat-option *ngFor="let itemType of itemTypes" [value]="itemType.value">{{ itemType.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <ng-container [formGroup]="editingFormGroup" [ngSwitch]="editingFormGroup.controls.type.value">
+      <ng-container *ngSwitchCase="EXPANDABLE_ITEM">
+        <mat-form-field>
+          <mat-label>Source</mat-label>
+          <mat-select formControlName="source" required>
+            <mat-option *ngFor="let source of expandableSources" [value]="source.value">{{ source.label }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <ng-container *ngIf="editingFormGroup.controls.source.value === EXPANDABLE_SOURCE_NONE">
+          <rcc-home-screen-translation-select (addTranslation)="addTranslation.emit()"
+                                              [control]="editingFormGroup.controls.title"
+                                              [required]="true"
+                                              [translations]="translations"
+                                              label="Text"></rcc-home-screen-translation-select>
+          <rcc-icon-selector formControlName="icon"></rcc-icon-selector>
+        </ng-container>
+      </ng-container>
+      <ng-container *ngSwitchCase="LINK_ITEM">
+        <rcc-home-screen-translation-select (addTranslation)="addTranslation.emit()"
+                                            [control]="editingFormGroup.controls.title"
+                                            [required]="false"
+                                            [translations]="translations"
+                                            label="Label"></rcc-home-screen-translation-select>
+        <rcc-icon-selector formControlName="icon"></rcc-icon-selector>
+        <mat-form-field>
+          <mat-label>Button style</mat-label>
+          <mat-select formControlName="style" required>
+            <mat-option *ngFor="let buttonStyle of buttonStyles" [value]="buttonStyle.value">
+              {{ buttonStyle.label }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+        <rcc-link-item-template-content-editor
+          [formGroup]="editingFormGroup.controls.content"></rcc-link-item-template-content-editor>
+      </ng-container>
+    </ng-container>
+    <button (click)="saveItem()" mat-stroked-button type="button">Save item</button>
+  </mat-card>
+</ng-template>

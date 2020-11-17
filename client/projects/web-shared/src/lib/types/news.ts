@@ -78,6 +78,16 @@ export const enum NewsGroupType {
   POLLS = 'polls',
 }
 
+export const NEWS_GROUP_TYPES = [
+  { type: NewsGroupType.CITY, label: 'City' },
+  { type: NewsGroupType.EVENTS, label: 'Events' },
+  { type: NewsGroupType.POLLS, label: 'Polls' },
+  { type: NewsGroupType.PRESS, label: 'Press' },
+  { type: NewsGroupType.PROMOTIONS, label: 'Promotions' },
+  { type: NewsGroupType.TRAFFIC, label: 'Traffic' },
+  { type: NewsGroupType.PUBLIC_SERVICE_ANNOUNCEMENTS, label: 'Public service announcements' },
+];
+
 export interface NewsItem {
   type: NewsItemType;
   sticky: boolean;

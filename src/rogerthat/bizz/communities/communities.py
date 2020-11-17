@@ -133,6 +133,7 @@ def _populate_community(community, data):
     community.demo = data.demo
     community.embedded_apps = data.embedded_apps
     community.features = data.features
+    community.customization_features = data.customization_features
     community.main_service = data.main_service
     community.name = data.name
     community.signup_enabled = data.signup_enabled

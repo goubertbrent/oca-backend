@@ -35,6 +35,8 @@ from mcfw.consts import MISSING
 from mcfw.imaging import generate_qr_code
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
+from rogerthat.bizz.communities.communities import get_community
+from rogerthat.bizz.communities.models import CustomizationFeatures
 from rogerthat.bizz.features import Features, Version
 from rogerthat.bizz.job.update_friends import update_friend_service_identity_connections
 from rogerthat.capi.system import unregisterMobile, forwardLogs
@@ -47,7 +49,7 @@ from rogerthat.dal.mobile import get_mobile_by_id, get_mobile_by_key, get_user_a
 from rogerthat.dal.profile import get_avatar_by_id, get_user_profile_key, get_user_profile, \
     get_deactivated_user_profile, get_service_profile
 from rogerthat.models import UserProfile, Avatar, CurrentlyForwardingLogs, Installation, InstallationLog, \
-    UserProfileInfo, UserProfileInfoAddress, UserProfileInfoPhoneNumber
+    UserProfileInfo, UserProfileInfoAddress, UserProfileInfoPhoneNumber, UserAddressType
 from rogerthat.models.properties.profiles import MobileDetails
 from rogerthat.pages.legal import get_current_document_version, DOC_TERMS
 from rogerthat.rpc import users
@@ -67,6 +69,7 @@ from rogerthat.utils import now, try_or_defer, file_get_contents
 from rogerthat.utils.app import get_app_id_from_app_user, get_human_user_from_app_user
 from rogerthat.utils.crypto import encrypt_for_jabber_cloud, decrypt_from_jabber_cloud
 from rogerthat.utils.languages import get_iso_lang
+from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import run_in_xg_transaction, run_in_transaction
 
 try:
@@ -330,10 +333,8 @@ def get_identity(app_user, user_profile=None):
     idTO.hasBirthdate = profile.birthdate is not None
     idTO.hasGender = profile.gender is not None
     idTO.profileData = profile.profileData
-    idTO.owncloudUri = None # todo cleanup owncloud
-    idTO.owncloudUsername = None
-    idTO.owncloudPassword = None
     idTO.communityId = profile.community_id
+    idTO.homeScreenId = profile.home_screen_id
     return idTO
 
 
@@ -723,6 +724,7 @@ def _update_profile_address(app_user, request, is_update=False):
                                      country_code=country_code)
     profile_info.addresses.append(address)
     profile_info.put()
+    after_profile_info_updated(profile_info)
 
     return address
 
@@ -732,6 +734,7 @@ def _save_existing_address(profile_info, existing_address, request):
     existing_address.distance = request.distance
     existing_address.type = request.type
     profile_info.put()
+    after_profile_info_updated(profile_info)
     return existing_address
 
 
@@ -762,6 +765,25 @@ def delete_profile_addresses(app_user, address_uids):
 
     if should_put:
         upi.put()
+        after_profile_info_updated(upi)
+
+
+def after_profile_info_updated(profile):
+    # type: (UserProfileInfo) -> None
+    deferred.defer(_after_profile_info_updated, profile)
+
+
+def _after_profile_info_updated(profile):
+    # type: (UserProfileInfo) -> None
+    from rogerthat.bizz.service import set_user_data_object
+    app_user = profile.app_user
+    user_profile = get_user_profile(app_user)
+    community = get_community(user_profile.community_id)
+    if CustomizationFeatures.HOME_ADDRESS_IN_USER_DATA in community.customization_features and community.main_service:
+        si_user = create_service_identity_user(community.main_service_user)
+        home_addresses = [p for p in profile.addresses if p.type == UserAddressType.HOME]
+        user_data = {'home_address': {'city': home_addresses[0].city} if home_addresses else None}
+        set_user_data_object(si_user, app_user, user_data)
 
 
 @returns([ProfilePhoneNumberTO])

@@ -1,0 +1,6 @@
+{
+  "packageName": "com.mobicage.oca",
+  "packageVersion": "1.0.0",
+  "sourceFolder": "src/main/java",
+  "moshiCodeGen": true
+}

@@ -26,10 +26,10 @@ from mcfw.consts import MISSING
 from mcfw.exceptions import HttpNotFoundException
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.communities.communities import get_community
+from rogerthat.bizz.communities.homescreen import maybe_publish_home_screens
 from rogerthat.bizz.service import _validate_service_identity
 from rogerthat.consts import FAST_QUEUE
 from rogerthat.dal import put_and_invalidate_cache
-from rogerthat.dal.app import get_apps_by_id
 from rogerthat.models import ServiceIdentity
 from rogerthat.models.maps import MapServiceMediaItem
 from rogerthat.models.news import MediaType
@@ -55,7 +55,6 @@ from solutions.common.models import SolutionSettings, \
 from solutions.common.to import SolutionSettingsTO
 from solutions.common.to.settings import ServiceInfoTO, PrivacySettingsTO, PrivacySettingsGroupTO
 from solutions.common.utils import is_default_service_identity, send_client_action
-
 
 SLN_LOGO_WIDTH = 640
 SLN_LOGO_HEIGHT = 240
@@ -307,6 +306,7 @@ def update_service_info(service_user, service_identity, data):
         sln_settings.name = service_info.name
         sln_settings.put()
         deferred.defer(broadcast_updates_pending, sln_settings)
+        deferred.defer(maybe_publish_home_screens, service_user)
     return service_info
 
 

@@ -117,9 +117,8 @@ def re_index_news_item(news_item):
     return index_doc(config.news_index, news_id, doc)
 
 
-def find_news(community_id, search_string, cursor=None):
+def find_news(community_id, search_string, cursor=None, amount=10):
     start_offset = long(cursor) if cursor else 0
-    amount = 10
     if (start_offset + amount) > 10000:
         amount = 10000 - start_offset
     if amount <= 0:

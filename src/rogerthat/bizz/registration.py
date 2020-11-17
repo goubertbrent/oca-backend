@@ -16,15 +16,16 @@
 # @@license_version:1.7@@
 
 import base64
-from collections import defaultdict
 import json
 import logging
-from random import choice
 import types
 import uuid
+from collections import defaultdict
+from random import choice
 
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
+from typing import List
 
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
@@ -120,7 +121,7 @@ def register_mobile(human_user, name=None, first_name=None, last_name=None, app_
     if anonymous_account:
         anonymous_mobile = get_mobile_by_account(anonymous_account)
         azzert(anonymous_mobile)
-        
+
     app = get_app_by_id(app_id)
     if community_id == 0:
         azzert(len(app.community_ids) == 1, "Community was NOT provided but len(app.community_ids) != 1")
@@ -208,7 +209,7 @@ def register_mobile(human_user, name=None, first_name=None, last_name=None, app_
             if tos_version:
                 user_profile.tos_version = tos_version
                 should_put = True
-                
+
             if not user_profile.community_id or community_id != user_profile.community_id:
                 user_profile.community_id = community_id
                 should_put = True

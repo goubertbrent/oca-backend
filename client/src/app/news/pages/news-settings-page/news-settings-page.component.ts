@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
-import { FormArray, FormBuilder, Validators } from '@angular/forms';
+import { FormBuilder, Validators } from '@angular/forms';
 import { select, Store } from '@ngrx/store';
-import { ErrorService, NewsGroupType } from '@oca/web-shared';
+import { ErrorService, NEWS_GROUP_TYPES, NewsGroupType } from '@oca/web-shared';
 import { IFormArray, IFormBuilder, IFormGroup } from '@rxweb/types';
 import { Observable, Subject } from 'rxjs';
-import { filter, takeUntil } from 'rxjs/operators';
+import { takeUntil } from 'rxjs/operators';
 import { NewsCommunity, RssScraper, RssSettings } from '../../news';
 import { GetCommunities } from '../../news.actions';
 import { NewsService } from '../../news.service';
@@ -18,15 +18,7 @@ import { getNewsCommunities } from '../../news.state';
 })
 export class NewsSettingsPageComponent implements OnInit, OnDestroy {
   // This page is for admins only
-  newsGroups = [
-    { type: NewsGroupType.CITY, label: 'City' },
-    { type: NewsGroupType.EVENTS, label: 'Events' },
-    { type: NewsGroupType.POLLS, label: 'Polls' },
-    { type: NewsGroupType.PRESS, label: 'Press' },
-    { type: NewsGroupType.PROMOTIONS, label: 'Promotions' },
-    { type: NewsGroupType.TRAFFIC, label: 'Traffic' },
-    { type: NewsGroupType.PUBLIC_SERVICE_ANNOUNCEMENTS, label: 'Public service announcements' },
-  ];
+  newsGroups = NEWS_GROUP_TYPES;
   communities$: Observable<NewsCommunity[]>;
 
   formGroup: IFormGroup<RssSettings>;
@@ -106,7 +98,7 @@ export class NewsSettingsPageComponent implements OnInit, OnDestroy {
   }
 
   removeScraper(index: number) {
-    (this.scrapers as FormArray).removeAt(index);
+    this.scrapers.removeAt(index);
     this.save();
   }
 

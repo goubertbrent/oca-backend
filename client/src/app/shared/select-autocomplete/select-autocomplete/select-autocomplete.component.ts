@@ -2,9 +2,9 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Inpu
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatOption } from '@angular/material/core';
 import { MatSelectChange } from '@angular/material/select';
+import { IFormControl } from '@rxweb/types';
 import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
-import { FormControlTyped } from '../../util/forms';
 
 type SelectValueType = string | number;
 
@@ -54,10 +54,10 @@ export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlVa
   @Input() multiple = true;
   @Input() maxDisplayedOptions = 50;
 
-  formControl: FormControlTyped<null | SelectValueType | SelectValueType[]> = new FormControl();
+  formControl: IFormControl<null | SelectValueType | SelectValueType[]> = new FormControl();
 
   filteredOptions$ = new Subject<SelectAutocompleteOptionInternal[]>();
-  filterFormControl: FormControlTyped<string> = new FormControl();
+  filterFormControl: IFormControl<string> = new FormControl();
   private destroyed$ = new Subject();
 
   private _options: SelectAutocompleteOptionInternal[] = [];

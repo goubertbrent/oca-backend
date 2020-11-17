@@ -68,7 +68,7 @@
     <td-text-editor [options]="EASYMDE_OPTIONS"
                     formControlName="description" required></td-text-editor>
     <p
-      *ngIf="formGroup.controls.function.controls.description.touched && formGroup.controls.function.controls.description.invalid"
+      *ngIf="functionFormGroup.controls.description.touched && functionFormGroup.controls.description.invalid"
       class="error-message">
       {{ 'oca.this_field_is_required' | translate }}
     </p>

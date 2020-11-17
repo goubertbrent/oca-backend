@@ -19,6 +19,7 @@ import logging
 from collections import defaultdict
 
 from google.appengine.ext import ndb, deferred
+from typing import Optional, List, Tuple
 
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.communities.communities import get_community
@@ -27,7 +28,7 @@ from rogerthat.bizz.service import InvalidGroupTypeException
 from rogerthat.consts import MIGRATION_QUEUE
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.models.news import NewsGroup, NewsSettingsService, NewsStream, \
-    NewsGroupTile, NewsStreamLayout, NewsSettingsUser, NewsStreamCustomLayout
+    NewsGroupTile, NewsStreamLayout, NewsSettingsUser, NewsStreamCustomLayout, NewsItem
 from rogerthat.rpc import users
 from rogerthat.to.news import ServiceNewsGroupTO
 from rogerthat.utils import guid

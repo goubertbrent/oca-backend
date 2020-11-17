@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { ErrorService } from '@oca/web-shared';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
@@ -13,12 +14,24 @@ import {
   loadCommunities,
   loadCommunitiesFailure,
   loadCommunitiesSuccess,
+  getHomeScreen,
+  getHomeScreenFailure,
+  getHomeScreenSuccess,
   loadCommunity,
   loadCommunityFailure,
   loadCommunitySuccess,
+  publishHomeScreen,
+  publishHomeScreenFailure,
+  publishHomeScreenSuccess,
+  testHomeScreen,
+  testHomeScreenFailure,
+  testHomeScreenSuccess,
   updateCommunity,
   updateCommunityFailure,
   updateCommunitySuccess,
+  updateHomeScreen,
+  updateHomeScreenFailure,
+  updateHomeScreenSuccess,
 } from './community.actions';
 import { CommunityService } from './community.service';
 
@@ -62,8 +75,40 @@ export class CommunitiesEffects {
       catchError(err => this.errorService.handleError(action, deleteCommunityFailure, err)),
     ))));
 
+  getHomeScreen$ = createEffect(() => this.actions$.pipe(
+    ofType(getHomeScreen),
+    switchMap(action => this.communityService.getHomeScreen(action.communityId, action.homeScreenId).pipe(
+      map(homeScreen => getHomeScreenSuccess({ communityId: action.communityId, homeScreenId: action.homeScreenId, homeScreen })),
+      catchError(err => this.errorService.handleError(action, getHomeScreenFailure, err)),
+    ))));
+
+  updateHomeScreen$ = createEffect(() => this.actions$.pipe(
+    ofType(updateHomeScreen),
+    switchMap(action => this.communityService.updateHomeScreen(action.communityId, action.homeScreenId, action.homeScreen).pipe(
+      map(homeScreen => updateHomeScreenSuccess({ communityId: action.communityId, homeScreenId: action.homeScreenId, homeScreen })),
+      tap(() => this.matSnackbar.open('Home screen updated', undefined, { duration: 1000 })),
+      catchError(err => this.errorService.handleError(action, updateHomeScreenFailure, err)),
+    ))));
+
+  publishHomeScreen$ = createEffect(() => this.actions$.pipe(
+    ofType(publishHomeScreen),
+    switchMap(action => this.communityService.publishHomeScreen(action.communityId, action.homeScreenId).pipe(
+      map(() => publishHomeScreenSuccess({ communityId: action.communityId, homeScreenId: action.homeScreenId})),
+      tap(() => this.matSnackbar.open('Home screen published', undefined, { duration: 5000 })),
+      catchError(err => this.errorService.handleError(action, publishHomeScreenFailure, err)),
+    ))));
+
+  testHomeScreen$ = createEffect(() => this.actions$.pipe(
+    ofType(testHomeScreen),
+    switchMap(action => this.communityService.testHomeScreen(action.communityId, action.homeScreenId, action.testUser).pipe(
+      map(() => testHomeScreenSuccess()),
+      tap(() => this.matSnackbar.open('Test home screen updated', undefined, { duration: 5000 })),
+      catchError(err => this.errorService.handleError(action, testHomeScreenFailure, err)),
+    ))));
+
   constructor(private actions$: Actions,
               private errorService: ErrorService,
+              private matSnackbar: MatSnackBar,
               private router: Router,
               private communityService: CommunityService) {
   }

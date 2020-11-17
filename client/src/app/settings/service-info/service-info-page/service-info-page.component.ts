@@ -4,6 +4,7 @@ import { MatChipInputEvent } from '@angular/material/chips';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
+import { IFormBuilder, IFormGroup } from '@rxweb/types';
 import { combineLatest, Observable, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, map, take, takeUntil } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
@@ -13,7 +14,6 @@ import { GetBrandingSettingsAction, UpdateAvatarAction, UpdateLogoAction } from 
 import { getBrandingSettings, isBrandingSettingsLoading } from '../../../shared/shared.state';
 import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
 import { filterNull, markAllControlsAsDirty } from '../../../shared/util';
-import { FormControlTyped, FormGroupTyped } from '../../../shared/util/forms';
 import { GetAvailablePlaceTypesAction, GetCountriesAction, GetServiceInfoAction, UpdateServiceInfoAction } from '../../settings.actions';
 import {
   getAvailablePlaceTypes,
@@ -24,7 +24,7 @@ import {
   SettingsState,
 } from '../../settings.state';
 import { CURRENCIES, TIMEZONES } from '../constants';
-import { Country, ServiceInfo, ServiceInfoSyncProvider, SyncedFields, SyncedNameValue } from '../service-info';
+import { Country, ServiceInfo, ServiceInfoSyncProvider, SyncedFields } from '../service-info';
 
 const DEFAULT_SYNCED_VALUES: { [T in SyncedFields]: null } = {
   name: null,
@@ -49,36 +49,37 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
   DEFAULT_AVATAR_URL = DEFAULT_AVATAR_URL;
   DEFAULT_LOGO_URL = DEFAULT_LOGO_URL;
   placeTypes$: Observable<AvailablePlaceType[]>;
-  otherPlaceTypes$ = new Subject<AvailableOtherPlaceType[]>();
+  otherPlaceTypes$: Subject<AvailableOtherPlaceType[]> = new Subject();
   countries$: Observable<Country[]>;
   syncedValues: { [T in SyncedFields]: ServiceInfoSyncProvider | null } = DEFAULT_SYNCED_VALUES;
   submitted = false;
-  formGroup: FormGroupTyped<ServiceInfo>;
+  formGroup: IFormGroup<ServiceInfo>;
   saveErrorMessage$ = new Subject<string>();
 
   private destroyed$ = new Subject();
+  private formBuilder: IFormBuilder;
 
   constructor(private store: Store<SettingsState>,
               private translate: TranslateService,
               private matDialog: MatDialog,
-              private fb: FormBuilder) {
-    this.formGroup = fb.group({
-      cover_media: fb.control([]),
-      websites: fb.control([]) as FormControlTyped<SyncedNameValue[]>,
-      name: fb.control('', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]),
-      timezone: fb.control('', Validators.required),
-      phone_numbers: fb.control([]),
-      email_addresses: fb.control([]),
-      description: fb.control(''),
-      currency: fb.control('', Validators.required),
-      addresses: fb.control([]),
-      keywords: fb.control([]),
-      main_place_type: fb.control(null, Validators.required),
-      place_types: fb.control([], Validators.required),
-      synced_fields: fb.control([]),
-      visible: fb.control(true),
-    }) as FormGroupTyped<ServiceInfo>;
-
+              fb: FormBuilder) {
+    this.formBuilder = fb;
+    this.formGroup = this.formBuilder.group<ServiceInfo>({
+      cover_media: this.formBuilder.control([]),
+      websites: this.formBuilder.control([]),
+      name: this.formBuilder.control('', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]),
+      timezone: this.formBuilder.control('', Validators.required),
+      phone_numbers: this.formBuilder.control([]),
+      email_addresses: this.formBuilder.control([]),
+      description: this.formBuilder.control(''),
+      currency: this.formBuilder.control('', Validators.required),
+      addresses: this.formBuilder.control([]),
+      keywords: this.formBuilder.control([]),
+      main_place_type: this.formBuilder.control(null, Validators.required),
+      place_types: this.formBuilder.control([], Validators.required),
+      synced_fields: this.formBuilder.control([]),
+      visible: this.formBuilder.control(true),
+    });
   }
 
   ngOnInit() {
@@ -142,7 +143,7 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
   }
 
   mainPlaceTypeChanged(mainPlaceType: string | null) {
-    const placeTypes = this.formGroup.value.place_types as string[];
+    const placeTypes = this.formGroup.value!.place_types as string[];
     if (mainPlaceType && !placeTypes.includes(mainPlaceType)) {
       this.formGroup.patchValue({ place_types: [mainPlaceType, ...placeTypes] });
     }
@@ -150,12 +151,12 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
   }
 
   removeKeyword(keyword: string) {
-    this.formGroup.patchValue({ keywords: this.formGroup.value.keywords.filter((k: string) => k !== keyword) });
+    this.formGroup.patchValue({ keywords: this.formGroup.value!.keywords.filter((k: string) => k !== keyword) });
   }
 
   addKeyword($event: MatChipInputEvent) {
     const value = $event.value.trim();
-    const currentKeywords = this.formGroup.value.keywords;
+    const currentKeywords = this.formGroup.value!.keywords;
     if (value && !currentKeywords.includes(value)) {
       this.formGroup.patchValue({ keywords: [...currentKeywords, value] });
     }
@@ -230,7 +231,7 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
 
   private setOtherPlaceTypes() {
     this.placeTypes$.pipe(take(1), takeUntil(this.destroyed$)).subscribe(types => {
-      const mainType = this.formGroup.value.main_place_type;
+      const mainType = this.formGroup.value!.main_place_type;
       this.otherPlaceTypes$.next(types.map(p => ({ ...p, disabled: mainType === p.value })));
     });
   }

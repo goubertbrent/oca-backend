@@ -488,17 +488,6 @@ def create_app_data(sln_settings, service_identity, service_info, default_app_na
     return app_data
 
 
-@returns()
-@arguments(sln_settings=SolutionSettings, main_branding_key=unicode)
-def populate_identity_and_publish(sln_settings, main_branding_key):
-    users.set_user(sln_settings.service_user)
-    try:
-        populate_identity(sln_settings, main_branding_key)
-        system.publish_changes()
-    finally:
-        users.clear_user()
-
-
 @returns(dict)
 @arguments(sln_settings=SolutionSettings, service_identity=unicode)
 def get_app_data_broadcast(sln_settings, service_identity):

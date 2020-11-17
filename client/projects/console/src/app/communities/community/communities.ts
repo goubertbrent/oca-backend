@@ -16,6 +16,10 @@ export const enum AppFeature {
   NEWS_REGIONAL = 'news_regional',
 }
 
+export const enum CustomizationFeature {
+  HOME_ADDRESS_IN_USER_DATA,
+}
+
 export interface CreateCommunity {
   auto_connected_services: AutoConnectedService[];
   name: string;
@@ -26,6 +30,7 @@ export interface CreateCommunity {
   main_service: string | null;
   signup_enabled: boolean;
   features: AppFeature[];
+  customization_features: CustomizationFeature[];
 }
 
 export interface Community extends CreateCommunity {

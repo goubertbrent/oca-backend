@@ -19,7 +19,7 @@
       "./src/typings.d.ts"
     ],
     "lib": [
-      "es2018",
+      "es2019",
       "dom"
     ],
     "paths": {

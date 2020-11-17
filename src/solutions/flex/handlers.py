@@ -18,11 +18,11 @@
 import json
 import os
 
-from jinja2 import StrictUndefined, Undefined
 import jinja2
 import webapp2
-
 from babel import dates, Locale
+from jinja2 import StrictUndefined, Undefined
+
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz import channel
 from rogerthat.bizz.communities.communities import get_community
@@ -35,13 +35,12 @@ from rogerthat.models import ServiceIdentity
 from rogerthat.pages.legal import get_version_content, DOC_TERMS_SERVICE, get_current_document_version
 from rogerthat.pages.login import SessionHandler
 from rogerthat.rpc import users
-from rogerthat.service.api import system
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils.channel import send_message_to_session
 from shop.bizz import get_organization_types, update_customer_consents
 from shop.business.legal_entities import get_vat_pct
 from shop.constants import LOGO_LANGUAGES
-from shop.dal import get_customer, get_mobicage_legal_entity
+from shop.dal import get_customer
 from solutions import translate, translations, COMMON_JS_KEYS
 from solutions.common.bizz import OrganizationType, SolutionModule
 from solutions.common.bizz.budget import BUDGET_RATE
@@ -56,7 +55,6 @@ from solutions.common.models.properties import MenuItem
 from solutions.common.to import SolutionEmailSettingsTO
 from solutions.flex import SOLUTION_FLEX
 from solutions.jinja_extensions import TranslateExtension
-
 
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), 'templates'),
@@ -333,15 +331,9 @@ class FlexHomeHandler(webapp2.RequestHandler):
             'BUDGET_RATE': BUDGET_RATE,
             'CURRENCY_SYMBOLS': currency_symbols
         }
-        if customer:
-            vat_pct = get_vat_pct(customer)
-            is_mobicage = customer.team.legal_entity.is_mobicage
-            legal_entity_currency = customer.team.legal_entity.currency
-        else:
-            mobicage_legal_entity = get_mobicage_legal_entity()
-            vat_pct = mobicage_legal_entity.vat_percent
-            is_mobicage = True
-            legal_entity_currency = mobicage_legal_entity.currency
+        vat_pct = get_vat_pct(customer)
+        is_mobicage = customer.team.legal_entity.is_mobicage
+        legal_entity_currency = customer.team.legal_entity.currency
 
         functionality_modules = functionality_info = None
         if community.signup_enabled:

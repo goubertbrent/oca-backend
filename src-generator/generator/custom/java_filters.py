@@ -60,8 +60,6 @@ def java_parcel_write_method(field):
 
 
 def java_cast(value, var, int_only=False):
-    if value == 'float':
-        return "(Float) %s" % var
     if value in ('int', 'long'):
         if int_only:
             return '((Long) %s).intValue()' % var

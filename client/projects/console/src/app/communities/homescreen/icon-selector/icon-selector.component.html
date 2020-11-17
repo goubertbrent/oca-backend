@@ -1,0 +1,22 @@
+<mat-form-field>
+  <mat-label>{{ 'rcc.icon' | translate }}</mat-label>
+  <input [formControl]="internalControl"
+         [matAutocomplete]="iconComplete"
+         matInput>
+  <mat-icon *ngIf="internalControl.valid"
+            [fontIcon]="internalControl.value"
+            fontSet="fa"
+            matSuffix></mat-icon>
+  <mat-error *ngIf="internalControl.errors?.icon">
+    {{ 'rcc.invalid_icon' | translate }}
+  </mat-error>
+  <mat-hint>
+    <a href="https://fontawesome.com/v4.7.0/icons" target="_blank">{{ 'rcc.icons_info' | translate }}</a>
+  </mat-hint>
+</mat-form-field>
+<mat-autocomplete #iconComplete="matAutocomplete">
+  <mat-option *ngFor="let icon of filteredIcons$ | async" [value]="icon.icon">
+    <mat-icon [fontIcon]="icon.icon" fontSet="fa"></mat-icon>
+    {{ icon.icon }} {{ icon.v ? '(v' + icon.v + ')' : '' }}
+  </mat-option>
+</mat-autocomplete>

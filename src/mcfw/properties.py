@@ -59,6 +59,7 @@ simple_types = (int, long, str, unicode, bool, float, NoneType)
 __none__ = '__none__'
 
 
+# This is basically the same as 'oneOf' in openapi
 class object_factory(object):
 
     # subtype_enum is only used for code generation

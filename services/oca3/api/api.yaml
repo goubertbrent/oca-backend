@@ -1,0 +1,146 @@
+openapi: 3.0.0
+info:
+  title: Our City App
+  description: Our City App internal apis
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 0.0.1
+servers:
+  - url: https://localhost:8333/api
+security:
+  - ApiKeyAuth: [ ]
+paths:
+  /homescreen/{communityId}/{homeScreenId}:
+    post:
+      summary: Saves the home screen for a community
+      operationId: updateHomeScreen
+      parameters:
+        - name: communityId
+          in: path
+          description: The id of the community to which this home screen belongs
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: homeScreenId
+          in: path
+          description: The id of the home screen
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HomeScreen'
+      responses:
+        "204":
+          description: Request was successful
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      description: Shared secret between servers
+      type: apiKey
+      in: header
+      name: X-OCA3-Api-Key
+  schemas:
+    HomeScreen:
+      type: object
+      required: [ version, content, bottom_navigation, bottom_sheet, default_language, translations ]
+      properties:
+        version:
+          type: integer
+          format: int32
+        content:
+          $ref: '#/components/schemas/HomeScreenContent'
+        bottom_navigation:
+          $ref: '#/components/schemas/HomeScreenBottomNavigation'
+        bottom_sheet:
+          $ref: '#/components/schemas/HomeScreenBottomSheet'
+        default_language:
+          description: Language to use when the user his language is not one of the available ones in the translation mapping
+          type: string
+          example: en
+        translations:
+          type: object
+          description: Translations for any string which could be translated on the homescreen. Properties that should be translated should contain a $ prefix. For example, label -> $trash_calendar
+          additionalProperties:
+            description: Translation keys
+            type: object
+            additionalProperties:
+              description: Translated strings
+              type: string
+          example:
+            en:
+              news: News
+              trash_calendar: Trash calendar
+            nl:
+              news: Nieuws
+              trash_calendar: Afvalkalender
+    HomeScreenContent:
+      # Unfortunately the kotlin generator doesn't support anyOf, and the java generator is all kinds of broken.
+      required: [ type ]
+      description: Content of the homescreen, native or an embedded app
+      properties:
+        type:
+          type: string
+          enum:
+            - native
+            - embedded_app
+        embedded_app:
+          type: string
+          description: Only set when 'type' is embedded_app
+        service_email:
+          type: string
+          description: This service will be used as 'context' in the embedded app, to set user data / service data.
+    HomeScreenBottomNavigation:
+      description: Content of the bottom navigation bar
+      example:
+        buttons:
+          - icon: fa-envelope
+            action: action
+            label: Messages
+          - icon: fa-external-link
+            action: https://google.com
+            label: Google
+      properties:
+        buttons:
+          type: array
+          items:
+            $ref: '#/components/schemas/HomeScreenNavigationButton'
+    HomeScreenNavigationButton:
+      description: A button shown in the bottom navigation of the app
+      type: object
+      required: [ icon, label, action ]
+      properties:
+        icon:
+          type: string
+        label:
+          type: string
+        action:
+          type: string
+    HomeScreenBottomSheet:
+      type: object
+      required: [ header, rows ]
+      properties:
+        header:
+          $ref: '#/components/schemas/HomeScreenBottomSheetHeader'
+        rows:
+          type: array
+          items:
+            # Can't be defined, since we would need to use oneOf which is barely supported. See MapListSectionItemTO
+            additionalProperties: true
+    HomeScreenBottomSheetHeader:
+      type: object
+      required: [ title ]
+      properties:
+        title:
+          type: string
+        subtitle:
+          type: string
+          nullable: true
+        image:
+          type: string
+          nullable: true
+

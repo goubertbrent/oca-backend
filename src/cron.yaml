@@ -157,3 +157,7 @@ cron:
 - description: Loyalty export
   url: /admin/cron/rpc/solution_loyalty_export
   schedule: 1 of month 12:00
+
+- description: Home screen test users
+  url: /cron/home-screen-test-users
+  schedule: every 5 minutes

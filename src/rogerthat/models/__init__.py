@@ -41,6 +41,7 @@ from mcfw.serialization import deserializer, ds_model, register, s_model, s_long
 from mcfw.utils import Enum
 from rogerthat.consts import MC_RESERVED_TAG_PREFIX, IOS_APPSTORE_WEB_URI_FORMAT, \
     ANDROID_MARKET_ANDROID_URI_FORMAT, ANDROID_MARKET_WEB_URI_FORMAT, ANDROID_BETA_MARKET_WEB_URI_FORMAT
+from rogerthat.dal import parent_key
 from rogerthat.models.common import NdbModel
 from rogerthat.models.properties import CompressedIntegerList
 from rogerthat.models.properties.app import AutoConnectedServicesProperty, AutoConnectedService
@@ -157,7 +158,7 @@ class App(CachedModelMixIn, db.Model):
     default_app_name_mapping = db.TextProperty()
     # These ids are used to limit the communities the user can choose when using this app.
     # They may also be used to filter the services the user can view, depending on the value of service_filter_type.
-    community_ids = db.ListProperty(long, default=[])  # type: List[int] # todo communities
+    community_ids = db.ListProperty(long, default=[])  # type: List[int]
     service_filter_type = db.IntegerProperty(indexed=False, default=AppServiceFilter.COUNTRY,
                                              choices=AppServiceFilter.all())
 
@@ -660,7 +661,6 @@ class Profile(BaseProfile, polymodel.PolyModel):
 
     @classmethod
     def createKey(cls, user):
-        from rogerthat.dal import parent_key
         return db.Key.from_path(cls.kind(), user.email(), parent=parent_key(user))
 
     @property
@@ -867,6 +867,7 @@ class UserProfile(Profile, BaseUserProfile, ArchivedModel):
     owningServiceEmails = db.StringListProperty(indexed=True)
 
     consent_push_notifications_shown = db.BooleanProperty(indexed=True, default=False)
+    home_screen_id = db.StringProperty(default=u'default')
     ArchivedModel.skip_on_archive(service_roles)
 
     @classmethod
@@ -964,6 +965,10 @@ class UserProfileInfoPhoneNumber(NdbModel):
 class UserProfileInfo(NdbModel):
     addresses = ndb.StructuredProperty(UserProfileInfoAddress, repeated=True)  # type: list[UserProfileInfoAddress]
     phone_numbers = ndb.StructuredProperty(UserProfileInfoPhoneNumber, repeated=True)  # type: list[UserProfileInfoPhoneNumber]
+
+    @property
+    def app_user(self):
+        return users.User(self.key.id())
 
     @classmethod
     def create_key(cls, app_user):
@@ -1630,6 +1635,10 @@ class OpeningHours(NdbModel):
     periods = ndb.LocalStructuredProperty(OpeningPeriod, repeated=True)  # type: List[OpeningPeriod]
     exceptional_opening_hours = ndb.LocalStructuredProperty(OpeningHourException,
                                                             repeated=True)  # type: List[OpeningHourException]
+
+    @property
+    def id(self):
+        return self.key.id().decode('utf-8')
 
     @classmethod
     def create_key(cls, service_user, identity):

@@ -6,7 +6,7 @@ import { Observable, Subscription } from 'rxjs';
 import { ApiRequestStatus } from '../../../../../framework/client/rpc';
 import { BackendsActionTypes, CreateEmbeddedAppAction } from '../../../actions';
 import { createEmbeddedAppStatus } from '../../../console.state';
-import { AppTypes, EmbeddedAppTag, SaveEmbeddedApp } from '../../../interfaces';
+import { AppTypes, SaveEmbeddedApp } from '../../../interfaces';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -24,7 +24,7 @@ import { AppTypes, EmbeddedAppTag, SaveEmbeddedApp } from '../../../interfaces';
 })
 export class CreateEmbeddedAppPageComponent implements OnInit, OnDestroy {
   embeddedApp: SaveEmbeddedApp = {
-    tags: [ EmbeddedAppTag.PAYMENTS ],
+    tags: [],
     name: '',
     file: null,
     url_regexes: [],

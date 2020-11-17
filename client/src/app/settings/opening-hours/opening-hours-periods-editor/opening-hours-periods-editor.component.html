@@ -28,7 +28,9 @@
              [(ngModel)]="hours.description"
              [disabled]="disabled"
              matInput
+             maxlength="50"
              ngModelOptions="{standalone: true}">
+      <mat-hint align="end">{{ hours.description?.length || 0 }} / 50</mat-hint>
     </mat-form-field>
     <button (click)="deleteHours(hours)"
             [disabled]="disabled"

@@ -20,6 +20,10 @@ export class CommunityDetailComponent implements OnInit {
     label: 'rcc.news_settings',
     icon: 'comment',
     route: 'news',
+  }, {
+    label: 'rcc.home_screen',
+    icon: 'home',
+    route: 'home-screen',
   }];
   title$: Observable<SidebarTitle>;
 

@@ -143,6 +143,7 @@ class TestCase(unittest.TestCase):
                 community_to.demo = False
                 community_to.embedded_apps = []
                 community_to.features = default_app_features
+                community_to.customization_features = []
                 community_to.main_service = None
                 community_to.name = app_name
                 community_to.signup_enabled = False

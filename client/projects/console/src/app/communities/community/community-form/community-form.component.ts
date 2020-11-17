@@ -3,7 +3,7 @@ import { FormBuilder, Validators } from '@angular/forms';
 import { IFormBuilder, IFormGroup } from '@rxweb/types';
 import { EmbeddedApp } from '../../../interfaces';
 import { COUNTRIES } from '../../countries';
-import { AppFeature, CreateCommunity, SimpleApp } from '../communities';
+import { AppFeature, CreateCommunity, CustomizationFeature, SimpleApp } from '../communities';
 
 @Component({
   selector: 'rcc-community-form',
@@ -23,6 +23,9 @@ export class CommunityFormComponent implements OnInit {
     { label: 'News: location filter', value: AppFeature.NEWS_LOCATION_FILTER },
     { label: 'News: city must review all merchant news', value: AppFeature.NEWS_REVIEW },
     { label: 'News: regional news', value: AppFeature.NEWS_REGIONAL },
+  ];
+  customizationFeatures = [
+    { label: 'Store home address in user data', value: CustomizationFeature.HOME_ADDRESS_IN_USER_DATA },
   ];
   private formBuilder: IFormBuilder;
 
@@ -60,6 +63,7 @@ export class CommunityFormComponent implements OnInit {
       demo: [false],
       signup_enabled: [false],
       features: [[AppFeature.NEWS_VIDEO, AppFeature.JOBS]],
+      customization_features: [[]],
     });
     if (this._community) {
       // Since the formGroup might not have been initialized the moment the community was set,

@@ -22,9 +22,9 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from google.appengine.ext import ndb
 from google.appengine.ext.ndb.query import QueryOptions
+from typing import List, Optional
 
 from mcfw.utils import Enum
-from rogerthat.bizz.communities.models import Community
 from rogerthat.dal import parent_ndb_key
 from rogerthat.models.common import NdbModel
 from rogerthat.models.properties.news import NewsButtonsProperty
@@ -394,6 +394,7 @@ class NewsStreamCustomLayout(NdbModel):
 
     @classmethod
     def create_key(cls, uid, community_id):
+        from rogerthat.bizz.communities.models import Community
         return ndb.Key(cls, uid, parent=Community.create_key(community_id))
 
 

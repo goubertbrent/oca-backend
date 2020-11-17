@@ -328,8 +328,10 @@ def _get_and_save_facebook_avatar(app_user, fb_id, profile_or_key, avatar_or_key
 
 
 @returns(UserProfile)
-@arguments(access_token=unicode, app_user=users.User, update=bool, language=unicode, app_id=unicode)
-def get_profile_for_facebook_user(access_token, app_user, update=False, language=DEFAULT_LANGUAGE, app_id=App.APP_ID_ROGERTHAT):
+@arguments(access_token=unicode, app_user=users.User, update=bool, language=unicode, app_id=unicode,
+           community_id=(int, long))
+def get_profile_for_facebook_user(access_token, app_user, update=False, language=DEFAULT_LANGUAGE, app_id=App.APP_ID_ROGERTHAT,
+                                  community_id=0):
     gapi = facebook.GraphAPI(access_token, version='2.12')
     fields = ["id", "first_name", "last_name", "name", "verified", "locale", "gender", "email", "birthday", "link"]
     fb_profile = gapi.get_object("me", fields=','.join(fields))
@@ -351,6 +353,13 @@ def get_profile_for_facebook_user(access_token, app_user, update=False, language
         if not profile:
             profile = FacebookUserProfile(parent=parent_key(app_user), key_name=app_user.email())
             profile.app_id = app_id
+            app = get_app_by_id(app_id)
+            if community_id == 0:
+                azzert(len(app.community_ids) == 1, "Community was NOT provided but len(app.community_ids) != 1")
+                community_id = app.community_ids[0]
+            else:
+                azzert(community_id in app.community_ids, "Community was provided but not found in app.community_ids")
+            profile.community_id = community_id
             avatar = Avatar(user=app_user)
         else:
             avatar = get_avatar_by_id(profile.avatarId)
@@ -552,7 +561,7 @@ def create_user_profile(app_user, name, language=None, ysaaa=False, owncloud_pas
                         tos_version=None, consent_push_notifications_shown=False, first_name=None, last_name=None,
                         community_id=0):
     name = _validate_name(name)
-    
+
     # todo communities remove after testing
     app_id = get_app_id_from_app_user(app_user)
     app_model = get_app_by_id(app_id)
@@ -687,14 +696,14 @@ def create_service_profile(service_user, name, update_func=None, community_id=0)
     from rogerthat.bizz.news import create_default_news_settings
 
     name = _validate_name(name)
-    
+
     if community_id:
         community = get_community(community_id)
         default_app_id = community.default_app
     else:
         default_app = app.get_default_app()
         default_app_id = default_app.app_id if default_app else App.APP_ID_ROGERTHAT
-    
+
         # todo communities remove after testing
         stack_stace =  get_python_stack_trace(short=False)
         logging.error("create_service_profile community_id was not provided %s", stack_stace)
