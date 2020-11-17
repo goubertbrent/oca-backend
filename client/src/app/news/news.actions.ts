@@ -69,7 +69,7 @@ export class GetNewsOptionsFailedAction implements ErrorAction {
 export class GetNewsListAction implements Action {
   readonly type = NewsActionTypes.GET_NEWS_LIST;
 
-  constructor(public payload: { cursor: string | null }) {
+  constructor(public payload: { cursor: string | null, query: string | null }) {
   }
 }
 
@@ -81,10 +81,10 @@ export class GetNewsListCompleteAction implements Action {
 
 }
 
-export class GetNewsListFailedAction implements Action {
+export class GetNewsListFailedAction implements ErrorAction {
   readonly type = NewsActionTypes.GET_NEWS_LIST_FAILED;
 
-  constructor(public error: ApiError) {
+  constructor(public error: string) {
   }
 }
 export class GetNewsItemsStatsAction implements Action {

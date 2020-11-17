@@ -1,0 +1,18 @@
+.search-field {
+  display: flex;
+  flex-grow: 1;
+  justify-content: center;
+  font-size: 14px;
+}
+
+p {
+  display: flex;
+  flex-grow: 1;
+  justify-content: center;
+}
+
+.search-field mat-form-field {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 16px;
+}

@@ -59,11 +59,13 @@ export class NewsEffects {
       catchError(err => this.errorService.toAction(GetNewsOptionsFailedAction, err)),
     )),
    ));
+
   getNewsItems$ = createEffect(() => this.actions$.pipe(
     ofType<GetNewsListAction>(NewsActionTypes.GET_NEWS_LIST),
-    switchMap(action => this.newsService.getNewsList(action.payload.cursor).pipe(
+    switchMap(action => this.newsService.getNewsList(action.payload.cursor, action.payload.query).pipe(
       map(data => new GetNewsListCompleteAction(data)),
-      catchError(err => of(new GetNewsListFailedAction(transformErrorResponse(err)))))),
+      catchError(err => this.errorService.handleError(action, GetNewsListFailedAction, err, {format: 'dialog'})),
+    )),
   ));
 
   autoFetchStats$ = createEffect(() => this.actions$.pipe(

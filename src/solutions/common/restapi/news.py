@@ -34,14 +34,14 @@ from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException
 from rogerthat.service.api import system
 from rogerthat.service.api.communities import get_statistics
-from rogerthat.service.api.news import list_groups, get_basic_statistics
+from rogerthat.service.api.news import list_groups, get_basic_statistics, list_news
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.to.news import NewsItemTO, NewsItemListResultTO, NewsActionButtonTO, NewsItemTimeStatisticsTO, \
     NewsItemBasicStatisticsTO
 from rogerthat.utils.service import create_service_identity_user
 from shop.exceptions import BusinessException
 from solutions import translate as common_translate
-from solutions.common.bizz.news import get_news, put_news_item, delete_news, get_news_item, get_news_reviews, \
+from solutions.common.bizz.news import put_news_item, delete_news, get_news_item, get_news_reviews, \
     send_news_review_reply, publish_item_from_review, AllNewsSentToReviewWarning, get_locations, \
     is_regional_news_enabled, check_can_send_news, get_news_statistics
 from solutions.common.dal import get_solution_settings
@@ -62,10 +62,10 @@ def _translate_exception_msg(sln_settings, msg):
 
 @rest('/common/news', 'get', read_only_access=True, silent_result=True)
 @returns(NewsItemListResultTO)
-@arguments(cursor=unicode)
-def rest_get_news(cursor=None):
+@arguments(cursor=unicode, query=unicode)
+def rest_get_news(cursor=None, query=None):
     service_identity = users.get_current_session().service_identity
-    return get_news(cursor, service_identity)
+    return list_news(cursor, service_identity=service_identity, query=query)
 
 
 @rest('/common/news/statistics', 'get', read_only_access=True, silent_result=True)

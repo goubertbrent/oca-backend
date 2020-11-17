@@ -20,6 +20,7 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'oca.no_results': u'No results found',
          u'export_services': u'Export services',
          u'export_services_info': u'With this you can download information about all services in the app',
          u'creation_date': u'Creation date',
@@ -3985,6 +3986,7 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'%(app_name)s has 1 new message for you': u'%(app_name)s heeft 1 nieuw bericht voor u',
+         u'oca.no_results': u'Geen resultaten gevonden',
          u'export_services': u'Diensten exporteren',
          u'export_services_info': u'Met deze functie kunt u informatie van alle diensten exporteren, in de vorm van een excel bestand.',
          u'creation_date': u'Aanmaakdatum',

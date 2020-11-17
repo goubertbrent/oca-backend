@@ -49,7 +49,7 @@ from rogerthat.bizz.news.matching import (
     create_matches_for_news_item_key,
     get_news_item_match_type,
 )
-from rogerthat.bizz.news.searching import find_news, re_index_news_item, re_index_news_item_by_key
+from rogerthat.bizz.news.searching import find_news, re_index_news_item, re_index_news_item_by_key, find_news_by_service
 from rogerthat.capi.news import disableNews, createNotification
 from rogerthat.consts import SCHEDULED_QUEUE, DEBUG, NEWS_STATS_QUEUE, NEWS_MATCHING_QUEUE
 from rogerthat.dal import put_in_chunks
@@ -793,16 +793,22 @@ def get_news_item_details(app_user, news_id):
 
 
 @returns(NewsItemListResultTO)
-@arguments(cursor=unicode, batch_count=(int, long), service_identity_user=users.User)
-def get_news_by_service(cursor, batch_count, service_identity_user):
+@arguments(cursor=unicode, batch_count=(int, long), service_identity_user=users.User, query=unicode)
+def get_news_by_service(cursor, batch_count, service_identity_user, query=None):
     service_user = get_service_user_from_service_identity_user(service_identity_user)
-
-    qry = NewsItem.list_by_sender(service_identity_user)
-    c = ndb.Cursor.from_websafe_string(cursor) if cursor else None
-    results, new_cursor, has_more = qry.fetch_page(batch_count,
-                                                   start_cursor=c)  # type: List[NewsItem], ndb.Cursor, bool
+    if query:
+        # Use search index to find item ids, then use datastore to fetch the items.
+        r_cursor, news_ids = find_news_by_service(service_identity_user, query, batch_count, cursor)
+        results = ndb.get_multi([NewsItem.create_key(news_id) for news_id in news_ids])
+        has_more = len(results) == batch_count  # Might not be exactly true but it's a good enough guess
+    else:
+        # Use datastore to get items
+        qry = NewsItem.list_by_sender(service_identity_user)
+        c = ndb.Cursor.from_websafe_string(cursor) if cursor else None
+        results, new_cursor, has_more = qry.fetch_page(batch_count,
+                                                       start_cursor=c)  # type: List[NewsItem], ndb.Cursor, bool
+        r_cursor = new_cursor and new_cursor.to_websafe_string().decode('utf-8')
     news_items = replace_hashed_news_button_tags_with_real_tag(results, service_user)
-    r_cursor = new_cursor and new_cursor.to_websafe_string().decode('utf-8')
     service_profile = get_service_profile(service_user)
     service_identity = get_service_identity(service_identity_user)
     server_settings = get_server_settings()

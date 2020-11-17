@@ -28,7 +28,7 @@ export const initialNewsState: NewsState = {
   editingNewsItem: DEFAULT_LOADABLE,
   itemStats: DEFAULT_LOADABLE,
   timeStats: initialStateResult,
-  listStatus: DEFAULT_LOADABLE,
+  listStatus: initialStateResult,
   newsOptions: initialStateResult,
   locations: DEFAULT_LOADABLE,
   communities: initialStateResult,
@@ -44,7 +44,7 @@ export interface NewsState {
   editingNewsItem: Loadable<CreateNews>;
   itemStats: Loadable<NewsStats>;
   timeStats: ResultState<NewsItemTimeStatistics>;
-  listStatus: Loadable<NewsItemList>;
+  listStatus: ResultState<null>;
   newsOptions: ResultState<NewsOptions>;
   locations: Loadable<CityAppLocations>;
   communities: ResultState<NewsCommunity[]>;

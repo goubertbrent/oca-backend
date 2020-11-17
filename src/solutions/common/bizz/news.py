@@ -43,7 +43,7 @@ from rogerthat.rpc.service import BusinessException
 from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import app, news
 from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, BaseMediaTO, NewsLocationsTO, \
-    NewsItemListResultTO, NewsItemTO
+    NewsItemTO
 from rogerthat.utils.service import get_service_identity_tuple
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
@@ -60,12 +60,6 @@ from solutions.common.to.news import NewsStatsTO
 
 class AllNewsSentToReviewWarning(BusinessException):
     pass
-
-
-@returns(NewsItemListResultTO)
-@arguments(cursor=unicode, service_identity=unicode)
-def get_news(cursor=None, service_identity=None):
-    return news.list_news(cursor, 10, service_identity)
 
 
 @returns(NewsStatsTO)
