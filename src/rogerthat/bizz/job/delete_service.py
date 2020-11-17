@@ -45,7 +45,9 @@ from rogerthat.rpc import users
 from rogerthat.rpc.models import Session, ServiceLog
 from rogerthat.rpc.service import BusinessException
 from rogerthat.utils.app import create_app_user
+from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from rogerthat.utils.service import create_service_identity_user
+from solutions.common.integrations.cirklo.models import CirkloMerchant
 
 
 class DeleteServiceTasks(db.Model):
@@ -149,13 +151,16 @@ def _delete_non_ancestor_models(parent_service_user, service_user):
         delete_service_tasks.tasks = 3
         delete_service_tasks.put()
 
-        deferred.defer(_delete_sessions, parent_service_user, service_user)
-        deferred.defer(_delete_service_log, parent_service_user, service_user)
-        deferred.defer(_delete_service_models, parent_service_user, service_user)
-        deferred.defer(_cleanup_service_identities, service_identity_users)
-        deferred.defer(delete_cached_methods, service_user, service_identity_users)
-        deferred.defer(delete_news_settings, service_user, service_identity_users)
-        deferred.defer(delete_forms_by_service, service_user)
+        tasks = [
+            create_task(_delete_sessions, parent_service_user, service_user),
+            create_task(_delete_service_log, parent_service_user, service_user),
+            create_task(_delete_service_models, parent_service_user, service_user),
+            create_task(_cleanup_service_identities, service_identity_users),
+            create_task(delete_cached_methods, service_user, service_identity_users),
+            create_task(delete_news_settings, service_user, service_identity_users),
+            create_task(delete_forms_by_service, service_user),
+         ]
+        schedule_tasks(tasks)
     else:
         if parent_service_user and parent_service_user != service_user:
             deferred.defer(delete_service_finished, parent_service_user, service_user.email(), True)
