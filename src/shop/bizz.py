@@ -1923,18 +1923,19 @@ def create_stats_for_new_manager(email):
 def put_hint(current_user, hint_id, tag, language, text, modules):
     hints = get_solution_hints()
     if hint_id:
-        sh = SolutionHint.get_by_id(hint_id)
-        bizz_check(sh is not None, u"Can't update a hint that was already deleted")
+        hint = SolutionHint.create_key(hint_id).get()
+        bizz_check(hint is not None, u'Can\'t update a hint that was already deleted')
     else:
-        sh = SolutionHint()
-    sh.tag = tag
-    sh.language = language
-    sh.text = text
-    sh.modules = modules
-    sh.put()
-    if sh.id not in hints.hint_ids:
-        hints.hint_ids.append(sh.id)
-        put_and_invalidate_cache(hints)
+        hint = SolutionHint()
+    hint.tag = tag
+    hint.language = language
+    hint.text = text
+    hint.modules = modules
+
+    hint.put()
+    if hint.id not in hints.hint_ids:
+        hints.hint_ids.append(hint.id)
+        hints.put()
 
     target_users = {users.User(k.name()) for k in RegioManager.all(keys_only=True)}
     target_users.add(current_user)
@@ -1946,14 +1947,16 @@ def put_hint(current_user, hint_id, tag, language, text, modules):
 @returns()
 @arguments(current_user=users.User, hint_id=(int, long))
 def delete_hint(current_user, hint_id):
+    # type: (users.User, int) -> None
     hints = get_solution_hints()
-    sh = SolutionHint.get_by_id(hint_id)
+    sh_key = SolutionHint.create_key(hint_id)
+    sh = sh_key.get()
     bizz_check(sh is not None, u"Can't delete a hint that was already deleted")
 
     if sh.id in hints.hint_ids:
         hints.hint_ids.remove(sh.id)
-        put_and_invalidate_cache(hints)
-    sh.delete()
+        hints.put()
+    sh_key.delete()
 
     target_users = {users.User(k.name()) for k in RegioManager.all(keys_only=True)}
     target_users.add(current_user)

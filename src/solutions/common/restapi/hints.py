@@ -42,10 +42,10 @@ def hints_load():
         except:
             logging.debug("Hint with id '%s' does not exist anymore", hint_id)
 
-    for h in get_all_solution_hints(hint_ids):
-        if (not h.modules or any(module in sln_settings.modules for module in h.modules)):
-            if sln_settings.main_language == h.language:
-                return SolutionHintTO.fromModel(h)
+    for hint in get_all_solution_hints(hint_ids):
+        if not hint.modules or any(module in sln_settings.modules for module in hint.modules):
+            if sln_settings.main_language == hint.language:
+                return SolutionHintTO.fromModel(hint)
     return None
 
 
@@ -61,5 +61,5 @@ def hints_mark_as_read(hint_id):
             solution_hint_settings.put()
 
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)

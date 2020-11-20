@@ -22,7 +22,7 @@ $(function() {
             url : "/common/hints/load_next",
             type : "GET",
             success : function(data) {
-                if (data != null) {
+                if (data) {
                     showHints(data);
                 }
             },
@@ -39,7 +39,7 @@ $(function() {
             hint : hint
         });
         var modal = sln.createModal(html);
-        
+
         $('button[action="submit"]', html).click(function() {
             sln.call({
                 url : "/common/hints/mark_read",
@@ -59,6 +59,6 @@ $(function() {
             });
         });
     };
-    
+
     loadHints();
 });

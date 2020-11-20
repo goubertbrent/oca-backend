@@ -14,35 +14,35 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
+from google.appengine.ext import ndb
+from typing import List
 
-from rogerthat.rpc import users
-from mcfw.cache import cached
 from mcfw.rpc import returns, arguments
-from solutions.common.models.hints import SolutionHints, SolutionHint, SolutionHintSettings
+from rogerthat.rpc import users
+from solutions.common.models.hints import SolutionHints, SolutionHint, \
+    SolutionHintSettings
 
 
 @returns(SolutionHintSettings)
 @arguments(service_user=users.User)
 def get_solution_hint_settings(service_user):
-    shs_key = SolutionHintSettings.create_key(service_user)
-    shs = SolutionHintSettings.get(shs_key)
-    if not shs:
-        shs = SolutionHintSettings(key=shs_key)
-    return shs
+    # type: (users.User) -> SolutionHintSettings
+    hint_settings_key = SolutionHintSettings.create_key(service_user)
+    hint_settings = hint_settings_key.get()
+    if not hint_settings:
+        hint_settings = SolutionHintSettings(key=hint_settings_key)
+    return hint_settings
 
-@returns([SolutionHint])
-@arguments(hint_ids=[(int, long)])
+
 def get_all_solution_hints(hint_ids):
-    if hint_ids:
-        return SolutionHint.get_by_id(hint_ids)
-    else:
-        return []
+    # type: (List[int]) -> List[SolutionHint]
+    return ndb.get_multi(SolutionHint.create_key(hint_id) for hint_id in hint_ids)
 
-@cached(1)
-@returns(SolutionHints)
-@arguments()
+
 def get_solution_hints():
-    sln_hints = SolutionHints.get_by_key_name("SolutionHints")
+    # type: () -> SolutionHints
+    key = SolutionHints.create_key()
+    sln_hints = key.get()
     if not sln_hints:
-        sln_hints = SolutionHints(key_name="SolutionHints")
+        sln_hints = SolutionHints(key=key)
     return sln_hints

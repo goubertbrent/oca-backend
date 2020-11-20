@@ -16,8 +16,10 @@
 # @@license_version:1.7@@
 
 from mcfw.properties import long_property, unicode_property, unicode_list_property
+from rogerthat.to import TO
 
-class SolutionHintTO(object):
+
+class SolutionHintTO(TO):
     tag = unicode_property('1')
     language = unicode_property('2')
     id = long_property('3')
