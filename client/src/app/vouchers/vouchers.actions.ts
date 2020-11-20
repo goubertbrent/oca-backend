@@ -1,111 +1,76 @@
-import { Action } from '@ngrx/store';
-import { ErrorAction } from '@oca/web-shared';
-import { CirkloSettings, VoucherService, VouchersServiceList } from './vouchers';
+import { createAction, props } from '@ngrx/store';
+import { CirkloCity, CirkloSettings, VoucherService, VouchersServiceList } from './vouchers';
 
-export enum VouchersActionTypes {
-  GET_SERVICES = '[Vouchers] Get services',
-  GET_SERVICES_SUCCESS = '[Vouchers] Get services success',
-  GET_SERVICES_FAILED = '[Vouchers] Get services failed',
-  WHITELIST_VOUCHER_SERVICE = '[Vouchers] Whitelist voucher service',
-  WHITELIST_VOUCHER_SERVICE_SUCCESS = '[Vouchers] Save voucher provider success',
-  WHITELIST_VOUCHER_SERVICE_FAILED = '[Vouchers] Save voucher provider failed',
-  GET_CIRKLO_SETTINGS = '[Vouchers] Get cirklo settings',
-  GET_CIRKLO_SETTINGS_SUCCESS = '[Vouchers] Get cirklo settings success',
-  GET_CIRKLO_SETTINGS_FAILED = '[Vouchers] Get cirklo settings failed',
-  SAVE_CIRKLO_SETTINGS = '[Vouchers] Save cirklo settings',
-  SAVE_CIRKLO_SETTINGS_SUCCESS = '[Vouchers] Save cirklo settings success',
-  SAVE_CIRKLO_SETTINGS_FAILED = '[Vouchers] Save cirklo settings failed',
-}
+export const GetServicesAction = createAction(
+  '[Vouchers] Get services',
+);
 
-export class GetServicesAction implements Action {
-  readonly type = VouchersActionTypes.GET_SERVICES;
-}
+export const GetServicesSuccessAction = createAction(
+  '[Vouchers] Get services success',
+  props<{ payload: VouchersServiceList }>(),
+);
 
-export class GetServicesSuccessAction implements Action {
-  readonly type = VouchersActionTypes.GET_SERVICES_SUCCESS;
+export const GetServicesFailedAction = createAction(
+  '[Vouchers] Get services failed',
+  props<{ error: string }>(),
+);
 
-  constructor(public payload: VouchersServiceList) {
-  }
-}
+export const WhitelistVoucherServiceAction = createAction(
+  '[Vouchers] Whitelist voucher service',
+  props<{ id: string, email: string, accepted: boolean }>(),
+);
 
-export class GetServicesFailedAction implements ErrorAction {
-  readonly type = VouchersActionTypes.GET_SERVICES_FAILED;
+export const WhitelistVoucherServiceSuccessAction = createAction(
+  '[Vouchers] Whitelist voucher provider success',
+  props<{ id: string; email: string, service: VoucherService }>(),
+);
 
-  constructor(public error: string) {
-  }
-}
+export const WhitelistVoucherServiceFailedAction = createAction(
+  '[Vouchers] Whitelist voucher provider failed',
+  props<{ error: string }>(),
+);
 
-export class WhitelistVoucherServiceAction implements Action {
-  readonly type = VouchersActionTypes.WHITELIST_VOUCHER_SERVICE;
+export const GetCirkloSettingsAction = createAction(
+  '[Vouchers] Get cirklo settings',
+);
 
-  constructor(public payload: { id: string, email: string, accepted: boolean }) {
-  }
-}
+export const GetCirkloSettingsCompleteAction = createAction(
+  '[Vouchers] Get cirklo settings success',
+  props<{ payload: CirkloSettings }>(),
+);
 
-export class WhitelistVoucherServiceSuccessAction implements Action {
-  readonly type = VouchersActionTypes.WHITELIST_VOUCHER_SERVICE_SUCCESS;
 
-  constructor(public payload: { id: string; email: string, service: VoucherService }) {
-  }
-}
+export const GetCirkloSettingsFailedAction = createAction(
+  '[Vouchers] Get cirklo settings failed',
+  props<{ error: string }>(),
+);
 
-export class WhitelistVoucherServiceFailedAction implements ErrorAction {
-  readonly type = VouchersActionTypes.WHITELIST_VOUCHER_SERVICE_FAILED;
+export const SaveCirkloSettingsAction = createAction(
+  '[Vouchers] Save cirklo settings',
+  props<{ payload: CirkloSettings }>(),
+);
 
-  constructor(public error: string) {
-  }
-}
+export const SaveCirkloSettingsCompleteAction = createAction(
+  '[Vouchers] Save cirklo settings success',
+  props<{ payload: CirkloSettings }>(),
+);
 
-export class GetCirkloSettingsAction implements Action {
-  readonly type = VouchersActionTypes.GET_CIRKLO_SETTINGS;
-}
+export const SaveCirkloSettingsFailedAction = createAction(
+  '[Vouchers] Save cirklo settings failed',
+  props<{ error: string }>(),
+);
 
-export class GetCirkloSettingsCompleteAction implements Action {
-  readonly type = VouchersActionTypes.GET_CIRKLO_SETTINGS_SUCCESS;
+export const GetCirkloCities = createAction(
+  '[Vouchers] Get cirklo cities',
+  props<{ staging: boolean }>(),
+);
 
-  constructor(public payload: CirkloSettings) {
-  }
-}
+export const GetCirkloCitiesComplete = createAction(
+  '[Vouchers] Get cirklo cities success',
+  props<{ cities: CirkloCity[] }>(),
+);
 
-export class GetCirkloSettingsFailedAction implements ErrorAction {
-  readonly type = VouchersActionTypes.GET_CIRKLO_SETTINGS_FAILED;
-
-  constructor(public error: string) {
-  }
-}
-
-export class SaveCirkloSettingsAction implements Action {
-  readonly type = VouchersActionTypes.SAVE_CIRKLO_SETTINGS;
-
-  constructor(public payload: CirkloSettings) {
-  }
-}
-
-export class SaveCirkloSettingsCompleteAction implements Action {
-  readonly type = VouchersActionTypes.SAVE_CIRKLO_SETTINGS_SUCCESS;
-
-  constructor(public payload: CirkloSettings) {
-  }
-}
-
-export class SaveCirkloSettingsFailedAction implements ErrorAction {
-  readonly type = VouchersActionTypes.SAVE_CIRKLO_SETTINGS_FAILED;
-
-  constructor(public error: string) {
-  }
-}
-
-export type VouchersActions =
-  GetServicesAction
-  | GetServicesSuccessAction
-  | GetServicesFailedAction
-  | WhitelistVoucherServiceAction
-  | WhitelistVoucherServiceSuccessAction
-  | WhitelistVoucherServiceFailedAction
-  | GetCirkloSettingsAction
-  | GetCirkloSettingsCompleteAction
-  | GetCirkloSettingsFailedAction
-  | SaveCirkloSettingsAction
-  | SaveCirkloSettingsCompleteAction
-  | SaveCirkloSettingsFailedAction;
-
+export const GetCirkloCitiesFailed = createAction(
+  '[Vouchers] Get cirklo cities failed',
+  props<{ error: string }>(),
+);

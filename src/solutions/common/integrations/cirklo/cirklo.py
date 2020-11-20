@@ -87,6 +87,21 @@ def _cirklo_api_call(settings, url, method, payload=None, staging=False):
     return urlfetch.make_fetch_call(rpc, url, payload, method, headers, follow_redirects=False)
 
 
+def list_cirklo_cities(staging):
+    # type: (bool) -> List[dict]
+    rpc = _cirklo_api_call(get_solution_server_settings(), '/cities', urlfetch.GET, staging=staging)
+    result = rpc.get_result()  # type: urlfetch._URLFetchResult
+    if result.status_code == 200:
+        parsed = json.loads(result.content)
+        if staging:
+            for city in parsed:
+                city['id'] = 'staging-' + city['id']
+        return parsed
+    else:
+        logging.debug('%s\n%s', result.status_code, result.content)
+        raise Exception('Unexpected result from cirklo api')
+
+
 def list_whitelisted_merchants(city_id):
     staging = city_id.startswith('staging-')
     payload = {'cityId': city_id.replace('staging-', ''),

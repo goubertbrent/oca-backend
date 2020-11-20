@@ -6,9 +6,12 @@
 </mat-toolbar>
 <mat-progress-bar *ngIf="cirkloSettingsLoading$ | async" mode="indeterminate"></mat-progress-bar>
 <form (ngSubmit)="save()" [formGroup]="formGroup" class="settings-form">
+  <mat-slide-toggle (change)="changeStaging($event)" #stagingToggle>Use staging environment</mat-slide-toggle>
   <mat-form-field class="full-width">
-    <mat-label>Cirklo city id</mat-label>
-    <input formControlName="city_id" matInput>
+    <mat-label>Cirklo city</mat-label>
+    <mat-select formControlName="city_id" required>
+      <mat-option *ngFor="let city of cirkloCities$ | async" [value]="city.id">{{ city.nameNl }}</mat-option>
+    </mat-select>
   </mat-form-field>
   <mat-form-field class="full-width">
     <mat-label>Logo url</mat-label>

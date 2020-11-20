@@ -39,7 +39,7 @@ from solutions.common.bizz import SolutionModule
 from solutions.common.bizz.campaignmonitor import send_smart_email_without_check
 from solutions.common.dal import get_solution_settings
 from solutions.common.integrations.cirklo.cirklo import get_city_id_by_service_email, whitelist_merchant, \
-    list_whitelisted_merchants
+    list_whitelisted_merchants, list_cirklo_cities
 from solutions.common.integrations.cirklo.models import CirkloCity, CirkloMerchant, SignupLanguageProperty, \
     SignupMails
 from solutions.common.integrations.cirklo.to import CirkloCityTO, CirkloVoucherListTO, CirkloVoucherServiceTO, \
@@ -53,6 +53,13 @@ def _check_permission(city_sln_settings):
 
     if len(city_sln_settings.modules) != 1:
         _check_is_city(city_sln_settings.service_user)
+
+
+@rest('/common/vouchers/cities', 'get', silent_result=True)
+@returns([dict])
+@arguments(staging=bool)
+def api_list_cirklo_cities(staging=False):
+    return list_cirklo_cities(staging)
 
 
 @rest('/common/vouchers/services', 'get', silent_result=True)

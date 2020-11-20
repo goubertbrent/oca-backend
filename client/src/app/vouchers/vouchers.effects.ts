@@ -1,8 +1,11 @@
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { ErrorService } from '@oca/web-shared';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { catchError, distinctUntilChanged, map, switchMap } from 'rxjs/operators';
 import {
+  GetCirkloCities,
+  GetCirkloCitiesComplete,
+  GetCirkloCitiesFailed,
   GetCirkloSettingsAction,
   GetCirkloSettingsCompleteAction,
   GetCirkloSettingsFailedAction,
@@ -15,8 +18,6 @@ import {
   WhitelistVoucherServiceAction,
   WhitelistVoucherServiceFailedAction,
   WhitelistVoucherServiceSuccessAction,
-  VouchersActions,
-  VouchersActionTypes,
 } from './vouchers.actions';
 import { VouchersService } from './vouchers.service';
 
@@ -25,38 +26,46 @@ import { VouchersService } from './vouchers.service';
 export class VouchersEffects {
 
   loadServices$ = createEffect(() => this.actions$.pipe(
-    ofType<GetServicesAction>(VouchersActionTypes.GET_SERVICES),
+    ofType(GetServicesAction),
     switchMap(action => this.service.getServices().pipe(
-      map(result => new GetServicesSuccessAction(result)),
+      map(result => GetServicesSuccessAction({ payload: result })),
       catchError(err => this.errorService.handleError(action, GetServicesFailedAction, err)))),
   ));
 
-  whitelistVoucherSerivce$ = createEffect(() => this.actions$.pipe(
-    ofType<WhitelistVoucherServiceAction>(VouchersActionTypes.WHITELIST_VOUCHER_SERVICE),
-    switchMap(action => this.service.whitelistVoucherService(action.payload.id, action.payload.email, action.payload.accepted).pipe(
-      map(result => new WhitelistVoucherServiceSuccessAction({
-        id: action.payload.id,
-        email: action.payload.email,
+  whitelistVoucherService$ = createEffect(() => this.actions$.pipe(
+    ofType(WhitelistVoucherServiceAction),
+    switchMap(action => this.service.whitelistVoucherService(action.id, action.email, action.accepted).pipe(
+      map(result => WhitelistVoucherServiceSuccessAction({
+        id: action.id,
+        email: action.email,
         service: result,
       })),
       catchError(err => this.errorService.handleError(action, WhitelistVoucherServiceFailedAction, err)))),
   ));
 
   getCirkloSettings$ = createEffect(() => this.actions$.pipe(
-    ofType<GetCirkloSettingsAction>(VouchersActionTypes.GET_CIRKLO_SETTINGS),
+    ofType(GetCirkloSettingsAction),
     switchMap(action => this.service.getCirkloSettings().pipe(
-      map(result => new GetCirkloSettingsCompleteAction(result)),
+      map(result => GetCirkloSettingsCompleteAction({ payload: result })),
       catchError(err => this.errorService.handleError(action, GetCirkloSettingsFailedAction, err)))),
   ));
 
   saveCirkloSettings$ = createEffect(() => this.actions$.pipe(
-    ofType<SaveCirkloSettingsAction>(VouchersActionTypes.SAVE_CIRKLO_SETTINGS),
+    ofType(SaveCirkloSettingsAction),
     switchMap(action => this.service.saveCirkloSettings(action.payload).pipe(
-      map(result => new SaveCirkloSettingsCompleteAction(result)),
+      map(result => SaveCirkloSettingsCompleteAction({ payload: result })),
       catchError(err => this.errorService.handleError(action, SaveCirkloSettingsFailedAction, err)))),
   ));
 
-  constructor(private actions$: Actions<VouchersActions>,
+  getCirkloCities$ = createEffect(() => this.actions$.pipe(
+    ofType(GetCirkloCities),
+    distinctUntilChanged((action1, action2) => action1.staging === action2.staging),
+    switchMap(action => this.service.getCirkloCities(action.staging).pipe(
+      map(result => GetCirkloCitiesComplete({ cities: result })),
+      catchError(err => this.errorService.handleError(action, GetCirkloCitiesFailed, err)))),
+  ));
+
+  constructor(private actions$: Actions,
               private errorService: ErrorService,
               private service: VouchersService) {
 

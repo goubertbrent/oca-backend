@@ -36,3 +36,14 @@ export interface CirkloSettings {
   signup_name_fr: string | null;
   signup_mail: SignupMails | null;
 }
+
+export interface CirkloCity {
+  cityWalletId: string;
+  createdAt: string;
+  id: string;
+  maintenanceWalletId: string;
+  nameEn: string;
+  nameFr: string;
+  nameNl: string;
+  updatedAt: string;
+}

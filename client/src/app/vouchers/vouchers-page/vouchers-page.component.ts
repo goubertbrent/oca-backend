@@ -102,13 +102,13 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
         return;
       }
       if (result.action === 'yes') {
-        this.store.dispatch(new WhitelistVoucherServiceAction({
+        this.store.dispatch(WhitelistVoucherServiceAction({
           id: row.id,
           email: row.email,
           accepted: true,
         }));
       } else if (result.action === 'no') {
-        this.store.dispatch(new WhitelistVoucherServiceAction({
+        this.store.dispatch(WhitelistVoucherServiceAction({
           id: row.id,
           email: row.email,
           accepted: false,
@@ -119,7 +119,7 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
   }
 
   private getServices() {
-    this.store.dispatch(new GetServicesAction());
+    this.store.dispatch(GetServicesAction());
   }
 }
 
