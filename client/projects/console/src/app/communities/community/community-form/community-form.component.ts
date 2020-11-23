@@ -18,6 +18,7 @@ export class CommunityFormComponent implements OnInit {
   formGroup: IFormGroup<CreateCommunity>;
   countries = COUNTRIES;
   features = [
+    { label: 'Events: Show merchants in feed from main service', value: AppFeature.EVENTS_SHOW_MERCHANTS },
     { label: 'Jobs', value: AppFeature.JOBS },
     { label: 'News: videos in feed', value: AppFeature.NEWS_VIDEO },
     { label: 'News: location filter', value: AppFeature.NEWS_LOCATION_FILTER },

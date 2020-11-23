@@ -9,6 +9,7 @@ export interface AutoConnectedService {
 }
 
 export const enum AppFeature {
+  EVENTS_SHOW_MERCHANTS = 'events_show_merchants',
   JOBS = 'jobs',
   NEWS_VIDEO = 'news_video',
   NEWS_LOCATION_FILTER = 'news_location_filter',
