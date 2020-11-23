@@ -26,9 +26,18 @@ export class IconSelectorComponent implements OnInit, ControlValueAccessor {
       auditTime(300),
       map(text => Array.from(filterIcons(text ?? ''))),
       tap(results => {
-        if (results.length === 1) {
-          this.onChange(results[ 0 ].icon);
-        } else if (results.length === 0 && !this.internalControl.value) {
+        const inputValue = this.internalControl.value;
+        let found = false;
+        if (results.length > 0) {
+          for (const result of results) {
+            if (result.icon === inputValue) {
+              this.onChange(results[ 0 ].icon);
+              found = true;
+              break;
+            }
+          }
+        }
+        if (!found) {
           this.onChange(null);
         }
       }),

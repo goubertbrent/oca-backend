@@ -115,7 +115,7 @@ def convert_section_template_to_item(row, service_info, opening_hours, language,
                     link_item.request_user_link = content.request_user_link
                     link_item.url = content.url
                     link_item.title = item.title
-                    link_item.icon = item.icon or 'fa-external-link'
+                    link_item.icon = item.icon or 'fa-globe'
                 elif isinstance(content, LinkItemSyncedContent):
                     link_item.external = False
                     link_item.request_user_link = False
@@ -124,7 +124,7 @@ def convert_section_template_to_item(row, service_info, opening_hours, language,
                             email = service_info.email_addresses[content.index]
                             link_item.title = item.title or email.value
                             link_item.url = 'mailto://' + email.value
-                            link_item.icon = item.icon or 'fa-at'
+                            link_item.icon = item.icon or 'fa-envelope'
                         elif content.source == LinkItemSource.SERVICE_INFO_PHONE:
                             phone = service_info.phone_numbers[content.index]
                             link_item.title = item.title or phone.name or phone.value
@@ -134,7 +134,7 @@ def convert_section_template_to_item(row, service_info, opening_hours, language,
                             website = service_info.websites[content.index]
                             link_item.title = item.title or website.name or website.value
                             link_item.url = website.value
-                            link_item.icon = item.icon or 'fa-external-link'
+                            link_item.icon = item.icon or 'fa-globe'
                     except IndexError:
                         logging.debug('Skipping item %s: No data at index in service info %d', item,
                                       content.index)
@@ -161,7 +161,7 @@ def convert_section_template_to_item(row, service_info, opening_hours, language,
                                                             'action': ServiceMenuDef.hash_tag(content.tag),
                                                             'service': content.service})
                     link_item.title = item.title or menu_item.label
-                    link_item.icon = item.icon or 'fa-external-link'
+                    link_item.icon = item.icon or 'fa-globe'
                 else:
                     raise NotImplementedError('Unimplemented LinkItemTemplate.content: %s' % content)
                 if not link_item.url:
