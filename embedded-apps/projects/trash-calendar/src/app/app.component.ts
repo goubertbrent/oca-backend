@@ -6,7 +6,7 @@ import { Platform } from '@ionic/angular';
 import { Actions } from '@ngrx/effects';
 import { TranslateService } from '@ngx-translate/core';
 import { RogerthatService } from '@oca/rogerthat';
-import { DEFAULT_LOCALE, getLanguage, setColor } from '@oca/shared';
+import { DEFAULT_LANGUAGE, getLanguage, setColor } from '@oca/shared';
 
 
 @Component({
@@ -30,7 +30,7 @@ export class AppComponent {
   }
 
   async initializeApp() {
-    this.translate.setDefaultLang(DEFAULT_LOCALE);
+    this.translate.setDefaultLang(DEFAULT_LANGUAGE);
     this.platform.backButton.subscribe(async () => {
       if (this.shouldExitApp()) {
         this.exit();

@@ -7,7 +7,7 @@ import { Actions } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { getScannedQr, RogerthatService } from '@oca/rogerthat';
-import { CallStateType, DEFAULT_LOCALE, getLanguage, setColor } from '@oca/shared';
+import { CallStateType, DEFAULT_LANGUAGE, getLanguage, setColor } from '@oca/shared';
 import { map, take } from 'rxjs/operators';
 
 
@@ -32,7 +32,7 @@ export class CirkloAppComponent {
   }
 
   async initializeApp() {
-    this.translate.setDefaultLang(DEFAULT_LOCALE);
+    this.translate.setDefaultLang(DEFAULT_LANGUAGE);
     this.platform.backButton.subscribe(async () => {
       if (await this.shouldExitApp()) {
         this.exit();
