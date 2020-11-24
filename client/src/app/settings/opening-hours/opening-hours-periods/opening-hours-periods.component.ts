@@ -41,7 +41,7 @@ export class OpeningHoursPeriodsComponent implements OnChanges {
 
   showPeriods = false;
   periodsPerDay: PeriodMapping[] = [];
-  private dayNames: string[];
+  private dayNames: readonly string[];
 
   constructor(@Inject(LOCALE_ID) private currentLocale: string) {
     this.dayNames = getLocaleDayNames(this.currentLocale, FormStyle.Standalone, TranslationWidth.Wide);

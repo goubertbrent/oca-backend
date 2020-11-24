@@ -1,0 +1,3 @@
+<mat-nav-list>
+  <a mat-list-item [routerLink]="app.id" *ngFor="let app of apps$ | async">{{ app.name }}</a>
+</mat-nav-list>

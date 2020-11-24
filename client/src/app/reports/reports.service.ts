@@ -1,6 +1,5 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { MapConfig } from './maps';
 import { Incident, IncidentList, IncidentStatus } from './pages/reports';
 
 @Injectable({ providedIn: 'root' })
@@ -24,13 +23,5 @@ export class ReportsService {
 
   updateIncident(incident: Incident) {
     return this.http.put<Incident>(`/common/reports/incidents/${incident.id}`, incident);
-  }
-
-  getMapConfig() {
-    return this.http.get<MapConfig>('/common/maps/reports');
-  }
-
-  saveMapConfig(payload: MapConfig) {
-    return this.http.put<MapConfig>('/common/maps/reports', payload);
   }
 }

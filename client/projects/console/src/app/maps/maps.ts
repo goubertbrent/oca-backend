@@ -1,3 +1,10 @@
+export const enum ReportsMapFilter {
+  ALL = 'all',
+  NEW = 'new',
+  IN_PROGRESS = 'in_progress',
+  RESOLVED = 'resolved',
+}
+
 export interface MapButton {
   action: string;
   color: string | null;

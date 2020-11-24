@@ -1,21 +1,20 @@
 import { LatLngLiteral } from '@agm/core';
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { NgForm } from '@angular/forms';
-import { deepCopy } from '../../../shared/util';
-import { MapButton, MapConfig } from '../../maps';
+import { MapButton, MapConfig } from '../maps';
 
+// TODO convert to reactive form
 @Component({
-  selector: 'oca-map-config',
+  selector: 'rcc-map-config',
   templateUrl: './map-config.component.html',
   styleUrls: ['./map-config.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MapConfigComponent {
   @Input() filters: { value: string; label: string }[];
-  @Input() showExtendedConfig: boolean;
 
   @Input() set mapConfig(value: MapConfig) {
-    this._mapConfig = deepCopy(value);
+    this._mapConfig = JSON.parse(JSON.stringify(value));
   }
 
   get mapConfig() {

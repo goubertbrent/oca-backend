@@ -1,6 +1,8 @@
 import { AppDetailPayload } from '../interfaces/apps.interfaces';
+import { Injectable } from "@angular/core";
 
 
+@Injectable()
 export class ConsoleConfig  {
   public static RT_API_URL = '/console-api';
   public static BASE_PROXY_PATH = '/api/plugins/rcc/proxy';

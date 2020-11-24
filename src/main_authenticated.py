@@ -24,7 +24,6 @@ import solutions.common.restapi.forms
 import solutions.common.restapi.hints
 import solutions.common.restapi.locations
 import solutions.common.restapi.loyalty
-import solutions.common.restapi.maps
 import solutions.common.restapi.news
 import solutions.common.restapi.opening_hours
 import solutions.common.restapi.order
@@ -79,7 +78,6 @@ modules = [
     solutions.common.restapi.hints,
     solutions.common.restapi.locations,
     solutions.common.restapi.loyalty,
-    solutions.common.restapi.maps,
     solutions.common.restapi.news,
     solutions.common.restapi.opening_hours,
     solutions.common.restapi.order,

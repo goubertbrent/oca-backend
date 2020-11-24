@@ -18,11 +18,48 @@
 from typing import List, Union  # @UnusedImport
 
 from mcfw.properties import unicode_property, typed_property, long_property, \
-    bool_property, unicode_list_property, object_factory
+    bool_property, unicode_list_property, object_factory, float_property
 from mcfw.utils import Enum
 from rogerthat.to import TO, GeoPointTO
 from rogerthat.to.news import BaseMediaTO, SizeTO, GetNewsStreamFilterTO, NewsStreamItemTO
 from rogerthat.to.system import ProfileAddressTO
+
+
+class LatLonTO(TO):
+    lat = float_property('lat')
+    lon = float_property('lon')
+
+
+class MapButtonTO(TO):
+    action = unicode_property('action')
+    color = unicode_property('color', default=None)
+    icon = unicode_property('icon', default=None)
+    text = unicode_property('text', default=None)
+    service = unicode_property('service', default=None)
+
+
+class MapConfigTO(TO):
+    center = typed_property('center', LatLonTO, default=None)  # type: LatLonTO
+    distance = long_property('distance', default=0)
+    filters = unicode_list_property('filters', default=[])
+    default_filter = unicode_property('default_filter', default=None)
+    buttons = typed_property('buttons', MapButtonTO, True, default=[])
+
+    @classmethod
+    def from_model(cls, m):
+        to = MapConfigTO()
+        if m:
+            to.center = LatLonTO(lat=m.center.lat, lon=m.center.lon)
+            to.distance = m.distance
+            to.filters = m.filters
+            to.default_filter = m.default_filter
+            to.buttons = m.buttons
+        else:
+            to.center = LatLonTO(lat=51.0974612, lon=3.8378242)
+            to.distance = 7287
+            to.max_distance = 15000
+        return to
+
 
 
 class MapFilterTO(TO):
@@ -409,14 +446,6 @@ class MapBaseUrlsTO(TO):
 
 class MapNotificationsTO(TO):
     enabled = bool_property('1')
-
-
-class MapButtonTO(TO):
-    action = unicode_property('action')
-    color = unicode_property('color', default=None)
-    icon = unicode_property('icon', default=None)
-    text = unicode_property('text', default=None)
-    service = unicode_property('service', default=None)
 
 
 class GetMapRequestTO(TO):

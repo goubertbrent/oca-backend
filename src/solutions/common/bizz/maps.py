@@ -17,11 +17,13 @@
 
 from google.appengine.ext import ndb
 from google.appengine.ext.ndb import GeoPt
+from typing import List
 
 from rogerthat.bizz.maps.gipod import GIPOD_TAG
 from rogerthat.bizz.maps.reports import REPORTS_TAG
 from rogerthat.bizz.maps.services import SERVICES_TAG
 from rogerthat.models.maps import MapConfig
+from rogerthat.to.maps import MapConfigTO
 
 
 def get_map_settings(app_id, map_tag):
@@ -30,20 +32,20 @@ def get_map_settings(app_id, map_tag):
 
 
 @ndb.transactional(xg=True)
-def save_map_settings(app_id, map_tag, data, is_shop_user):
-    # type: (str, str, MapConfigTO, bool) -> MapConfig
+def save_map_settings(app_id, map_tag, data):
+    # type: (str, str, MapConfigTO) -> MapConfig
     all_tags = [GIPOD_TAG, REPORTS_TAG, SERVICES_TAG]
-    models = ndb.get_multi([MapConfig.create_key(app_id, tag) for tag in all_tags])  # type: list[MapConfig]
+    models = ndb.get_multi([MapConfig.create_key(app_id, tag) for tag in all_tags])  # type: List[MapConfig]
     to_put = []
     config = None
+    # Duplicate the default center / distance to all maps
     for tag, model in zip(all_tags, models):
         if not model:
             model = MapConfig(key=MapConfig.create_key(app_id, tag))
         model.center = GeoPt(data.center.lat, data.center.lon)
         model.distance = data.distance
         if model.tag == map_tag:
-            if is_shop_user:
-                model.buttons = data.buttons
+            model.buttons = data.buttons
             model.default_filter = data.default_filter
             model.filters = data.filters
             config = model

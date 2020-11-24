@@ -1,6 +1,5 @@
 import { Action } from '@ngrx/store';
 import { ErrorAction } from '@oca/web-shared';
-import { MapConfig } from './maps';
 import { Incident, IncidentList, IncidentStatus } from './pages/reports';
 
 export const enum ReportsActionTypes {
@@ -13,12 +12,6 @@ export const enum ReportsActionTypes {
   UPDATE_INCIDENT = '[reports] Update incident',
   UPDATE_INCIDENT_COMPLETE = '[reports] Update incident complete',
   UPDATE_INCIDENT_FAILED = '[reports] Update incident failed',
-  GET_MAP_CONFIG = '[reports] Get map config',
-  GET_MAP_CONFIG_COMPLETE = '[reports] Get map config complete',
-  GET_MAP_CONFIG_FAILED = '[reports] Get map config failed',
-  SAVE_MAP_CONFIG = '[reports] Save map config',
-  SAVE_MAP_CONFIG_COMPLETE = '[reports] Save map config complete',
-  SAVE_MAP_CONFIG_FAILED = '[reports] Save map config failed',
 }
 
 export class GetIncidentsAction implements Action {
@@ -84,54 +77,9 @@ export class UpdateIncidentFailedAction implements ErrorAction {
   }
 }
 
-export class GetMapConfigAction implements Action {
-  readonly type = ReportsActionTypes.GET_MAP_CONFIG;
-}
-
-export class GetMapConfigCompleteAction implements Action {
-  readonly type = ReportsActionTypes.GET_MAP_CONFIG_COMPLETE;
-
-  constructor(public payload: MapConfig) {
-  }
-}
-
-export class GetMapConfigFailedAction implements ErrorAction {
-  readonly type = ReportsActionTypes.GET_MAP_CONFIG_FAILED;
-
-  constructor(public error: string) {
-  }
-}
-
-export class SaveMapConfigAction implements Action {
-  readonly type = ReportsActionTypes.SAVE_MAP_CONFIG;
-
-  constructor(public payload: MapConfig) {
-  }
-}
-
-export class SaveMapConfigCompleteAction implements Action {
-  readonly type = ReportsActionTypes.SAVE_MAP_CONFIG_COMPLETE;
-
-  constructor(public payload: MapConfig) {
-  }
-}
-
-export class SaveMapConfigFailedAction implements ErrorAction {
-  readonly type = ReportsActionTypes.SAVE_MAP_CONFIG_FAILED;
-
-  constructor(public error: string) {
-  }
-}
-
 export type ReportsActions = GetIncidentsAction
   | GetIncidentsCompleteAction
   | GetIncidentsFailedAction
-  | GetMapConfigAction
-  | GetMapConfigCompleteAction
-  | GetMapConfigFailedAction
-  | SaveMapConfigAction
-  | SaveMapConfigCompleteAction
-  | SaveMapConfigFailedAction
   | GetIncidentAction
   | GetIncidentCompleteAction
   | GetIncidentFailedAction

@@ -23,7 +23,7 @@ from rogerthat.handlers.image_handlers import AppQRTemplateHandler
 from rogerthat.handlers.proxy import ProxyHandlerConfigurator
 from rogerthat.handlers.upload_handlers import UploadAppAssetHandler, UploadDefaultBrandingHandler, \
     UploadGlobalAppAssetHandler, UploadGlobalBrandingHandler
-from rogerthat.restapi import apps, embedded_apps, firebase, payment
+from rogerthat.restapi import apps, embedded_apps, firebase, payment, maps
 from rogerthat.wsgi import RogerthatWSGIApplication
 from shop import view
 from shop.handlers import StaticFileHandler, GenerateQRCodesHandler, QuotationHandler
@@ -81,6 +81,7 @@ handlers = [
 ]
 handlers.extend(rest_functions(view, authorized_function=authorize_manager))
 handlers.extend(rest_functions(apps, authorized_function=authorize_manager))
+handlers.extend(rest_functions(maps, authorized_function=authorize_manager))
 handlers.extend(rest_functions(embedded_apps, authorized_function=authorize_manager))
 handlers.extend(rest_functions(firebase, authorized_function=authorize_manager))
 handlers.extend(rest_functions(payment, authorized_function=authorize_manager))

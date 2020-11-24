@@ -1,4 +1,4 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 
 import { ImportFormDialogComponent } from './import-form-dialog.component';
 
@@ -6,7 +6,7 @@ describe('ImportFormDialogComponent', () => {
   let component: ImportFormDialogComponent;
   let fixture: ComponentFixture<ImportFormDialogComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       declarations: [ ImportFormDialogComponent ]
     })
