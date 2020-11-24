@@ -22,6 +22,7 @@ from collections import defaultdict
 
 from google.appengine.api import logservice
 from google.appengine.ext import deferred, db
+from google.appengine.api.modules.modules import get_versions
 
 from mcfw.utils import chunks
 from rogerthat.dal import parent_key
@@ -303,10 +304,14 @@ def _analyze(start, end):
     slog_header_length = len(SLOG_HEADER)
 
     offset = None
+    module_versions = []
+    for module in ('default', 'service-backend',):
+        for v in get_versions(module):
+            module_versions.append((module, v))
     while True:
         logs = logservice.fetch(start_time=start, end_time=end, offset=offset,
                                 minimum_log_level=logservice.LOG_LEVEL_INFO, include_incomplete=False,
-                                include_app_logs=True)
+                                include_app_logs=True, module_versions=module_versions)
         count = 0
         for log in logs:
             count += 1
