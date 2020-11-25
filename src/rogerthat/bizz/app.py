@@ -304,7 +304,8 @@ def create_app(data):
                                    background_fetch_timestamps=[21600] if app.type == App.APP_TYPE_CITY_APP else [])
         db.put((app, app_settings))
 
-        deferred.defer(register_app, create_app_to.app_id, create_app_to.ios_developer_account, _transactional=True)
+        if create_app_to.ios_developer_account:
+            deferred.defer(register_app, create_app_to.app_id, create_app_to.ios_developer_account, _transactional=True)
         deferred.defer(create_app_group, create_app_to.app_id)
         if create_app_to.official_id:
             deferred.defer(import_location_data, app.app_id, app.country, create_app_to.official_id, _transactional=True)
