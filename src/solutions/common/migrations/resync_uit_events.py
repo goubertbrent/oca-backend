@@ -23,7 +23,7 @@ from solutions.common.models.agenda import Event
 from solutions.common.models.cityapp import UitdatabankSettings
 
 
-def resync_uit_events(dry_run=True):
+def reset_uit_events(dry_run=True):
     to_delete = Event.query().filter(Event.source == Event.SOURCE_UITDATABANK_BE).fetch(keys_only=True)
     if not dry_run:
         ndb.delete_multi(to_delete)
@@ -34,6 +34,9 @@ def resync_uit_events(dry_run=True):
         to_put.append(uit_settings)
     if not dry_run:
         ndb.put_multi(to_put)
-        run_job(_get_uitdatabank_enabled_query, [],
-                _process_cityapp_uitdatabank_events, [1], worker_queue=MAPS_QUEUE)
     return len(to_delete), len(to_put)
+
+
+def run_resync():
+    run_job(_get_uitdatabank_enabled_query, [],
+            _process_cityapp_uitdatabank_events, [1], worker_queue=MAPS_QUEUE)
