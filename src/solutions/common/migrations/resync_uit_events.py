@@ -18,6 +18,7 @@ from google.appengine.ext import ndb
 
 from rogerthat.bizz.job import run_job
 from shop.constants import MAPS_QUEUE
+from solutions.common.bizz.events.events_search import re_index_all_events
 from solutions.common.cron.events.uitdatabank import _get_uitdatabank_enabled_query, _process_cityapp_uitdatabank_events
 from solutions.common.models.agenda import Event
 from solutions.common.models.cityapp import UitdatabankSettings
@@ -34,6 +35,7 @@ def reset_uit_events(dry_run=True):
         to_put.append(uit_settings)
     if not dry_run:
         ndb.put_multi(to_put)
+        re_index_all_events()
     return len(to_delete), len(to_put)
 
 

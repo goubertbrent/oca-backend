@@ -24,15 +24,6 @@ from mcfw.utils import get_readable_key
 traced_models = []
 
 
-def get_real_location(line):
-    if 'build' in line:
-        if 'solutions' in line:
-            return line.replace('build', 'src')
-        else:
-            return line.replace('oca-backend/build', 'rogerthat-backend/src')
-    return line
-
-
 def should_log_line(line):
     """
     Filters out unhelpful lines in the stacktrace (such as type decorators) that can be left out without missing out.
@@ -44,7 +35,7 @@ def should_log_line(line):
 def _get_key(model):
     if any(isinstance(model, m) for m in traced_models):
         stack = traceback.format_stack()
-        logging.debug(''.join([get_real_location(l) for l in stack if should_log_line(l)]))
+        logging.debug(''.join([l for l in stack if should_log_line(l)]))
     if isinstance(model, ndb.Model):
         if model.key:
             return model.key
