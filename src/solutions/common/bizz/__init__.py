@@ -850,11 +850,17 @@ def _get_value(step, name):
 @returns([int])
 @arguments(service_menu=ServiceMenuDetailTO, smi_tag=unicode)
 def get_coords_of_service_menu_item(service_menu, smi_tag):
+    return get_coords_and_label_of_service_menu_item(service_menu, smi_tag)[0]
+
+
+@returns(tuple)
+@arguments(service_menu=ServiceMenuDetailTO, smi_tag=unicode)
+def get_coords_and_label_of_service_menu_item(service_menu, smi_tag):
     if smi_tag:
         for item in service_menu.items:
             if item.tag == smi_tag:
-                return item.coords
-    return None
+                return item.coords, item.label
+    return None, None
 
 
 @returns([int])
