@@ -216,11 +216,17 @@ def get_group_info(service_identity_user, group_type=None, community_ids=None, n
     group_ids = []
     for group in news_groups:
         if group.group_type in group_types:
-            if group.group_type in (NewsGroup.TYPE_CITY, NewsGroup.TYPE_PROMOTIONS, NewsGroup.TYPE_PRESS, NewsGroup.TYPE_PUBLIC_SERVICE_ANNOUNCEMENTS):
+            if group.group_type in (NewsGroup.TYPE_CITY, NewsGroup.TYPE_PRESS, NewsGroup.TYPE_PUBLIC_SERVICE_ANNOUNCEMENTS):
                 group_ids.append(group.group_id)
-            else:
+
+            elif group.group_type in (NewsGroup.TYPE_PROMOTIONS,):
                 if group.community_id == default_community_id:
+                    if not group.regional:
+                        group_ids.append(group.group_id)
+                elif group.regional:
                     group_ids.append(group.group_id)
+            elif group.community_id == default_community_id:
+                group_ids.append(group.group_id)
     logging.debug('Found group ids: %s', group_ids)
     return group_types, group_ids
 
