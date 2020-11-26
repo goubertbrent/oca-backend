@@ -19,6 +19,12 @@
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
             "aot": true,
+             "allowedCommonJsDependencies": [
+                "easymde",
+                "jquery",
+                "jquery-mapael",
+                "jquery-mousewheel"
+             ],
             "outputPath": "../src/static/client",
             "index": "src/index.html",
             "main": "src/main.ts",
@@ -318,6 +324,9 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
+             "allowedCommonJsDependencies": [
+                "easymde"
+             ],
             "outputPath": "../src/static/console",
             "index": "projects/console/src/index.html",
             "main": "projects/console/src/main.ts",
