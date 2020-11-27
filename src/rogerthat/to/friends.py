@@ -46,7 +46,7 @@ class FormVersionTO(TO):
     version = long_property('version')
 
 
-class BaseServiceMenuItemTO(object):
+class BaseServiceMenuItemTO(TO):
     coords = long_list_property('1')
     label = unicode_property('2')
     iconHash = unicode_property('3')

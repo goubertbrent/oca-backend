@@ -34,14 +34,12 @@ from mcfw.rpc import parse_complex_value
 from oca import HomeScreenBottomNavigation, HomeScreenBottomSheet, \
     HomeScreenBottomSheetHeader, HomeScreen, HomeScreenContent, HomeScreenNavigationButton
 from rogerthat.bizz.communities.communities import get_community
-from rogerthat.bizz.service import get_menu
 from rogerthat.consts import DEBUG
 from rogerthat.dal.profile import get_service_profile, get_user_profile
 from rogerthat.models import ServiceIdentity, OpeningHours, ServiceMenuDef
 from rogerthat.models.settings import ServiceInfo
 from rogerthat.rpc import users
 from rogerthat.settings import get_server_settings
-from rogerthat.to.friends import ServiceMenuDetailItemTO
 from rogerthat.to.maps import TextSectionTO, ListSectionTO, OpeningHoursSectionItemTO, OpeningHoursTO, \
     ExpandableListSectionItemTO, LinkListSectionItemTO, MAP_SECTION_TYPES, ListSectionStyle, VerticalLinkListItemStyle, \
     HorizontalLinkListItemStyle, NewsGroupSectionTO
@@ -74,10 +72,10 @@ def convert_section_template_to_item(row, service_info, opening_hours, language,
             if isinstance(item, LinkItemTemplate):
                 if isinstance(item.content, LinkItemServiceMenuItem):
                     menu_items_to_get.add(item.content.service)
-    menu_items_map = {}  # type: Dict[str, Dict[str, ServiceMenuDetailItemTO]]
+    menu_items_map = {}  # type: Dict[str, Dict[str, ServiceMenuDef]]
     for service_email in menu_items_to_get:
-        menu = get_menu(users.User(service_email))
-        menu_items_map[service_email] = {item.tag: item for item in menu.items}
+        menu_items_qry = ServiceMenuDef.list_by_service(users.User(service_email))
+        menu_items_map[service_email] = {item.tag: item for item in menu_items_qry}
 
     if isinstance(row, TextSectionTemplate):
         text_section = TextSectionTO()
@@ -161,7 +159,10 @@ def convert_section_template_to_item(row, service_info, opening_hours, language,
                                                             'action': ServiceMenuDef.hash_tag(content.tag),
                                                             'service': content.service})
                     link_item.title = item.title or menu_item.label
-                    link_item.icon = item.icon or 'fa-globe'
+                    if not item.icon and menu_item.iconName and menu_item.iconName.startswith('fa'):
+                        link_item.icon = menu_item.iconName
+                    else:
+                        link_item.icon = item.icon or 'fa-globe'
                 else:
                     raise NotImplementedError('Unimplemented LinkItemTemplate.content: %s' % content)
                 if not link_item.url:

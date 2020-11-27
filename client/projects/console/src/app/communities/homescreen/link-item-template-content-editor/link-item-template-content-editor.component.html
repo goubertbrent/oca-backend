@@ -12,10 +12,12 @@
   </ng-container>
   <ng-container *ngSwitchCase="SOURCE_ADDRESS"></ng-container>
   <ng-container *ngSwitchCase="SOURCE_MENU_ITEM">
+    <!-- TODO autocomplete -->
     <mat-form-field>
       <mat-label>Service (email)</mat-label>
       <input formControlName="service" matInput required>
     </mat-form-field>
+    <!-- TODO single select with values based on service -->
     <mat-form-field>
       <mat-label>Menu item tag</mat-label>
       <input formControlName="tag" matInput required>
