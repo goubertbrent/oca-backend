@@ -463,6 +463,9 @@ def add_event_to_calender(service_user, email, method, params, tag, service_iden
     sln_settings = get_solution_settings(service_user)
     lang = sln_settings.main_language
     event = get_event_by_id(service_user, sln_settings.solution, event_id)
+    if not event:
+        result.error = translate(lang, 'this_event_has_ended')
+        return result
     start_date, end_date = event.get_closest_occurrence(date)
     if not start_date:
         result.error = translate(lang, 'this_event_has_ended')
