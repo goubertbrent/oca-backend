@@ -16,6 +16,7 @@ import { DEFAULT_LANGUAGE, getLanguage, setColor } from '@oca/shared';
   encapsulation: ViewEncapsulation.None,
 })
 export class AppComponent {
+  loaded = false;
 
   constructor(private platform: Platform,
               private statusBar: StatusBar,
@@ -39,8 +40,9 @@ export class AppComponent {
     await this.platform.ready();
     rogerthat.callbacks.ready(() => {
       this.ngZone.run(() => {
+        this.loaded = true;
         this.rogerthatService.initialize();
-          this.translate.use(getLanguage(rogerthat.user.language));
+        this.translate.use(getLanguage(rogerthat.user.language));
         if (rogerthat.system.colors) {
           setColor('primary', rogerthat.system.colors.primary);
           if (rogerthat.system.os === 'ios') {
@@ -51,6 +53,7 @@ export class AppComponent {
         } else {
           this.statusBar.styleDefault();
         }
+        this.cdRef.markForCheck();
       });
       if (rogerthat.system.debug) {
         this.actions$.subscribe(action => {

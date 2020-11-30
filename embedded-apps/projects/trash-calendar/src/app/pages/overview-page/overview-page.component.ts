@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { select, Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
-import { getCollections, getCurrentAddress, canSetNotifications, TrashAppState, getLogoUrl } from '../../state';
+import { canSetNotifications, getCollections, getCurrentAddress, getLogoUrl, TrashAppState } from '../../state';
 import { UITrashCollection } from '../../trash';
 
 @Component({
@@ -15,6 +15,7 @@ export class OverviewPageComponent implements OnInit {
   currentAddress$: Observable<string | undefined>;
   logoUrl$: Observable<string | undefined>;
   canSetNotifications$: Observable<boolean>;
+  title = rogerthat.menuItem?.label;
 
   constructor(private store: Store<TrashAppState>) {
   }

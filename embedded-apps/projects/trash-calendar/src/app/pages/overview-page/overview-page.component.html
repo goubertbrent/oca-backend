@@ -1,6 +1,6 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>{{ 'app.trash.trash_calendar' | translate }}</ion-title>
+    <ion-title>{{ title || ('app.trash.trash_calendar' | translate) }}</ion-title>
     <ion-buttons slot="start">
       <app-back-button></app-back-button>
     </ion-buttons>
@@ -20,8 +20,9 @@
   </div>
   <ion-list>
     <ng-container *ngFor="let collection of collections$ | async">
-      <ion-list-header class="collection-header" color="light"
-                       mode="md">{{ collection.date | date : 'fullDate' }}</ion-list-header>
+      <ion-list-header color="light" mode="md">
+        <span class="collection-header">{{ collection.date | date : 'fullDate' }}</span>
+      </ion-list-header>
       <ion-item *ngFor="let activity of collection.activities" lines="none">
         <div class="activity-icon">
           <img [alt]="activity.name" [src]="activity.iconUrl">

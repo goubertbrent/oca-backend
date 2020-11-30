@@ -16,6 +16,7 @@ import { getAppointments, getAppointmentsList } from '../../q-matic.state';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppointmentsPage implements OnInit {
+  title = rogerthat.menuItem?.label;
   result$: Observable<ResultState<ListAppointments>>;
   appointments$: Observable<{ upcoming: Appointment<Date>[], past: Appointment<Date>[] }>;
   showNoResults$: Observable<boolean>;

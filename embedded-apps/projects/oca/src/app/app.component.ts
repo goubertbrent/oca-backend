@@ -1,5 +1,5 @@
 import { Location } from '@angular/common';
-import { ChangeDetectionStrategy, Component, NgZone, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, NgZone, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { AlertController, Platform } from '@ionic/angular';
@@ -17,12 +17,15 @@ import { DEFAULT_LANGUAGE, getLanguage, setColor } from '@oca/shared';
   encapsulation: ViewEncapsulation.None,
 })
 export class AppComponent {
+  loaded = false;
+
   constructor(private platform: Platform,
               private statusBar: StatusBar,
               private rogerthatService: RogerthatService,
               private translate: TranslateService,
               private actions$: Actions,
               private router: Router,
+              private cdRef: ChangeDetectorRef,
               private location: Location,
               private ngZone: NgZone,
               private alertController: AlertController) {
@@ -39,6 +42,7 @@ export class AppComponent {
     });
     rogerthat.callbacks.ready(() => {
       this.ngZone.run(() => {
+        this.loaded = true;
         this.rogerthatService.initialize();
         this.translate.use(getLanguage(rogerthat.user.language));
         if (rogerthat.system.colors) {
@@ -54,6 +58,7 @@ export class AppComponent {
         if (this.isCompatible() && ['', '/'].includes(this.location.path())) {
           this.router.navigate(this.getRootPage());
         }
+        this.cdRef.markForCheck();
       });
     });
     // this.actions$.subscribe(action => {

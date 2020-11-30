@@ -15,6 +15,7 @@ import { getAppointments, hasNoAppointments, isLoadingAppointments } from '../..
   styleUrls: ['jcc-appointments-page.component.scss'],
 })
 export class JccAppointmentsPage implements OnInit, OnDestroy {
+  title = rogerthat.menuItem?.label;
   isLoading$: Observable<boolean>;
   appointments$: Observable<AppointmentListItem[]>;
   showNoResults$: Observable<boolean>;
