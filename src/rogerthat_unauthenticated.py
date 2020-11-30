@@ -30,6 +30,7 @@ from rogerthat.pages.account import AccountLogoutHandler, AccountDeleteHandler, 
 from rogerthat.pages.admin.apps import UploadAppAppleCertsHandler
 from rogerthat.pages.app import AppUrlHandler
 from rogerthat.pages.branding import BrandingDownloadHandler, BrandingHandler
+from rogerthat.pages.fb_user import FacebookDeleteUserHandler
 from rogerthat.pages.firebase_handlers import FirebaseTokenHandler
 from rogerthat.pages.icons import LibraryIconHandler
 from rogerthat.pages.install import InstallationRequestHandler
@@ -151,6 +152,7 @@ handlers = [
     ('/service_disabled', ServiceDisabledHandler),
     ('/unauthenticated/news/image/(.*)', ViewNewsImageHandler),
     ('/unauthenticated/image/(.*)', ViewImageHandler),
+    ('/unauthenticated/facebook/user/delete', FacebookDeleteUserHandler),
     ('/rest/news/stats/read', NewsSaveReadItems),
     ('/payments/callbacks/([^/]+)/(.*)', PaymentCallbackHandler),
     ('/payments/login/([^/]+)/redirect', PaymentLoginRedirectHandler),
