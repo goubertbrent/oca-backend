@@ -338,14 +338,27 @@ def broadcast_create_news_item(service_user, message_flow_run_id, member, steps,
         if first_step.answer_id.endswith(u'coupon'):
             news_type = NewsItem.TYPE_QR_CODE
 
-    if len(steps) == 6:
+    includes_app_ids = False
+    for step in steps:
+        if step.step_id == u'message_target_audience':
+            includes_app_ids = True
+            break
+
+    if includes_app_ids:
+        if len(steps) == 6:
+            # upload a photo is included
+            (content_title_step, content_message_step,
+             cover_photo_step, image_step, group_type_step, app_ids_step) = steps
+        else:
+            image_step = None
+            (content_title_step, content_message_step,
+             cover_photo_step, group_type_step, app_ids_step) = steps
+    elif len(steps) == 5:
         # upload a photo is included
-        (content_title_step, content_message_step,
-         cover_photo_step, image_step, group_type_step, app_ids_step) = steps
+        (content_title_step, content_message_step, cover_photo_step, image_step, group_type_step) = steps
     else:
         image_step = None
-        (content_title_step, content_message_step,
-         cover_photo_step, group_type_step, app_ids_step) = steps
+        (content_title_step, content_message_step, cover_photo_step, group_type_step,) = steps
 
     title = content_title_step.form_result.result.value
     message = content_message_step.form_result.result.value
