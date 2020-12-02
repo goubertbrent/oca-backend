@@ -16,24 +16,27 @@
 # @@license_version:1.7@@
 
 import base64
+from copy import deepcopy
 import json
 import logging
+from random import choice
 import threading
 import time
 import traceback
+from types import NoneType
 import types
 import uuid
-from copy import deepcopy
-from random import choice
-from types import NoneType
 
-from concurrent import futures  # @UnresolvedImport
 from google.appengine.api import urlfetch, memcache
 from google.appengine.api.apiproxy_stub_map import UserRPC
 from google.appengine.api.app_identity.app_identity import get_application_id
 from google.appengine.api.taskqueue import TaskRetryOptions
 from google.appengine.ext import db, deferred
 
+from hyper import HTTP20Connection
+from concurrent import futures  # @UnresolvedImport
+from jose import jwt
+from jose.constants import Algorithms
 from mcfw.cache import set_cache_key
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
@@ -54,6 +57,7 @@ from rogerthat.utils import now, privatize
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from rogerthat.utils.crypto import encrypt_for_jabber_cloud, decrypt_from_jabber_cloud
 from rogerthat.utils.transactions import on_trans_committed
+
 
 _CALL_ACTION_RESEND = 1
 _CALL_ACTION_MUST_PROCESS = 2
@@ -198,15 +202,18 @@ class DirectRpcCaller(threading.local):
                 deferred.defer(_retry_api_callback, service_api_call, sik, endpoint, custom_headers=custom_headers,
                                _queue=HIGH_LOAD_WORKER_QUEUE, _retry_options=retry_options)
         del self.items[:]
-
+        
 
 class JabberRpcCaller(threading.local):
 
     def __init__(self, endpoint):
+        logging.debug("JabberRpcCaller.__init__")
         self.items = list()
         self.endpoint = endpoint
+        self.conn = HTTP20Connection('api.push.apple.com:443', force_proto='h2')
 
     def append(self, payload):
+        logging.debug("JabberRpcCaller.append")
         settings = get_server_settings()
         if DEBUG and not settings.jabberEndPoints:
             logging.debug('Skipping KICK, No jabberEndPoints configured.')
@@ -225,38 +232,80 @@ class JabberRpcCaller(threading.local):
                 if not app.apple_push_cert or not app.apple_push_key:
                     logging.error('Not sending apns to "%s" cert or key was empty', app_id)
                     return
+            else:
+                app = None
         except:
             logging.exception("Failed to process JabberRpcCaller.append")
+            return
+        logging.info("payload_dict:%s", payload_dict)
+        if app and app.apns_key_id and payload_dict['a'] == u"osa-demo2":
+            self.do_kick(app, payload_dict)
+        else:
+            jabberEndpoint = choice(settings.jabberEndPoints)
+            rpc_item = urlfetch.create_rpc(5, None)
+            challenge, data = encrypt_for_jabber_cloud(settings.jabberSecret.encode('utf8'), payload)
+            url = "http://%s/%s" % (jabberEndpoint, self.endpoint)
+            urlfetch.make_fetch_call(rpc=rpc_item, url=url, payload=data, method="POST",
+                                     allow_truncated=False, follow_redirects=False, validate_certificate=False)
+            self.items.append((1, rpc_item, payload, challenge, time.time(), url))
 
-        jabberEndpoint = choice(settings.jabberEndPoints)
-        rpc_item = urlfetch.create_rpc(5, None)
-        challenge, data = encrypt_for_jabber_cloud(settings.jabberSecret.encode('utf8'), payload)
-        url = "http://%s/%s" % (jabberEndpoint, self.endpoint)
-        urlfetch.make_fetch_call(rpc=rpc_item, url=url, payload=data, method="POST",
-                                 allow_truncated=False, follow_redirects=False, validate_certificate=False)
-        self.items.append((rpc_item, payload, challenge, time.time(), url))
 
     def finalize(self):
+        logging.debug("JabberRpcCaller.finalize")
         # Don't fetch server settings when not needed
         settings = None
-        for rpc_item, payload, challenge, start_time, url in self.items:
-            if not settings:
-                settings = get_server_settings()
-            try:
-                check_time = time.time()
-                response = rpc_item.get_result()
-                response_time = time.time()
-                logging.info("JabberRpc - Called %s. Elapsed: %sms, checked after %sms\npayload: %s", url,
-                             int((response_time - start_time) * 1000), int((check_time - start_time) * 1000), payload)
-                if response.status_code != 200:
-                    logging.error("Failed to call jabber cloud with the following info:\nendpoint: %s\npayload: %s",
-                                  self.endpoint, payload)
-                    raise Exception(response.content)
-                decrypt_from_jabber_cloud(settings.jabberSecret.encode('utf8'), challenge, response.content)
-            except:
-                logging.warn("Failed to reach jabber endpoint on %s, deferring ..." % url)
-                deferred.defer(_call_rpc, self.endpoint, payload)
+        for item_tuple in self.items:
+            version = item_tuple[0]
+            if version == 1:
+                _, rpc_item, payload, challenge, start_time, url = item_tuple
+                if not settings:
+                    settings = get_server_settings()
+                try:
+                    check_time = time.time()
+                    response = rpc_item.get_result()
+                    response_time = time.time()
+                    logging.info("JabberRpc - Called %s. Elapsed: %sms, checked after %sms\npayload: %s", url,
+                                 int((response_time - start_time) * 1000), int((check_time - start_time) * 1000), payload)
+                    if response.status_code != 200:
+                        logging.error("Failed to call jabber cloud with the following info:\nendpoint: %s\npayload: %s",
+                                      self.endpoint, payload)
+                        raise Exception(response.content)
+                    decrypt_from_jabber_cloud(settings.jabberSecret.encode('utf8'), challenge, response.content)
+                except:
+                    logging.warn("Failed to reach jabber endpoint on %s, deferring ..." % url)
+                    deferred.defer(_call_rpc, self.endpoint, payload)
+            elif version == 2:
+                _, stream_id = item_tuple
+                logging.debug("stream_id:%s", stream_id)
+                resp = self.conn.get_response(stream_id)
+                if resp.status != 200:
+                    logging.error("Failed to send apple push %s", resp.read())
         del self.items[:]
+        
+    def do_kick(self, app, payload_dict):
+        if 'd' not in payload_dict:
+            return
+        token = jwt.encode({'iss': app.ios_dev_team, 'iat': time.time()},
+                           app.apns_key,
+                           algorithm=Algorithms.ES256,
+                           headers={ 'alg': Algorithms.ES256, 'kid': app.apns_key_id})
+        path = '/3/device/{0}'.format(payload_dict['d'])
+        request_headers = {
+            'apns-expiration': '0',
+            'apns-priority': str(payload_dict['p']),
+            'apns-topic': 'com.mobicage.rogerthat.{0}'.format(app.app_id),
+            'authorization': 'bearer {0}'.format(token.decode('ascii'))
+        }
+        payload_data = json.loads(base64.decodestring(payload_dict['m']))
+        payload = json.dumps(payload_data).encode('utf-8')
+        self.conn.connect()
+        stream_id = self.conn.request(
+            'POST',
+            path,
+            payload,
+            headers=request_headers
+        )
+        self.items.append((2, stream_id))
 
 
 def create_firebase_request(data, is_gcm=False):

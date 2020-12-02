@@ -46,5 +46,6 @@ stripe==2.35.1
 zeep==3.4.0
 autopep8==1.5.4
 PyRSS2Gen==1.1
+hyper==0.7.0
 # For open-api client
 certifi == 2020.6.20

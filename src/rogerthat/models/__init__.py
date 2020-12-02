@@ -135,6 +135,8 @@ class App(CachedModelMixIn, db.Model):
     apple_push_cert = db.TextProperty(indexed=False)
     apple_push_key = db.TextProperty(indexed=False)
     apple_push_cert_valid_until = db.IntegerProperty()
+    apns_key = db.TextProperty(indexed=False)
+    apns_key_id = db.TextProperty(indexed=False)
     # TODO communities: remove after migration
     auto_connected_services = AutoConnectedServicesProperty()  # type: list[AutoConnectedService]
     is_default = db.BooleanProperty(indexed=True)
