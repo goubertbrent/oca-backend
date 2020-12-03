@@ -1,0 +1,19 @@
+<ng-container [formGroup]="formGroup">
+  <mat-form-field class="wide-field">
+    <mat-label>{{ 'oca.field' | translate }}</mat-label>
+    <mat-select formControlName="field">
+      <mat-option *ngFor="let option of TOPDESK_FIELDS" [value]="option">{{ option }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <ng-container formGroupName="options">
+    <mat-form-field class="wide-field">
+      <mat-label>{{ 'oca.format' | translate }}</mat-label>
+      <mat-select formControlName="format">
+        <mat-option *ngFor="let format of LOCATION_FORMATS"
+                    [value]="format.type">
+          {{ format.label | translate }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </ng-container>
+</ng-container>

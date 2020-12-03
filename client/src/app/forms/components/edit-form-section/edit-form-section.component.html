@@ -45,6 +45,10 @@
     <input [name]="name + '_title'" matInput [ngModel]="section.title"
            (ngModelChange)="changed('title', $event)" maxlength="80">
   </mat-form-field>
+  <mat-form-field>
+    <mat-label>{{ 'oca.next_page_button_label' | translate }}</mat-label>
+    <input matInput [(ngModel)]="section.next_button_caption" [name]="name + '_next_button_caption'">
+  </mat-form-field>
   <div class="field" *ngIf="showDescription">
     <p>{{ 'oca.description' | translate }}</p>
     <div class="description-editor">

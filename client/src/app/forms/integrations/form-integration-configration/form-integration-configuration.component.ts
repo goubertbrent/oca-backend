@@ -4,7 +4,8 @@ import {
   FormIntegrationProvider,
   IntegrationConfigurationEmail,
   IntegrationConfigurationGV,
-} from '../../interfaces/integrations';
+  IntegrationConfigurationTOPDesk,
+} from '../integrations';
 
 @Component({
   selector: 'oca-form-integration-configuration',
@@ -30,6 +31,12 @@ export class FormIntegrationConfigurationComponent implements OnChanges {
       enabled: false,
       visible: true,
       configuration: {} as IntegrationConfigurationEmail,
+    },
+    [ FormIntegrationProvider.TOPDESK ]: {
+      provider: FormIntegrationProvider.TOPDESK,
+      enabled: false,
+      visible: true,
+      configuration: {} as IntegrationConfigurationTOPDesk,
     },
   };
 

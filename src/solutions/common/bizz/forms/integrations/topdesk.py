@@ -24,20 +24,26 @@ from solutions.common.models.forms import FormIntegrationProvider
 from solutions.common.to.forms import FormSubmissionTO
 
 
-class GreenValleyConfiguration(TO):
+class TOPDeskConfiguration(TO):
     pass
 
 
-class GreenValleyFormIntegration(BaseFormIntegration):
+class TOPDeskFormIntegration(BaseFormIntegration):
 
     def __init__(self, configuration):
-        self.configuration = GreenValleyConfiguration.from_dict(configuration)
-        super(GreenValleyFormIntegration, self).__init__(self.configuration)
+        self.configuration = TOPDeskConfiguration.from_dict(configuration)
+        super(TOPDeskFormIntegration, self).__init__(self.configuration)
 
     def update_configuration(self, form_id, configuration, service_profile):
-        configuration['provider'] = FormIntegrationProvider.GREEN_VALLEY
+        configuration['provider'] = FormIntegrationProvider.TOPDESK
         payload = {'form_id': form_id, 'config': configuration}
         return _do_request('/incidents/integrations/form', urlfetch.PUT, payload, authorization=service_profile.sik)
+
+    def get_categories(self, service_profile):
+        return _do_request('/integrations/topdesk/categories', urlfetch.GET, authorization=service_profile.sik)
+
+    def get_subcategories(self, service_profile):
+        return _do_request('/integrations/topdesk/subcategories', urlfetch.GET, authorization=service_profile.sik)
 
     def submit(self, form_configuration, submission, form, service_profile, user_details):
         payload = {

@@ -18,11 +18,13 @@
 from green_valley import GreenValleyFormIntegration
 from solutions.common.bizz.forms.integrations.base import BaseFormIntegration
 from solutions.common.bizz.forms.integrations.email_integration import EmailFormIntegration
+from solutions.common.bizz.forms.integrations.topdesk import TOPDeskFormIntegration
 from solutions.common.models.forms import FormIntegrationConfiguration, FormIntegrationProvider
 
 mapping = {
-    FormIntegrationProvider.GREEN_VALLEY: GreenValleyFormIntegration,
     FormIntegrationProvider.EMAIL: EmailFormIntegration,
+    FormIntegrationProvider.GREEN_VALLEY: GreenValleyFormIntegration,
+    FormIntegrationProvider.TOPDESK: TOPDeskFormIntegration,
 }
 
 

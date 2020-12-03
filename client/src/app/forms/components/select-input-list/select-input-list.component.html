@@ -1,34 +1,37 @@
-<ng-container *ngFor="let value of values; let i = index; trackBy: trackValues">
-  <div class="option-container">
-    <ng-container [ngSwitch]="multiple">
-      <mat-radio-button [checked]="false" [disabled]="true" *ngSwitchCase="false"></mat-radio-button>
-      <mat-checkbox [checked]="false" [disabled]="true" *ngSwitchCase="true"></mat-checkbox>
-    </ng-container>
-    <mat-form-field appearance="legacy" class="option-label">
-      <input required [name]="name + 'label_' + i" matInput [(ngModel)]="value.label"
-             (ngModelChange)="labelUpdated($event, i)" #labelInput (keydown.enter)="selectNext(i)">
-    </mat-form-field>
-    <ng-container *ngIf="values.length !== 1">
-      <button type="button" mat-icon-button (click)="editImage(value, i)">
-        <mat-icon>image</mat-icon>
-      </button>
-      <button type="button" mat-icon-button (click)="removeValue(values[i])">
+<div cdkDropList (cdkDropListDropped)="itemMoved($event)">
+  <div *ngFor="let value of values; let i = index; trackBy: trackValues" cdkDrag>
+    <div class="option-container">
+      <ng-container [ngSwitch]="multiple">
+        <mat-radio-button *ngSwitchCase="false" [checked]="false" [disabled]="true" cdkDragHandle></mat-radio-button>
+        <mat-checkbox *ngSwitchCase="true" [checked]="false" [disabled]="true" cdkDragHandle></mat-checkbox>
+      </ng-container>
+      <mat-form-field appearance="legacy" class="option-label">
+        <input #labelInput (keydown.enter)="selectNext(i)" (ngModelChange)="labelUpdated($event, i)"
+               [(ngModel)]="value.label"
+               [name]="name + 'label_' + i" matInput required>
+      </mat-form-field>
+      <ng-container *ngIf="values.length !== 1">
+        <button (click)="editImage(value, i)" mat-icon-button type="button">
+          <mat-icon>image</mat-icon>
+        </button>
+        <button (click)="removeValue(values[i])" mat-icon-button type="button">
+          <mat-icon>close</mat-icon>
+        </button>
+      </ng-container>
+      <oca-next-action-editor (changed)="actionUpdated($event, i)"
+                              [name]="name + 'next_action' + i"
+                              [nextActions]="nextActions"
+                              [value]="value.next_action">
+      </oca-next-action-editor>
+    </div>
+    <div *ngIf="value.image_url" class="option-image">
+      <img [src]="value.image_url">
+      <button (click)="removeImage(value, i)" class="image-delete-button" mat-mini-fab type="button">
         <mat-icon>close</mat-icon>
       </button>
-    </ng-container>
-    <oca-next-action-editor [name]="name + 'next_action' + i"
-                            [nextActions]="nextActions"
-                            [value]="value.next_action"
-                            (changed)="actionUpdated($event, i)">
-    </oca-next-action-editor>
+    </div>
   </div>
-  <div *ngIf="value.image_url" class="option-image">
-    <img [src]="value.image_url">
-    <button type="button" mat-mini-fab (click)="removeImage(value, i)" class="image-delete-button">
-      <mat-icon>close</mat-icon>
-    </button>
-  </div>
-</ng-container>
+</div>
 <div>
   <ng-container [ngSwitch]="multiple">
     <mat-radio-button checked="false" disabled="true" *ngSwitchCase="false"></mat-radio-button>

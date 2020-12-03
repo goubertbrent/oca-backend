@@ -474,11 +474,18 @@ def get_form_integrations(user):
     # type: (users.User) -> List[FormIntegrationConfiguration]
     integration_configs = FormIntegrationConfiguration.list_by_user(user).fetch(
         None)  # type: List[FormIntegrationConfiguration]
-    if not any(i.provider == FormIntegrationProvider.EMAIL for i in integration_configs):
+    saved_providers = [i.provider for i in integration_configs]
+    if FormIntegrationProvider.EMAIL not in saved_providers:
         integration_configs.append(FormIntegrationConfiguration(
             key=FormIntegrationConfiguration.create_key(user, FormIntegrationProvider.EMAIL),
             enabled=True,
             configuration={}
+        ))
+    if FormIntegrationProvider.TOPDESK not in saved_providers:
+        integration_configs.append(FormIntegrationConfiguration(
+            key=FormIntegrationConfiguration.create_key(user, FormIntegrationProvider.TOPDESK),
+            enabled=False,
+            configuration={},
         ))
     return integration_configs
 

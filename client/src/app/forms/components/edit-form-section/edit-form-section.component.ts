@@ -9,7 +9,9 @@ import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig }
 import { FormComponentType } from '../../interfaces/enums';
 import { FormComponent, FormSection, UINextAction } from '../../interfaces/forms';
 import { FormValidatorType } from '../../interfaces/validators';
+import { generateNewId } from '../../util';
 
+// TODO: convert to reactive forms cuz the template is a bit of a mess
 @Component({
   selector: 'oca-edit-form-section',
   templateUrl: './edit-form-section.component.html',
@@ -100,7 +102,7 @@ export class EditFormSectionComponent implements ControlValueAccessor {
       choices,
       validators: [{ type: FormValidatorType.REQUIRED }],
       title,
-      id: this.getNewComponentId(),
+      id: generateNewId(),
     } ]);
   }
 
@@ -161,12 +163,5 @@ export class EditFormSectionComponent implements ControlValueAccessor {
       this.section = { ...this.section, description: null };
     }
     this.showDescription = !this.showDescription;
-  }
-
-  private getNewComponentId() {
-    // "good enough" uuid generator
-    // tslint:disable-next-line:no-bitwise
-    const S4 = () => ((1 + Math.random()) * 0x10000 | 0).toString(16).substring(1);
-    return (`${S4() + S4()}-${S4()}-${S4()}-${S4()}-${S4()}${S4()}${S4()}`);
   }
 }

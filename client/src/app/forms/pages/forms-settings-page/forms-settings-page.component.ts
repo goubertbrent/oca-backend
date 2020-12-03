@@ -6,7 +6,7 @@ import { NonNullLoadable } from '../../../shared/loadable/loadable';
 import { deepCopy } from '../../../shared/util';
 import { UpdateIntegrationAction } from '../../forms.actions';
 import { FormsState, getIntegrations } from '../../forms.state';
-import { FormIntegrationConfiguration } from '../../interfaces/integrations';
+import { FormIntegrationConfiguration } from '../../integrations/integrations';
 
 @Component({
   selector: 'oca-forms-settings-page',

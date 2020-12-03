@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { FormComponentType } from '../../interfaces/enums';
 import { FormSection, InputComponents, Value } from '../../interfaces/forms';
-import { GVComponentMapping, GvFieldType, GVIntegrationFormConfig, GVSectionMapping } from '../../interfaces/integrations';
+import { GVComponentMapping, GvFieldType, GVIntegrationFormConfig, GVSectionMapping } from '../integrations';
 
 interface ValueLabel {
   value: string;

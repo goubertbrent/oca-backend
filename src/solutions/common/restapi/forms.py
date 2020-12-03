@@ -19,15 +19,17 @@ from mcfw.consts import REST_TYPE_TO
 from mcfw.exceptions import HttpBadRequestException, HttpForbiddenException
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
+from rogerthat.dal.profile import get_service_profile
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException
 from rogerthat.service.api.forms import service_api
 from rogerthat.to.service import UserDetailsTO
 from solutions.common.bizz.forms import create_form, get_form, update_form, get_tombola_winners, list_forms, \
     get_statistics, list_responses, delete_submissions, delete_form, delete_submission, \
-    get_form_integrations, update_form_integration, can_edit_integration_config
+    get_form_integrations, update_form_integration, can_edit_integration_config, get_form_integration
 from solutions.common.bizz.forms.export import export_submissions
-from solutions.common.models.forms import FormIntegrationProvider
+from solutions.common.bizz.forms.integrations import TOPDeskFormIntegration
+from solutions.common.models.forms import FormIntegrationProvider, FormIntegrationConfiguration
 from solutions.common.to.forms import OcaFormTO, FormSettingsTO, FormStatisticsTO, FormSubmissionListTO, \
     FormSubmissionTO
 
@@ -156,3 +158,25 @@ def rest_get_tombola_winners(form_id):
 @arguments(form_id=(int, long))
 def rest_export_form_submissions(form_id):
     return {'url': export_submissions(users.get_current_user(), form_id)}
+
+
+@rest('/common/forms/integrations/topdesk/categories', 'get', type=REST_TYPE_TO, silent=True, silent_result=True)
+@returns([dict])
+@arguments()
+def rest_get_topdesk_categories():
+    service_user = users.get_current_user()
+    config = FormIntegrationConfiguration.create_key(service_user,FormIntegrationProvider.TOPDESK).get()
+    integration = get_form_integration(FormIntegrationProvider.TOPDESK, config)
+    assert isinstance(integration, TOPDeskFormIntegration)
+    return integration.get_categories(get_service_profile(service_user))
+
+
+@rest('/common/forms/integrations/topdesk/subcategories', 'get', type=REST_TYPE_TO, silent=True, silent_result=True)
+@returns([dict])
+@arguments()
+def rest_get_topdesk_subcategories():
+    service_user = users.get_current_user()
+    config = FormIntegrationConfiguration.create_key(service_user, FormIntegrationProvider.TOPDESK).get()
+    integration = get_form_integration(FormIntegrationProvider.TOPDESK, config)
+    assert isinstance(integration, TOPDeskFormIntegration)
+    return integration.get_subcategories(get_service_profile(service_user))

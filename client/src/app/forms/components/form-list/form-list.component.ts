@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { Loadable, NonNullLoadable } from '../../../shared/loadable/loadable';
+import { FormIntegrationConfiguration } from '../../integrations/integrations';
 import { FormSettings } from '../../interfaces/forms';
-import { FormIntegrationConfiguration } from '../../interfaces/integrations';
 
 interface Tab {
   label: string;

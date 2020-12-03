@@ -12,12 +12,15 @@ import { updateItem } from '../../../shared/util';
 import { FormSection } from '../../interfaces/forms';
 import {
   EmailIntegrationConfig,
-  FormIntegration, FormIntegrationConfiguration,
+  FormIntegration,
+  FormIntegrationConfiguration,
   FormIntegrationEmail,
   FormIntegrationGreenValley,
   FormIntegrationProvider,
+  FormIntegrationTOPDesk,
   GVIntegrationFormConfig,
-} from '../../interfaces/integrations';
+  TOPDeskIntegrationConfig,
+} from '../integrations';
 
 interface ProviderMapping {
   [ FormIntegrationProvider.GREEN_VALLEY ]: {
@@ -29,6 +32,11 @@ interface ProviderMapping {
     enabled: boolean;
     visible: boolean;
     integration: FormIntegrationEmail | null;
+  };
+  [ FormIntegrationProvider.TOPDESK ]: {
+    enabled: boolean;
+    visible: boolean;
+    integration: FormIntegrationTOPDesk | null;
   };
 }
 
@@ -42,19 +50,6 @@ export class FormIntegrationsComponent implements OnChanges {
   @Input() sections: FormSection[];
   @Input() activeIntegrations: FormIntegrationConfiguration[];
 
-  @Input() set integrations(value: FormIntegration[]) {
-    if (this._integrations) {
-      this.integrationsChanged.emit(value);
-    }
-    this._integrations = value;
-  }
-
-  get integrations() {
-    return this._integrations;
-  }
-
-  @Output() integrationsChanged = new EventEmitter<FormIntegration[]>();
-
   providerMapping: ProviderMapping = {
     [ FormIntegrationProvider.GREEN_VALLEY ]: {
       enabled: false,
@@ -66,7 +61,25 @@ export class FormIntegrationsComponent implements OnChanges {
       visible: true,
       integration: null,
     },
+    [ FormIntegrationProvider.TOPDESK ]: {
+      enabled: false,
+      visible: false,
+      integration: null,
+    },
   };
+  @Output() integrationsChanged = new EventEmitter<FormIntegration[]>();
+
+  get integrations() {
+    return this._integrations;
+  }
+
+  @Input() set integrations(value: FormIntegration[]) {
+    if (this._integrations) {
+      this.integrationsChanged.emit(value);
+    }
+    this._integrations = value;
+  }
+
   FormIntegrationProvider = FormIntegrationProvider;
 
   private _integrations: FormIntegration[];
@@ -75,7 +88,7 @@ export class FormIntegrationsComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes.integrations) {
+    if (changes.activeIntegrations) {
       this.setProviderMapping();
     }
   }
@@ -88,12 +101,12 @@ export class FormIntegrationsComponent implements OnChanges {
         enabled: this.providerMapping[ provider ].enabled,
       }, 'provider');
     } else {
-      this.integrations = [ ...this.integrations, this.getNewProvider(provider) ];
+      this.integrations = [...this.integrations, this.getNewProvider(provider)];
     }
     this.setProviderMapping();
   }
 
-  updateIntegration(integration: FormIntegration, event: GVIntegrationFormConfig | EmailIntegrationConfig) {
+  updateIntegration(integration: FormIntegration, event: GVIntegrationFormConfig | EmailIntegrationConfig | TOPDeskIntegrationConfig) {
     // @ts-ignore
     this.integrations = updateItem(this.integrations, { ...integration, configuration: event }, 'provider');
   }
@@ -104,13 +117,26 @@ export class FormIntegrationsComponent implements OnChanges {
         return { provider, enabled: true, visible: true, configuration: { type_id: null, mapping: [] } };
       case FormIntegrationProvider.EMAIL:
         return { provider, enabled: true, visible: true, configuration: { email_groups: [], default_group: null, mapping: [] } };
+      case FormIntegrationProvider.TOPDESK:
+        return { provider, enabled: true, visible: true, configuration: { mapping: [] } };
     }
   }
 
   private setProviderMapping() {
-    for (const integration of this.integrations) {
+    for (const integration of this.activeIntegrations) {
       // @ts-ignore
-      this.providerMapping[ integration.provider ] = { enabled: integration.enabled, visible: integration.visible, integration };
+      this.providerMapping[ integration.provider ] = {
+        ...this.providerMapping[ integration.provider ],
+        visible: integration.visible,
+      };
+    }
+    for (const { provider, enabled, configuration } of this.integrations) {
+      this.providerMapping[ provider ] = {
+        ...this.providerMapping[ provider ],
+        enabled,
+        // @ts-ignore
+        integration: { provider, configuration },
+      };
     }
   }
 }

@@ -19,6 +19,7 @@ import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { TranslateService } from '@ngx-translate/core';
 import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '@oca/web-shared';
 import { UserDetailsTO } from '../../../shared/users/users';
+import { FormIntegration, FormIntegrationConfiguration } from '../../integrations/integrations';
 import {
   COMPLETED_STEP_MAPPING,
   CompletedFormStepType,
@@ -29,7 +30,6 @@ import {
   SubmissionSection,
   UINextAction,
 } from '../../interfaces/forms';
-import { FormIntegration, FormIntegrationConfiguration, FormIntegrationProvider } from '../../interfaces/integrations';
 import { ArrangeSectionsDialogComponent } from '../arange-sections-dialog/arrange-sections-dialog.component';
 
 @Component({

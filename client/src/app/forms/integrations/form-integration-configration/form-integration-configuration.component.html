@@ -14,3 +14,10 @@
 </mat-slide-toggle>
 <oca-form-integration-email-config (configurationChanged)="updateConfiguration(configMapping[FormIntegrationProvider.EMAIL], $event)"
                                    [configuration]="configMapping[FormIntegrationProvider.EMAIL].configuration"></oca-form-integration-email-config>
+
+<h2>TOPDesk</h2>
+<p>{{ 'oca.form_topdesk_integration_info' | translate }}</p>
+<mat-slide-toggle [(ngModel)]="configMapping[FormIntegrationProvider.TOPDESK].enabled"
+                  (ngModelChange)="integrationToggled(FormIntegrationProvider.TOPDESK)">
+  {{ 'oca.Enabled' | translate }}
+</mat-slide-toggle>
