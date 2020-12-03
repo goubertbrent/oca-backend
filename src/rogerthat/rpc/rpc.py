@@ -207,13 +207,11 @@ class DirectRpcCaller(threading.local):
 class JabberRpcCaller(threading.local):
 
     def __init__(self, endpoint):
-        logging.debug("JabberRpcCaller.__init__")
         self.items = list()
         self.endpoint = endpoint
         self.conn = HTTP20Connection('api.push.apple.com:443', force_proto='h2')
 
     def append(self, payload):
-        logging.debug("JabberRpcCaller.append")
         settings = get_server_settings()
         if DEBUG and not settings.jabberEndPoints:
             logging.debug('Skipping KICK, No jabberEndPoints configured.')
@@ -237,8 +235,7 @@ class JabberRpcCaller(threading.local):
         except:
             logging.exception("Failed to process JabberRpcCaller.append")
             return
-        logging.info("payload_dict:%s", payload_dict)
-        if app and app.apns_key_id and payload_dict['a'] == u"osa-demo2":
+        if app and app.apns_key_id:
             self.do_kick(app, payload_dict)
         else:
             jabberEndpoint = choice(settings.jabberEndPoints)
@@ -251,7 +248,6 @@ class JabberRpcCaller(threading.local):
 
 
     def finalize(self):
-        logging.debug("JabberRpcCaller.finalize")
         # Don't fetch server settings when not needed
         settings = None
         for item_tuple in self.items:
@@ -276,13 +272,19 @@ class JabberRpcCaller(threading.local):
                     deferred.defer(_call_rpc, self.endpoint, payload)
             elif version == 2:
                 _, stream_id = item_tuple
-                logging.debug("stream_id:%s", stream_id)
                 resp = self.conn.get_response(stream_id)
                 if resp.status != 200:
                     logging.error("Failed to send apple push %s", resp.read())
         del self.items[:]
         
     def do_kick(self, app, payload_dict):
+        # todo improve how connections work
+        # 1 connection for every ios_dev_team
+        # 1 jwt for every connection
+        # renew jwt every 40 minutes
+        # APNs does not support authentication tokens from multiple developer accounts over a single connection.
+        # Refresh your token no more than once every 20 minutes and no less than once every 60 minutes.
+        # https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/establishing_a_token-based_connection_to_apns
         if 'd' not in payload_dict:
             return
         token = jwt.encode({'iss': app.ios_dev_team, 'iat': time.time()},
@@ -296,6 +298,7 @@ class JabberRpcCaller(threading.local):
             'apns-topic': 'com.mobicage.rogerthat.{0}'.format(app.app_id),
             'authorization': 'bearer {0}'.format(token.decode('ascii'))
         }
+        # todo don't base64 and json encode
         payload_data = json.loads(base64.decodestring(payload_dict['m']))
         payload = json.dumps(payload_data).encode('utf-8')
         self.conn.connect()
