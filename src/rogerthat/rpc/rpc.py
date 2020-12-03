@@ -202,14 +202,41 @@ class DirectRpcCaller(threading.local):
                 deferred.defer(_retry_api_callback, service_api_call, sik, endpoint, custom_headers=custom_headers,
                                _queue=HIGH_LOAD_WORKER_QUEUE, _retry_options=retry_options)
         del self.items[:]
-        
+
+
+class APNSConnections(object):
+
+    def __init__(self):
+        self.connections = {}
+        self.jwts = {}
+
+    def get_connection(self, app):
+        if app.ios_dev_team not in self.connections:
+            self.connections[app.ios_dev_team] = HTTP20Connection('api.push.apple.com:443', force_proto='h2')
+        return self.connections[app.ios_dev_team]
+
+    def get_jwt(self, app):
+        now_ = time.time()
+        if app.ios_dev_team not in self.jwts or self.jwts[app.ios_dev_team]['expires'] < now_:
+            self.jwts[app.ios_dev_team] = {'data': self._create_jwt(app, now_),
+                                           'expires': now_ + 40 * 60}
+        return self.jwts[app.ios_dev_team]['data']
+
+    def _create_jwt(self, app, now_):
+        logging.info("APNSConnections._create_jwt start app:%s", app.app_id)
+        token = jwt.encode({'iss': app.ios_dev_team, 'iat': now_},
+                           app.apns_key,
+                           algorithm=Algorithms.ES256,
+                           headers={ 'alg': Algorithms.ES256, 'kid': app.apns_key_id})
+        logging.info("APNSConnections._create_jwt end")
+        return token
+
 
 class JabberRpcCaller(threading.local):
 
     def __init__(self, endpoint):
         self.items = list()
         self.endpoint = endpoint
-        self.conn = HTTP20Connection('api.push.apple.com:443', force_proto='h2')
 
     def append(self, payload):
         settings = get_server_settings()
@@ -271,10 +298,22 @@ class JabberRpcCaller(threading.local):
                     logging.warn("Failed to reach jabber endpoint on %s, deferring ..." % url)
                     deferred.defer(_call_rpc, self.endpoint, payload)
             elif version == 2:
-                _, stream_id = item_tuple
-                resp = self.conn.get_response(stream_id)
-                if resp.status != 200:
-                    logging.error("Failed to send apple push %s", resp.read())
+                _, conn, stream_id = item_tuple
+                try:
+                    resp = conn.get_response(stream_id)
+                    if resp.status != 200:
+                        logging.error("Failed to send apple push %s", resp.read())
+                except:
+                    logging.info("failed to get response", exc_info=True)
+                try:
+                    stream = conn.streams[stream_id]
+                    stream.close()
+                except:
+                    logging.info("failed to close stream", exc_info=True)
+                try:
+                    conn.reset_streams.discard(stream_id)
+                except:
+                    logging.info("failed to discard reset_streams", exc_info=True)
         del self.items[:]
         
     def do_kick(self, app, payload_dict):
@@ -287,10 +326,10 @@ class JabberRpcCaller(threading.local):
         # https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/establishing_a_token-based_connection_to_apns
         if 'd' not in payload_dict:
             return
-        token = jwt.encode({'iss': app.ios_dev_team, 'iat': time.time()},
-                           app.apns_key,
-                           algorithm=Algorithms.ES256,
-                           headers={ 'alg': Algorithms.ES256, 'kid': app.apns_key_id})
+        if not app.ios_dev_team or not app.apns_key_id or not app.apns_key:
+            logging.error('Not sending apns to "%s" ios_dev_team or apns_key_id or apns_key was empty', app.app_id)
+            return
+        token = apns_connections.get_jwt(app)
         path = '/3/device/{0}'.format(payload_dict['d'])
         request_headers = {
             'apns-expiration': '0',
@@ -301,14 +340,15 @@ class JabberRpcCaller(threading.local):
         # todo don't base64 and json encode
         payload_data = json.loads(base64.decodestring(payload_dict['m']))
         payload = json.dumps(payload_data).encode('utf-8')
-        self.conn.connect()
-        stream_id = self.conn.request(
+        conn = apns_connections.get_connection(app)
+        conn.connect()
+        stream_id = conn.request(
             'POST',
             path,
             payload,
             headers=request_headers
         )
-        self.items.append((2, stream_id))
+        self.items.append((2, conn, stream_id))
 
 
 def create_firebase_request(data, is_gcm=False):
@@ -462,7 +502,8 @@ class ContextFinisher(threading.local):
             self._pool = None
         logging.info("Finalized futures")
 
-
+        
+apns_connections = APNSConnections()
 kicks = JabberRpcCaller("kick")
 firebase = FirebaseKicker()
 api_callbacks = DirectRpcCaller()
