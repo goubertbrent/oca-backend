@@ -204,16 +204,10 @@ class DirectRpcCaller(threading.local):
         del self.items[:]
 
 
-class APNSConnections(object):
+class APNSCache(object):
 
     def __init__(self):
-        self.connections = {}
         self.jwts = {}
-
-    def get_connection(self, app):
-        if app.ios_dev_team not in self.connections:
-            self.connections[app.ios_dev_team] = HTTP20Connection('api.push.apple.com:443', force_proto='h2')
-        return self.connections[app.ios_dev_team]
 
     def get_jwt(self, app):
         now_ = time.time()
@@ -329,7 +323,7 @@ class JabberRpcCaller(threading.local):
         if not app.ios_dev_team or not app.apns_key_id or not app.apns_key:
             logging.error('Not sending apns to "%s" ios_dev_team or apns_key_id or apns_key was empty', app.app_id)
             return
-        token = apns_connections.get_jwt(app)
+        token = apns_cache.get_jwt(app)
         path = '/3/device/{0}'.format(payload_dict['d'])
         request_headers = {
             'apns-expiration': '0',
@@ -340,8 +334,7 @@ class JabberRpcCaller(threading.local):
         # todo don't base64 and json encode
         payload_data = json.loads(base64.decodestring(payload_dict['m']))
         payload = json.dumps(payload_data).encode('utf-8')
-        conn = apns_connections.get_connection(app)
-        conn.connect()
+        conn = HTTP20Connection('api.push.apple.com:443', force_proto='h2')
         stream_id = conn.request(
             'POST',
             path,
@@ -503,7 +496,7 @@ class ContextFinisher(threading.local):
         logging.info("Finalized futures")
 
         
-apns_connections = APNSConnections()
+apns_cache = APNSCache()
 kicks = JabberRpcCaller("kick")
 firebase = FirebaseKicker()
 api_callbacks = DirectRpcCaller()
