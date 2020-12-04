@@ -65,8 +65,11 @@ from solutions.common.to.forms import OcaFormTO, FormSettingsTO, FormStatisticsT
 
 
 def can_edit_integration_config():
+    from google.appengine.api import users as gusers
+    if gusers.is_current_user_admin():
+        return True
     current_session = get_current_session()
-    return current_session and current_session.shop
+    return current_session and current_session.shop or current_session
 
 
 def list_forms(service_user):
