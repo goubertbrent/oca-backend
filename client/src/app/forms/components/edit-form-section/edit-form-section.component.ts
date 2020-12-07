@@ -90,7 +90,7 @@ export class EditFormSectionComponent implements ControlValueAccessor, AfterView
   showDescription = false;
 
   /**
-   * The index of the component that triggered the 'edit' mode, triggered by clocking a component its title.
+   * The index of the component that triggered the 'edit' mode, triggered by clicking a component its title.
    * An attempt will be made to scroll to the component once the 'edit' view is loaded in ngAfterViewChecked.
    */
   editTriggeredByComponent: number | null = null;
