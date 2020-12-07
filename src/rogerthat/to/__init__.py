@@ -560,6 +560,11 @@ class UploadInfoTO(TO):
 
 class FileTO(object):
     file = unicode_property('1')
+    
+
+class APNsTO(object):
+    keyId = unicode_property('keyId')
+    file = unicode_property('file')
 
 
 class GeoPointTO(TO):

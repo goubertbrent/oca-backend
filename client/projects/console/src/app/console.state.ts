@@ -68,6 +68,7 @@ export const getAppSettings = createSelector(getAppsState, s => s.appSettings);
 export const getAppSettingsStatus = createSelector(getAppsState, s => s.getAppSettingsStatus);
 export const updateAppSettingsStatus = createSelector(getAppsState, s => s.updateAppSettingsStatus);
 export const saveAppSettingsFirebaseIosStatus = createSelector(getAppsState, s => s.saveAppSettingsFirebaseIosStatus);
+export const saveAppAPNsIosStatus = createSelector(getAppsState, s => s.saveAppAPNsIosStatus);
 export const getUpdateFacebookStatus = createSelector(getAppsState, s => s.updateFacebookStatus);
 export const getRequestFacebookReviewStatus = createSelector(getAppsState, s => s.requestFacebookReviewStatus);
 export const getAppMetaData = createSelector(getAppsState, s => s.appMetaData);

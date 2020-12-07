@@ -17,6 +17,7 @@ import {
   AppsComponent,
   AppSettingsComponent,
   AppSettingsFirebaseIosComponent,
+  AppAPNsIosComponent,
   BackendBrandingsComponent,
   BackendDefaultAppComponent,
   BackendDefaultSettingsComponent,
@@ -132,6 +133,11 @@ export const consoleRoutes: Array<Route> = [
           {
             path: 'app-settings/firebase-ios',
             component: AppSettingsFirebaseIosComponent,
+            data: { label: 'rcc.app_settings' },
+          },
+          {
+            path: 'app-settings/apns-ios',
+            component: AppAPNsIosComponent,
             data: { label: 'rcc.app_settings' },
           },
           {

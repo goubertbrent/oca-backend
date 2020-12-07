@@ -24,6 +24,12 @@
     <p *ngIf="appSettings.ios_firebase_project_id">{{ appSettings.ios_firebase_project_id }}</p>
     <a *ngIf="!appSettings.ios_firebase_project_id" mat-button color="primary" [routerLink]="['firebase-ios']">{{ 'rcc.create' | translate }}</a>
 
+    <h4>{{ 'rcc.apns_settings' | translate }} (iOS)</h4>
+    <p *ngIf="appSettings.ios_apns_key_id">{{ appSettings.ios_apns_key_id }}</p>
+    <a *ngIf="!appSettings.ios_apns_key_id" mat-button color="primary" [routerLink]="['apns-ios']">
+      {{ 'rcc.create' | translate }}
+    </a>
+
     <h4>{{ 'rcc.oauth_settings' | translate }}</h4>
     <p>{{ 'rcc.oauth_settings_explanation' | translate }}</p>
     <mat-form-field>
