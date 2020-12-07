@@ -199,7 +199,7 @@ class TOPDeskFormIntegration(BaseFormIntegration):
                     title='Waarover gaat de melding, in het kort?',
                     keyboard_type=KeyboardType.DEFAULT,
                     multiline=False,
-                    validators=[RequiredValidatorTO(), MaxLengthValidatorTO(maxlength=80)]
+                    validators=[RequiredValidatorTO(), MaxLengthValidatorTO(value=80)]
                 ),
                 LocationComponentTO(
                     id='location',
@@ -246,8 +246,8 @@ class TOPDeskFormIntegration(BaseFormIntegration):
         for category in subcategories:
             mapping.append(TOPDeskSectionMapping(id='category_' + category['id'], components=[
                 TOPDeskSubCategoryMapping(id='subcategory',
-                                          categories={category['id']: category['id']
-                                                      for category in category['subcategories']})
+                                          subcategories={category['id']: category['id']
+                                                         for category in category['subcategories']})
             ]))
         mapping.append(TOPDeskSectionMapping(id=details_section_id, components=[
             TOPDeskBriefDescriptionMapping(id='briefDescription'),

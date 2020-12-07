@@ -21,7 +21,7 @@
   </mat-toolbar>
   <div class="integration-block" *ngIf="response.data.result.external_reference">
     <span>{{ 'oca.reference' | translate }}</span>:
-    <a [routerLink]="['/reports/incidents', response.data.result.external_reference]">
+    <a [routerLink]="['/reports/incidents/details', response.data.result.external_reference]">
       {{ response.data.result.external_reference }}
     </a>
   </div>
