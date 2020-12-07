@@ -161,34 +161,33 @@ class TOPDeskFormIntegration(BaseFormIntegration):
             FormSectionTO(
                 id='choose_category',
                 title='Meldingskaart',
-                components=[
-                    SingleSelectComponentTO(
-                        id='category',
-                        title='Wat is de categorie van uw melding?',
-                        choices=[ValueTO(value=category['id'],
-                                         label=category['name'],
-                                         next_action=NextActionSectionTO(section='category_' + category['id']))
-                                 for category in subcategories],
-                        validators=[RequiredValidatorTO()]
-                    )
-                ])
+                components=[SingleSelectComponentTO(
+                    id='category',
+                    title='Wat is de categorie van uw melding?',
+                    choices=[ValueTO(value=category['id'],
+                                     label=category['name'],
+                                     next_action=NextActionSectionTO(section='category_' + category['id']))
+                             for category in subcategories],
+                    validators=[RequiredValidatorTO()]
+                )],
+                next_action=None,
+            ),
         ]
         details_section_id = 'details'
         for category in subcategories:
             category_section = FormSectionTO(
                 id='category_' + category['id'],
                 title=category['name'],
-                components=[
-                    SingleSelectComponentTO(
-                        id='subcategory',
-                        title='Selecteer de optie die het best overeen komt met uw melding.',
-                        choices=[ValueTO(value=subcategory['id'],
-                                         label=subcategory['name'],
-                                         next_action=NextActionSectionTO(section=details_section_id))
-                                 for subcategory in category['subcategories']],
-                        validators=[RequiredValidatorTO()]
-                    )
-                ]
+                components=[SingleSelectComponentTO(
+                    id='subcategory',
+                    title='Selecteer de optie die het best overeen komt met uw melding.',
+                    choices=[ValueTO(value=subcategory['id'],
+                                     label=subcategory['name'],
+                                     next_action=NextActionSectionTO(section=details_section_id))
+                             for subcategory in category['subcategories']],
+                    validators=[RequiredValidatorTO()]
+                )],
+                next_action=NextActionSectionTO(section=details_section_id),
             )
             sections.append(category_section)
         generic_section = FormSectionTO(
@@ -211,7 +210,7 @@ class TOPDeskFormIntegration(BaseFormIntegration):
                     title='Beschrijf uw melding zo duidelijk mogelijk.',
                     keyboard_type=KeyboardType.DEFAULT,
                     multiline=True,
-                    Validators=[RequiredValidatorTO()]
+                    validators=[RequiredValidatorTO()]
                 ),
                 FileComponentTO(
                     id='file',

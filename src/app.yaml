@@ -143,6 +143,10 @@ handlers:
     static_files: static/images/favicon.png
     upload: static/images/favicon\.png
 
+  - url: /static/client
+    static_files: static/client/index.html
+    upload: static/client/index.html
+
   - url: /static
     static_dir: static
 

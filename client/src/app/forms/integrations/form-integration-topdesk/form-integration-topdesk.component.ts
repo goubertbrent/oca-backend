@@ -11,7 +11,6 @@ import { FormsService } from '../../forms.service';
 import { COMPONENT_ICONS } from '../../interfaces/consts';
 import { FormComponentType } from '../../interfaces/enums';
 import { FormSection, InputComponents, isInputComponent } from '../../interfaces/forms';
-import { FormValidatorType } from '../../interfaces/validators';
 import {
   OptionalFieldLocationFormat,
   OptionalFieldsOptions,
@@ -244,19 +243,15 @@ export class FormIntegrationTOPDeskComponent implements OnInit {
   }
 
   private setUnassignedComponents(sectionId: string) {
-    const sectionMappings = this.sectionsMapping.get(sectionId);
+    const sectionMappings = this.sectionsMapping.get(sectionId) ?? [];
     const componentsMapping = this.componentsMapping.get(sectionId);
     if (!componentsMapping) {
       return;
     }
-    const components = Array.from(componentsMapping.values());
-    if (sectionMappings) {
-      const usedComponentIds = sectionMappings.map(comp => comp.id);
-      const unassigned = components.filter(c => !usedComponentIds.includes(c.id));
-      this.unassignedComponents.set(sectionId, unassigned);
-    } else {
-      this.unassignedComponents.set(sectionId, components);
-    }
+    const usedComponentIds = sectionMappings.map(comp => comp.id);
+    const unassigned = Array.from(componentsMapping.values())
+      .filter(c => c.type !== FormComponentType.FILE && !usedComponentIds.includes(c.id));
+    this.unassignedComponents.set(sectionId, unassigned);
   }
 
   private getOptionalFieldOptionsForm(options: OptionalFieldsOptions) {
