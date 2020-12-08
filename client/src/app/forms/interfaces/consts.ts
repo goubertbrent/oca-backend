@@ -23,14 +23,24 @@ export interface ComponentTypeItem {
   icon: string;
 }
 
-export let COMPONENT_TYPES: ComponentTypeItem[] = [
-  { value: FormComponentType.PARAGRAPH, label: 'oca.title_and_description', icon: 'text_fields' },
-  { value: FormComponentType.TEXT_INPUT, label: 'oca.text_input', icon: 'subject' },
-  { value: FormComponentType.SINGLE_SELECT, label: 'oca.multiple_choice', icon: 'radio_button_unchecked' },
-  { value: FormComponentType.MULTI_SELECT, label: 'oca.checkboxes', icon: 'check_box' },
-  { value: FormComponentType.DATETIME, label: 'oca.Date', icon: 'calendar_today' },
-  { value: FormComponentType.FILE, label: 'oca.file_upload', icon: 'cloud_upload' },
-  { value: FormComponentType.LOCATION, label: 'oca.location', icon: 'my_location' },
+export const COMPONENT_ICONS: { [key in FormComponentType]: string } = {
+  [ FormComponentType.PARAGRAPH ]: 'text_fields',
+  [ FormComponentType.TEXT_INPUT ]: 'subject',
+  [ FormComponentType.SINGLE_SELECT ]: 'radio_button_unchecked',
+  [ FormComponentType.MULTI_SELECT ]: 'check_box',
+  [ FormComponentType.DATETIME ]: 'calendar_today',
+  [ FormComponentType.FILE ]: 'cloud_upload',
+  [ FormComponentType.LOCATION ]: 'my_location',
+};
+
+export const COMPONENT_TYPES: ComponentTypeItem[] = [
+  { value: FormComponentType.PARAGRAPH, label: 'oca.title_and_description', icon: COMPONENT_ICONS[ FormComponentType.PARAGRAPH ] },
+  { value: FormComponentType.TEXT_INPUT, label: 'oca.text_input', icon: COMPONENT_ICONS[ FormComponentType.TEXT_INPUT ] },
+  { value: FormComponentType.SINGLE_SELECT, label: 'oca.multiple_choice', icon: COMPONENT_ICONS[ FormComponentType.SINGLE_SELECT ] },
+  { value: FormComponentType.MULTI_SELECT, label: 'oca.checkboxes', icon: COMPONENT_ICONS[ FormComponentType.MULTI_SELECT ] },
+  { value: FormComponentType.DATETIME, label: 'oca.Date', icon: COMPONENT_ICONS[ FormComponentType.DATETIME ] },
+  { value: FormComponentType.FILE, label: 'oca.file_upload', icon: COMPONENT_ICONS[ FormComponentType.FILE ] },
+  { value: FormComponentType.LOCATION, label: 'oca.location', icon: COMPONENT_ICONS[ FormComponentType.LOCATION ] },
 ];
 
 export const DATE_FORMATS: SelectValue[] = [

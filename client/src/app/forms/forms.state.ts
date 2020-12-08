@@ -2,6 +2,7 @@ import { createEntityAdapter, EntityState } from '@ngrx/entity';
 import { createFeatureSelector, createSelector } from '@ngrx/store';
 import { DEFAULT_LIST_LOADABLE, DEFAULT_LOADABLE, Loadable, NonNullLoadable } from '../shared/loadable/loadable';
 import { UserDetailsTO } from '../shared/users/users';
+import { FormIntegrationConfiguration } from './integrations/integrations';
 import { DateFormat, FormComponentType } from './interfaces/enums';
 import {
   ComponentResponse,
@@ -31,7 +32,6 @@ import {
   TimesComponentStatistics,
   ValueAmount,
 } from './interfaces/forms';
-import { FormIntegrationConfiguration } from './interfaces/integrations';
 
 function selectFormResponseId(formResponse: FormResponse) {
   return formResponse.id;
@@ -84,7 +84,7 @@ export const getForm = createSelector(featureSelector, s => s.form);
 export const getRawFormStatistics = createSelector(featureSelector, s => s.formStatistics);
 export const getTombolaWinners = createSelector(featureSelector, s => s.tombolaWinners.data ?? []);
 export const getIntegrations = createSelector(featureSelector, s => s.integrations);
-export const getActiveIntegrations = createSelector(featureSelector, s => s.integrations.data.filter(i => i.enabled && i.visible));
+export const getActiveIntegrations = createSelector(featureSelector, s => s.integrations.data.filter(i => i.enabled));
 
 export const selectedFormResponseId = createSelector(featureSelector, s => s.selectedFormResponseId);
 

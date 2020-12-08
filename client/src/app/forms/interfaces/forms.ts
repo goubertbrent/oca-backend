@@ -1,7 +1,9 @@
 import { DateFormat, FileType, FormComponentType, KeyboardType } from './enums';
 import { FormSectionValue, MergedFormResponse } from './form-values';
-import { FormIntegration } from './integrations';
+import { FormIntegration } from '../integrations/integrations';
 import { FormValidator } from './validators';
+
+// TODO: most of these can be replaced by types from @oca/web-shared, but the minor differences might make that difficult.
 
 export interface ParagraphComponent {
   type: FormComponentType.PARAGRAPH;

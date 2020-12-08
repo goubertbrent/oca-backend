@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { NgForm } from '@angular/forms';
-import { EmailIntegrationConfig } from '../../interfaces/integrations';
+import { EmailIntegrationConfig } from '../integrations';
 
 @Component({
   selector: 'oca-form-integration-email-config',

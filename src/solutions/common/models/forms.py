@@ -51,8 +51,9 @@ class CompletedFormStep(NdbModel):
 
 
 class FormIntegrationProvider(Enum):
-    GREEN_VALLEY = 'green_valley'
     EMAIL = 'email'
+    GREEN_VALLEY = 'green_valley'
+    TOPDESK = 'topdesk'
 
 
 ALL_FORM_INTEGRATION_PROVIDERS = FormIntegrationProvider.all()

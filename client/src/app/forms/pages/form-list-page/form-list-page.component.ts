@@ -7,8 +7,8 @@ import { Observable } from 'rxjs';
 import { Loadable, NonNullLoadable } from '../../../shared/loadable/loadable';
 import { CreateFormAction, DeleteFormAction, GetFormsAction } from '../../forms.actions';
 import { FormsState, getForms, getIntegrations } from '../../forms.state';
+import { FormIntegrationConfiguration } from '../../integrations/integrations';
 import { FormSettings } from '../../interfaces/forms';
-import { FormIntegrationConfiguration } from '../../interfaces/integrations';
 
 @Component({
   selector: 'oca-form-list-page',

@@ -4,6 +4,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { Observable } from 'rxjs';
 import { first, map, switchMap } from 'rxjs/operators';
 import { UserDetailsTO } from '../shared/users/users';
+import { FormIntegrationConfiguration, TOPDeskCategory, TOPDeskSubCategory } from './integrations/integrations';
 import { FormComponentType } from './interfaces/enums';
 import {
   CompletedFormStepType,
@@ -16,8 +17,8 @@ import {
   OcaForm,
   SingleSelectComponent,
 } from './interfaces/forms';
-import { FormIntegrationConfiguration } from './interfaces/integrations';
 import { FormValidatorType } from './interfaces/validators';
+import { generateNewId } from './util';
 
 @Injectable({ providedIn: 'root' })
 export class FormsService {
@@ -84,6 +85,14 @@ export class FormsService {
     return this.http.get<FormIntegrationConfiguration[]>(`/common/forms/integrations`);
   }
 
+  getTOPDeskCategories() {
+    return this.http.get<TOPDeskCategory[]>(`/common/forms/integrations/topdesk/categories`);
+  }
+
+  getTOPDeskSubCategories() {
+    return this.http.get<TOPDeskSubCategory[]>(`/common/forms/integrations/topdesk/subcategories`);
+  }
+
   updateIntegration(data: FormIntegrationConfiguration) {
     return this.http.put<FormIntegrationConfiguration>(`/common/forms/integrations/${data.provider}`, data);
   }
@@ -117,12 +126,12 @@ export class FormsService {
             next_action: null,
             components: [ {
               type: FormComponentType.SINGLE_SELECT,
-              id: results[ 'oca.untitled_question' ],
+              id: generateNewId(),
               title: results[ 'oca.untitled_question' ],
               validators: [ { type: FormValidatorType.REQUIRED } ],
               choices: [ {
                 label: results[ 'oca.option_x' ],
-                value: results[ 'oca.option_x' ],
+                value: generateNewId(),
               } ],
               description: null,
             } as SingleSelectComponent ],

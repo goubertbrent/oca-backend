@@ -19,6 +19,7 @@ import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { TranslateService } from '@ngx-translate/core';
 import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '@oca/web-shared';
 import { UserDetailsTO } from '../../../shared/users/users';
+import { FormIntegration, FormIntegrationConfiguration } from '../../integrations/integrations';
 import {
   COMPLETED_STEP_MAPPING,
   CompletedFormStepType,
@@ -29,7 +30,6 @@ import {
   SubmissionSection,
   UINextAction,
 } from '../../interfaces/forms';
-import { FormIntegration, FormIntegrationConfiguration, FormIntegrationProvider } from '../../interfaces/integrations';
 import { ArrangeSectionsDialogComponent } from '../arange-sections-dialog/arrange-sections-dialog.component';
 
 @Component({
@@ -47,8 +47,13 @@ export class EditFormComponent implements OnChanges {
   @Input() set value(value: OcaForm) {
     this._form = value;
     this._hasChanges = false;
+    if (this.activeSection === null && value?.form.sections.length > 0) {
+      this.activeSection = value.form.sections[ 0 ].id;
+    }
     this.setNextActions();
   }
+
+  activeSection: string | null = null;
 
   set form(value: OcaForm) {
     this._form = value;
@@ -122,7 +127,8 @@ export class EditFormComponent implements OnChanges {
     const id = this.getNextSectionId(this.form.form.sections);
     const title = this._translate.instant('oca.untitled_section');
     const newSection: FormSection = { id, title, components: [], branding: null, next_action: null };
-    this.form = { ...this.form, form: { ...this.form.form, sections: [ ...this.form.form.sections, newSection ] } };
+    this.form = { ...this.form, form: { ...this.form.form, sections: [...this.form.form.sections, newSection] } };
+    this.activeSection = newSection.id;
   }
 
   moveSection() {
@@ -148,6 +154,7 @@ export class EditFormComponent implements OnChanges {
         this._changeDetectorRef.markForCheck();
       }
     });
+    this.activeSection = this.form.form.sections[ 0 ].id;
   }
 
   toggleSubmissionSection() {
@@ -338,6 +345,10 @@ export class EditFormComponent implements OnChanges {
   }
 
   setIntegrations(integrations: FormIntegration[]) {
-    this.form = { ...this.form, settings: { ...this.form.settings, integrations} };
+    this.form = { ...this.form, settings: { ...this.form.settings, integrations } };
+  }
+
+  setActiveSection(section: FormSection) {
+    this.activeSection = section.id;
   }
 }

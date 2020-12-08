@@ -6,7 +6,7 @@ import { SimpleDialogComponent, SimpleDialogData } from '@oca/web-shared';
 import { updateItem } from '../../../shared/util';
 import { FormComponentType } from '../../interfaces/enums';
 import { FormSection, SingleSelectComponent, Value } from '../../interfaces/forms';
-import { EmailComponentMapping, EmailGroup, EmailIntegrationFormConfig } from '../../interfaces/integrations';
+import { EmailComponentMapping, EmailGroup, EmailIntegrationFormConfig } from '../integrations';
 
 interface SectionsMapping {
   [ key: string ]: {
@@ -59,6 +59,10 @@ export class FormIntegrationEmailComponent implements OnChanges {
   sectionsMapping: SectionsMapping = {};
   displayMapping: UIMapping[] = [];
 
+  constructor(private matDialog: MatDialog,
+              private translate: TranslateService) {
+  }
+
   private _sections: FormSection[];
 
   get sections() {
@@ -87,10 +91,6 @@ export class FormIntegrationEmailComponent implements OnChanges {
         }
       }
     }
-  }
-
-  constructor(private matDialog: MatDialog,
-              private translate: TranslateService) {
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -173,15 +173,15 @@ export class FormIntegrationEmailComponent implements OnChanges {
   deleteGroup(group: EmailGroup) {
     const foundItems = this.configuration.mapping.filter(m => m.group_id === group.id);
     if (foundItems.length > 0) {
-      const questions:[EmailComponentMapping, SingleSelectComponent][] = foundItems
+      const questions: [EmailComponentMapping, SingleSelectComponent][] = foundItems
         .map(item => [item, this.sectionsMapping[ item.section_id ]?.components[ item.component_id ]?.component]);
-      const questionsList:string[] = questions.map(([g, component]) => component?.title ?? g.component_value);
+      const questionsList: string[] = questions.map(([g, component]) => component?.title ?? g.component_value);
       const config: MatDialogConfig<SimpleDialogData> = {
         data: {
           ok: this.translate.instant('oca.ok'),
           title: this.translate.instant('oca.Error'),
           message: this.translate.instant('oca.email_group_still_in_use', { questions: questionsList.join(',') }),
-        }
+        },
       };
       this.matDialog.open(SimpleDialogComponent, config);
       return;

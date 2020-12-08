@@ -42,21 +42,12 @@ class FormSettingsTO(TO):
     id = long_property('id')
     title = unicode_property('title')
     icon = unicode_property('icon', default=OcaForm.icon._default)
-    visible = bool_property('visible')
-    visible_until = unicode_property('visible_until')
-    tombola = typed_property('tombola', FormTombolaTO)
+    visible = bool_property('visible', default=False)
+    visible_until = unicode_property('visible_until', default=None)
+    tombola = typed_property('tombola', FormTombolaTO, default=None)
     finished = bool_property('finished')
     steps = typed_property('steps', CompletedFormStepTO, True)
     integrations = typed_property('integrations', FormIntegrationTO, True, default=[])  # type: List[FormIntegrationTO]
-
-    @classmethod
-    def from_model(cls, oca_form, can_edit_integrations):
-        to = cls.from_dict(oca_form.to_dict())
-        for integration in to.integrations:
-            integration.visible = can_edit_integrations
-            if not integration.visible:
-                integration.configuration = {}
-        return to
 
 
 class OcaFormTO(TO):

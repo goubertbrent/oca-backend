@@ -38,27 +38,30 @@ import { EditFormComponent } from './components/edit-form/edit-form.component';
 import { EditNextActionDialogComponent } from './components/edit-next-action-dialog/edit-next-action-dialog.component';
 import { FormDetailComponent } from './components/form-detail/form-detail.component';
 import { FormFieldComponent } from './components/form-field/form-field.component';
-import { FormIntegrationConfigurationComponent } from './components/form-integration-configration/form-integration-configuration.component';
-import { FormIntegrationGVComponent } from './components/form-integration-gv/form-integration-gv.component';
-import { FormIntegrationsComponent } from './components/form-integrations/form-integrations.component';
 import { FormListComponent } from './components/form-list/form-list.component';
 import { FormResponsesComponent } from './components/form-responses/form-responses.component';
 import { FormStatisticsNumberChartComponent } from './components/form-statistics-number-chart/form-statistics-number-chart.component';
 import { FormStatisticsComponent } from './components/form-statistics/form-statistics.component';
 import { FormTombolaWinnersComponent } from './components/form-tombola-winners/form-tombola-winners.component';
 import { FormValidatorsComponent } from './components/form-validators/form-validators.component';
+import { ImportFormDialogComponent } from './components/import-form-dialog/import-form-dialog.component';
 import { NextActionEditorComponent } from './components/next-action-editor/next-action-editor.component';
 import { SelectInputListComponent } from './components/select-input-list/select-input-list.component';
 import { routes } from './forms-routes';
 import { FormsEffects } from './forms.effects';
 import { formsReducer } from './forms.reducer';
+import { FormIntegrationConfigurationComponent } from './integrations/form-integration-configration/form-integration-configuration.component';
+import { FormIntegrationEmailConfigComponent } from './integrations/form-integration-email-config/form-integration-email-config.component';
+import { FormIntegrationEmailComponent } from './integrations/form-integration-email/form-integration-email.component';
+import { FormIntegrationGVComponent } from './integrations/form-integration-gv/form-integration-gv.component';
+import { FormIntegrationTOPDeskComponent } from './integrations/form-integration-topdesk/form-integration-topdesk.component';
+import { FormIntegrationsComponent } from './integrations/form-integrations/form-integrations.component';
 import { MatStepperIntlImpl } from './mat-stepper-intl-impl';
 import { FormDetailsPageComponent } from './pages/form-details-page/form-details-page.component';
 import { FormListPageComponent } from './pages/form-list-page/form-list-page.component';
 import { FormsSettingsPageComponent } from './pages/forms-settings-page/forms-settings-page.component';
-import { FormIntegrationEmailConfigComponent } from './components/form-integration-email-config/form-integration-email-config.component';
-import { FormIntegrationEmailComponent } from './components/form-integration-email/form-integration-email.component';
-import { ImportFormDialogComponent } from './components/import-form-dialog/import-form-dialog.component';
+import { TOPDeskCategoryMappingComponent } from './integrations/topdesk-category-mapping/topdesk-category-mapping.component';
+import { TOPDeskOptionalFieldMappingComponent } from './integrations/topdesk-optional-field-mapping/topdesk-optional-field-mapping.component';
 
 @NgModule({
   declarations: [
@@ -86,6 +89,9 @@ import { ImportFormDialogComponent } from './components/import-form-dialog/impor
     FormIntegrationEmailConfigComponent,
     FormIntegrationEmailComponent,
     ImportFormDialogComponent,
+    FormIntegrationTOPDeskComponent,
+    TOPDeskCategoryMappingComponent,
+    TOPDeskOptionalFieldMappingComponent,
   ],
   imports: [
     SharedModule,

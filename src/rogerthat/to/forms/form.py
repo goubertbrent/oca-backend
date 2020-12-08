@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
-from typing import Dict
+from typing import Dict, List
 
 from mcfw.properties import long_property, unicode_property, typed_property, object_factory, bool_property
 from rogerthat.to import TO
@@ -32,7 +32,7 @@ class FormSectionTO(TO):
     id = unicode_property('id', default=None)
     title = unicode_property('title')
     description = unicode_property('description', default=None)
-    components = typed_property('components', FormComponentTO(), True)  # type: list[FormComponentTO]
+    components = typed_property('components', FormComponentTO(), True, default=[])  # type: List[FormComponentTO]
     next_action = typed_property('next_action', NextActionTO(), default=None)
     branding = typed_property('branding', FormSectionBrandingTO, False, default=None)  # type: FormSectionBrandingTO
     next_button_caption = unicode_property('next_button_caption', default=None)
@@ -80,13 +80,13 @@ class FormComponentValueTO(object_factory):
 
 class FormSectionValueTO(TO):
     id = unicode_property('id')
-    components = typed_property('components', FormComponentValueTO(), True)  # type: list[FormComponentValueTO]
+    components = typed_property('components', FormComponentValueTO(), True)  # type: List[FormComponentValueTO]
 
 
 class DynamicFormValueTO(TO):
     id = long_property('id')
     version = long_property('version')
-    sections = typed_property('sections', FormSectionValueTO, True)  # type: list[FormSectionValueTO]
+    sections = typed_property('sections', FormSectionValueTO, True)  # type: List[FormSectionValueTO]
 
 
 class FormSubmittedCallbackResultTO(TO):

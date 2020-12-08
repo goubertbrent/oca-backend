@@ -1,28 +1,48 @@
 import { coerceBooleanProperty } from '@angular/cdk/coercion';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, forwardRef, Input, Output } from '@angular/core';
+import {
+  AfterViewChecked,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  EventEmitter,
+  forwardRef,
+  Input,
+  OnDestroy,
+  Output,
+  QueryList,
+  ViewChild,
+  ViewChildren,
+} from '@angular/core';
 import { ControlContainer, ControlValueAccessor, NG_VALUE_ACCESSOR, NgForm } from '@angular/forms';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
+import { MatToolbar } from '@angular/material/toolbar';
 import { TranslateService } from '@ngx-translate/core';
+import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '@oca/web-shared';
+import { Subscription } from 'rxjs';
 import { EASYMDE_OPTIONS } from '../../../../environments/config';
 import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
+import { COMPONENT_ICONS } from '../../interfaces/consts';
 import { FormComponentType } from '../../interfaces/enums';
 import { FormComponent, FormSection, UINextAction } from '../../interfaces/forms';
 import { FormValidatorType } from '../../interfaces/validators';
+import { generateNewId } from '../../util';
 
+// TODO: convert to reactive forms cuz the template is a bit of a mess
 @Component({
   selector: 'oca-edit-form-section',
   templateUrl: './edit-form-section.component.html',
   styleUrls: ['./edit-form-section.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [ {
+  providers: [{
     provide: NG_VALUE_ACCESSOR,
     useExisting: forwardRef(() => EditFormSectionComponent),
     multi: true,
-  } ],
-  viewProviders: [ { provide: ControlContainer, useExisting: NgForm } ],
+  }],
+  viewProviders: [{ provide: ControlContainer, useExisting: NgForm }],
 })
-export class EditFormSectionComponent implements ControlValueAccessor {
+export class EditFormSectionComponent implements ControlValueAccessor, AfterViewChecked, OnDestroy {
   set section(value: FormSection) {
     if (this._section) {
       this.onChange(value);
@@ -43,6 +63,7 @@ export class EditFormSectionComponent implements ControlValueAccessor {
 
   @Input() name: string;
   @Input() formId: number;
+  @Input() readonlyMode = false;
   @Input() headerTitle = '';
   @Input() canMove = false;
   @Input() canDelete = false;
@@ -58,15 +79,28 @@ export class EditFormSectionComponent implements ControlValueAccessor {
     return this._canAddComponents;
   }
 
+  @ViewChild(MatToolbar, { static: true }) toolbar: MatToolbar;
+  @ViewChildren('componentRef') componentRefs: QueryList<HTMLDivElement>;
+
+
   @Output() moveSection = new EventEmitter();
+  @Output() setActive = new EventEmitter();
   @Output() deleteSection = new EventEmitter();
 
   showDescription = false;
 
+  /**
+   * The index of the component that triggered the 'edit' mode, triggered by clicking a component its title.
+   * An attempt will be made to scroll to the component once the 'edit' view is loaded in ngAfterViewChecked.
+   */
+  editTriggeredByComponent: number | null = null;
+
   EASYMDE_OPTIONS = EASYMDE_OPTIONS;
+  COMPONENT_ICONS = COMPONENT_ICONS;
   FormComponentType = FormComponentType;
   private _section: FormSection;
   private _canAddComponents = true;
+  private _componentRefSubscription?: Subscription;
   private onChange = (val: any) => {
   };
   private onTouched = () => {
@@ -77,31 +111,65 @@ export class EditFormSectionComponent implements ControlValueAccessor {
               private _changeDetectorRef: ChangeDetectorRef) {
   }
 
+  ngAfterViewChecked() {
+    if (!this._componentRefSubscription) {
+      this._componentRefSubscription = this.componentRefs.changes.subscribe((queryList: QueryList<ElementRef<HTMLDivElement>>) => {
+        if (this.editTriggeredByComponent !== null && queryList.length > 0) {
+          setTimeout(() => {
+            if (this.editTriggeredByComponent === -1) {
+              this.toolbar._elementRef.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+              const divElement = queryList.find((item, index, array) => index === this.editTriggeredByComponent);
+              divElement?.nativeElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            this.editTriggeredByComponent = null;
+          }, 1);
+        }
+      });
+    }
+  }
+
+  ngOnDestroy() {
+    this._componentRefSubscription?.unsubscribe();
+  }
+
   changed(property: keyof FormSection, value: any) {
     this.section = { ...this.section, [ property ]: value };
   }
 
   onRemoveComponent(index: number) {
-    const copy = this.section.components;
-    copy.splice(index, 1);
-    this.section = {
-      ...this.section,
-      components: copy,
+    const data: SimpleDialogData = {
+      message: this._translate.instant('oca.confirm_delete_component'),
+      ok: this._translate.instant('oca.Yes'),
+      cancel: this._translate.instant('oca.No'),
     };
+    this._matDialog.open<SimpleDialogComponent, SimpleDialogData, SimpleDialogResult>(SimpleDialogComponent, { data }).afterClosed()
+      .subscribe(result => {
+        if (result?.submitted) {
+          const copy = this.section.components;
+          copy.splice(index, 1);
+          this.section = {
+            ...this.section,
+            components: copy,
+          };
+          this._changeDetectorRef.markForCheck();
+        }
+      });
   }
 
   addComponent() {
     const option = this._translate.instant('oca.option_x', { number: 1 });
     const title = this._translate.instant('oca.untitled_question');
-    const choices = [ { label: option, value: option } ];
-    this.changed('components', [ ...this.section.components, {
+    const choices = [{ label: option, value: option }];
+    this.changed('components', [...this.section.components, {
       type: FormComponentType.SINGLE_SELECT,
       description: null,
       choices,
       validators: [{ type: FormValidatorType.REQUIRED }],
       title,
-      id: this.getNewComponentId(),
-    } ]);
+      id: generateNewId(),
+    }]);
+    this.setActiveByComponent(this.section.components.length - 1);
   }
 
   registerOnChange(fn: any): void {
@@ -163,10 +231,8 @@ export class EditFormSectionComponent implements ControlValueAccessor {
     this.showDescription = !this.showDescription;
   }
 
-  private getNewComponentId() {
-    // "good enough" uuid generator
-    // tslint:disable-next-line:no-bitwise
-    const S4 = () => ((1 + Math.random()) * 0x10000 | 0).toString(16).substring(1);
-    return (`${S4() + S4()}-${S4()}-${S4()}-${S4()}-${S4()}${S4()}${S4()}`);
+  setActiveByComponent(componentIndex: number) {
+    this.editTriggeredByComponent = componentIndex;
+    this.setActive.emit();
   }
 }

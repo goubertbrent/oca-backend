@@ -1,0 +1,14 @@
+<form [formGroup]="categoryForm">
+  <p>{{ 'oca.topdesk_category_mapping_guide' | translate }}</p>
+  <mat-form-field *ngFor="let choice of choices" class="mapping-field">
+    <mat-label>{{ choice.label }}</mat-label>
+    <mat-select [formControlName]="choice.value">
+      <mat-option [value]="null">-</mat-option>
+      <mat-optgroup *ngFor="let category of subcategories" [label]="category.name">
+        <mat-option *ngFor="let category of category.subcategories"
+                    [value]="category.id">{{ category.name }}</mat-option>
+      </mat-optgroup>
+      <mat-option *ngFor="let category of categories" [value]="category.id">{{ category.name }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+</form>

@@ -28,7 +28,7 @@ from .validators import FormValidatorTO, FormValidatorType
 
 
 class ParagraphComponentTO(TO):
-    type = unicode_property('type')
+    type = unicode_property('type', FormComponentType.PARAGRAPH)
     title = unicode_property('title', default=None)
     description = unicode_property('description', default=None)
 
@@ -43,6 +43,7 @@ class ValidatedComponentTO(TO):
 
 
 class TextInputComponentTO(FieldComponentTO, ValidatedComponentTO):
+    type = unicode_property('type', default=FormComponentType.TEXT_INPUT)
     placeholder = unicode_property('placeholder', default=None)
     multiline = bool_property('multiline', default=False)
     keyboard_type = unicode_property('keyboard_type', default=KeyboardType.DEFAULT)
@@ -104,22 +105,24 @@ class SelectComponentTO(FieldComponentTO, ValidatedComponentTO):
 
 
 class SingleSelectComponentTO(SelectComponentTO):
-    pass
+    type = unicode_property('type', default=FormComponentType.SINGLE_SELECT)
 
 
 class MultiSelectComponentTO(SelectComponentTO):
-    pass
+    type = unicode_property('type', default=FormComponentType.MULTI_SELECT)
 
 
 class DatetimeComponentTO(FieldComponentTO, ValidatedComponentTO):
+    type = unicode_property('type', default=FormComponentType.DATETIME)
     format = unicode_property('format', default=DateFormat.DATETIME)
 
 
 class LocationComponentTO(FieldComponentTO, ValidatedComponentTO):
-    pass
+    type = unicode_property('type', default=FormComponentType.LOCATION)
 
 
 class FileComponentTO(FieldComponentTO, ValidatedComponentTO):
+    type = unicode_property('type', default=FormComponentType.FILE)
     file_types = unicode_list_property('file_types', default=[])
 
 

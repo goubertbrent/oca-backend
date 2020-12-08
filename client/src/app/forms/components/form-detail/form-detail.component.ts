@@ -11,9 +11,9 @@ import {
 import { MatTabChangeEvent } from '@angular/material/tabs';
 import { Loadable } from '../../../shared/loadable/loadable';
 import { UserDetailsTO } from '../../../shared/users/users';
+import { FormIntegrationConfiguration } from '../../integrations/integrations';
 import { OptionsMenuOption } from '../../interfaces/consts';
 import { FormStatisticsView, LoadResponses, OcaForm, SaveForm, SingleFormResponse } from '../../interfaces/forms';
-import { FormIntegrationConfiguration, FormIntegrationProvider } from '../../interfaces/integrations';
 
 export const enum FormDetailTab {
   QUESTIONS,
