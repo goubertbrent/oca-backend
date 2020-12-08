@@ -20,7 +20,7 @@ export interface TOPDeskIntegrationConfig {
 
 export interface BaseIntegrationConfiguration {
   enabled: boolean;
-  visible: boolean;
+  can_edit: boolean;
 }
 
 export interface IntegrationConfigurationGV extends BaseIntegrationConfiguration {

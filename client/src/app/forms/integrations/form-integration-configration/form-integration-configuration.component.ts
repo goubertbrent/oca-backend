@@ -23,19 +23,19 @@ export class FormIntegrationConfigurationComponent implements OnChanges {
     [ FormIntegrationProvider.GREEN_VALLEY ]: {
       provider: FormIntegrationProvider.GREEN_VALLEY,
       enabled: false,
-      visible: true,
+      can_edit: false,
       configuration: {} as IntegrationConfigurationGV,
     },
     [ FormIntegrationProvider.EMAIL ]: {
       provider: FormIntegrationProvider.EMAIL,
       enabled: false,
-      visible: true,
+      can_edit: true,
       configuration: {} as IntegrationConfigurationEmail,
     },
     [ FormIntegrationProvider.TOPDESK ]: {
       provider: FormIntegrationProvider.TOPDESK,
       enabled: false,
-      visible: true,
+      can_edit: false,
       configuration: {} as IntegrationConfigurationTOPDesk,
     },
   };

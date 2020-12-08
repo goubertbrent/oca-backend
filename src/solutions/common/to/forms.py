@@ -49,15 +49,6 @@ class FormSettingsTO(TO):
     steps = typed_property('steps', CompletedFormStepTO, True)
     integrations = typed_property('integrations', FormIntegrationTO, True, default=[])  # type: List[FormIntegrationTO]
 
-    @classmethod
-    def from_model(cls, oca_form, can_edit_integrations):
-        to = cls.from_dict(oca_form.to_dict())
-        for integration in to.integrations:
-            integration.visible = can_edit_integrations
-            if not integration.visible:
-                integration.configuration = {}
-        return to
-
 
 class OcaFormTO(TO):
     form = typed_property('form', DynamicFormTO)  # type: DynamicFormTO

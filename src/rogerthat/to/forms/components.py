@@ -110,7 +110,6 @@ class SingleSelectComponentTO(SelectComponentTO):
 
 class MultiSelectComponentTO(SelectComponentTO):
     type = unicode_property('type', default=FormComponentType.MULTI_SELECT)
-    pass
 
 
 class DatetimeComponentTO(FieldComponentTO, ValidatedComponentTO):
@@ -120,7 +119,6 @@ class DatetimeComponentTO(FieldComponentTO, ValidatedComponentTO):
 
 class LocationComponentTO(FieldComponentTO, ValidatedComponentTO):
     type = unicode_property('type', default=FormComponentType.LOCATION)
-    pass
 
 
 class FileComponentTO(FieldComponentTO, ValidatedComponentTO):

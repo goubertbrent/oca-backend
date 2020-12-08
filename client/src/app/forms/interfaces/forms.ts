@@ -3,7 +3,7 @@ import { FormSectionValue, MergedFormResponse } from './form-values';
 import { FormIntegration } from '../integrations/integrations';
 import { FormValidator } from './validators';
 
-// TOOD: most of these can be replaced by types from @oca/web-shared , but the minor differences might make that difficult.
+// TODO: most of these can be replaced by types from @oca/web-shared, but the minor differences might make that difficult.
 
 export interface ParagraphComponent {
   type: FormComponentType.PARAGRAPH;

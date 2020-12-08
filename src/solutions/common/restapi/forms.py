@@ -22,11 +22,12 @@ from mcfw.rpc import returns, arguments
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException
+from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api.forms import service_api
 from rogerthat.to.service import UserDetailsTO
 from solutions.common.bizz.forms import create_form, get_form, update_form, get_tombola_winners, list_forms, \
     get_statistics, list_responses, delete_submissions, delete_form, delete_submission, \
-    get_form_integrations, update_form_integration, can_edit_integration_config, get_form_integration
+    get_form_integrations, update_form_integration, get_form_integration
 from solutions.common.bizz.forms.export import export_submissions
 from solutions.common.bizz.forms.integrations import TOPDeskFormIntegration
 from solutions.common.models.forms import FormIntegrationProvider, FormIntegrationConfiguration
@@ -34,12 +35,16 @@ from solutions.common.to.forms import OcaFormTO, FormSettingsTO, FormStatisticsT
     FormSubmissionTO
 
 
+def can_edit_integration_config():
+    from google.appengine.api import users as gusers
+    return gusers.is_current_user_admin() or get_current_session().shop
+
+
 @rest('/common/forms', 'get', read_only_access=True, silent_result=True)
 @returns([FormSettingsTO])
 @arguments()
 def rest_list_forms():
-    can_edit_integrations = can_edit_integration_config()
-    return [FormSettingsTO.from_model(form, can_edit_integrations) for form in list_forms(users.get_current_user())]
+    return [FormSettingsTO.from_model(form) for form in list_forms(users.get_current_user())]
 
 
 @rest('/common/forms/integrations', 'get')
@@ -50,12 +55,7 @@ def rest_get_integrations():
     can_edit = can_edit_integration_config()
     for integration in get_form_integrations(users.get_current_user()):
         d = integration.to_dict()
-        if integration.provider == FormIntegrationProvider.EMAIL:
-            d['visible'] = True
-        else:
-            d['visible'] = can_edit
-        if not can_edit:
-            del d['configuration']
+        d['can_edit'] = can_edit or integration.provider == FormIntegrationProvider.EMAIL
         results.append(d)
     return results
 
@@ -64,7 +64,7 @@ def rest_get_integrations():
 @returns(dict)
 @arguments(provider=unicode, data=dict)
 def rest_update_integration(provider, data):
-    if not can_edit_integration_config():
+    if not can_edit_integration_config() and provider != FormIntegrationProvider.EMAIL:
         raise HttpForbiddenException()
     return update_form_integration(users.get_current_user(), provider, data).to_dict()
 

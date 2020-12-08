@@ -127,7 +127,7 @@ export class FormIntegrationsComponent implements OnChanges {
       // @ts-ignore
       this.providerMapping[ integration.provider ] = {
         ...this.providerMapping[ integration.provider ],
-        visible: integration.visible,
+        visible: integration.enabled,
       };
     }
     for (const { provider, enabled, configuration } of this.integrations) {
