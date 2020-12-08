@@ -108,6 +108,10 @@ NEWS_ACTION_BUTTONS = {
 }
 
 
+class DashboardNewsGroupTO(ServiceNewsGroupTO):
+    regional_allowed = bool_property('regional_allowed')
+
+
 class NewsActionButtonFactory(object_factory):
     type = long_property('type')
 
@@ -118,7 +122,7 @@ class NewsActionButtonFactory(object_factory):
 class NewsOptionsTO(TO):
     tags = unicode_list_property('tags')
     regional = typed_property('regional', RegionalNewsSettingsTO)
-    groups = typed_property('groups', ServiceNewsGroupTO, True)
+    groups = typed_property('groups', DashboardNewsGroupTO, True)
     media_types = unicode_list_property('media_types')
     location_filter_enabled = bool_property('location_filter_enabled')
     action_buttons = typed_property('action_buttons', NewsActionButtonFactory(), True)

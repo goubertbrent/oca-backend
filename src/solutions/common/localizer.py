@@ -20,6 +20,7 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'oca.news_regional_disabled_tooltip': u'You do not have permission to send regional news using this category',
          u'please_use_proper_browser': u'Internet explorer is no longer support, some functions might not work. Please use a newer browser: %(url)s.',
          u'overview_browsers': u'Overview browsers',
          u'oca.no_results': u'No results found',
@@ -3983,6 +3984,7 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'%(app_name)s has 1 new message for you': u'%(app_name)s heeft 1 nieuw bericht voor u',
+         u'oca.news_regional_disabled_tooltip': u'U heeft geen toestemming om regionaal nieuws uit te sturen via deze categorie',
          u'please_use_proper_browser': u'Internet Explorer wordt niet meer ondersteunt, sommige functies zullen mogelijks niet werken. Gelieve een nieuwere browser te gebruiken: %(url)s.',
          u'overview_browsers': u'Overzicht browsers',
          u'oca.no_results': u'Geen resultaten gevonden',

@@ -333,7 +333,10 @@
                             [(ngModel)]="newsItem.group_type"
                             name="broadcast_type"
                             required>
-                  <mat-option *ngFor="let group of (options?.groups || [])" [value]="group.group_type">
+                  <mat-option *ngFor="let group of options?.groups" [disabled]="hasRegional && !group.regional_allowed"
+                              [matTooltipDisabled]="!hasRegional || group.regional_allowed"
+                              [matTooltip]="'oca.news_regional_disabled_tooltip' | translate"
+                              [value]="group.group_type">
                     {{ group.name }}
                   </mat-option>
                 </mat-select>

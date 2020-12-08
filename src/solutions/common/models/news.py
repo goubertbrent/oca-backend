@@ -16,10 +16,12 @@
 # @@license_version:1.7@@
 
 from google.appengine.ext import ndb
+from typing import List
 
 from mcfw.utils import Enum
 from rogerthat.dal import parent_ndb_key, parent_ndb_key_unsafe
 from rogerthat.models.common import NdbModel
+from rogerthat.models.news import NewsGroup
 from rogerthat.rpc import users
 from solutions.common import SOLUTION_COMMON
 
@@ -86,6 +88,11 @@ class NewsSettingsTags(Enum):
 
 class NewsSettings(NdbModel):
     tags = ndb.StringProperty(repeated=True, choices=NewsSettingsTags.all())  # type: List[str]
+    # If a service has access to any of these group types, they are allowed to send regional news
+    regional_enabled_group_types = ndb.StringProperty(repeated=True)
+
+    def get_regional_enabled_group_types(self):
+        return self.regional_enabled_group_types or [NewsGroup.TYPE_PRESS, NewsGroup.TYPE_PROMOTIONS]
 
     @classmethod
     def create_key(cls, service_user, service_identity):

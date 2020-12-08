@@ -24,7 +24,6 @@ import {
   templateUrl: './news-list-page.component.html',
   styleUrls: ['./news-list-page.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  encapsulation: ViewEncapsulation.None,
 })
 export class NewsListPageComponent implements OnInit {
   newsList$: Observable<NewsItem[]>;

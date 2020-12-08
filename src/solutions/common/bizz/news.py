@@ -317,7 +317,11 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
     """
     service_user, identity = get_service_identity_tuple(service_identity_user)
     sln_settings = get_solution_settings(service_user)
-    service_info = ServiceInfo.create_key(service_user, identity).get()
+    news_settings_key = NewsSettings.create_key(service_user, identity)
+    keys = [news_settings_key, ServiceInfo.create_key(service_user, identity)]
+    news_settings, service_info = ndb.get_multi(keys)  # type: NewsSettings, ServiceInfo
+    if not news_settings:
+        news_settings = NewsSettings(key=news_settings_key)
     check_can_send_news(sln_settings, service_info)
     if news_type == NewsItem.TYPE_QR_CODE:
         azzert(SolutionModule.LOYALTY in sln_settings.modules)
@@ -333,6 +337,11 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
     if not is_regional_news_enabled(service_community) or service_community.demo:
         # Demo apps can't send regional news
         community_ids = [service_profile.community_id]
+    else:
+        if len(community_ids) > 1 or community_ids[0] != service_profile.community_id:
+            if group_type not in news_settings.get_regional_enabled_group_types():
+                raise BusinessException('You do not have permission to send regional news items in the "%s" category' %
+                                        group_type)
     sticky = False
     sticky_until = None
     kwargs = {
