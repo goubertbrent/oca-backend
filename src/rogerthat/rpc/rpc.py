@@ -296,6 +296,8 @@ class JabberRpcCaller(threading.local):
                 try:
                     resp = conn.get_response(stream_id)
                     if resp.status != 200:
+                        # {"reason":"BadDeviceToken"}
+                        # {"reason":"Unregistered","timestamp":1607395145939}
                         logging.error("Failed to send apple push %s", resp.read())
                 except:
                     logging.info("failed to get response", exc_info=True)

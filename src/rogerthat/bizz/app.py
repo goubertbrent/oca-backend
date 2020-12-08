@@ -103,7 +103,7 @@ def put_user_regexes(service_user, app_id, regexes):
                 updated = True
         if updated:
             app.user_regex = '\n'.join(user_regexes)
-            app.put()
+            put_and_invalidate_cache(app)
         return updated
 
     return db.run_in_transaction(trans)
@@ -122,7 +122,7 @@ def del_user_regexes(service_user, app_id, regexes):
                 updated = True
         if updated:
             app.user_regex = '\n'.join(user_regexes)
-            app.put()
+            put_and_invalidate_cache(app)
         return updated
 
     return db.run_in_transaction(trans)
@@ -233,7 +233,7 @@ def save_apns_ios(app_id, key_id, base64_str):
         app = get_app(app_id)
         app.apns_key_id = key_id
         app.apns_key = apns_key
-        app.put()
+        put_and_invalidate_cache(app)
         return app.apns_key_id
 
     return run_in_xg_transaction(trans)
@@ -387,7 +387,7 @@ def update_app(app_id, data):
             app.default_app_name_mapping = data.default_app_name_mapping
             deferred.defer(set_app_name_mapping, app_id, app.default_app_name_mapping, _transactional=True)
 
-        app.put()
+        put_and_invalidate_cache(app)
         return app
 
     return run_in_xg_transaction(trans)
@@ -433,7 +433,7 @@ def patch_app(app_id, data):
         app.facebook_app_id = data.facebook_app_id
         app.facebook_app_secret = data.facebook_app_secret
         app.secure = data.secure
-        app.put()
+        put_and_invalidate_cache(app)
         path = '/api/apps/%s/partial' % app_id
         body = json.dumps(data.to_dict())
         result = _exec_request(path, 'put', {'Content-Type': 'application/json'}, body, True)
