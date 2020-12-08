@@ -1,32 +1,10 @@
 <div id="qanda" class="row page" style="display: none;">
 	<div class="span12">
 		<ul class="nav nav-tabs">
-			<li class="active" section="section_search"><a href="#" help="n7cQdQ9Q5V8">{% translate language, "qanda-search-answers" %}</a></li>
-			<li section="section_recent"><a href="#" help="n7cQdQ9Q5V8">{% translate language, "qanda-recent-questions" %}</a></li>
-			<li section="section_ask"><a href="#" help="n7cQdQ9Q5V8">{% translate language, "qanda-new-question" %}</a></li>
-			<li section="section_my"><a href="#" help="n7cQdQ9Q5V8">{% translate language, "qanda-my-questions" %}</a></li>
+			<li section="section_ask" class="active"><a href="#">{% translate language, "qanda-new-question" %}</a></li>
+			<li section="section_my"><a href="#">{% translate language, "qanda-my-questions" %}</a></li>
 		</ul>
-		<section id="section_search">
-			<div class="input-prepend input-append">
-				<span class="add-on">{% translate language, "Search" %}</span>
-				<input class="span6" id="search_key_words" type="text" placeholder="{% translate language, "enter-dot-dot-dot" %}" autofocus>
-			</div>
-			<div id="qanda_search_questions" style="display: none;">
-			    <h4><span id="qanda_search_questions_count"></span> {% translate language, "results found for" %} '<span id="qanda_search_questions_query"></span>'</h4>
-                <table class="table table-striped table-hover table-bordered">
-                    <thead></thead>
-                    <tbody></tbody>
-                </table>
-
-                <div class="text-center">
-                    <button style="display: none;" class="btn load-more-search-questions" type="button">{% translate language, "Load more" %}</button>
-                </div>
-            </div>
-		</section>
-		<section id="section_ask" style="display: none;">
-			<div class="alert">
-				<strong>{% translate language, "warning" %}</strong> {% translate language, "submit-new-question-search-warning" %}
-			</div>
+		<section id="section_ask">
 			<label>{% translate language, "title" %}:</label>
 			<input class="span8" id="title" type="text" placeholder="{% translate language, "enter-dot-dot-dot" %}" autofocus/><br>
 			<label>{% translate language, "description" %}:</label>
@@ -38,18 +16,6 @@
 				</div>
 			</div><br>
 			<button id="send_question" class="btn btn-success span8" style="margin-left: 0;">{% translate language, "Submit" %}</button>
-		</section>
-		<section id="section_recent" style="display: none;">
-            <div id="qanda_recent_questions">
-                <table class="table table-striped table-hover table-bordered">
-                    <thead></thead>
-                    <tbody></tbody>
-                </table>
-
-                <div class="text-center">
-                    <button style="display: none;" class="btn load-more-recent-questions" type="button">{% translate language, "Load more" %}</button>
-                </div>
-            </div>
 		</section>
 		<section id="section_my" style="display: none;">
 		  <div id="qanda_my_questions">

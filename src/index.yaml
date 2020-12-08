@@ -617,63 +617,19 @@ indexes:
 - kind: Question
   properties:
   - name: author
-  - name: timestamp
-    direction: desc
-
-- kind: Question
-  properties:
-  - name: author
-  - name: visible
-  - name: timestamp
-
-- kind: Question
-  properties:
-  - name: author
-  - name: visible
-  - name: timestamp
-    direction: desc
-
-- kind: Question
-  properties:
-  - name: visible
-  - name: timestamp
-
-- kind: Question
-  properties:
-  - name: visible
-  - name: timestamp
-    direction: desc
-
-- kind: Question
-  properties:
-  - name: language
-  - name: visible
-  - name: timestamp
+  - name: last_reply_date
     direction: desc
 
 - kind: Question
   properties:
   - name: team_id
-  - name: timestamp
+  - name: last_reply_date
     direction: desc
 
 - kind: QuestionReply
   ancestor: yes
   properties:
   - name: timestamp
-
-- kind: QuestionReply
-  ancestor: yes
-  properties:
-  - name: visible
-  - name: timestamp
-
-- kind: QuestionReply
-  ancestor: yes
-  properties:
-  - name: visible
-  - name: timestamp
-    direction: desc
 
 - kind: RegioManager
   properties:

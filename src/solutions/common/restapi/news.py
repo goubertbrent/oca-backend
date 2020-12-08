@@ -28,7 +28,7 @@ from rogerthat.bizz.communities.models import AppFeatures
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.models import ServiceIdentity
 from rogerthat.models.jobs import JobOffer
-from rogerthat.models.news import NewsGroup, MediaType
+from rogerthat.models.news import MediaType
 from rogerthat.models.settings import ServiceInfo
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException
@@ -48,7 +48,7 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.models.news import NewsSettings, NewsSettingsTags
 from solutions.common.to.broadcast import NewsOptionsTO, RegionalNewsSettingsTO, NewsActionButtonWebsite, \
     NewsActionButtonAttachment, NewsActionButtonEmail, NewsActionButtonPhone, NewsActionButtonMenuItem, \
-    NewsActionButtonOpen, NewsCommunityTO
+    NewsActionButtonOpen, NewsCommunityTO, DashboardNewsGroupTO
 from solutions.common.to.news import NewsStatsTO, NewsReviewTO, CreateNewsItemTO
 from solutions.common.utils import is_default_service_identity
 
@@ -227,13 +227,12 @@ def rest_get_news_options():
     jobs_rpc = JobOffer.list_by_service(service_user.email()).fetch_async()
     news_groups = list_groups(lang)
 
-    regional_enabled_types = (NewsGroup.TYPE_PRESS, NewsGroup.TYPE_PROMOTIONS)
-    regional_news_enabled = any(g.group_type in regional_enabled_types for g in news_groups) or community.demo
+    regional_group_types = news_settings.get_regional_enabled_group_types()
+    regional_news_enabled = is_regional_news_enabled(community) and any(group.group_type in regional_group_types
+                                                                        for group in news_groups)
     map_url = None
-    if regional_news_enabled:
-        regional_news_enabled = is_regional_news_enabled(community)
-        if regional_news_enabled and community.country == 'BE':
-            map_url = '/static/js/shop/libraries/flanders.json'
+    if regional_news_enabled and community.country == 'BE':
+        map_url = '/static/js/shop/libraries/flanders.json'
     regional = RegionalNewsSettingsTO(enabled=regional_news_enabled,
                                       map_url=map_url)
     media_types = [MediaType.IMAGE]
@@ -271,10 +270,10 @@ def rest_get_news_options():
                            for item in menu.items if not item.roles])
 
     open_actions = [
-        ('scan', common_translate(lang,  'Scan')),
+        ('scan', common_translate(lang, 'Scan')),
         ('profile', common_translate(lang, 'profile')),
-        ('settings', common_translate(lang,  'Settings')),
-        ('messages', common_translate(lang,  'news_items')),
+        ('settings', common_translate(lang, 'Settings')),
+        ('messages', common_translate(lang, 'news_items')),
     ]
 
     for action, label in open_actions:
@@ -288,10 +287,15 @@ def rest_get_news_options():
         action_buttons.append(NewsActionButtonOpen(
             label=job_offer.info.function.title,
             icon='work',
-            button=NewsActionButtonTO('job', common_translate(lang,  'oca.apply_for_job'),
+            button=NewsActionButtonTO('job', common_translate(lang, 'oca.apply_for_job'),
                                       'open://{"action_type":"job","action":"%s"}' % job_offer.id)
         ))
 
-    return NewsOptionsTO(tags=tags, regional=regional, groups=news_groups, media_types=media_types,
+    dashboard_groups = [DashboardNewsGroupTO(
+        group_type=group.group_type,
+        name=group.name,
+        regional_allowed=regional_news_enabled and group.group_type in regional_group_types
+    ) for group in news_groups]
+    return NewsOptionsTO(tags=tags, regional=regional, groups=dashboard_groups, media_types=media_types,
                          location_filter_enabled=AppFeatures.NEWS_LOCATION_FILTER in community.features,
                          action_buttons=action_buttons, service_name=service_info.name, community_id=community.id)

@@ -349,7 +349,7 @@ Request your own application as a local business, association or health care pro
 """Could not download attachment %(url)s""": u"""Could not download attachment %(url)s""",
 
 
-"""Current polls""": u"""Current polls""",
+"""Current polls""": u"""Current surveys""",
 
 
 """current-version""": u"""Current version""",
@@ -515,7 +515,7 @@ Also make sure you have the latest version of the \"MYDIGIPASS Authenticator for
 """No news""": u"""No news""",
 
 
-"""No polls""": u"""No polls""",
+"""No polls""": u"""No surveys""",
 
 
 """No press""": u"""No press""",
@@ -608,7 +608,7 @@ Also make sure you have the latest version of the \"MYDIGIPASS Authenticator for
 """please_review_updated_tac""": u"""Please review our updated Terms and Conditions before continuing""",
 
 
-"""Polls""": u"""Polls""",
+"""Polls""": u"""Surveys""",
 
 
 """Press""": u"""Press""",
@@ -726,7 +726,7 @@ Accuracy: %(accuracy)sm""",
 """There are no local press articles at this time""": u"""There are no local press articles at this time""",
 
 
-"""There are no polls at this time""": u"""There are no polls at this time""",
+"""There are no polls at this time""": u"""There are no surveys at this time""",
 
 
 """There are no promotions at this time""": u"""There are no promotions at this time""",

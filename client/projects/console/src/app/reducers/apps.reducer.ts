@@ -589,6 +589,22 @@ export function appsReducer(state: IAppsState = initialAppsState, action: AppsAc
         ...state,
         updateFirebaseSettingsIosStatus: action.payload,
       };
+    case AppsActionTypes.SAVE_APP_APNS_IOS:
+	    return {
+	      ...state,
+	      saveAppAPNsIosStatus: apiRequestLoading,
+	    };
+	case AppsActionTypes.SAVE_APP_APNS_IOS_COMPLETE:
+	    return {
+	      ...state,
+	      appSettings: action.payload,
+	      saveAppAPNsIosStatus: apiRequestSuccess,
+	    };
+	case AppsActionTypes.SAVE_APP_APNS_IOS_FAILED:
+	    return {
+	      ...state,
+	      saveAppAPNsIosStatus: action.payload,
+	    };
     case AppsActionTypes.UPDATE_FACEBOOK:
       return {
         ...state,

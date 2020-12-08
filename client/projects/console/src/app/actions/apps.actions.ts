@@ -151,6 +151,9 @@ export const enum AppsActionTypes {
   UPDATE_FIREBASE_SETTINGS_IOS = '[RCC:apps] Update firebase settings ios',
   UPDATE_FIREBASE_SETTINGS_IOS_COMPLETE = '[RCC:apps] Update firebase settings ios complete',
   UPDATE_FIREBASE_SETTINGS_IOS_FAILED = '[RCC:apps] Update firebase settings ios failed',
+  SAVE_APP_APNS_IOS = '[RCC:apps] Save app apns ios',
+  SAVE_APP_APNS_IOS_COMPLETE = '[RCC:apps] Save app apns ios complete',
+  SAVE_APP_APNS_IOS_FAILED = '[RCC:apps] Save app apns ios failed',
   UPDATE_FACEBOOK = '[RCC:apps] Update facebook',
   UPDATE_FACEBOOK_COMPLETE = '[RCC:apps] Update facebook complete',
   UPDATE_FACEBOOK_FAILED = '[RCC:apps] Update facebook failed',
@@ -988,6 +991,27 @@ export class UpdateFirebaseSettingsIosFailedAction implements Action {
   }
 }
 
+export class SaveAppAPNsIosAction implements Action {
+  readonly type = AppsActionTypes.SAVE_APP_APNS_IOS;
+
+  constructor(public keyId: string, public payload: string) {
+  }
+}
+
+export class SaveAppAPNsIosCompleteAction implements Action {
+  readonly type = AppsActionTypes.SAVE_APP_APNS_IOS_COMPLETE;
+
+  constructor(public payload: AppSettings) {
+  }
+}
+
+export class SaveAppAPNsIosFailedAction implements Action {
+  readonly type = AppsActionTypes.SAVE_APP_APNS_IOS_FAILED;
+
+  constructor(public payload: ApiRequestStatus) {
+  }
+}
+
 export class UpdateFacebookAction implements Action {
   readonly type = AppsActionTypes.UPDATE_FACEBOOK;
 }
@@ -1231,6 +1255,9 @@ export type AppsActions
   | UpdateFirebaseSettingsIosAction
   | UpdateFirebaseSettingsIosCompleteAction
   | UpdateFirebaseSettingsIosFailedAction
+  | SaveAppAPNsIosAction
+  | SaveAppAPNsIosCompleteAction
+  | SaveAppAPNsIosFailedAction
   | UpdateFacebookAction
   | UpdateFacebookCompleteAction
   | UpdateFacebookFailedAction

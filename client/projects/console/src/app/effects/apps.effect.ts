@@ -295,6 +295,17 @@ export class AppsEffects {
     map(action => new actions.UpdateFirebaseSettingsIosAction(action.payload)),
   );
 
+  @Effect() saveAppAPNsIos$ = this.actions$.pipe(
+    ofType<actions.SaveAppAPNsIosAction>(AppsActionTypes.SAVE_APP_APNS_IOS),
+    switchMap(action => {
+    	const appId = this.getAppId();
+    	return this.appsService.saveAppAPNsIos(appId, action.keyId, action.payload).pipe(
+    	  map(payload => new actions.SaveAppAPNsIosCompleteAction(payload)),
+    	  tap(() => this.router.navigate(['/apps', appId, 'settings', 'app-settings'])),
+    	  catchError(error => handleApiError(actions.SaveAppAPNsIosFailedAction, error)),
+    	);
+    }));
+
   @Effect() updateFacebook$ = this.actions$.pipe(
     ofType<actions.UpdateFacebookAction>(AppsActionTypes.UPDATE_FACEBOOK),
     switchMap(() => this.appsService.updateFacebook(this.getAppId()).pipe(

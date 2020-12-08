@@ -20,7 +20,7 @@ from mcfw.exceptions import HttpConflictException, HttpNotFoundException, HttpBa
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.app import create_app, get_app, AppDoesNotExistException, update_app, set_default_app, patch_app, \
-    put_settings, save_firebase_settings_ios
+    put_settings, save_firebase_settings_ios, save_apns_ios
 from rogerthat.bizz.app_assets import get_app_assets, remove_app_asset, get_all_app_assets, get_app_asset, \
     remove_global_app_asset
 from rogerthat.bizz.branding import save_core_branding
@@ -29,13 +29,14 @@ from rogerthat.bizz.default_brandings import remove_default_branding, get_defaul
 from rogerthat.bizz.qrtemplate import get_app_qr_templates, store_app_qr_template, delete_app_qr_template, \
     create_default_qr_template_from_logo, QrTemplateRequiredException
 from rogerthat.bizz.service import ServiceIdentityDoesNotExistException, InvalidAppIdException
-from rogerthat.dal.app import get_apps, get_all_apps, get_app_settings
+from rogerthat.dal.app import get_apps, get_all_apps, get_app_settings,\
+    get_app_by_id
 from rogerthat.exceptions.app import DuplicateAppIdException
 from rogerthat.exceptions.branding import BrandingValidationException, BadBrandingZipException, \
     DefaultBrandingNotFoundExcpetion
 from rogerthat.models import QRTemplate
 from rogerthat.rpc.service import ServiceApiException
-from rogerthat.to import FileTO, UploadInfoTO
+from rogerthat.to import FileTO, UploadInfoTO, APNsTO
 from rogerthat.to.app import AppTO, AppQRTemplateTO, CreateAppQRTemplateTO, AppAssetFullTO, \
     DefaultBrandingTO, AppSettingsTO, PatchAppTO
 from rogerthat.to.branding import BrandingTO
@@ -225,21 +226,33 @@ def api_delete_default_branding(app_id, branding_type):
 @returns(AppSettingsTO)
 @arguments(app_id=unicode)
 def api_get_app_settings(app_id):
-    return AppSettingsTO.from_model(get_app_settings(app_id))
+    app = get_app_by_id(app_id)
+    return AppSettingsTO.from_model(get_app_settings(app_id), ios_apns_key_id=app.apns_key_id)
 
 
 @rest('/console-api/apps/<app_id:[^/]+>/settings', 'put')
 @returns(AppSettingsTO)
 @arguments(app_id=unicode, data=AppSettingsTO)
 def api_update_app_settings(app_id, data):
-    return AppSettingsTO.from_model(put_settings(app_id, data))
+    app = get_app_by_id(app_id)
+    return AppSettingsTO.from_model(put_settings(app_id, data), ios_apns_key_id=app.apns_key_id)
 
 
 @rest('/console-api/apps/<app_id:[^/]+>/settings/firebase-ios', 'put', silent=True)
 @returns(AppSettingsTO)
 @arguments(app_id=unicode, data=FileTO)
 def api_save_firebase_settings(app_id, data):
-    return AppSettingsTO.from_model(save_firebase_settings_ios(app_id, data.file))
+    app = get_app_by_id(app_id)
+    return AppSettingsTO.from_model(save_firebase_settings_ios(app_id, data.file), ios_apns_key_id=app.apns_key_id)
+
+
+@rest('/console-api/apps/<app_id:[^/]+>/settings/apns-ios', 'put', silent=True)
+@returns(AppSettingsTO)
+@arguments(app_id=unicode, data=APNsTO)
+def api_save_apns(app_id, data):
+    app_settings = get_app_settings(app_id)
+    ios_apns_id = save_apns_ios(app_id, data.keyId, data.file)
+    return AppSettingsTO.from_model(app_settings, ios_apns_key_id=ios_apns_id)
 
 
 # Default/global settings - editor permissions are needed for these calls

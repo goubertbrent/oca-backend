@@ -194,10 +194,11 @@ class AppSettingsTO(object):
     birthday_message = unicode_property('5')
     tos_enabled = bool_property('6')
     ios_firebase_project_id = unicode_property('7')
+    ios_apns_key_id = unicode_property('ios_apns_key_id')
 
     def __init__(self, wifi_only_downloads=None, background_fetch_timestamps=None, oauth=None,
                  birthday_message_enabled=False, birthday_message=None, tos_enabled=True,
-                 ios_firebase_project_id=None):
+                 ios_firebase_project_id=None, ios_apns_key_id=ios_apns_key_id):
         if background_fetch_timestamps is None:
             background_fetch_timestamps = []
         self.wifi_only_downloads = wifi_only_downloads
@@ -207,16 +208,17 @@ class AppSettingsTO(object):
         self.birthday_message = birthday_message
         self.tos_enabled = tos_enabled
         self.ios_firebase_project_id = ios_firebase_project_id
+        self.ios_apns_key_id = ios_apns_key_id
 
     @classmethod
-    def from_model(cls, model):
+    def from_model(cls, model, ios_apns_key_id=None):
         """
         Args:
             model (rogerthat.models.AppSettings)
         """
         return cls(model.wifi_only_downloads, model.background_fetch_timestamps, model.oauth,
                    model.birthday_message_enabled, model.birthday_message, model.tos_enabled,
-                   model.ios_firebase_project_id)
+                   model.ios_firebase_project_id, ios_apns_key_id)
 
 
 # This object is sent to the phones

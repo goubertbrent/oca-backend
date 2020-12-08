@@ -216,7 +216,10 @@ def get_group_info(service_identity_user, group_type=None, community_ids=None, n
     group_ids = []
     for group in news_groups:
         if group.group_type in group_types:
-            if group.group_type in (NewsGroup.TYPE_CITY, NewsGroup.TYPE_PRESS, NewsGroup.TYPE_PUBLIC_SERVICE_ANNOUNCEMENTS):
+            if group.group_type in (NewsGroup.TYPE_CITY,
+                                    NewsGroup.TYPE_PRESS,
+                                    NewsGroup.TYPE_PUBLIC_SERVICE_ANNOUNCEMENTS,
+                                    NewsGroup.TYPE_POLLS):
                 group_ids.append(group.group_id)
 
             elif group.group_type in (NewsGroup.TYPE_PROMOTIONS,):

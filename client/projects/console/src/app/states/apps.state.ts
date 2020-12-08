@@ -53,6 +53,7 @@ export interface IAppsState {
   updateAppSettingsStatus: ApiRequestStatus;
   saveAppSettingsFirebaseIosStatus: ApiRequestStatus;
   updateFirebaseSettingsIosStatus: ApiRequestStatus;
+  saveAppAPNsIosStatus: ApiRequestStatus;
   updateFacebookStatus: ApiRequestStatus;
   requestFacebookReviewStatus: ApiRequestStatus;
   appMetaData: AppMetaData[];
@@ -103,6 +104,7 @@ export const initialAppsState: IAppsState = {
   updateAppSettingsStatus: apiRequestInitial,
   saveAppSettingsFirebaseIosStatus: apiRequestInitial,
   updateFirebaseSettingsIosStatus: apiRequestInitial,
+  saveAppAPNsIosStatus: apiRequestInitial,
   updateFacebookStatus: apiRequestInitial,
   requestFacebookReviewStatus: apiRequestInitial,
   appMetaData: [],
