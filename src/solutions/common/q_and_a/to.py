@@ -16,18 +16,22 @@
 # @@license_version:1.7@@
 
 from datetime import datetime
+
 import pytz
+from google.appengine.ext import ndb
+from typing import List
 
-from rogerthat.rpc import users
-from rogerthat.to import ReturnStatusTO
-from rogerthat.utils import today
 from mcfw.properties import unicode_property, long_property, typed_property, bool_property
+from rogerthat.models import ServiceIdentity
+from rogerthat.models.settings import ServiceInfo
+from rogerthat.rpc import users
+from rogerthat.to import ReturnStatusTO, TO
+from rogerthat.utils import today
 from solutions.common.bizz import _format_time, _format_date
-from solutions.common.dal import get_solution_settings
-from solutions.common.models.qanda import QuestionReply
+from .models import QuestionReply
 
 
-class QuestionReplyTO(object):
+class QuestionReplyTO(TO):
     id = long_property('1')
     author_email = unicode_property('2')
     author_name = unicode_property('3')
@@ -35,7 +39,6 @@ class QuestionReplyTO(object):
     timestamp = long_property('5')
     timestamp_str = unicode_property('6')
     description = unicode_property('7')
-    visible = bool_property('8')
 
     @staticmethod
     def fromModel(model, author_name, sln_settings):
@@ -56,10 +59,10 @@ class QuestionReplyTO(object):
             to.timestamp_str = unicode("%s %s" % (_format_date(sln_settings.main_language, date_sent), time_))
 
         to.description = model.description
-        to.visible = model.visible
         return to
 
-class ModuleTO(object):
+
+class ModuleTO(TO):
     key = unicode_property('1')
     label = unicode_property('2')
     is_default = bool_property('3', default=False)
@@ -71,7 +74,8 @@ class ModuleTO(object):
         m.label = obj[1]
         return m
 
-class QuestionTO(object):
+
+class QuestionTO(TO):
     id = long_property('1')
     author_email = unicode_property('2')
     author_name = unicode_property('3')
@@ -82,10 +86,9 @@ class QuestionTO(object):
     description = unicode_property('8')
     answers = typed_property('9', QuestionReplyTO, True)
     modules = typed_property('10', ModuleTO, True)
-    visible = bool_property('11')
 
     @staticmethod
-    def fromModel(model, incude_invisible, sln_settings):
+    def fromModel(model, sln_settings):
         to = QuestionTO()
         to.id = model.id
         to.author_email = model.author.email()
@@ -104,34 +107,25 @@ class QuestionTO(object):
         to.title = model.title
         to.description = model.description
 
-        emails = set()
-        emails.add(to.author_email)
+        emails = {to.author_email}
         replies = []
-        name_dict = {}
-        for r in model.replies(incude_invisible):
+        for r in QuestionReply.list_by_question(model.key):
             replies.append(r)
             if r.author_role == QuestionReply.ROLE_USER:
                 emails.add(r.author.email())
-
-        for email in emails:
-            tmp_sln_settings = get_solution_settings(users.User(email))
-            if tmp_sln_settings:
-                name_dict[email] = tmp_sln_settings.name
-            else:
-                name_dict[email] = email
+        infos = ndb.get_multi([ServiceInfo.create_key(users.User(email), ServiceIdentity.DEFAULT)
+                               for email in emails])  # type: List[ServiceInfo]
+        name_dict = {info.service_user.email(): info.name for info in infos}
 
         to.author_name = name_dict[to.author_email]
 
-        to.answers = list()
+        to.answers = []
         for r in replies:
             if r.author_role == QuestionReply.ROLE_USER:
                 to.answers.append(QuestionReplyTO.fromModel(r, name_dict[r.author.email()], sln_settings))
             else:
                 to.answers.append(QuestionReplyTO.fromModel(r, r.author_name, sln_settings))
-        to.modules = list()
-        for ml in model.modules_labels:
-            to.modules.append(ModuleTO.fromArray(ml))
-        to.visible = model.visible
+        to.modules = [ModuleTO.fromArray(ml) for ml in model.modules_labels]
         return to
 
 

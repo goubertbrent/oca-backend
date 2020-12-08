@@ -24,7 +24,7 @@ from mcfw.rpc import returns, arguments
 from rogerthat.rpc import users
 from shop.models import RegioManager
 from solution_server_settings import get_solution_server_settings
-from solutions.common.models.qanda import Question
+from solutions.common.q_and_a.models import Question
 
 
 @returns(bool)
@@ -83,6 +83,7 @@ def regio_manager_has_permissions_to_team(regio_manager, team_id):
 @returns(bool)
 @arguments(user=users.User, question=Question)
 def user_has_permissions_to_question(user, question):
+    # type: (users.User, Question) -> bool
     if is_admin(user):
         return True
 

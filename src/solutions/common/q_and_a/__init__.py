@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2020 Green Valley Belgium NV
+# Copyright 2020 Green Valley NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,17 +13,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.7@@
-
-from rogerthat.bizz.job import run_job
-from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
-from solutions.common.bizz.qanda import re_index_question
-from solutions.common.models.qanda import Question
-
-
-def _all_questions():
-    return Question.all(keys_only=True)
-
-
-def re_index_all_questions(queue=HIGH_LOAD_WORKER_QUEUE):
-    run_job(_all_questions, [], re_index_question, [], worker_queue=queue)
+# @@license_version:1.5@@

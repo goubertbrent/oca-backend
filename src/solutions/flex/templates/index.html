@@ -218,7 +218,7 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                             {% if not loyalty and not sln_settings.ciklo_vouchers_only() %}
                                 <li menu="statistics" class="disabled"><a
                                   href="#">{% translate language, "statistics" %}</a></li>
-                                <li menu="qanda"><a href="#">{% translate language, "qanda" %}</a></li>
+                                <li menu="qanda"><a href="#/qanda">{% translate language, "qanda" %}</a></li>
                             {% endif %}
                             {% if customer and sln_settings.can_edit_services(customer) and not loyalty %}
                                 <li menu="services"><a

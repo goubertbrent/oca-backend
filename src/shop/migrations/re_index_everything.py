@@ -18,7 +18,6 @@
 from rogerthat.bizz.job import re_index_app_users, re_index_service_identities
 from rogerthat.consts import DATASWITCH_QUEUE
 from shop.jobs.prospects import re_index_all_prospects
-from shop.jobs.re_index_questions import re_index_all_questions
 from shop.migrations import re_index_all_customers
 
 
@@ -31,4 +30,3 @@ def re_index_everything():
     # solutions / shop
     re_index_all_prospects(DATASWITCH_QUEUE)
     re_index_all_customers(DATASWITCH_QUEUE)
-    re_index_all_questions(DATASWITCH_QUEUE)

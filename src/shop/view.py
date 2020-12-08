@@ -32,7 +32,7 @@ from PIL.Image import Image  # @UnresolvedImport
 from babel import Locale
 from babel.dates import format_date
 from google.appengine.api import urlfetch, users as gusers
-from google.appengine.ext import db, deferred
+from google.appengine.ext import db, deferred, ndb
 from google.appengine.ext.webapp import template
 from oauth2client.client import HttpAccessTokenRefreshError
 from typing import List
@@ -60,7 +60,7 @@ from rogerthat.rpc.service import BusinessException
 from rogerthat.settings import get_server_settings
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.translations import DEFAULT_LANGUAGE
-from rogerthat.utils import now, send_mail
+from rogerthat.utils import now
 from rogerthat.utils.channel import broadcast_via_iframe_result
 from rogerthat.utils.cookie import set_cookie
 from rogerthat.utils.service import create_service_identity_user
@@ -111,12 +111,11 @@ from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz import SolutionModule, get_all_existing_broadcast_types, OrganizationType
 from solutions.common.bizz.locations import create_new_location
 from solutions.common.bizz.loyalty import update_all_user_data_admins
-from solutions.common.bizz.qanda import re_index_question
 from solutions.common.consts import CURRENCIES, get_currency_name
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.hints import get_all_solution_hints, get_solution_hints
 from solutions.common.models import SolutionSettings
-from solutions.common.models.qanda import Question, QuestionReply
+from solutions.common.q_and_a.models import QuestionReply, Question, QuestionStatus
 from solutions.common.to import ProvisionReturnStatusTO
 from solutions.common.to.hints import SolutionHintTO
 from solutions.common.to.loyalty import LoyaltySlideTO, LoyaltySlideNewOrderTO
@@ -482,7 +481,7 @@ class OpenInvoicesHandler(BizzManagerHandler):
 class QuestionsHandler(BizzManagerHandler):
 
     def get(self):
-        cursor = self.request.get('cursor')
+        cursor = self.request.get('cursor') or None
         team_id = self.request.get('team')
         team_id = long(team_id) if team_id else None
 
@@ -493,30 +492,26 @@ class QuestionsHandler(BizzManagerHandler):
             if not (manager and manager.admin):
                 return self.abort(403)
 
-        questions_qry = Question.all().order('-timestamp')
+        questions_qry = Question.list_latest()
         if not admin:
             # show only the team questions to the manager
-            questions_qry.filter('team_id =', manager.team.id)
+            questions_qry = questions_qry.filter(Question.team_id == manager.team.id)
         else:
             # filter if team id is provided for admin
             if team_id:
-                questions_qry.filter('team_id =', int(team_id))
+                questions_qry = questions_qry.filter(Question.team_id == long(team_id))
 
-        questions = []
         teams = {team.id: team for team in RegioManagerTeam.all()}
-        if cursor:
-            questions_qry.with_cursor(cursor)
-        for question in questions_qry.fetch(20):  # type: Question
+        questions, new_cursor, more = questions_qry.fetch_page(20, start_cursor=cursor and ndb.Cursor.from_websafe_string(cursor))
+        for question in questions:  # type: Question
             question.team = teams[question.team_id]
-            questions.append(question)
-        next_cursor = questions_qry.cursor()
         path = os.path.join(os.path.dirname(__file__), 'html', 'questions.html')
         show_team_switcher = admin or manager.team.is_mobicage
         context = get_shop_context(questions=questions,
                                    show_team_switcher=show_team_switcher,
                                    teams=teams,
                                    selected_team=team_id or '',
-                                   cursor=next_cursor or '',
+                                   cursor=new_cursor and new_cursor.to_websafe_string() or '',
                                    js_templates=render_js_templates(['teams_select_modal']))
         self.response.out.write(template.render(path, context))
 
@@ -530,7 +525,9 @@ class QuestionsDetailHandler(BizzManagerHandler):
             return self.abort(403)
 
         path = os.path.join(os.path.dirname(__file__), 'html', 'questions_detail.html')
-        context = get_shop_context(question=question)
+        all_replies = QuestionReply.list_by_question(question.key)
+        context = get_shop_context(question=question, all_replies=all_replies,
+                                   question_statuses=Question.STATUS_STRINGS.iteritems())
         self.response.out.write(template.render(path, context))
 
 
@@ -1259,142 +1256,6 @@ def rest_set_next_charge_date(customer_id, next_charge_date):
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException as exception:
         return ReturnStatusTO.create(False, exception.message)
-
-
-@rest("/internal/shop/rest/question/title", "post")
-@returns()
-@arguments(question_id=(int, long), title=unicode)
-def set_question_title(question_id, title):
-    question = Question.get_by_id(question_id)
-    user = gusers.get_current_user()
-    azzert(user_has_permissions_to_question(user, question))
-
-    def trans(q):
-        q.title = title
-        q.put()
-        deferred.defer(re_index_question, q.key(), _transactional=True)
-
-    db.run_in_transaction(trans, question)
-
-
-@rest("/internal/shop/rest/question/modules", "post")
-@returns()
-@arguments(question_id=(int, long), modules=[unicode])
-def set_question_modules(question_id, modules):
-    question = Question.get_by_id(question_id)
-    user = gusers.get_current_user()
-    azzert(user_has_permissions_to_question(user, question))
-
-    def trans(q):
-        q.modules = modules
-        q.put()
-        deferred.defer(re_index_question, q.key(), _transactional=True)
-
-    db.run_in_transaction(trans, question)
-
-
-@rest("/internal/shop/rest/question/visible", "post")
-@returns()
-@arguments(question_id=(int, long), question_reply_id=(int, long, NoneType), visible=bool)
-def set_question_visible(question_id, question_reply_id, visible):
-    question = Question.get_by_id(question_id)
-    user = gusers.get_current_user()
-    azzert(user_has_permissions_to_question(user, question))
-
-    def trans(q):
-        if not question_reply_id:
-            q.visible = visible
-            q.put()
-        else:
-            qr = QuestionReply.get_by_id(question_reply_id, q)
-            qr.visible = visible
-            qr.put()
-        deferred.defer(re_index_question, q.key(), _transactional=True)
-
-    db.run_in_transaction(trans, question)
-
-
-@rest("/internal/shop/rest/question/reply", "post")
-@returns()
-@arguments(question_id=(int, long), description=unicode, author_name=unicode)
-def send_reply(question_id, description, author_name):
-    question = Question.get_by_id(question_id)
-    user = gusers.get_current_user()
-    azzert(user_has_permissions_to_question(user, question))
-
-    @db.non_transactional
-    def get_customer(q):
-        return Customer.get_by_service_email(q.author.email())
-
-    settings = get_server_settings()
-
-    def trans(q):
-        q.answered = True
-
-        qr = QuestionReply(parent=q)
-        qr.author = gusers.get_current_user()
-        qr.timestamp = now()
-        qr.description = description
-        qr.author_role = QuestionReply.ROLE_STAFF
-        qr.author_name = author_name
-        qr.visible = True
-
-        db.put([q, qr])
-        deferred.defer(re_index_question, q.key(), _transactional=True)
-        to_email = q.author.email()
-        customer = get_customer(q)
-        if customer:
-            to_email = customer.user_email
-
-        service_user = users.User(q.author.email())
-        sln_settings = get_solution_settings(service_user)
-        subject = "RE: %s" % q.title
-        message = """Dear,
-
-please login on %s to see the reply for your question titled '%s'.
-
-Kind regards,
-
-The Rogerthat team.""" % (sln_settings.login.email() if sln_settings.login else q.author.email(), q.title)
-        send_mail(settings.senderEmail, to_email, subject, message, transactional=True)
-    xg_on = db.create_transaction_options(xg=True)
-    db.run_in_transaction_options(xg_on, trans, question)
-
-
-@rest("/internal/shop/rest/question/assign", "post")
-@returns(ReturnStatusTO)
-@arguments(question_id=(int, long), team_id=(int, long))
-def assign_team_to_question(question_id, team_id):
-    question = Question.get_by_id(question_id)
-    user = gusers.get_current_user()
-    azzert(user_has_permissions_to_question(user, question))
-    team = RegioManagerTeam.get_by_id(team_id)
-    settings = get_server_settings()
-
-    def trans(q, t):
-        q.team_id = t.id
-        q.put()
-
-        support_manager = t.get_support()
-        if support_manager:
-            support_email = support_manager.user.email()
-            name = q.get_author_name()
-            message = """Please reply to %s (%s) with the following link:
-%s/internal/shop/questions
-
-Title:
-%s
-
-Description:
-%s""" % (name, q.author, settings.baseUrl, q.title, q.description)
-            send_mail(settings.senderEmail, support_email, q.title, message, transactional=True)
-
-    try:
-        xg_on = db.create_transaction_options(xg=True)
-        db.run_in_transaction_options(xg_on, trans, question, team)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException as e:
-        return ReturnStatusTO.create(False, e.message)
 
 
 @rest("/internal/shop/rest/customer/put", "post")
