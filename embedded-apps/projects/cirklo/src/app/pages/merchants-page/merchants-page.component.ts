@@ -18,6 +18,7 @@ export class MerchantsPageComponent implements OnInit, OnDestroy {
   merchants$: Observable<CirkloMerchant[]>;
   hasMore$: Observable<boolean>;
   loading$: Observable<boolean>;
+  private searchQuery: string | null = null;
 
   private destroyed$ = new Subject();
 
@@ -48,8 +49,13 @@ export class MerchantsPageComponent implements OnInit, OnDestroy {
   loadMore() {
     this.store.pipe(select(getMerchantsCursor), take(1)).subscribe(cursor => {
       if (cursor) {
-        this.store.dispatch(new GetMerchantsAction({ cursor }));
+        this.store.dispatch(new GetMerchantsAction({ cursor, query: this.searchQuery }));
       }
     });
+  }
+
+  queryChanged(query: string) {
+    this.searchQuery = query;
+    this.store.dispatch(new GetMerchantsAction({ query }));
   }
 }

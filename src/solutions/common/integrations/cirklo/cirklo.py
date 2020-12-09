@@ -257,8 +257,8 @@ def get_vouchers(service_user, app_user):
     return voucher_list
 
 
-def get_merchants_by_community(community_id, language, cursor, page_size):
-    # type: (int, str, Optional[str], int) -> dict
+def get_merchants_by_community(community_id, language, cursor, page_size, query):
+    # type: (int, str, Optional[str], int, str) -> dict
     community = get_community(community_id)
     # Always filter by community id
     tags = [
@@ -266,7 +266,7 @@ def get_merchants_by_community(community_id, language, cursor, page_size):
         SearchTag.environment(community.demo),
         SearchTag.vouchers(VoucherProviderId.CIRKLO)
     ]
-    service_identity_users, new_cursor = search_services_by_tags(tags, cursor, page_size)
+    service_identity_users, new_cursor = search_services_by_tags(tags, cursor, page_size, query)
     service_users = [get_service_user_from_service_identity_user(service_user)
                      for service_user in service_identity_users]
     info_keys = [ServiceInfo.create_key(service_user, ServiceIdentity.DEFAULT) for service_user in service_users]
@@ -324,8 +324,9 @@ def handle_method(service_user, email, method, params, tag, service_identity, us
             language = get_user_profile(app_user).language
             cursor = json_data.get('cursor')
             page_size = json_data.get('page_size', 20)
+            query = (json_data.get('query') or '').strip()
             user_profile = get_user_profile(app_user)
-            result = get_merchants_by_community(user_profile.community_id, language, cursor, page_size)
+            result = get_merchants_by_community(user_profile.community_id, language, cursor, page_size, query)
         else:
             raise UnknownMethodException(method)
         response.result = convert_to_unicode(json.dumps(result.to_dict() if isinstance(result, TO) else result))

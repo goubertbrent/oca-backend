@@ -71,7 +71,7 @@ export function cirkloReducer(state: CirkloState = initialState, action: CirkloA
     case CirkloActionTypes.ADD_VOUCHER_FAILED:
       return { ...state, vouchers: stateError(action.error, state.vouchers.result) };
     case CirkloActionTypes.GET_MERCHANTS:
-      return { ...state, merchants: stateLoading(state.merchants.result) };
+      return { ...state, merchants: stateLoading(action.payload.cursor ? state.merchants.result : initialState.merchants.result) };
     case CirkloActionTypes.GET_MERCHANTS_SUCCESS:
       return {
         ...state,

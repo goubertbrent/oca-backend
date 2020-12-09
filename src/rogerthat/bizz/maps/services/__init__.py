@@ -795,8 +795,8 @@ def _suggest_services(tags, lat, lon, search, community_ids):
     return results
 
 
-def search_services_by_tags(tags, cursor, limit):
-    # type: (List[str], Optional[str], int) -> Tuple[List[users.User], Optional[str]]
+def search_services_by_tags(tags, cursor, limit, query):
+    # type: (List[str], Optional[str], int, Optional[str]) -> Tuple[List[users.User], Optional[str]]
     # Search services filtered only by tags, sorted by name
     start_offset = long(cursor) if cursor else 0
     if (start_offset + limit) > 10000:
@@ -812,13 +812,23 @@ def search_services_by_tags(tags, cursor, limit):
         'query': {
             'bool': {
                 'filter': [{'term': {'tags': tag}} for tag in tags],
-                'should': []
+                'must': [],
+                'should': [],
             }
         },
         'sort': [
             {'name': {'order': 'asc'}},
         ]
     }
+    if query:
+        qry['query']['bool']['must'].append({
+            'multi_match': {
+                'query': query,
+                'fields': ['suggestion'],
+                'fuzziness': 'auto',
+            }
+        })
+        qry['sort'].insert(0, {'_score': {'order': 'desc'}})
 
     path = '/%s/_search' % _get_elasticsearch_index()
     result_data = es_request(path, urlfetch.POST, qry)

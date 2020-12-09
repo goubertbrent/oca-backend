@@ -120,7 +120,7 @@ export class GetVoucherTransactionsFailedAction implements Action {
 export class GetMerchantsAction implements Action {
   readonly type = CirkloActionTypes.GET_MERCHANTS;
 
-  constructor(public payload: { cursor?: string }) {
+  constructor(public payload: { cursor?: string, query?: string | null }) {
   }
 }
 
