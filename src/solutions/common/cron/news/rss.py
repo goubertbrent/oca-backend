@@ -166,7 +166,7 @@ def _worker(rss_settings_key):
 
                         tasks.append(
                             create_task(create_news_item, sln_settings, rss_link.group_type, scraped_item.message,
-                                        scraped_item.title, scraped_item.url, False if dry_run else rss_settings.notify,
+                                        scraped_item.title, scraped_item.url, False if dry_run else rss_link.notify,
                                         scraped_item.image_url, new_key, community_ids=rss_link.community_ids,
                                         timestamp=timestamp))
                 to_put.append(new_item)

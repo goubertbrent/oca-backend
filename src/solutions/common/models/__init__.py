@@ -638,14 +638,13 @@ class SolutionRssLink(NdbModel):
     url = ndb.StringProperty()
     dry_runned = ndb.BooleanProperty(default=False)
     group_type = ndb.StringProperty(default=None, indexed=False)
-    # TODO communities: remove after migration
-    app_ids = ndb.StringProperty(repeated=True, indexed=False)
-    community_ids = ndb.IntegerProperty(repeated=True, indexed=False) # todo communities
+    community_ids = ndb.IntegerProperty(repeated=True, indexed=False)
+    notify = ndb.BooleanProperty(default=True, indexed=False)
 
 
 class SolutionRssScraperSettings(NdbModel):
     rss_links = ndb.LocalStructuredProperty(SolutionRssLink, repeated=True)  # type: list[SolutionRssLink]
-    notify = ndb.BooleanProperty(default=True, indexed=False)
+    notify = ndb.BooleanProperty(default=True, indexed=False)  # TODO: remove after migration 008_rss_links
 
     @property
     def service_user_email(self):

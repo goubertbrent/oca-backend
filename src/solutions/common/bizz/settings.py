@@ -52,7 +52,7 @@ from solutions.common.exceptions.settings import InvalidRssLinksException
 from solutions.common.models import SolutionSettings, \
     SolutionBrandingSettings, SolutionRssScraperSettings, SolutionRssLink, SolutionMainBranding, \
     SolutionServiceConsent
-from solutions.common.to import SolutionSettingsTO
+from solutions.common.to import SolutionSettingsTO, SolutionRssSettingsTO
 from solutions.common.to.settings import ServiceInfoTO, PrivacySettingsTO, PrivacySettingsGroupTO
 from solutions.common.utils import is_default_service_identity, send_client_action
 
@@ -251,7 +251,6 @@ def save_rss_urls(service_user, service_identity, data):
     if invalid_urls:
         raise InvalidRssLinksException(invalid_urls, _get_lang(service_user))
 
-    rss_settings.notify = data.notify
     scraper_urls = []
     rss_links = []
     for scraper in reversed(data.scrapers):
@@ -259,6 +258,7 @@ def save_rss_urls(service_user, service_identity, data):
             continue
         scraper_urls.append(scraper.url)
         rss_links.append(SolutionRssLink(url=scraper.url,
+                                         notify=scraper.notify,
                                          dry_runned=current_dict.get(scraper.url, False),
                                          group_type=scraper.group_type if scraper.group_type else None,
                                          community_ids=scraper.community_ids))

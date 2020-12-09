@@ -21,6 +21,8 @@ import datetime
 import time
 import urllib
 
+from typing import List
+
 from mcfw.consts import MISSING
 from mcfw.properties import unicode_property, long_property, bool_property, typed_property, long_list_property, \
     unicode_list_property, float_property
@@ -186,23 +188,22 @@ class SolutionSettingsTO(TO):
 
 
 class SolutionRssScraperTO(TO):
+    notify = bool_property('notify')
     url = unicode_property('url')
     group_type = unicode_property('group_type')
     community_ids = long_list_property('community_ids')
 
 
 class SolutionRssSettingsTO(TO):
-    notify = bool_property('notify')
-    scrapers = typed_property('scrapers', SolutionRssScraperTO, True)
+    scrapers = typed_property('scrapers', SolutionRssScraperTO, True)  # type: List[SolutionRssScraperTO]
 
     @classmethod
     def from_model(cls, model):
         if not model:
-            return cls(notify=False,
-                       scrapers=[])
+            return cls(scrapers=[])
 
-        return cls(notify=model.notify,
-                   scrapers=[SolutionRssScraperTO(url=l.url,
+        return cls(scrapers=[SolutionRssScraperTO(url=l.url,
+                                                  notify=l.notify,
                                                   group_type=l.group_type,
                                                   community_ids=l.community_ids) for l in model.rss_links])
 

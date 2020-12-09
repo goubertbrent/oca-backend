@@ -183,12 +183,12 @@ export interface CityAppLocations {
 }
 
 export interface RssScraper {
+  notify: boolean;
   url: string;
   group_type: NewsGroupType;
   community_ids: number[];
 }
 
 export interface RssSettings {
-  notify: boolean;
   scrapers: RssScraper[];
 }

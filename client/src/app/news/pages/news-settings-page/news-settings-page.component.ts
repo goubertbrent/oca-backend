@@ -40,7 +40,6 @@ export class NewsSettingsPageComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.formGroup = this.formBuilder.group<RssSettings>({
-      notify: [false],
       scrapers: this.formBuilder.array<RssScraper>([]),
     });
     this.scraperFormGroup = this.newScraperGroup();
@@ -104,6 +103,7 @@ export class NewsSettingsPageComponent implements OnInit, OnDestroy {
 
   private newScraperGroup() {
     return this.formBuilder.group<RssScraper>({
+      notify: [true],
       url: [null, Validators.required],
       community_ids: [[]],
       group_type: [NewsGroupType.CITY],
@@ -112,6 +112,7 @@ export class NewsSettingsPageComponent implements OnInit, OnDestroy {
 
   addRss() {
     this.editingScraper = {
+      notify: true,
       url: '',
       group_type: NewsGroupType.CITY,
       community_ids: [],
