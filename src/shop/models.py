@@ -504,14 +504,14 @@ class Customer(db.Model):
 
         """
         if self.managed_organization_types:
-            return self.managed_organization_types
+            allowed_types = list(self.managed_organization_types)
+            if ServiceProfile.ORGANIZATION_TYPE_CITY in allowed_types:
+                allowed_types.remove(ServiceProfile.ORGANIZATION_TYPE_CITY)
+            return allowed_types
 
-        org_types = [ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT]
-        if self.country == 'BE':
-            org_types.extend([ServiceProfile.ORGANIZATION_TYPE_PROFIT,
-                              ServiceProfile.ORGANIZATION_TYPE_CITY,
-                              ServiceProfile.ORGANIZATION_TYPE_EMERGENCY])
-        return org_types
+        return [ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT,
+                ServiceProfile.ORGANIZATION_TYPE_PROFIT,
+                ServiceProfile.ORGANIZATION_TYPE_EMERGENCY]
 
     def can_only_edit_organization_type(self, organization_type):
         return len(self.editable_organization_types) == 1 and self.editable_organization_types[0] == organization_type

@@ -1670,7 +1670,7 @@ def _get_service(customer_id, current_user):
     svc.modules = settings.modules
     svc.broadcast_types = settings.broadcast_types
     svc.organization_type = get_service_profile(service_user).organizationType
-    svc.managed_organization_types = customer.managed_organization_types if customer.managed_organization_types else []
+    svc.managed_organization_types = customer.managed_organization_types or []
     svc.community_id = customer.community_id
     return svc
 
