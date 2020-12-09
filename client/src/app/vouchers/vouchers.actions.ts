@@ -74,3 +74,17 @@ export const GetCirkloCitiesFailed = createAction(
   '[Vouchers] Get cirklo cities failed',
   props<{ error: string }>(),
 );
+
+export const ExportMerchants = createAction(
+  '[Vouchers] Export merchants',
+);
+
+export const ExportMerchantsComplete = createAction(
+  '[Vouchers] Export merchants success',
+  props<{ url: string }>(),
+);
+
+export const ExportMerchantsFailed = createAction(
+  '[Vouchers] Export merchants failed',
+  props<{ error: string }>(),
+);

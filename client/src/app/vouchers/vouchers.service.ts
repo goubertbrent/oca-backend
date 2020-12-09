@@ -30,4 +30,8 @@ export class VouchersService {
     const params = new HttpParams({ fromObject: { staging: staging.toString() } });
     return this.http.get<CirkloCity[]>('/common/vouchers/cities', { params });
   }
+
+  exportMerchants() {
+    return this.http.post<{ url: string }>('/common/vouchers/cirklo/export', {});
+  }
 }

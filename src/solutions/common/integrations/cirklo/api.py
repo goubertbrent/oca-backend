@@ -18,25 +18,31 @@
 import logging
 from datetime import datetime
 
+import cloudstorage
+from babel.dates import format_datetime
 from google.appengine.ext import ndb, deferred, db
 from typing import List
+from xlwt import Worksheet, Workbook, XFStyle
 
 from mcfw.cache import invalidate_cache
 from mcfw.consts import REST_TYPE_TO
 from mcfw.exceptions import HttpBadRequestException, HttpForbiddenException, HttpNotFoundException
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
+from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.service import re_index_map_only
 from rogerthat.consts import FAST_QUEUE
 from rogerthat.models import ServiceIdentity
 from rogerthat.models.settings import ServiceInfo
 from rogerthat.rpc import users
 from rogerthat.rpc.users import get_current_session
+from rogerthat.utils import parse_date
 from rogerthat.utils.service import create_service_identity_user
 from shop.models import Customer
 from solutions import translate
 from solutions.common.bizz import SolutionModule
 from solutions.common.bizz.campaignmonitor import send_smart_email_without_check
+from solutions.common.consts import OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings
 from solutions.common.integrations.cirklo.cirklo import get_city_id_by_service_email, whitelist_merchant, \
     list_whitelisted_merchants, list_cirklo_cities
@@ -262,3 +268,49 @@ def api_vouchers_save_cirklo_settings(data):
 
     city.put()
     return CirkloCityTO.from_model(city)
+
+
+@rest('/common/vouchers/cirklo/export', 'post')
+@returns(dict)
+@arguments()
+def api_export_cirklo_services():
+    service_user = users.get_current_user()
+    city_sln_settings = get_solution_settings(service_user)
+    _check_permission(city_sln_settings)
+    all_services = get_cirklo_vouchers_services()
+    if all_services.cursor:
+        raise NotImplementedError()
+    book = Workbook(encoding='utf-8')
+    sheet = book.add_sheet('Cirklo')  # type: Worksheet
+    language = city_sln_settings.main_language
+    sheet.write(0, 0, translate(language, 'reservation-name'))
+    sheet.write(0, 1, translate(language, 'Email'))
+    sheet.write(0, 2, translate(language, 'address'))
+    sheet.write(0, 3, translate(language, 'Phone number'))
+    sheet.write(0, 4, translate(language, 'created'))
+    sheet.write(0, 5, translate(language, 'merchant_registered'))
+
+    date_format = XFStyle()
+    date_format.num_format_str = 'dd/mm/yyyy'
+    row = 0
+
+    for service in all_services.results:
+        row += 1
+        sheet.write(row, 0, service.name)
+        sheet.write(row, 1, service.email)
+        sheet.write(row, 2, service.address)
+        sheet.write(row, 3, service.phone_number)
+        sheet.write(row, 4, parse_date(service.creation_date), date_format)
+        sheet.write(row, 5, translate(language, 'Yes') if service.merchant_registered else translate(language, 'No'))
+
+    date = format_datetime(datetime.now(), locale=city_sln_settings.locale, format='medium')
+    gcs_path = '/%s/tmp/cirklo/export-cirklo-%s.xlsx' % (OCA_FILES_BUCKET, date.replace(' ', '-'))
+    content_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    with cloudstorage.open(gcs_path, 'w', content_type=content_type) as gcs_file:
+        book.save(gcs_file)
+
+    deferred.defer(cloudstorage.delete, gcs_path, _countdown=86400)
+
+    return {
+        'url': get_serving_url(gcs_path),
+    }

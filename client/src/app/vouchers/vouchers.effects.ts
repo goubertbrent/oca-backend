@@ -1,8 +1,11 @@
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { ErrorService } from '@oca/web-shared';
-import { catchError, distinctUntilChanged, map, switchMap } from 'rxjs/operators';
+import { catchError, distinctUntilChanged, map, switchMap, tap } from 'rxjs/operators';
 import {
+  ExportMerchants,
+  ExportMerchantsComplete,
+  ExportMerchantsFailed,
   GetCirkloCities,
   GetCirkloCitiesComplete,
   GetCirkloCitiesFailed,
@@ -63,6 +66,16 @@ export class VouchersEffects {
     switchMap(action => this.service.getCirkloCities(action.staging).pipe(
       map(result => GetCirkloCitiesComplete({ cities: result })),
       catchError(err => this.errorService.handleError(action, GetCirkloCitiesFailed, err)))),
+  ));
+
+  exportMerchants$ = createEffect(() => this.actions$.pipe(
+    ofType(ExportMerchants),
+    switchMap(action => this.service.exportMerchants().pipe(
+      map(result => ExportMerchantsComplete(result)),
+      tap(result => {
+        window.location.href = result.url;
+      }),
+      catchError(err => this.errorService.handleError(action, ExportMerchantsFailed, err)))),
   ));
 
   constructor(private actions$: Actions,

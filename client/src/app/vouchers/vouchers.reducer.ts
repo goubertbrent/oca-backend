@@ -3,6 +3,9 @@ import { initialStateResult, ResultState, stateError, stateLoading, stateSuccess
 import { updateItem } from '../shared/util';
 import { CirkloCity, CirkloSettings, VouchersServiceList } from './vouchers';
 import {
+  ExportMerchants,
+  ExportMerchantsComplete,
+  ExportMerchantsFailed,
   GetCirkloCities,
   GetCirkloCitiesComplete,
   GetCirkloCitiesFailed,
@@ -25,12 +28,14 @@ export interface VouchersState {
   services: ResultState<VouchersServiceList>;
   cirkloSettings: ResultState<CirkloSettings>;
   cirkloCities: ResultState<CirkloCity[]>;
+  merchantsExport: ResultState<string>;
 }
 
 export const initialState: VouchersState = {
   services: initialStateResult,
   cirkloSettings: initialStateResult,
   cirkloCities: initialStateResult,
+  merchantsExport: initialStateResult,
 };
 
 export const vouchersReducer = createReducer(
@@ -58,4 +63,7 @@ export const vouchersReducer = createReducer(
   on(GetCirkloCities, (state) => ({ ...state, cirkloCities: stateLoading(state.cirkloCities.result) })),
   on(GetCirkloCitiesComplete, (state, { cities }) => ({ ...state, cirkloCities: stateSuccess(cities) })),
   on(GetCirkloCitiesFailed, (state, { error }) => ({ ...state, cirkloCities: stateError(error, state.cirkloCities.result) })),
+  on(ExportMerchants, (state) => ({ ...state, merchantsExport: stateLoading(state.merchantsExport.result) })),
+  on(ExportMerchantsComplete, (state, { url }) => ({ ...state, merchantsExport: stateSuccess(url) })),
+  on(ExportMerchantsFailed, (state, { error }) => ({ ...state, merchantsExport: stateError(error, state.merchantsExport.result) })),
 );

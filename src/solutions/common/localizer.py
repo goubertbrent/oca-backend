@@ -20,6 +20,7 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'oca.download_merchants_list': u'Download merchants list',
          u'oca.no_available_components_for_this_type': u'There are no components available for this type of mapping',
          u'oca.subcategory': u'Subcategory',
          u'oca.brief_description': u'Brief description',
@@ -3986,6 +3987,7 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'%(app_name)s has 1 new message for you': u'%(app_name)s heeft 1 nieuw bericht voor u',
+         u'oca.download_merchants_list': u'Download lijst van handelaars',
          u'oca.no_available_components_for_this_type': u'Er zijn geen vragen beschikbaar voor dit type toewijzing',
          u'oca.subcategory': u'Subcategorie',
          u'oca.brief_description': u'Korte beschrijving',

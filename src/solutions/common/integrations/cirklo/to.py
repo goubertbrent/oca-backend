@@ -16,6 +16,8 @@
 # @@license_version:1.7@@
 from __future__ import unicode_literals
 
+from typing import List
+
 from mcfw.properties import typed_property, unicode_property, bool_property, long_property, float_property, \
     unicode_list_property
 from rogerthat.to import TO
@@ -56,6 +58,7 @@ class CirkloVoucherServiceTO(TO):
     whitelist_date = unicode_property('whitelist_date')
     merchant_registered = bool_property('merchant_registered')
     denied = bool_property('denied')
+    phone_number = unicode_property('phone_number', default=None)
     search_data = unicode_list_property('search_data')
 
     @classmethod
@@ -78,6 +81,7 @@ class CirkloVoucherServiceTO(TO):
         self.name = service_info.name
         self.email = customer.user_email
         self.address = customer.full_address_string
+        self.phone_number = service_info.main_phone_number
         return self
 
     @classmethod
@@ -105,7 +109,7 @@ class CirkloVoucherListTO(TO):
     cursor = unicode_property('cursor')
     total = long_property('total')
     more = bool_property('more')
-    results = typed_property('results', CirkloVoucherServiceTO, True)
+    results = typed_property('results', CirkloVoucherServiceTO, True)  # type: List[CirkloVoucherServiceTO]
 
 
 class AppVoucher(TO):

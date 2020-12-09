@@ -7,6 +7,12 @@
   <button (click)="refresh()" [disabled]="loading$ | async" mat-icon-button [matTooltip]="'oca.refresh' | translate">
     <mat-icon>refresh</mat-icon>
   </button>
+  <button (click)="exportMerchants()"
+          [disabled]="isExporting$ | async"
+          [matTooltip]="'oca.download_merchants_list' | translate"
+          mat-icon-button>
+    <mat-icon>download</mat-icon>
+  </button>
   <a mat-icon-button routerLink="settings" *ngIf="isShopUser$ | async">
     <mat-icon>settings</mat-icon>
   </a>
