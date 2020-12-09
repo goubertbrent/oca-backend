@@ -200,7 +200,6 @@ def get_map_search_suggestions(app_user, request):
     services = _suggest_services(tags,
                                  request.coords.lat,
                                  request.coords.lon,
-                                 get_clean_language_code(lang),
                                  request.search.query,
                                  community_ids)
     took_time = time.time() - start_time
@@ -739,8 +738,8 @@ def _create_index():
     return create_index(_get_elasticsearch_index(), request)
 
 
-def _suggest_services(tags, lat, lon, lang, search, community_ids):
-    # type: (List[unicode], float, float, str, str, List[int]) -> List[dict]
+def _suggest_services(tags, lat, lon, search, community_ids):
+    # type: (List[unicode], float, float, str, List[int]) -> List[dict]
     qry = {
         'size': 12,
         'from': 0,
@@ -752,13 +751,11 @@ def _suggest_services(tags, lat, lon, lang, search, community_ids):
                 'must': [
                     {
                         'multi_match': {
+                            # See https://www.elastic.co/guide/en/elasticsearch/reference/7.x/search-as-you-type.html
                             'query': search,
-                            'fields': ['suggestion*',
-                                       'suggestion*.2gram',
-                                       'suggestion*.3gram',
-                                       'suggestion_%s^2' % lang,
-                                       'suggestion_%s.2gram^2' % lang,
-                                       'suggestion_%s.3gram^2' % lang],
+                            'fields': ['suggestion',
+                                       'suggestion._2gram',
+                                       'suggestion._3gram'],
                             'type': 'bool_prefix'
                         }
                     }
