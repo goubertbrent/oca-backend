@@ -507,7 +507,8 @@ class Customer(db.Model):
             allowed_types = list(self.managed_organization_types)
             if ServiceProfile.ORGANIZATION_TYPE_CITY in allowed_types:
                 allowed_types.remove(ServiceProfile.ORGANIZATION_TYPE_CITY)
-            return allowed_types
+            if allowed_types:
+                return allowed_types
 
         return [ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT,
                 ServiceProfile.ORGANIZATION_TYPE_PROFIT,
