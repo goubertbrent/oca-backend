@@ -43,10 +43,6 @@ MEDIA = {
         SolutionModule.ORDER: {
             'video_id': 'N6lCgEpxIS0',
             'tutorial_video_id': 'N6lCgEpxIS0',
-        },
-        SolutionModule.RESTAURANT_RESERVATION: {
-            'video_id': '7aFdU2wyTkM',
-            'tutorial_video_id': '7aFdU2wyTkM',
         }
     }
 }
