@@ -102,10 +102,8 @@ from solutions.common.bizz.service import new_inbox_message, send_signup_update_
     get_default_modules, _schedule_signup_smart_emails
 from solutions.common.bizz.settings import parse_facebook_url, validate_url
 from solutions.common.dal import get_solution_settings
-from solutions.common.dal.hints import get_solution_hints
 from solutions.common.handlers import JINJA_ENVIRONMENT
 from solutions.common.models import SolutionInboxMessage, SolutionServiceConsent
-from solutions.common.models.hints import SolutionHint
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
 
@@ -1915,54 +1913,6 @@ def create_stats_for_new_manager(email):
         st.month_revenue.append(month_amount)
     st.put()
     return st
-
-
-@returns()
-@arguments(current_user=users.User, hint_id=(int, long, NoneType), tag=unicode, language=unicode, text=unicode,
-           modules=[unicode])
-def put_hint(current_user, hint_id, tag, language, text, modules):
-    hints = get_solution_hints()
-    if hint_id:
-        hint = SolutionHint.create_key(hint_id).get()
-        bizz_check(hint is not None, u'Can\'t update a hint that was already deleted')
-    else:
-        hint = SolutionHint()
-    hint.tag = tag
-    hint.language = language
-    hint.text = text
-    hint.modules = modules
-
-    hint.put()
-    if hint.id not in hints.hint_ids:
-        hints.hint_ids.append(hint.id)
-        hints.put()
-
-    target_users = {users.User(k.name()) for k in RegioManager.all(keys_only=True)}
-    target_users.add(current_user)
-    solutions_server_settings = get_solution_server_settings()
-    target_users.update([gusers.User(email) for email in solutions_server_settings.shop_bizz_admin_emails])
-    channel.send_message(target_users, 'shop.hints.updated')
-
-
-@returns()
-@arguments(current_user=users.User, hint_id=(int, long))
-def delete_hint(current_user, hint_id):
-    # type: (users.User, int) -> None
-    hints = get_solution_hints()
-    sh_key = SolutionHint.create_key(hint_id)
-    sh = sh_key.get()
-    bizz_check(sh is not None, u"Can't delete a hint that was already deleted")
-
-    if sh.id in hints.hint_ids:
-        hints.hint_ids.remove(sh.id)
-        hints.put()
-    sh_key.delete()
-
-    target_users = {users.User(k.name()) for k in RegioManager.all(keys_only=True)}
-    target_users.add(current_user)
-    solutions_server_settings = get_solution_server_settings()
-    target_users.update([gusers.User(email) for email in solutions_server_settings.shop_bizz_admin_emails])
-    channel.send_message(target_users, 'shop.hints.updated')
 
 
 @returns([RegioManagerStatistic])

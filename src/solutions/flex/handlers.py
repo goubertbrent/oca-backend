@@ -70,7 +70,6 @@ DEFAULT_JS_TEMPLATES = [
     'qanda_question_table',
     'qanda_question_modules',
     'qanda_question_detail',
-    'hints_modal',
     'shop/shopping_cart',
     'shop/product',
     'settings/settings_branding',

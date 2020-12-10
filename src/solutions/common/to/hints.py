@@ -19,7 +19,7 @@ from mcfw.properties import long_property, unicode_property, unicode_list_proper
 from rogerthat.to import TO
 
 
-class SolutionHintTO(TO):
+class SolutionHintTO(TO): # todo ruben
     tag = unicode_property('1')
     language = unicode_property('2')
     id = long_property('3')

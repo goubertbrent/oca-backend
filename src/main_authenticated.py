@@ -21,7 +21,6 @@ import solutions.common.restapi.billing
 import solutions.common.restapi.cityapp
 import solutions.common.restapi.discussion_groups
 import solutions.common.restapi.forms
-import solutions.common.restapi.hints
 import solutions.common.restapi.locations
 import solutions.common.restapi.loyalty
 import solutions.common.restapi.news
@@ -75,7 +74,6 @@ modules = [
     solutions.common.restapi.cityapp,
     solutions.common.restapi.discussion_groups,
     solutions.common.restapi.forms,
-    solutions.common.restapi.hints,
     solutions.common.restapi.locations,
     solutions.common.restapi.loyalty,
     solutions.common.restapi.news,

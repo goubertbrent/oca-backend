@@ -60,8 +60,8 @@ $(function() {
 
     var initAppointmentTimeframeModal = function(day, time_from, time_until) {
         settingsSection.find('#dates').val(day);
-        settingsSection.find('#timepickerEnabledFrom').timepicker('setTime', sln.intToTime(time_from));
-        settingsSection.find('#timepickerEnabledUntil').timepicker('setTime', sln.intToTime(time_until));
+        settingsSection.find('#appointmentTimepickerEnabledFrom').timepicker('setTime', sln.intToTime(time_from));
+        settingsSection.find('#appointmentTimepickerEnabledUntil').timepicker('setTime', sln.intToTime(time_until));
     };
 
     var loadAppointmentTimeframes = function() {
@@ -141,9 +141,9 @@ $(function() {
     $("#save_appointment_timeframe").click(function() {
         var old_appointment_id = $(this).attr("timeframe_id");
         var day = parseInt($("#dates").val());
-        var fromPicker = settingsSection.find("#timepickerEnabledFrom").data("timepicker");
+        var fromPicker = settingsSection.find("#appointmentTimepickerEnabledFrom").data("timepicker");
         var timeFrom = fromPicker.hour * 3600 + fromPicker.minute * 60;
-        var untilPicker = settingsSection.find("#timepickerEnabledUntil").data("timepicker");
+        var untilPicker = settingsSection.find("#appointmentTimepickerEnabledUntil").data("timepicker");
         var timeUntil = untilPicker.hour * 3600 + untilPicker.minute * 60;
 
         if (timeFrom == timeUntil) {
@@ -172,13 +172,13 @@ $(function() {
         });
     });
 
-    settingsSection.find('#timepickerEnabledFrom').timepicker({
+    settingsSection.find('#appointmentTimepickerEnabledFrom').timepicker({
         defaultTime : "09:00",
         showMeridian : false,
         minuteStep : 5,
         disableFocus : true
     });
-    settingsSection.find('#timepickerEnabledUntil').timepicker({
+    settingsSection.find('#appointmentTimepickerEnabledUntil').timepicker({
         defaultTime : "21:00",
         showMeridian : false,
         minuteStep : 5,

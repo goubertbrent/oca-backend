@@ -70,8 +70,7 @@ from shop.bizz import search_customer, create_or_update_customer, \
     generate_order_or_invoice_pdf, generate_transfer_document_image, \
     PaymentFailedException, list_prospects, set_prospect_status, find_city_bounds, \
     put_prospect, put_regio_manager, link_prospect_to_customer, \
-    list_history_tasks, put_hint, delete_hint, \
-    get_invoices, get_regiomanager_statistics, get_prospect_history, create_contact, create_order, export_customers_csv, \
+    list_history_tasks, get_invoices, get_regiomanager_statistics, get_prospect_history, create_contact, create_order, export_customers_csv, \
     put_service, update_contact, put_regio_manager_team, \
     get_regiomanagers_by_app_id, delete_contact, finish_on_site_payment, send_payment_info, manual_payment, \
     shopOauthDecorator, get_customer_charges, sign_order, import_customer, \
@@ -113,11 +112,9 @@ from solutions.common.bizz.locations import create_new_location
 from solutions.common.bizz.loyalty import update_all_user_data_admins
 from solutions.common.consts import CURRENCIES, get_currency_name
 from solutions.common.dal import get_solution_settings
-from solutions.common.dal.hints import get_all_solution_hints, get_solution_hints
 from solutions.common.models import SolutionSettings
 from solutions.common.q_and_a.models import QuestionReply, Question, QuestionStatus
 from solutions.common.to import ProvisionReturnStatusTO
-from solutions.common.to.hints import SolutionHintTO
 from solutions.common.to.loyalty import LoyaltySlideTO, LoyaltySlideNewOrderTO
 from solutions.common.utils import get_extension_for_content_type
 
@@ -834,17 +831,6 @@ class SalesStatisticsHandler(BizzManagerHandler):
         self.response.out.write(template.render(path, get_shop_context()))
 
 
-class HintsHandler(BizzManagerHandler):
-
-    def get(self):
-        current_user = gusers.get_current_user()
-        if not is_admin(current_user):
-            self.abort(403)
-        path = os.path.join(os.path.dirname(__file__), 'html', 'hints.html')
-        context = get_shop_context(js_templates=render_js_templates(['hints']))
-        self.response.out.write(template.render(path, context))
-
-
 @rest("/internal/shop/rest/salesstats/load", "get")
 @returns([RegioManagerStatisticTO])
 @arguments()
@@ -866,40 +852,6 @@ def sales_stats():
                     stats.append(rm_stats)
 
     return [RegioManagerStatisticTO.create(s, r) for s, r in zip(stats, regio_managers) if s and r]
-
-
-@rest("/internal/shop/rest/hints/load", "get")
-@returns([SolutionHintTO])
-@arguments()
-def hints_load():
-    azzert(is_admin(gusers.get_current_user()))
-    return [SolutionHintTO.fromModel(h) for h in get_all_solution_hints(get_solution_hints().hint_ids)]
-
-
-@rest('/internal/shop/rest/hints/put', 'post')
-@returns(ReturnStatusTO)
-@arguments(hint_id=(int, long, NoneType), tag=unicode, language=unicode, text=unicode, modules=[unicode])
-def hints_put(hint_id, tag, language, text, modules):
-    google_user = gusers.get_current_user()
-    azzert(is_admin(google_user))
-    try:
-        put_hint(google_user, hint_id, tag, language, text, modules)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, be:
-        return ReturnStatusTO.create(False, be.message)
-
-
-@rest('/internal/shop/rest/hints/delete', 'post')
-@returns(ReturnStatusTO)
-@arguments(hint_id=(int, long))
-def hints_delete(hint_id):
-    google_user = gusers.get_current_user()
-    azzert(is_admin(google_user))
-    try:
-        delete_hint(google_user, hint_id)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, be:
-        return ReturnStatusTO.create(False, be.message)
 
 
 @rest('/internal/shop/rest/prospect/put', 'post')
