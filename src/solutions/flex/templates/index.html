@@ -372,7 +372,7 @@ var DAYS_STR = { {% for day_num, day_name in days %}
     {% if SolutionModule.PHARMACY_ORDER in sln_settings.modules %}
         {%- include 'pharmacy_order.tmpl' %}
     {% endif %}
-    {% if not loyalty %}
+    {% if not loyalty and SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules %}
         {%- include 'loyalty.tmpl' %}
     {% endif %}
 {% endif %}
@@ -608,7 +608,9 @@ var DAYS_STR = { {% for day_num, day_name in days %}
     {% if not loyalty %}
     <script src="/static/js/solutions/sln-requirements.js"></script>
     {% endif %}
-    <script src="/static/js/solutions/sln-loyalty.js"></script>
+    {% if SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules %}
+        <script src="/static/js/solutions/sln-loyalty.js"></script>
+    {% endif %}
     <script src="/static/js/solutions/sln-router.js"></script>
 </body>
 </html>

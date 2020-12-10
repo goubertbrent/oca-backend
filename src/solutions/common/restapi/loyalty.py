@@ -20,7 +20,6 @@ from types import NoneType
 
 from google.appengine.ext import db
 
-from mcfw.consts import MISSING
 from mcfw.properties import object_factory
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
@@ -39,7 +38,7 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import loyalty as loyalty_bizz, broadcast_updates_pending, get_app_info_cached, \
     SolutionModule
 from solutions.common.bizz.loyalty import add_loyalty_for_user, redeem_loyalty_for_user, calculate_chance_for_user, \
-    delete_visit, request_loyalty_device, calculate_city_wide_lottery_chance_for_user, get_or_create_city_postal_codes, \
+    delete_visit, calculate_city_wide_lottery_chance_for_user, get_or_create_city_postal_codes, \
     add_city_postal_code, remove_city_postal_code
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.loyalty import get_solution_loyalty_slides, get_solution_loyalty_visits_for_revenue_discount, \
@@ -579,17 +578,6 @@ def load_loyalty_export_list(cursor=None):
                                             [SolutionLoyaltyExportTO.from_model(e, sln_settings.main_language)
                                              for e in exports_list])
     return to
-
-
-@rest('/common/loyalty/request_device', 'get')
-@returns(ReturnStatusTO)
-@arguments(source=unicode)
-def rest_request_loyalty_device(source=MISSING):
-    try:
-        request_loyalty_device(users.get_current_user(), source if source is not MISSING else None)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, exception:
-        return ReturnStatusTO.create(False, exception.message)
 
 
 @rest("/common/city_wide_lottery/customer_points/load", "get", read_only_access=True)

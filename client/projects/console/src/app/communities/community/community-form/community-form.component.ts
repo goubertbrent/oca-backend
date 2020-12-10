@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { IFormBuilder, IFormGroup } from '@rxweb/types';
 import { EmbeddedApp } from '../../../interfaces';
@@ -11,7 +11,7 @@ import { AppFeature, CreateCommunity, CustomizationFeature, SimpleApp } from '..
   styleUrls: ['./community-form.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CommunityFormComponent implements OnInit {
+export class CommunityFormComponent {
   @Input() apps: SimpleApp[];
   @Input() embeddedApps: EmbeddedApp[];
   @Output() saved = new EventEmitter<CreateCommunity>();
@@ -20,6 +20,7 @@ export class CommunityFormComponent implements OnInit {
   features = [
     { label: 'Events: Show merchants in feed from main service', value: AppFeature.EVENTS_SHOW_MERCHANTS },
     { label: 'Jobs', value: AppFeature.JOBS },
+    { label: 'Loyalty', value: AppFeature.LOYALTY },
     { label: 'News: videos in feed', value: AppFeature.NEWS_VIDEO },
     { label: 'News: location filter', value: AppFeature.NEWS_LOCATION_FILTER },
     { label: 'News: city must review all merchant news', value: AppFeature.NEWS_REVIEW },
@@ -31,7 +32,18 @@ export class CommunityFormComponent implements OnInit {
   private formBuilder: IFormBuilder;
 
   constructor(formBuilder: FormBuilder) {
-    this.formBuilder = formBuilder;
+    const fb = formBuilder as IFormBuilder;
+    this.formGroup = fb.group<CreateCommunity>({
+      auto_connected_services: [[]],
+      country: [''],
+      name: ['', Validators.required],
+      default_app: ['', Validators.required],
+      embedded_apps: [[]],
+      main_service: [''],
+      demo: [false],
+      signup_enabled: [false],
+      features: [[AppFeature.NEWS_VIDEO]],
+    });
   }
 
   @Input() set loading(value: boolean) {
@@ -44,11 +56,8 @@ export class CommunityFormComponent implements OnInit {
     }
   }
 
-  private _community: CreateCommunity;
-
   @Input() set community(community: CreateCommunity) {
-    this._community = community;
-    if (this.formGroup) {
+    if (community) {
       this.formGroup.patchValue(community);
     }
   }
@@ -75,7 +84,6 @@ export class CommunityFormComponent implements OnInit {
 
   save() {
     if (this.formGroup.valid) {
-      // tslint:disable-next-line:no-non-null-assertion
       this.saved.emit(this.formGroup.value!!);
     }
   }

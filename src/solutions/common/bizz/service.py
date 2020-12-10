@@ -78,9 +78,12 @@ def get_allowed_modules(city_customer):
         return SolutionModule.ASSOCIATION_MODULES
     else:
         community = get_community(city_customer.community_id)
+        allowed_modules = list(SolutionModule.POSSIBLE_MODULES)
         if AppFeatures.JOBS in community.features:
-            return set(list(SolutionModule.POSSIBLE_MODULES) + [SolutionModule.JOBS])
-        return SolutionModule.POSSIBLE_MODULES
+            allowed_modules.append(SolutionModule.JOBS)
+        if AppFeatures.LOYALTY in community.features:
+            allowed_modules.append(SolutionModule.LOYALTY)
+        return set(allowed_modules)
 
 
 def get_default_modules(city_customer):

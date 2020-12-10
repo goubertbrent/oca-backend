@@ -881,6 +881,26 @@ indexes:
   - name: last_timestamp
     direction: desc
 
+- kind: SolutionLoyaltyVisitLottery
+  ancestor: yes
+  properties:
+  - name: timestamp
+
+- kind: SolutionLoyaltyVisitRevenueDiscount
+  ancestor: yes
+  properties:
+  - name: timestamp
+
+- kind: SolutionLoyaltyVisitStamps
+  ancestor: yes
+  properties:
+  - name: timestamp
+
+- kind: SolutionCityWideLotteryVisit
+  ancestor: yes
+  properties:
+  - name: timestamp
+
 - kind: SolutionLoyaltyExport
   ancestor: yes
   properties:

@@ -15,7 +15,7 @@
 #
 # @@license_version:1.7@@
 
-from typing import Type, TypeVar
+from typing import Type, TypeVar, Optional
 
 from mcfw.properties import bool_property, unicode_property, long_property, unicode_list_property, typed_property, \
     float_property
@@ -104,6 +104,7 @@ class ReturnStatusTO(TO):
 
     @classmethod
     def create(cls, success=True, errormsg=None):
+        # type: (bool, Optional[unicode]) -> ReturnStatusTO
         r = cls()
         r.success = success
         r.errormsg = unicode(errormsg) if errormsg else None

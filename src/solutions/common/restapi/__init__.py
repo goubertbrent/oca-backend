@@ -1831,23 +1831,20 @@ def rest_get_activated_modules():
 
 
 @rest('/common/functionalities/modules/enable', 'post')
-@returns(WarningReturnStatusTO)
-@arguments(name=unicode, enabled=bool, force=bool)
-def rest_enable_or_disable_module(name, enabled, force=False):
+@returns(ReturnStatusTO)
+@arguments(name=unicode, enabled=bool)
+def rest_enable_or_disable_module(name, enabled):
     try:
         service_user = users.get_current_user()
-        can_continue, warning_msg = validate_enable_or_disable_solution_module(service_user, name, enabled, force)
-        if not can_continue:
-            return WarningReturnStatusTO.create()
-
-        if warning_msg:
-            return WarningReturnStatusTO.create(False, warningmsg=warning_msg)
+        if not validate_enable_or_disable_solution_module(service_user, name, enabled):
+            language = get_solution_settings(service_user).main_language
+            return ReturnStatusTO.create(False, common_translate(language, 'cannot_enable_solution_module'))
 
         enable_or_disable_solution_module(service_user, name, enabled)
 
-        return WarningReturnStatusTO.create()
+        return ReturnStatusTO.create()
     except BusinessException as e:
-        return WarningReturnStatusTO.create(False, e.message)
+        return ReturnStatusTO.create(False, e.message)
 
 
 @rest('/common/files/<prefix:.*>', 'post')

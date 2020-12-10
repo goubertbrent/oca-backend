@@ -39,6 +39,7 @@ from mcfw.properties import object_factory, unicode_property, long_list_property
 from mcfw.rpc import returns, arguments
 from mcfw.utils import Enum
 from rogerthat.bizz.communities.communities import get_community
+from rogerthat.bizz.communities.models import AppFeatures
 from rogerthat.bizz.embedded_applications import send_update_all_embedded_apps
 from rogerthat.bizz.rtemail import generate_auto_login_url
 from rogerthat.bizz.service import create_service, InvalidAppIdException, RoleNotFoundException, \
@@ -169,13 +170,18 @@ class SolutionModule(Enum):
     PROVISION_ORDER = defaultdict(lambda: 10, {BROADCAST: 20})  # Broadcast should be last for auto broadcast types
 
     # Modules allowed for static content subscriptions
-    STATIC_MODULES = {WHEN_WHERE, BILLING, LOYALTY}
+    STATIC_MODULES = {WHEN_WHERE, BILLING}
     # These are the modules that the customer or cityapp service of the customer can choose themselves
     ASSOCIATION_MODULES = {AGENDA, ASK_QUESTION, BROADCAST, BULK_INVITE, STATIC_CONTENT}
     POSSIBLE_MODULES = {AGENDA, APPOINTMENT, ASK_QUESTION, BROADCAST, BULK_INVITE, DISCUSSION_GROUPS, GROUP_PURCHASE,
-                        LOYALTY, MENU, ORDER, PHARMACY_ORDER, REPAIR, RESTAURANT_RESERVATION, SANDWICH_BAR,
+                        MENU, ORDER, PHARMACY_ORDER, REPAIR, RESTAURANT_RESERVATION, SANDWICH_BAR,
                         STATIC_CONTENT, FORMS, PARTICIPATION}
     MANDATORY_MODULES = {BILLING, QR_CODES, WHEN_WHERE}
+
+    COMMUNITY_MODULES = {
+        JOBS: AppFeatures.JOBS,
+        LOYALTY: AppFeatures.LOYALTY,
+    }
 
     # order these in the order you want to show them in the apps
     SERVICE_ACTION_ORDER = {
@@ -1110,16 +1116,18 @@ def deactivate_solution_module(sln_settings, module):
         modules_to_remove.append(module)
 
 
-@returns(tuple)
-@arguments(service_user=users.User, module=unicode, enabled=bool, force=bool)
-def validate_enable_or_disable_solution_module(service_user, module, enabled, force):
+@returns(bool)
+@arguments(service_user=users.User, module=unicode, enabled=bool)
+def validate_enable_or_disable_solution_module(service_user, module, enabled):
+    # type: (users.User, unicode, bool) -> bool
+    if enabled and module in SolutionModule.COMMUNITY_MODULES:
+        community = get_community(get_service_profile(service_user).community_id)
+        if SolutionModule.COMMUNITY_MODULES[module] not in community.features:
+            return False
     if module not in SolutionModule.FUNCTIONALITY_MODULES:
-        return False, None
+        return False
 
-    if not enabled or force:
-        return True, None
-
-    return True, None
+    return True
 
 
 @returns()

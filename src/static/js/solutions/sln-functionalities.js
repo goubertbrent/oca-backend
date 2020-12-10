@@ -156,26 +156,19 @@ $(function() {
         loadFunctionalities();
     }
 
-    function enableOrDisbleModule(moduleName, enabled, force) {
+    function enableOrDisableModule(moduleName, enabled) {
         sln.call({
             url: '/common/functionalities/modules/enable',
             type: 'post',
             data: {
                 name: moduleName,
                 enabled: enabled,
-                force: force
             },
             success: function(data) {
                 if (data.success) {
                     setModuleState(moduleName, enabled);
-                } else {
-                    if (data.errormsg) {
-                        sln.alert(data.errormsg, null, CommonTranslations.ERROR);
-                    } else if (data.warningmsg) {
-                        sln.confirm(data.warningmsg, function() {
-                            enableOrDisbleModule(moduleName, enabled, true);
-                        });
-                    }
+                } else if (data.errormsg) {
+                    sln.alert(data.errormsg, null, CommonTranslations.ERROR);
                 }
             },
             error: sln.showAjaxError
@@ -206,7 +199,7 @@ $(function() {
         });
 
         if (!hideSwitchButton) {
-            var btn = switchButton(info.name, enabled, enableOrDisbleModule,
+            var btn = switchButton(info.name, enabled, enableOrDisableModule,
                                    CommonTranslations.active, CommonTranslations.inactive);
             tile.append(btn);
         }
@@ -235,11 +228,7 @@ $(function() {
                 return true;
             } else if (button.hasClass('btn-danger')) {
                 return false;
-            } else if (button.attr('action') === 'on') {
-                return false;
-            } else {
-                return true;
-            }
+            } else return button.attr('action') !== 'on';
         }
 
         function stateChanged() {

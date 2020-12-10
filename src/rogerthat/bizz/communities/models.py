@@ -50,6 +50,8 @@ class AppFeatures(Enum):
     NEWS_REVIEW = 'news_review'
     # Allows merchants to post in regional news
     NEWS_REGIONAL = 'news_regional'
+    # Allows merchants to enable/disable the 'loyalty' feature in their dashboard
+    LOYALTY = 'loyalty'
 
 # These are features that are only enabled for a few communities
 class CustomizationFeatures(Enum):

@@ -15,6 +15,7 @@ export const enum AppFeature {
   NEWS_LOCATION_FILTER = 'news_location_filter',
   NEWS_REVIEW = 'news_review',
   NEWS_REGIONAL = 'news_regional',
+  LOYALTY = 'loyalty',
 }
 
 export const enum CustomizationFeature {

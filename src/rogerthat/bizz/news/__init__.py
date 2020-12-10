@@ -298,7 +298,7 @@ def get_groups_for_user(app_user):
             news_group = news_groups[0]
             badge_count_rpc = badge_count_rpcs.get(news_group.group_id)
             badge_count = badge_count_rpc and badge_count_rpc.get_result() or 0
-            layout = get_layout_params_for_group(base_url, type_city, app_user, lang, news_group, badge_count)
+            layout = get_layout_params_for_group(base_url, type_city, lang, news_group, badge_count)
             row.items.append(NewsGroupTO(
                 key=news_group.group_id,
                 name=get_group_title(type_city, news_group, lang),
@@ -360,16 +360,16 @@ def get_news_group_response(app_user, group_id):
         name=get_group_title(type_city, news_group, lang),
         if_empty=get_if_empty_for_group_type(news_group.group_type, lang),
         tabs=tabs,
-        # badge_count is never used in our usecase, so we just always set it to 0
+        # We don't bother calculating the badge count here since there's no usecase for it yet.
         # this saves us a NewsItem.count_unread query
-        layout=get_layout_params_for_group(base_url, type_city, app_user, lang, news_group, badge_count=0),
+        layout=get_layout_params_for_group(base_url, type_city, lang, news_group, badge_count=0),
         services=_get_news_group_services_from_mapping(base_url, news_group, service_profiles, services_identities),
     )
     return GetNewsGroupResponseTO(group=group)
 
 
-def get_layout_params_for_group(base_url, type_city, app_user, lang, group, badge_count):
-    # type: (str, str, users.User, str, NewsGroup, int) -> NewsGroupLayoutTO
+def get_layout_params_for_group(base_url, type_city, lang, group, badge_count):
+    # type: (str, str, str, NewsGroup, int) -> NewsGroupLayoutTO
     layout = NewsGroupLayoutTO()
     layout.badge_count = badge_count
     if group.tile:

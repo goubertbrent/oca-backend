@@ -17,6 +17,8 @@
 
 from __future__ import unicode_literals
 
+import logging
+
 from typing import Tuple, List, Dict
 
 from rogerthat.bizz.communities.models import Community, AppFeatures
@@ -143,16 +145,16 @@ def get_functionalities(language, my_modules, activated_modules, community):
     # type: (str, List[str], List[str], Community) -> Tuple[List[str], Dict[str, Dict]]
     # we need the broadcast module to be the first
     modules = sorted(SolutionModule.FUNCTIONALITY_MODULES, key=sort_modules)
-
-    if not community or AppFeatures.JOBS not in community.features:
-        modules.remove(SolutionModule.JOBS)
-
     if SolutionModule.CITY_APP in my_modules:
         modules.remove(SolutionModule.LOYALTY)
-
     elif SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in modules:
         modules.remove(SolutionModule.HIDDEN_CITY_WIDE_LOTTERY)
-
+    for module in list(modules):  # take copy to not overwrite te current list we're iterating over
+        if module in activated_modules:
+            continue
+        feat = SolutionModule.COMMUNITY_MODULES.get(module)
+        if feat and feat not in community.features:
+            modules.remove(module)
     functionalities = [Functionality(language, activated_modules, module) for module in modules]
     info = {func.name: func.to_dict() for func in functionalities}
     return modules, info

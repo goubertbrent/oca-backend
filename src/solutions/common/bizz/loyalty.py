@@ -55,13 +55,13 @@ from rogerthat.service.api import messaging, friends, app, system
 from rogerthat.settings import get_server_settings
 from rogerthat.to.messaging import MemberTO, AnswerTO
 from rogerthat.to.service import UserDetailsTO, SendApiCallCallbackResultTO
-from rogerthat.utils import now, file_get_contents, is_flag_set, send_mail_via_mime, format_price, today, send_mail
+from rogerthat.utils import now, file_get_contents, is_flag_set, send_mail_via_mime, format_price, send_mail
 from rogerthat.utils.app import create_app_user_by_email, get_app_user_tuple_by_email, get_app_user_tuple, \
     get_human_user_from_app_user
 from rogerthat.utils.channel import send_message
-from shop.constants import LOGO_LANGUAGES, STORE_MANAGER
-from shop.dal import get_shop_loyalty_slides, get_customer
-from shop.models import ShopLoyaltySlideNewOrder, Customer, Contact, RegioManagerTeam, Prospect, ShopTask
+from shop.constants import LOGO_LANGUAGES
+from shop.dal import get_shop_loyalty_slides
+from shop.models import ShopLoyaltySlideNewOrder, Customer, Contact
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import render_common_content, SolutionModule, put_branding
@@ -1829,38 +1829,6 @@ def create_loyalty_statistics_for_service(service_user, service_identity, first_
     finally:
         if orig_to_bytes is None:
             delattr(Image, "tobytes")
-
-
-@returns()
-@arguments(service_user=users.User, source=unicode)
-def request_loyalty_device(service_user, source):
-    # Create ShopTask
-    from shop.bizz import create_task, broadcast_task_updates
-    from shop.business.prospect import create_prospect_from_customer
-    customer = get_customer(service_user)
-    if customer.prospect_id:
-        rmt, prospect = db.get(
-            [RegioManagerTeam.create_key(customer.team_id), Prospect.create_key(customer.prospect_id)])
-    else:
-        prospect = create_prospect_from_customer(customer)
-        rmt = RegioManagerTeam.get(RegioManagerTeam.create_key(customer.team_id))
-    azzert(rmt.support_manager, 'No support manager found for team %s' % rmt.name)
-    comment = u'Customer is interested in the Our City App terminal and wants a loyalty system.'
-    if source:
-        comment += u' Source: %s' % source
-    task = create_task(prospect_or_key=prospect,
-                       status=ShopTask.STATUS_NEW,
-                       task_type=ShopTask.TYPE_SUPPORT_NEEDED,
-                       address=None,
-                       created_by=STORE_MANAGER.email(),
-                       assignee=rmt.support_manager,
-                       execution_time=today() + 86400 + 10 * 3600,  # tomorrow, 10:00 UTC
-                       app_id=prospect.app_id,
-                       comment=comment,
-                       notify_by_email=True)
-    task.put()
-
-    broadcast_task_updates([rmt.support_manager])
 
 
 @returns(unicode)
