@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { IFormBuilder, IFormGroup } from '@rxweb/types';
 import { EmbeddedApp } from '../../../interfaces';
@@ -11,7 +11,7 @@ import { AppFeature, CreateCommunity, CustomizationFeature, SimpleApp } from '..
   styleUrls: ['./community-form.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CommunityFormComponent {
+export class CommunityFormComponent implements OnInit {
   @Input() apps: SimpleApp[];
   @Input() embeddedApps: EmbeddedApp[];
   @Output() saved = new EventEmitter<CreateCommunity>();
@@ -30,6 +30,7 @@ export class CommunityFormComponent {
     { label: 'Store home address in user data', value: CustomizationFeature.HOME_ADDRESS_IN_USER_DATA },
   ];
   private formBuilder: IFormBuilder;
+  private _community: CreateCommunity;
 
   constructor(formBuilder: FormBuilder) {
     const fb = formBuilder as IFormBuilder;
@@ -43,6 +44,7 @@ export class CommunityFormComponent {
       demo: [false],
       signup_enabled: [false],
       features: [[AppFeature.NEWS_VIDEO]],
+      customization_features: [[]],
     });
   }
 
@@ -57,6 +59,7 @@ export class CommunityFormComponent {
   }
 
   @Input() set community(community: CreateCommunity) {
+    this._community = community;
     if (community) {
       this.formGroup.patchValue(community);
     }
