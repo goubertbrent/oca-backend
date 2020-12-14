@@ -51,7 +51,6 @@ ALL_MIGRATION_QUEUES = [MIGRATION_QUEUE2,
 STATS_QUEUE = "stats"
 HIGH_LOAD_CONTROLLER_QUEUE = "highload-controller-queue"
 HIGH_LOAD_WORKER_QUEUE = "highload-worker-queue"
-BROADCAST_QUEUE = "broadcast-queue"
 SCHEDULED_QUEUE = "scheduled-queue"
 OFFLOAD_QUEUE = "offload-queue"
 FAST_QUEUE = "fast"

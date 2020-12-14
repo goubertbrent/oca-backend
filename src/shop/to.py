@@ -255,7 +255,6 @@ class CustomerServiceTO(TO):
     phone_number = unicode_property('4', default=None)
     language = unicode_property('5')
     modules = unicode_list_property('7')
-    broadcast_types = unicode_list_property('8')
     organization_type = long_property('10')
     managed_organization_types = long_list_property('13')
     community_id = long_property('community_id')

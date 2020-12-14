@@ -28,12 +28,6 @@ from rogerthat.to.friends import FriendListResultTO
 from rogerthat.utils import is_flag_set
 
 
-class UserStatisticsTO(object):
-    user_count = long_property('1')
-    service_user_count = long_property('2')
-    service_count = long_property('3')
-
-
 class DayStatisticsTO(TO):
     day = long_property('1')
     month = long_property('2')

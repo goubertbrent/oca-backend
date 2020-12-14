@@ -21,14 +21,14 @@ import logging
 from collections import defaultdict
 
 from google.appengine.api import logservice
-from google.appengine.ext import deferred, db
 from google.appengine.api.modules.modules import get_versions
+from google.appengine.ext import deferred, db
 
 from mcfw.utils import chunks
 from rogerthat.dal import parent_key
 from rogerthat.dal.service import count_users_connected_to_service_identity
 from rogerthat.models import LogAnalysis, ServiceInteractionDef, ServiceAPIFailures, \
-    ServiceIdentityStatistic, BroadcastStatistic, FlowStatistics
+    ServiceIdentityStatistic, FlowStatistics
 from rogerthat.rpc import users
 from rogerthat.utils import now, SLOG_HEADER
 from rogerthat.utils.service import get_service_user_from_service_identity_user
@@ -36,7 +36,6 @@ from rogerthat.utils.service import get_service_user_from_service_identity_user
 QRCODE_SCANNED = "fti_qr_code_scanned"
 SERVICE_MONITOR = "fti_monitor"
 SERVICE_STATS = "fti_service_stats"
-BROADCAST_STATS = "fti_broadcast_stats"
 FLOW_STATS = "fti_flow_stats"
 
 SERVICE_STATS_TYPE_GAINED = "gained"
@@ -44,10 +43,6 @@ SERVICE_STATS_TYPE_LOST = "lost"
 SERVICE_STATS_TYPE_MIP = "menuItemPress"
 SERVICE_STATS_TYPE_RECOMMEND_VIA_ROGERTHAT = "recommendViaRogerthat"
 SERVICE_STATS_TYPE_RECOMMEND_VIA_EMAIL = "recommendViaEmail"
-
-BROADCAST_STATS_SENT = "sent"
-BROADCAST_STATS_RECEIVED = "received"
-BROADCAST_STATS_READ = "read"
 
 REQUEST_IDENTIFICATION = "request_identification"
 REQUEST_IDENTIFICATION_TYPE_USER = "user"
@@ -228,36 +223,6 @@ def _analyze(start, end):
 
             put_rpcs['service_user_stats'].append(db.put_async(sid))
 
-    def broadcast_stats(request, log_entry, slog_entry, counters):
-        params = slog_entry["a"]
-        service_identity_user_email = params["service"]
-        type_ = params["type_"]
-        broadcast_guid = params["broadcast_guid"]
-
-        counters[broadcast_guid] = counters.get(
-            broadcast_guid, dict(sent=0, received=0, read=0, service_identity_user_email=service_identity_user_email))
-        sid_counters = counters[broadcast_guid]
-        sid_counters[type_] += 1
-
-    def store_broadcast_stats(counters):
-        broadcast_stats_rpcs = list()
-        for (broadcast_guid), broadcast_counters in counters.iteritems():
-            service_identity_user = users.User(broadcast_counters["service_identity_user_email"])
-            broadcast_statistic_key = BroadcastStatistic.create_key(broadcast_guid, service_identity_user)
-            broadcast_stats_rpcs.append(
-                (db.get_async(broadcast_statistic_key), broadcast_counters, broadcast_statistic_key, broadcast_guid, service_identity_user))
-        for broadcast_stat_rpc, broadcast_counters, broadcast_statistic_key, broadcast_guid, service_identity_user in broadcast_stats_rpcs:
-            broadcast_statistic = broadcast_stat_rpc.get_result()
-            if not broadcast_statistic:
-                broadcast_statistic = BroadcastStatistic(key=broadcast_statistic_key, timestamp=now())
-
-            broadcast_statistic.sent = (broadcast_statistic.sent or 0) + broadcast_counters[BROADCAST_STATS_SENT]
-            broadcast_statistic.received = (
-                broadcast_statistic.received or 0) + broadcast_counters[BROADCAST_STATS_RECEIVED]
-            broadcast_statistic.read = (broadcast_statistic.read or 0) + broadcast_counters[BROADCAST_STATS_READ]
-
-            put_rpcs['broadcast_stats'].append(db.put_async(broadcast_statistic))
-
     def flow_stats(request, log_entry, slog_entry, counters):
         params = slog_entry['a']
         tag = params['tag']
@@ -295,8 +260,6 @@ def _analyze(start, end):
                               counters=dict()),
         SERVICE_STATS: dict(analysis_func=service_user_stats, summarize_func=store_service_user_stats,
                             counters=dict()),
-        BROADCAST_STATS: dict(analysis_func=broadcast_stats, summarize_func=store_broadcast_stats,
-                              counters=dict()),
         FLOW_STATS: dict(analysis_func=flow_stats, summarize_func=store_flow_stats,
                          counters=defaultdict(lambda: defaultdict(list))),
     }

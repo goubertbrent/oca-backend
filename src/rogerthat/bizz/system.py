@@ -29,10 +29,10 @@ from types import NoneType
 from google.appengine.api import urlfetch
 from google.appengine.api.images import Image
 from google.appengine.ext import db, deferred, ndb
+from mcfw.imaging import generate_qr_code
 
 from mcfw.cache import cached
 from mcfw.consts import MISSING
-from mcfw.imaging import generate_qr_code
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.communities.communities import get_community
@@ -43,7 +43,6 @@ from rogerthat.capi.system import unregisterMobile, forwardLogs
 from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
 from rogerthat.dal import put_and_invalidate_cache, generator
 from rogerthat.dal.app import get_app_by_id
-from rogerthat.dal.broadcast import get_broadcast_settings_flow_cache_keys_of_user
 from rogerthat.dal.mobile import get_mobile_by_id, get_mobile_by_key, get_user_active_mobiles_count, \
     get_mobiles_by_ios_push_id, get_mobile_settings_cached
 from rogerthat.dal.profile import get_avatar_by_id, get_user_profile_key, get_user_profile, \
@@ -242,7 +241,6 @@ def _heart_beat(current_user, current_mobile, majorVersion, minorVersion, flushB
                 # trigger friend.update service api call
                 deferred.defer(update_friend_service_identity_connections, my_profile.key(), [u"language"],
                                _transactional=True)
-                db.delete_async(get_broadcast_settings_flow_cache_keys_of_user(my_profile.user))
 
 
         ms.majorVersion = majorVersion

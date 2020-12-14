@@ -20,12 +20,11 @@ from datetime import datetime
 from types import NoneType
 
 import pytz
-from babel import dates
 from babel.dates import format_datetime, get_timezone
 from google.appengine.ext import deferred, db
 
 from mcfw.properties import azzert, object_factory
-from mcfw.rpc import returns, arguments, serialize_complex_value
+from mcfw.rpc import returns, arguments
 from rogerthat.dal import parent_key_unsafe
 from rogerthat.models import Message
 from rogerthat.rpc import users
@@ -33,7 +32,7 @@ from rogerthat.service.api import messaging
 from rogerthat.to.messaging import MemberTO
 from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING
 from rogerthat.to.messaging.service_callback_results import FlowMemberResultCallbackResultTO, \
-    TYPE_MESSAGE, MessageCallbackResultTypeTO, MessageAcknowledgedCallbackResultTO, TYPE_FLOW, FlowCallbackResultTypeTO
+    TYPE_MESSAGE, MessageCallbackResultTypeTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import now
 from rogerthat.utils.app import create_app_user_by_email
@@ -43,13 +42,12 @@ from solutions.common.bizz import get_first_fmr_step_result_value, SolutionModul
 from solutions.common.bizz.inbox import create_solution_inbox_message, add_solution_inbox_message
 from solutions.common.bizz.loyalty import update_user_data_admins
 from solutions.common.bizz.settings import get_service_info
-from solutions.common.dal import get_solution_settings, get_solution_main_branding, \
-    get_solution_settings_or_identity_settings
+from solutions.common.dal import get_solution_settings, get_solution_main_branding
 from solutions.common.exceptions.sandwich import InvalidSandwichSettingsException
 from solutions.common.models import SolutionInboxMessage
 from solutions.common.models.properties import SolutionUser
 from solutions.common.models.sandwich import SandwichType, SandwichTopping, \
-    SandwichOrder, SandwichOption, SandwichSettings
+    SandwichOrder, SandwichOption
 from solutions.common.to import SolutionInboxMessageTO
 from solutions.common.utils import create_service_identity_user_wo_default
 from solutions.flex import SOLUTION_FLEX
@@ -342,32 +340,6 @@ def delete_sandwich_order(service_user, service_identity, sandwich_id, message):
                                                                          True).to_dict()})
 
     send_message(service_user, sm_data, service_identity=sandwich_order.service_identity)
-
-
-@returns(MessageAcknowledgedCallbackResultTO)
-@arguments(service_user=users.User, status=int, answer_id=unicode, received_timestamp=int, member=unicode,
-           message_key=unicode, tag=unicode, acked_timestamp=int, parent_message_key=unicode, result_key=unicode,
-           service_identity=unicode, user_details=[UserDetailsTO])
-def sandwich_order_from_broadcast_pressed(service_user, status, answer_id, received_timestamp, member, message_key, tag,
-                                   acked_timestamp, parent_message_key, result_key, service_identity, user_details):
-    from solutions.common.bizz.messaging import POKE_TAG_SANDWICH_BAR
-    if answer_id != u'order':
-        return
-
-    result = MessageAcknowledgedCallbackResultTO()
-    sln_settings = get_solution_settings(service_user)
-    settings = SandwichSettings.get_settings(service_user, sln_settings.solution)
-    result.type = TYPE_FLOW
-    result.value = FlowCallbackResultTypeTO()
-    result.value.flow = settings.order_flow
-    result.value.force_language = None
-    result.value.tag = POKE_TAG_SANDWICH_BAR
-    return result
-
-
-def get_sandwich_reminder_broadcast_type(language, day):
-    return common_translate(language, u'order-sandwich-broadcast-day-broadcast-type',
-                            day=dates.get_day_names('wide', 'format', language)[SandwichSettings.DAYS.index(day)])
 
 
 def validate_sandwiches(language, sandwich_types, sandwich_toppings, sandwich_options):

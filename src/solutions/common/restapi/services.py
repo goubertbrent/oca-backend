@@ -54,8 +54,8 @@ from shop.models import Customer, Contact, LegalDocumentAcceptance, LegalDocumen
 from shop.to import CustomerTO
 from solutions import translate
 from solutions.common.bizz import OrganizationType, common_provision
-from solutions.common.bizz.service import create_customer_with_service, filter_modules, get_allowed_broadcast_types, \
-    put_customer_service, set_customer_signup_status, get_default_modules
+from solutions.common.bizz.service import create_customer_with_service, filter_modules, put_customer_service, \
+    set_customer_signup_status, get_default_modules
 from solutions.common.dal import get_solution_settings
 from solutions.common.to import ServiceTO
 from solutions.common.to.services import ServicesTO, ServiceListTO
@@ -197,7 +197,7 @@ def get_service(service_email):
     solution_settings = get_solution_settings(service_user)
     return ServiceTO(customer.id, customer.name, customer.address1, customer.address2, customer.zip_code, customer.city,
                      customer.user_email, contact.phone_number, solution_settings.main_language,
-                     solution_settings.modules, solution_settings.broadcast_types, customer.organization_type,
+                     solution_settings.modules, customer.organization_type,
                      customer.vat, customer.website, customer.facebook_page, solution_settings.hidden_by_city)
 
 
@@ -219,11 +219,10 @@ def rest_set_service_visibility(customer_id, visible):
 @returns(WarningReturnStatusTO)
 @arguments(name=unicode, address1=unicode, address2=unicode, zip_code=unicode, city=unicode, user_email=unicode,
            telephone=unicode, language=unicode, customer_id=(int, long, NoneType), organization_type=(int, long),
-           vat=unicode, modules=[unicode], broadcast_types=[unicode], website=unicode, facebook_page=unicode,
-           force=bool)
+           vat=unicode, modules=[unicode], website=unicode, facebook_page=unicode, force=bool)
 def rest_put_service(name, address1, address2, zip_code, city, user_email, telephone, language,
                      customer_id=None, organization_type=OrganizationType.PROFIT, vat=None,
-                     modules=None, broadcast_types=None, website=None, facebook_page=None, force=False):
+                     modules=None, website=None, facebook_page=None, force=False):
     city_service_user = users.get_current_user()
     city_customer = get_customer(city_service_user)
     city_sln_settings = get_solution_settings(city_service_user)
@@ -236,13 +235,11 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
     is_new_service = False
 
     try:
-        if not broadcast_types:
-            broadcast_types = get_allowed_broadcast_types(city_customer)
         if not modules:
-            modules = filter_modules(city_customer, get_default_modules(city_customer), broadcast_types)
+            modules = filter_modules(city_customer, get_default_modules(city_customer))
 
         service = create_customer_service_to(name, user_email, language, telephone, organization_type,
-                                             community.id, broadcast_types, modules)
+                                             community.id, modules)
         (customer, email_changed, is_new_service) \
             = create_customer_with_service(city_customer, customer, service, name, address1, address2, zip_code, city,
                                            language, organization_type, vat, website, facebook_page, force=force)
@@ -366,14 +363,12 @@ def do_create_service(city_customer, language, force, signup, password, tos_vers
     error_msg = warning_msg = None
     try:
         modules = CustomerSignup.DEFAULT_MODULES
-        broadcast_types = [translate(signup.language, k) for k in
-                           get_allowed_broadcast_types(city_customer)]
         _fill_signup_data(signup, 'email', 'telephone', 'website', 'facebook_page')
-        modules = filter_modules(city_customer, modules, broadcast_types)
+        modules = filter_modules(city_customer, modules)
 
         service = create_customer_service_to(signup.company_name, signup.company_email, signup.language,
                                              signup.company_telephone, signup.company_organization_type,
-                                             city_customer.community_id, broadcast_types, modules)
+                                             city_customer.community_id, modules)
 
         customer = create_customer_with_service(
             city_customer, None, service, signup.company_name,

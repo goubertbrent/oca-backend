@@ -41,12 +41,6 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionRssScraperSettings, SolutionRssScraperItem
 from solutions.common.utils import html_to_markdown
 
-BROADCAST_TYPE_NEWS = u"News"
-BROADCAST_TYPE_EVENTS = u"Events"
-BROADCAST_TYPE_TRAFIC = u"Trafic"
-BROADCAST_TYPE_TRAFFIC = u"Traffic"
-BROADCAST_TYPE_PRESS = u"Press"
-
 
 class SolutionRssScraper(webapp.RequestHandler):
 

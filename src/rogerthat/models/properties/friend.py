@@ -51,7 +51,7 @@ class BaseFriendDetail(TO):
 
 class FriendDetail(BaseFriendDetail):
     relationVersion = long_property('51', default=0, doc="bumped when data related to the friend relation is updated. "
-                                    "Eg. location sharing, broadcast settings, user data.")
+                                    "Eg. location sharing, user data.")
 
     @property
     def isService(self):

@@ -22,16 +22,14 @@ import logging
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.friend_helper import FriendHelper
 from rogerthat.bizz.service import poke_service, poke_service_by_hashed_tag, render_menu_icon, get_menu_icon, \
     fake_friend_connection, get_user_link
-from rogerthat.bizz.service.broadcast import generate_broadcast_settings_static_flow
 from rogerthat.dal.app import get_app_name_by_id, get_app_by_id
 from rogerthat.dal.service import get_service_identity, get_friend_serviceidentity_connection
 from rogerthat.models import ProfilePointer, ServiceTranslation, MessageFlowDesign, ServiceProfile, ServiceIdentity
 from rogerthat.models.properties.friend import FriendDetail
 from rogerthat.rpc.rpc import expose
-from rogerthat.to.friends import ErrorTO, FRIEND_TYPE_SERVICE
+from rogerthat.to.friends import ErrorTO
 from rogerthat.to.service import GetServiceActionInfoResponseTO, GetServiceActionInfoRequestTO, \
     StartServiceActionResponseTO, StartServiceActionRequestTO, GetMenuIconRequestTO, GetMenuIconResponseTO, \
     PressMenuIconResponseTO, PressMenuIconRequestTO, ShareServiceResponseTO, ShareServiceRequestTO, \
@@ -198,12 +196,6 @@ def getStaticFlow(request):
     if not smd:
         logging.info("No menu item found with coords %s" % request.coords)
         return None
-
-    if smd.isBroadcastSettings:
-        response = GetStaticFlowResponseTO()
-        helper = FriendHelper.from_data_store(service_identity_user, FRIEND_TYPE_SERVICE)
-        response.staticFlow = generate_broadcast_settings_static_flow(helper, users.get_current_user())
-        return response
 
     if not smd.staticFlowKey:
         logging.info("Menu item %s doesn't reference a static flow" % request.coords)

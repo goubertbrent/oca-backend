@@ -246,7 +246,6 @@ class NewsItemTO(TO):
     title = unicode_property('3')
     message = unicode_property('4')
     image_url = unicode_property('5', default=None)  # deprecated
-    broadcast_type = unicode_property('6')  # deprecated
     buttons = typed_property('9', NewsActionButtonTO, True)
     qr_code_content = unicode_property('10')
     qr_code_caption = unicode_property('11')
@@ -289,7 +288,6 @@ class NewsItemTO(TO):
         self.title = title
         self.message = message
         self.image_url = image_url
-        self.broadcast_type = None
         self.buttons = [NewsActionButtonTO.from_model(button) for button in buttons]
         self.qr_code_content = qr_code_content
         self.qr_code_caption = qr_code_caption

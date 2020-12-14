@@ -37,8 +37,6 @@ from solutions import translate as common_translate
 from solutions.common.models import SolutionSettings
 from solutions.common.utils import limit_string
 
-BROADCAST_TYPE_NEWS = u"News"
-
 
 def transl(key, language):
     try:

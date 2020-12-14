@@ -1068,6 +1068,8 @@ var showRelevantButtons = function (tabType) {
     });
     if (currentCustomer.id) {
         $('#button_add_customer').hide();
+    } else {
+    	$('#button_save_customer').hide();
     }
 
     if (currentCustomer.auto_login_url) {

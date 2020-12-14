@@ -66,7 +66,6 @@ class FlexTestCase(oca_unittest.TestCase):
                                 languages=["en", "nl"],
                                 currency=u"EUR",
                                 modules=list(SolutionModule.STATIC_MODULES),
-                                broadcast_types=['test1', 'test2', 'test3'],
                                 allow_redeploy=False,
                                 organization_type=random.choice([x for x in OrganizationType.all() if x > 0]),
                                 community_id=community.id)
@@ -121,7 +120,6 @@ class FlexTestCase(oca_unittest.TestCase):
                                 languages=[language],
                                 currency=u"EUR",
                                 modules=SolutionModule.visible_modules(),
-                                broadcast_types=['test1', 'test2', 'test3'],
                                 allow_redeploy=False,
                                 organization_type=random.choice([x for x in OrganizationType.all() if x > 0]),
                                 community_id=community.id)

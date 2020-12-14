@@ -16,7 +16,8 @@
 # @@license_version:1.7@@
 
 from google.appengine.ext import db
-from mcfw.properties import unicode_property, bool_property, long_list_property, long_property, typed_property
+
+from mcfw.properties import unicode_property, long_list_property, long_property, typed_property
 from rogerthat.to.friends import ServiceMenuItemTO, ServiceMenuTO
 
 
@@ -26,7 +27,6 @@ class ServicePanelMenuItemTO(ServiceMenuItemTO):
     iconUrl = unicode_property('52')
     tag = unicode_property('53')
     staticFlowName = unicode_property('54')
-    isBroadcastSettings = bool_property('55')
     roles = long_list_property('56')
 
     @classmethod
@@ -37,20 +37,17 @@ class ServicePanelMenuItemTO(ServiceMenuItemTO):
         smi.iconUrl = "/mobi/service/menu/icons/lib/" + smd.iconName
         smi.tag = smd.tag
         smi.staticFlowName = helper.get_message_flow(smd.staticFlowKey).name if smd.staticFlowKey else None
-        smi.isBroadcastSettings = smd.isBroadcastSettings
         smi.roles = list() if smd.roles is None else smd.roles
         return smi
 
 
 class WebServiceMenuTO(ServiceMenuTO):
     shareQRId = long_property('101')
-    broadcastBranding = unicode_property('102')
     items = typed_property('54', ServicePanelMenuItemTO, True)
 
     @classmethod
     def from_model(cls, helper, language, target_user_profile=None, existence=0):
         actionMenu = super(WebServiceMenuTO, cls).from_model(helper, language, target_user_profile, existence)
-        actionMenu.broadcastBranding = helper.get_service_profile().broadcastBranding
         return actionMenu
 
     def _populate(self, helper, language, target_user_profile, existence=0):

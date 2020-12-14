@@ -63,7 +63,6 @@ class Feature(object):
 
 class Features(Enum):
     FRIEND_SET = Feature(ios=Version(0, 162), android=Version(0, 1003))
-    BROADCAST_VIA_FLOW_CODE = Feature(ios=Version(0, 765), android=Version(0, 1626))
     ADVANCED_ORDER = Feature(ios=Version(0, 765), android=Version(0, 1626))
     NEWS = Feature(ios=Version(0, 1334), android=Version(0, 2448))
     ASSETS = Feature(ios=Version(0, 1334), android=Version(0, 2448))

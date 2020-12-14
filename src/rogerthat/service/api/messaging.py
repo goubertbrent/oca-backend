@@ -21,8 +21,7 @@ import re
 from types import NoneType
 
 from mcfw.consts import MISSING
-from mcfw.properties import azzert
-from mcfw.properties import object_factory
+from mcfw.properties import azzert, object_factory
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.messaging import ChatFlags as ChatFlagsBizz, InvalidURLException
 from rogerthat.dal.mfd import get_message_flow_run_record
@@ -32,8 +31,8 @@ from rogerthat.models.properties.forms import FormResult
 from rogerthat.rpc import users
 from rogerthat.rpc.service import service_api, service_api_callback
 from rogerthat.rpc.users import get_current_user
-from rogerthat.to.messaging import AnswerTO, MemberTO, AttachmentTO, BroadcastTargetAudienceTO, KeyValueTO, \
-    BroadcastResultTO, ChatMessageListResultTO, PokeInformationTO
+from rogerthat.to.messaging import AnswerTO, MemberTO, AttachmentTO, KeyValueTO, \
+    ChatMessageListResultTO, PokeInformationTO
 from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING, FormFlowStepTO
 from rogerthat.to.messaging.forms import FormTO
 from rogerthat.to.messaging.service_callback_results import PokeCallbackResultTO, MessageAcknowledgedCallbackResultTO, \
@@ -50,11 +49,10 @@ ChatFlags = ChatFlagsBizz  # Prevent unused import warning
 @returns(unicode)
 @arguments(parent_key=unicode, parent_message_key=unicode, message=unicode, answers=[AnswerTO],
            flags=int, members=[(unicode, MemberTO)], branding=unicode, tag=unicode, service_identity=unicode,
-           alert_flags=int, dismiss_button_ui_flags=int, context=unicode, attachments=[AttachmentTO],
-           broadcast_guid=unicode, step_id=unicode)
+           alert_flags=int, dismiss_button_ui_flags=int, context=unicode, attachments=[AttachmentTO], step_id=unicode)
 def send(parent_key, parent_message_key, message, answers, flags, members, branding, tag,
          service_identity=None, alert_flags=Message.ALERT_FLAG_VIBRATE, dismiss_button_ui_flags=0, context=None,
-         attachments=None, broadcast_guid=None, step_id=None):
+         attachments=None, step_id=None):
     from rogerthat.bizz.messaging import sendMessage, member_list_to_usermember_list
     from rogerthat.bizz.service import get_and_validate_service_identity_user
 
@@ -73,7 +71,7 @@ def send(parent_key, parent_message_key, message, answers, flags, members, brand
     message = sendMessage(service_identity_user, mm, flags, 0,
                           parent_key if parent_key != MISSING else parent_message_key, message, answers,
                           None, branding, tag, dismiss_button_ui_flags, context=context, attachments=attachments,
-                          is_mfr=users.get_current_user().is_mfr, broadcast_guid=broadcast_guid, step_id=step_id)
+                          is_mfr=users.get_current_user().is_mfr, step_id=step_id)
     return message.mkey
 
 
@@ -147,36 +145,16 @@ def list_chat_messages(parent_message_key, cursor=None):
     return ChatMessageListResultTO.from_model(lr.cursor, lr.messages, lr.user_profiles)
 
 
-@service_api(function=u"messaging.broadcast")
-@returns(BroadcastResultTO)
-@arguments(broadcast_type=unicode, message=unicode, answers=[AnswerTO], flags=int, branding=unicode, tag=unicode,
-           service_identity=unicode, alert_flags=int, dismiss_button_ui_flags=int,
-           target_audience=BroadcastTargetAudienceTO, attachments=[AttachmentTO], timeout=int)
-def broadcast(broadcast_type, message, answers, flags, branding, tag, service_identity=None,
-              alert_flags=Message.ALERT_FLAG_VIBRATE, dismiss_button_ui_flags=0, target_audience=None,
-              attachments=None, timeout=0):
-    from rogerthat.bizz.messaging import broadcastMessage
-    from rogerthat.bizz.service import get_and_validate_service_identity_user, validate_broadcast_type
-
-    service_user = users.get_current_user()
-    service_identity_user = get_and_validate_service_identity_user(service_user, service_identity)
-    validate_broadcast_type(service_user, broadcast_type)
-    broadcast_guid = broadcastMessage(service_identity_user, broadcast_type, message, answers, flags, branding, tag, alert_flags,
-                                      dismiss_button_ui_flags, target_audience, attachments, timeout)
-    result = BroadcastResultTO()
-    result.statistics_key = broadcast_guid
-    return result
-
-
 @service_api(function=u"messaging.send_form")
 @returns(unicode)
 @arguments(parent_key=unicode, parent_message_key=unicode, member=unicode, message=unicode, form=FormTO, flags=int,
            alert_flags=int, branding=unicode, tag=unicode, service_identity=unicode, context=unicode,
-           attachments=[AttachmentTO], app_id=unicode, broadcast_guid=unicode, step_id=unicode)
+           attachments=[AttachmentTO], app_id=unicode, step_id=unicode)
 def send_form(parent_key, parent_message_key, member, message, form, flags, alert_flags, branding, tag,
-              service_identity=None, context=None, attachments=None, app_id=None, broadcast_guid=None, step_id=None):
+              service_identity=None, context=None, attachments=None, app_id=None, step_id=None):
     from rogerthat.bizz.messaging import sendForm
-    from rogerthat.bizz.service import get_and_validate_service_identity_user, get_and_validate_app_id_for_service_identity_user
+    from rogerthat.bizz.service import get_and_validate_service_identity_user, \
+        get_and_validate_app_id_for_service_identity_user
 
     flags = 0  # flags are currently not used; clear any flags set by api client (e.g. ALLOW_DISMISS or SHARED_MEMBERS)
     service_identity_user = get_and_validate_service_identity_user(users.get_current_user(), service_identity)
@@ -185,7 +163,7 @@ def send_form(parent_key, parent_message_key, member, message, form, flags, aler
     fm = sendForm(service_identity_user, parent_key if parent_key != MISSING else parent_message_key,
                   create_app_user(users.User(member), app_id), message, form, flags, branding, tag, alert_flags,
                   context=context, attachments=attachments, is_mfr=users.get_current_user().is_mfr,
-                  broadcast_guid=broadcast_guid, step_id=step_id)
+                  step_id=step_id)
     return fm.mkey
 
 
@@ -423,10 +401,6 @@ def mfr_flow_member_result(message_flow_run_id, member, steps, end_id, flush_id,
 
     app_id = get_and_validate_app_id_for_service_identity_user(svc_identity_user, app_id, member)
     app_user = create_app_user(users.User(member), app_id)
-
-    if end_id:
-        from rogerthat.bizz.messaging import check_test_flow_broadcast_ended
-        check_test_flow_broadcast_ended(app_user, users.User(mfr.service_identity), parent_message_key, mfr.tag)
 
     if results_email:
         from rogerthat.bizz.messaging import send_message_flow_results_email

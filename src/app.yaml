@@ -164,7 +164,7 @@ handlers:
     script: rogerthat_authenticated.app
     secure: always
 
-  - url: /(unsubscribe_reminder|unsubscribe_broadcast|unsubscribe_deactivate)
+  - url: /(unsubscribe_reminder|unsubscribe_deactivate)
     script: rogerthat_unauthenticated.app
     secure: always
 

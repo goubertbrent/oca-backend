@@ -36,9 +36,8 @@ class AssociationsTestCase(oca_unittest.TestCase):
                                 phone_number=u"+32 9 324 25 64",
                                 languages=[u"en", u"nl"],
                                 currency=u"EUR",
-                                modules=[SolutionModule.CITY_APP, SolutionModule.BROADCAST, SolutionModule.ASK_QUESTION,
+                                modules=[SolutionModule.CITY_APP, SolutionModule.NEWS, SolutionModule.ASK_QUESTION,
                                          SolutionModule.WHEN_WHERE],
-                                broadcast_types=['News', 'test'],
                                 allow_redeploy=False,
                                 organization_type=OrganizationType.CITY,
                                 community_id=community.id)

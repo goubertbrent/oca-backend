@@ -18,13 +18,11 @@
 import datetime
 import time
 
-from rogerthat.dal import parent_key, parent_key_unsafe
-from rogerthat.rpc import users
-from rogerthat.utils import now
-from rogerthat.utils.service import get_identity_from_service_identity_user, \
-    get_service_user_from_service_identity_user
 from google.appengine.ext import db
 
+from rogerthat.dal import parent_key, parent_key_unsafe
+from rogerthat.rpc import users
+from rogerthat.utils.service import get_identity_from_service_identity_user, get_service_user_from_service_identity_user
 from solutions.common.consts import SECONDS_IN_MINUTE, SECONDS_IN_HOUR
 from solutions.common.models.properties import SolutionUserProperty
 from solutions.common.utils import create_service_identity_user_wo_default
@@ -45,9 +43,6 @@ class SandwichSettings(db.Model):
     status_days = db.IntegerProperty(default=31)
     time_from = db.IntegerProperty(default=28800)
     time_until = db.IntegerProperty(default=46800)
-    broadcast_days = db.IntegerProperty(default=0)
-    reminder_broadcast_message = db.TextProperty()
-    remind_at = db.IntegerProperty(default=39600)
     show_prices = db.BooleanProperty(default=True)
     order_flow = db.StringProperty(indexed=False)
     leap_time_enabled = db.BooleanProperty(indexed=False, default=False)
@@ -64,60 +59,10 @@ class SandwichSettings(db.Model):
 
     @classmethod
     def get_settings(cls, service_user, solution):
-        """
-        Returns:
-            SandwichSettings:
-        """
-        sandwich_settings = cls.get(cls.create_key(service_user, solution))
-        if not sandwich_settings:
-            from solutions import translate as common_translate
-            from solutions.common.dal import get_solution_settings
-
-            sln_settings = get_solution_settings(service_user)
-            sandwich_settings = SandwichSettings(key_name=service_user.email(),
-                                                 parent=parent_key(service_user, solution))
-            sandwich_settings.reminder_broadcast_message = common_translate(sln_settings.main_language,
-                                                                            u'order-sandwich-reminder-message')
-            sandwich_settings.put()
-
+        # type: (users.User, str) -> SandwichSettings
+        key = cls.create_key(service_user, solution)
+        sandwich_settings = db.get(key) or SandwichSettings(key=key)
         return sandwich_settings
-
-    def can_order_sandwiches_on(self, date):
-        return self.status_days & SandwichSettings.DAYS[date.weekday()] == SandwichSettings.DAYS[date.weekday()]
-
-    def can_broadcast_for_sandwiches_on(self, date):
-        return self.broadcast_days & SandwichSettings.DAYS[date.weekday()] == SandwichSettings.DAYS[date.weekday()]
-
-    def get_reminder_broadcast_timeout(self, date):
-        now_ = now()
-        timeout = 0
-        timeout_max = now_ + 10 * 60 * 60
-        time_now = date.hour * 3600 + date.minute * 60
-
-        if self.time_until >= time_now:
-            timeout = now_ + self.time_until - time_now
-
-        if timeout > timeout_max:
-            timeout = timeout_max
-        return timeout
-
-
-class SandwichLastBroadcastDay(db.Model):
-    year = db.IntegerProperty(indexed=False)
-    month = db.IntegerProperty(indexed=False)
-    day = db.IntegerProperty(indexed=False)
-
-    @property
-    def service_user(self):
-        return users.User(self.parent_key().name())
-
-    @classmethod
-    def create_key(cls, service_user, solution):
-        return db.Key.from_path(cls.kind(), service_user.email(), parent=parent_key(service_user, solution))
-
-    @classmethod
-    def get_last_broadcast_day(cls, service_user, solution):
-        return cls.get(cls.create_key(service_user, solution))
 
 
 class SandwichType(db.Model):
@@ -148,6 +93,7 @@ class SandwichType(db.Model):
     def list(service_user, solution):
         return SandwichType.all().ancestor(parent_key(service_user, solution)).filter('deleted', False).order('order')
 
+
 class SandwichTopping(db.Model):
     description = db.StringProperty()
     price = db.IntegerProperty()  # In euro cents
@@ -175,6 +121,7 @@ class SandwichTopping(db.Model):
     @staticmethod
     def list(service_user, solution):
         return SandwichTopping.all().ancestor(parent_key(service_user, solution)).filter('deleted', False).order('order')
+
 
 class SandwichOption(db.Model):
     description = db.StringProperty()
@@ -207,6 +154,7 @@ class SandwichOption(db.Model):
         return self.key().id()
 
     id = option_id
+
 
 class SandwichOrder(db.Model):
     STATUS_RECEIVED = 1

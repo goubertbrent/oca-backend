@@ -56,10 +56,6 @@ cron:
   url: /admin/cron/jobs-notifications
   schedule: every 1 hours
 
-- description: Solution Sandwich auto broadcast
-  url: /admin/cron/rpc/solution_module_sandwich_auto_broadcast
-  schedule: every 1 hours
-
 - description: Solution Loyalty lottery loot
   url: /admin/cron/rpc/solution_loyalty_lottery_loot
   schedule: every 1 hours

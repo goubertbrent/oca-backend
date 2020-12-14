@@ -165,7 +165,6 @@ TRANSLATION_MAPPING = {
         'create',
         'created',
         'date_must_be_in_future',
-        'delayed_broadcast',
         'delete',
         'description',
         'details',

@@ -30,7 +30,7 @@ import webapp2
 from PIL.Image import Image  # @UnresolvedImport
 from babel import Locale
 from babel.dates import format_date
-from google.appengine.api import urlfetch, users as gusers
+from google.appengine.api import users as gusers
 from google.appengine.ext import db, deferred, ndb
 from google.appengine.ext.webapp import template
 from oauth2client.client import HttpAccessTokenRefreshError
@@ -88,17 +88,16 @@ from shop.exceptions import DuplicateCustomerNameException, ReplaceBusinessExcep
     CustomerNotFoundException, NoPermissionException
 from shop.jobs.migrate_user import migrate as migrate_user
 from shop.jobs.remove_regio_manager import remove_regio_manager
-from shop.models import Customer, Contact, normalize_vat, Order, Invoice, Charge, RegioManager, \
+from shop.models import Customer, Contact, Order, Invoice, Charge, RegioManager, \
     ShopLoyaltySlide, ShopLoyaltySlideNewOrder, RegioManagerTeam, RegioManagerStatistic, \
     LegalEntity, ShopExternalLinks
-from shop.to import CustomerTO, ContactTO, OrderItemTO, CompanyTO, CustomerServiceTO, CustomerReturnStatusTO, \
+from shop.to import CustomerTO, ContactTO, OrderItemTO, CustomerServiceTO, CustomerReturnStatusTO, \
     CreateOrderReturnStatusTO, JobReturnStatusTO, JobStatusTO, SignOrderReturnStatusTO, \
     RegioManagerReturnStatusTO, RegioManagerTeamsTO, AppRightsTO, ModulesReturnStatusTO, \
     OrderAndInvoiceTO, RegioManagerStatisticTO, SimpleAppTO, ProductTO, RegioManagerTeamTO, \
     RegioManagerTO, SubscriptionLengthReturnStatusTO, OrderReturnStatusTO, LegalEntityTO, \
     LegalEntityReturnStatusTO, CustomerChargesTO, ImportCustomersReturnStatusTO
-from solution_server_settings import get_solution_server_settings
-from solutions.common.bizz import SolutionModule, get_all_existing_broadcast_types, OrganizationType
+from solutions.common.bizz import SolutionModule, OrganizationType
 from solutions.common.bizz.locations import create_new_location
 from solutions.common.bizz.loyalty import update_all_user_data_admins
 from solutions.common.consts import CURRENCIES, get_currency_name
@@ -131,7 +130,7 @@ def _get_solution_modules():
 def _get_default_modules():
     return (SolutionModule.AGENDA,
             SolutionModule.ASK_QUESTION,
-            SolutionModule.BROADCAST,
+            SolutionModule.NEWS,
             SolutionModule.BULK_INVITE,
             SolutionModule.QR_CODES,
             SolutionModule.WHEN_WHERE,
@@ -214,7 +213,6 @@ def get_shop_context(**kwargs):
                admin=is_admin(user),
                team_admin=team_admin,
                payment_admin=is_payment_admin(user),
-               broadcast_types=get_all_existing_broadcast_types(),
                js_templates=json.dumps(js_templates),
                disabled_reasons_json=json.dumps(Customer.DISABLED_REASONS),
                languages=sorted(OFFICIALLY_SUPPORTED_LANGUAGES.iteritems(), key=lambda (k, v): v),
@@ -1156,7 +1154,6 @@ def _get_service(customer_id, current_user):
     svc.email = customer.user_email
     svc.language = settings.main_language
     svc.modules = settings.modules
-    svc.broadcast_types = settings.broadcast_types
     svc.organization_type = get_service_profile(service_user).organizationType
     svc.managed_organization_types = customer.managed_organization_types or []
     svc.community_id = customer.community_id

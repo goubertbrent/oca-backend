@@ -34,8 +34,8 @@ from typing import List
 import solutions
 from mcfw.cache import cached
 from mcfw.consts import MISSING
-from mcfw.properties import object_factory, unicode_property, long_list_property, bool_property, unicode_list_property, \
-    azzert, long_property, typed_property
+from mcfw.properties import object_factory, unicode_property, long_list_property, bool_property, azzert, long_property, \
+    typed_property
 from mcfw.rpc import returns, arguments
 from mcfw.utils import Enum
 from rogerthat.bizz.communities.communities import get_community
@@ -95,12 +95,6 @@ class OCAEmbeddedApps(Enum):
     CIRKLO = 'cirklo'
 
 
-CITY_APP_BROADCAST_TYPES = [u'Trafic', u'Emergency']
-ASSOCIATION_BROADCAST_TYPES = [u'News', u'Events']
-MERCHANT_BROADCAST_TYPES = [u'Coupons', u'Daily specials', u'Info sessions'] + CITY_APP_BROADCAST_TYPES \
-    + ASSOCIATION_BROADCAST_TYPES
-DEFAULT_BROADCAST_TYPES = [item for item in MERCHANT_BROADCAST_TYPES if item not in CITY_APP_BROADCAST_TYPES]
-
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -112,7 +106,7 @@ class SolutionModule(Enum):
     APPOINTMENT = u'appointment'
     ASK_QUESTION = u'ask_question'
     BILLING = u'billing'
-    BROADCAST = u'broadcast'
+    NEWS = u'broadcast'
     BULK_INVITE = u'bulk_invite'
     CITY_APP = u'city_app'
     DISCUSSION_GROUPS = u'discussion_groups'
@@ -143,7 +137,7 @@ class SolutionModule(Enum):
         APPOINTMENT: 'appointment',
         ASK_QUESTION: 'ask-question',
         BILLING: 'Billing',
-        BROADCAST: 'Broadcast',
+        NEWS: 'Broadcast',
         BULK_INVITE: 'settings-bulk-invite',
         DISCUSSION_GROUPS: 'discussion_groups',
         GROUP_PURCHASE: 'group-purchase',
@@ -167,13 +161,13 @@ class SolutionModule(Enum):
 
     INBOX_MODULES = (ASK_QUESTION, SANDWICH_BAR, APPOINTMENT, REPAIR, GROUP_PURCHASE, ORDER, RESTAURANT_RESERVATION,
                      PHARMACY_ORDER, CITY_APP)
-    PROVISION_ORDER = defaultdict(lambda: 10, {BROADCAST: 20})  # Broadcast should be last for auto broadcast types
+    PROVISION_ORDER = defaultdict(lambda: 10)
 
     # Modules allowed for static content subscriptions
     STATIC_MODULES = {WHEN_WHERE, BILLING}
     # These are the modules that the customer or cityapp service of the customer can choose themselves
-    ASSOCIATION_MODULES = {AGENDA, ASK_QUESTION, BROADCAST, BULK_INVITE, STATIC_CONTENT}
-    POSSIBLE_MODULES = {AGENDA, APPOINTMENT, ASK_QUESTION, BROADCAST, BULK_INVITE, DISCUSSION_GROUPS, GROUP_PURCHASE,
+    ASSOCIATION_MODULES = {AGENDA, ASK_QUESTION, NEWS, BULK_INVITE, STATIC_CONTENT}
+    POSSIBLE_MODULES = {AGENDA, APPOINTMENT, ASK_QUESTION, NEWS, BULK_INVITE, DISCUSSION_GROUPS, GROUP_PURCHASE,
                         MENU, ORDER, PHARMACY_ORDER, REPAIR, RESTAURANT_RESERVATION, SANDWICH_BAR,
                         STATIC_CONTENT, FORMS, PARTICIPATION}
     MANDATORY_MODULES = {BILLING, QR_CODES, WHEN_WHERE}
@@ -192,7 +186,7 @@ class SolutionModule(Enum):
         PHARMACY_ORDER: 5,
     }
 
-    FUNCTIONALITY_MODULES = {BROADCAST, LOYALTY, ORDER, SANDWICH_BAR, RESTAURANT_RESERVATION, MENU, AGENDA,
+    FUNCTIONALITY_MODULES = {NEWS, LOYALTY, ORDER, SANDWICH_BAR, RESTAURANT_RESERVATION, MENU, AGENDA,
                              PHARMACY_ORDER, HIDDEN_CITY_WIDE_LOTTERY, ASK_QUESTION, REPAIR, DISCUSSION_GROUPS,
                              APPOINTMENT, JOBS}
 
@@ -256,17 +250,14 @@ class SolutionServiceMenuItem(TO):
     requires_wifi = bool_property('7')  # False
     run_in_background = bool_property('8')  # True
     roles = long_list_property('9')  # []
-    is_broadcast_settings = bool_property('10')  # False
-    broadcast_branding = unicode_property('11')  # None
-    broadcast_types = unicode_list_property('12')
     coords = long_list_property('13')
     action = long_property('14')
     link = typed_property('15', ServiceMenuItemLinkTO)
     embedded_app = unicode_property('embedded_app')
 
     def __init__(self, icon_name, icon_color, label, tag, screen_branding=None, requires_wifi=False,
-                 run_in_background=True, static_flow=None, roles=None, is_broadcast_settings=False,
-                 broadcast_branding=None, broadcast_types=None, coords=None, action=0, link=None, embedded_app=None):
+                 run_in_background=True, static_flow=None, roles=None, coords=None, action=0, link=None,
+                 embedded_app=None):
         self.icon_name = icon_name
         self.icon_color = icon_color
         self.label = label
@@ -276,9 +267,6 @@ class SolutionServiceMenuItem(TO):
         self.run_in_background = run_in_background
         self.static_flow = static_flow
         self.roles = [] if roles is None else roles
-        self.is_broadcast_settings = is_broadcast_settings
-        self.broadcast_branding = broadcast_branding
-        self.broadcast_types = [] if broadcast_types is None else broadcast_types
         self.coords = [] if coords is None else coords
         self.action = action
         self.link = link
@@ -365,24 +353,24 @@ def update_reserved_menu_item_labels(sln_settings):
 @returns(ProvisionResponseTO)
 @arguments(solution=unicode, email=unicode, name=unicode,
            phone_number=unicode, languages=[unicode], currency=unicode, redeploy=bool,
-           organization_type=int, modules=[unicode], broadcast_types=[unicode],
+           organization_type=int, modules=[unicode],
            owner_user_email=unicode, search_enabled=bool, broadcast_to_users=[users.User], websites=[SyncedNameValue],
            password=unicode, tos_version=(int, long, NoneType), community_id=(int, long))
 def create_or_update_solution_service(solution, email, name, phone_number,
                                       languages, currency, redeploy, organization_type=OrganizationType.PROFIT,
-                                      modules=None, broadcast_types=None, owner_user_email=None,
+                                      modules=None, owner_user_email=None,
                                       search_enabled=False, broadcast_to_users=None, websites=None, password=None,
                                       tos_version=None, community_id=0):
     if not redeploy:
         password, sln_settings = \
             create_solution_service(email, name, phone_number, solution, languages, currency, organization_type,
-                                    modules, broadcast_types, owner_user_email, search_enabled, websites, password,
+                                    modules, owner_user_email, search_enabled, websites, password,
                                     tos_version, community_id)
         service_user = sln_settings.service_user
     else:
         service_user = users.User(email)
-        _, sln_settings = update_solution_service(service_user, solution, languages, modules, broadcast_types,
-                                                  organization_type, community_id)
+        _, sln_settings = update_solution_service(service_user, solution, languages, modules, organization_type,
+                                                  community_id)
         password = None
 
     # Slightly delay this as create_solution_service needs to run a task first to save the ServiceInfo
@@ -397,11 +385,9 @@ def create_or_update_solution_service(solution, email, name, phone_number,
 
 
 @returns(tuple)
-@arguments(service_user=users.User, solution=unicode,
-           languages=[unicode], modules=[unicode], broadcast_types=[unicode], organization_type=int,
+@arguments(service_user=users.User, solution=unicode, languages=[unicode], modules=[unicode], organization_type=int,
            community_id=(int, long))
-def update_solution_service(service_user, solution, languages, modules=None,
-                            broadcast_types=None, organization_type=None, community_id=0):
+def update_solution_service(service_user, solution, languages, modules=None, organization_type=None, community_id=0):
     def trans():
         service_profile = get_service_profile(service_user, False)
         bizz_check(service_profile, "Service %s does not exist" % service_user.email())
@@ -443,10 +429,6 @@ def update_solution_service(service_user, solution, languages, modules=None,
             solution_settings.modules = modules
             solution_settings_changed = True
 
-        if broadcast_types is not None:
-            solution_settings.broadcast_types = broadcast_types
-            solution_settings_changed = True
-
         main_branding, branding_settings = db.get([SolutionMainBranding.create_key(service_user),
                                                    SolutionBrandingSettings.create_key(service_user)])
         if not main_branding:
@@ -472,12 +454,12 @@ def update_solution_service(service_user, solution, languages, modules=None,
 @returns(tuple)
 @arguments(email=unicode, name=unicode,
            phone_number=unicode, solution=unicode, languages=[unicode], currency=unicode,
-           organization_type=int, modules=[unicode], broadcast_types=[unicode],
+           organization_type=int, modules=[unicode],
            owner_user_email=unicode, search_enabled=bool, websites=[SyncedNameValue], password=unicode,
            tos_version=(int, long, NoneType), community_id=(int, long))
 def create_solution_service(email, name, phone_number=None,
                             solution=SOLUTION_FLEX, languages=None, currency=u'EUR', organization_type=1,
-                            modules=None, broadcast_types=None, owner_user_email=None,
+                            modules=None, owner_user_email=None,
                             search_enabled=False, websites=None, password=None, tos_version=None, community_id=0):
     password = password or unicode(generate_random_key()[:8])
     if languages is None:
@@ -496,8 +478,7 @@ def create_solution_service(email, name, phone_number=None,
                                     main_language=languages[0],
                                     solution=solution,
                                     search_enabled=search_enabled,
-                                    modules=modules or [],
-                                    broadcast_types=broadcast_types or [])
+                                    modules=modules or [])
         service_info = ServiceInfo(key=ServiceInfo.create_key(new_service_user, ServiceIdentity.DEFAULT))
         service_info.visible = True
         service_info.name = name
@@ -805,13 +786,6 @@ def service_auto_connect(service_user):
                 logging.debug('%s is not supported for %s', App.APP_ID_ROGERTHAT, service_user)
 
 
-@returns([unicode])
-@arguments()
-def get_all_existing_broadcast_types():
-    # translate the keys and sort
-    return sorted((common_translate(DEFAULT_LANGUAGE, k) for k in MERCHANT_BROADCAST_TYPES))
-
-
 @returns(unicode)
 @arguments(service_user=users.User, template_name=unicode)
 def find_qr_template(service_user, template_name):
@@ -957,25 +931,6 @@ def delete_file_blob(service_user, file_id):
         logging.info('FileBlob with id %s has already been deleted' % file_id)
 
 
-@returns(unicode)
-@arguments(key=unicode, language=unicode)
-def try_to_translate(key, language):
-    try:
-        return common_translate(language, key, suppress_warning=True)
-    except:
-        return key
-
-
-@returns(dict)
-@arguments(sln_settings=SolutionSettings)
-def get_translated_broadcast_types(sln_settings):
-    translated_broadcast_types = {}
-    for bt in sln_settings.broadcast_types:
-        bt_trans = try_to_translate(bt, sln_settings.main_language)
-        translated_broadcast_types[bt_trans] = bt
-    return translated_broadcast_types
-
-
 @db.non_transactional
 @returns(BrandingTO)
 @arguments(description=unicode, content=unicode)
@@ -1066,16 +1021,6 @@ def delete_news_publisher(app_user, service_user, solution):
         revoke_app_user_role(app_user, POKE_TAG_BROADCAST_CREATE_NEWS)
 
 
-@returns()
-@arguments(sln_settings=SolutionSettings)
-def set_default_broadcast_types(sln_settings):
-    if not sln_settings.broadcast_types:
-        sln_settings.broadcast_types = []
-        for broadcast_type in DEFAULT_BROADCAST_TYPES:
-            translated = common_translate(sln_settings.main_language, broadcast_type)
-            sln_settings.broadcast_types.append(translated)
-
-
 @returns(SolutionOrderSettings)
 @arguments(sln_settings=SolutionSettings)
 def set_advanced_order_settings(sln_settings):
@@ -1134,13 +1079,6 @@ def validate_enable_or_disable_solution_module(service_user, module, enabled):
 @arguments(service_user=users.User, module=unicode, enabled=bool)
 def enable_or_disable_solution_module(service_user, module, enabled):
     sln_settings = get_solution_settings(service_user)
-    # for broadcast module, it can be enabled only
-    if module == SolutionModule.BROADCAST:
-        if enabled:
-            set_default_broadcast_types(sln_settings)
-        else:
-            return
-
     to_put = []
     if enabled:
         activate_solution_module(sln_settings, module)

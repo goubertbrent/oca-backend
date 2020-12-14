@@ -18,19 +18,19 @@
 import base64
 import datetime
 import hashlib
-from httplib import HTTPException
 import json
 import logging
 import os
 import re
-from types import NoneType
 import types
+from httplib import HTTPException
+from types import NoneType
 
+import facebook
 from google.appengine.api import images, urlfetch, search
 from google.appengine.api.urlfetch_errors import DeadlineExceededError
 from google.appengine.ext import db, deferred
 
-import facebook
 from mcfw.cache import invalidate_cache
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
@@ -47,13 +47,12 @@ from rogerthat.capi.system import identityUpdate
 from rogerthat.consts import MC_DASHBOARD
 from rogerthat.dal import parent_key, put_and_invalidate_cache, app
 from rogerthat.dal.app import get_app_name_by_id, get_app_by_user, get_app_by_id
-from rogerthat.dal.broadcast import get_broadcast_settings_flow_cache_keys_of_user
 from rogerthat.dal.friend import get_friends_map
 from rogerthat.dal.profile import get_avatar_by_id, get_existing_profiles_via_facebook_ids, \
     get_existing_user_profiles, get_user_profile, get_profile_infos, get_profile_info, get_service_profile, \
     get_user_profiles, get_service_or_user_profile, get_deactivated_user_profile
 from rogerthat.dal.service import get_default_service_identity_not_cached, get_all_service_friend_keys_query, \
-    get_service_identities_query, get_all_archived_service_friend_keys_query, get_friend_serviceidentity_connection
+    get_service_identities_query, get_all_archived_service_friend_keys_query
 from rogerthat.models import FacebookUserProfile, Avatar, ProfilePointer, ShortURL, FacebookProfilePointer, \
     FacebookDiscoveryInvite, Message, ServiceProfile, UserProfile, ServiceIdentity, ProfileInfo, \
     App, \
@@ -68,14 +67,13 @@ from rogerthat.to.messaging import ButtonTO, UserMemberTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.to.system import IdentityUpdateRequestTO
 from rogerthat.translations import localize, DEFAULT_LANGUAGE
-from rogerthat.utils import now, urlencode, is_clean_app_user_email, get_epoch_from_datetime,\
+from rogerthat.utils import now, urlencode, is_clean_app_user_email, get_epoch_from_datetime, \
     get_python_stack_trace
 from rogerthat.utils.app import get_app_id_from_app_user, create_app_user, get_human_user_from_app_user, \
     get_app_user_tuple, create_app_user_by_email
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.service import create_service_identity_user, remove_slash_default
 from rogerthat.utils.transactions import on_trans_committed, run_in_transaction
-
 
 try:
     from cStringIO import StringIO
@@ -773,7 +771,6 @@ def update_user_profile(app_user, name, image, language):
         if user_profile.language != language:
             user_profile.language = language
             changed_properties.append(u"language")
-            db.delete_async(get_broadcast_settings_flow_cache_keys_of_user(app_user))
         if user_profile.name != name:
             changed_properties.append(u"name")
             user_profile.name = name
@@ -1037,27 +1034,16 @@ def _unarchive_friend_connection(fsic_archive_key):
     service_identity_user = users.User(fsic_archive_key.name())
 
     user_data_key = UserDataArchive.createKey(app_user, service_identity_user)
-    fsic_archive, user_data_archive = db.get([fsic_archive_key, user_data_key])
+    user_data_archive = db.get(user_data_key)
 
-    to_delete = [fsic_archive]
     if user_data_archive:
         user_data_data = user_data_archive.data
-        to_delete.append(user_data_archive)
+        db.delete(user_data_archive)
     else:
         user_data_data = None
 
-    # set disabled and enabled broadcast types
-    def trans():
-        fsic = get_friend_serviceidentity_connection(app_user, service_identity_user)
-        fsic.disabled_broadcast_types = fsic_archive.disabled_broadcast_types
-        fsic.enabled_broadcast_types = fsic_archive.enabled_broadcast_types
-        fsic.put()
-        db.delete(to_delete)
-
-        deferred.defer(makeFriends, service_identity_user, app_user, app_user, None, None, notify_invitee=False,
-                       notify_invitor=False, user_data=user_data_data, _countdown=2, _transactional=True)
-
-    db.run_in_transaction(trans)
+    deferred.defer(makeFriends, service_identity_user, app_user, app_user, None, None, notify_invitee=False,
+                   notify_invitor=False, user_data=user_data_data, _countdown=2)
 
 
 @returns()

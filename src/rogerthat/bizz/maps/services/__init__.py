@@ -23,6 +23,7 @@ import json
 import logging
 import time
 import urllib
+
 from google.appengine.api import urlfetch
 from google.appengine.ext import ndb, db
 from google.appengine.ext.ndb.query import Cursor
@@ -334,8 +335,7 @@ def _get_all_translations(service_profile):
     from rogerthat.bizz.i18n import get_all_translations, get_active_translation_set
     s = get_active_translation_set(service_profile)
     if s:
-        translation_types = ServiceTranslation.HOME_TYPES + ServiceTranslation.IDENTITY_TYPES + \
-                            ServiceTranslation.BROADCAST_TYPES
+        translation_types = ServiceTranslation.HOME_TYPES + ServiceTranslation.IDENTITY_TYPES
         translations = get_all_translations(s, translation_types)
         return translations
 
@@ -433,8 +433,6 @@ def save_map_service(service_identity_user):
         map_service.vertical_items.append(MapServiceListItem(item=v_map_item))
 
     for smd in get_service_menu_items(service_identity_user):
-        if smd.isBroadcastSettings:
-            continue
         if smd.tag in ('when_where',):
             continue
         url_dict = {

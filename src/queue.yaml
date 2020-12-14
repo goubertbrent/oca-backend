@@ -46,8 +46,6 @@ queue:
 - name: scheduled-queue
   rate: 20/s
   max_concurrent_requests: 20
-- name: broadcast-queue
-  rate: 1/s
 - name: offload-queue
   rate: 1/s
   max_concurrent_requests: 1

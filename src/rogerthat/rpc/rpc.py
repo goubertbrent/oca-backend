@@ -16,27 +16,27 @@
 # @@license_version:1.7@@
 
 import base64
-from copy import deepcopy
 import json
 import logging
-from random import choice
 import threading
 import time
 import traceback
-from types import NoneType
 import types
 import uuid
+from copy import deepcopy
+from random import choice
+from types import NoneType
 
+from concurrent import futures  # @UnresolvedImport
 from google.appengine.api import urlfetch, memcache
 from google.appengine.api.apiproxy_stub_map import UserRPC
 from google.appengine.api.app_identity.app_identity import get_application_id
 from google.appengine.api.taskqueue import TaskRetryOptions
 from google.appengine.ext import db, deferred
-
 from hyper import HTTP20Connection
-from concurrent import futures  # @UnresolvedImport
 from jose import jwt
 from jose.constants import Algorithms
+
 from mcfw.cache import set_cache_key
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
@@ -57,7 +57,6 @@ from rogerthat.utils import now, privatize
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from rogerthat.utils.crypto import encrypt_for_jabber_cloud, decrypt_from_jabber_cloud
 from rogerthat.utils.transactions import on_trans_committed
-
 
 _CALL_ACTION_RESEND = 1
 _CALL_ACTION_MUST_PROCESS = 2
@@ -309,7 +308,7 @@ class JabberRpcCaller(threading.local):
                 except:
                     logging.info("failed to discard reset_streams", exc_info=True)
         del self.items[:]
-        
+
     def do_kick(self, app, payload_dict):
         # todo improve how connections work
         # 1 connection for every ios_dev_team
@@ -495,7 +494,7 @@ class ContextFinisher(threading.local):
             self._pool = None
         logging.info("Finalized futures")
 
-        
+
 apns_cache = APNSCache()
 kicks = JabberRpcCaller("kick")
 firebase = FirebaseKicker()

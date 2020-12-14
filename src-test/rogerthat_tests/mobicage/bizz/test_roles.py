@@ -68,11 +68,9 @@ class Test(mc_unittest.TestCase):
         role1 = create_service_role(self.service_user, u'role1', ServiceRole.TYPE_MANAGED)
         role2 = create_service_role(self.service_user, u'role2', ServiceRole.TYPE_MANAGED)
         create_menu_item(self.service_user, u'gear', u'#e6e6e6', u'label1', u'tag1', [1, 1, 1], screen_branding=None,
-                         static_flow_name=None, requires_wifi=False, run_in_background=False, roles=[role1.role_id],
-                         is_broadcast_settings=False, broadcast_branding=None)
+                         static_flow_name=None, requires_wifi=False, run_in_background=False, roles=[role1.role_id])
         create_menu_item(self.service_user, u'gear', u'#e6e6e6', u'label2', u'tag2', [1, 2, 1], screen_branding=None,
-                         static_flow_name=None, requires_wifi=False, run_in_background=False, roles=[role2.role_id],
-                         is_broadcast_settings=False, broadcast_branding=None)
+                         static_flow_name=None, requires_wifi=False, run_in_background=False, roles=[role2.role_id])
         return role1, role2
 
     def test_service_menu_item_roles(self):

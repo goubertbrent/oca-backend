@@ -133,7 +133,7 @@ var DAYS_STR = { {% for day_num, day_name in days %}
     {% if SolutionModule.AGENDA in sln_settings.modules and not loyalty %}
                         <li menu="events"><a href="#">{% translate language, "agenda" %}</a></li>
     {% endif %}
-    {% if SolutionModule.BROADCAST in sln_settings.modules %}
+    {% if SolutionModule.NEWS in sln_settings.modules %}
                         <li menu="news"><a href="#/news">{% translate language, "News & actions" %}</a></li>
     {% endif %}
     {% if SolutionModule.JOBS in sln_settings.modules %}
@@ -417,7 +417,7 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                                 <li class="" section="section_appointments"><a
                                   href="#/settings/appointments">{% translate language, "appointment" %}</a></li>
                             {% endif %}
-                            {% if not is_layout_user and SolutionModule.BROADCAST in sln_settings.modules %}
+                            {% if not is_layout_user and SolutionModule.NEWS in sln_settings.modules %}
                                 <li section="section_broadcast">
                                     <a
                                       href="#/settings/broadcast">{% translate language, "News & actions" %}</a>
@@ -447,7 +447,7 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                             {% if not is_layout_user and SolutionModule.BULK_INVITE in sln_settings.modules %}
                                 <li section="section_bulk-invite"><a href="#/settings/bulk-invite">{% translate language, "settings-bulk-invite" %}</a></li>
                             {% endif %}
-                            {% if not is_layout_user and (sln_settings.uses_inbox() or SolutionModule.BROADCAST in sln_settings.modules or SolutionModule.AGENDA in sln_settings.modules) %}
+                            {% if not is_layout_user and (sln_settings.uses_inbox() or SolutionModule.NEWS in sln_settings.modules or SolutionModule.AGENDA in sln_settings.modules) %}
                                 <li section="section_roles"><a href="#/settings/roles">{% translate language, "settings-app-users-and-roles" %}</a>
                                 </li>
                             {% endif %}
@@ -528,7 +528,7 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                             {%- include 'appointment_settings.tmpl' %}
                         {% endif %}
 
-                        {% if not is_layout_user and SolutionModule.BROADCAST in sln_settings.modules %}
+                        {% if not is_layout_user and SolutionModule.NEWS in sln_settings.modules %}
                             {%- include 'broadcast_settings.tmpl' %}
                         {% endif %}
                         {% if not is_layout_user and SolutionModule.SANDWICH_BAR in sln_settings.modules %}
@@ -560,7 +560,7 @@ var DAYS_STR = { {% for day_num, day_name in days %}
         {% if not is_layout_user and SolutionModule.BULK_INVITE in sln_settings.modules %}
                             {%- include 'bulk_invite.tmpl' %}
         {% endif %}
-                        {% if not is_layout_user and (sln_settings.uses_inbox() or SolutionModule.BROADCAST in sln_settings.modules or SolutionModule.AGENDA in sln_settings.modules) %}
+                        {% if not is_layout_user and (sln_settings.uses_inbox() or SolutionModule.NEWS in sln_settings.modules or SolutionModule.AGENDA in sln_settings.modules) %}
                             {%- include 'roles_settings.tmpl' %}
                         {% endif %}
                         {% if not is_layout_user and SolutionModule.Q_MATIC in sln_settings.modules %}

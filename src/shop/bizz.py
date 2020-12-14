@@ -16,32 +16,32 @@
 # @@license_version:1.7@@
 
 import base64
-from collections import OrderedDict
-from contextlib import closing
 import csv
 import datetime
-from functools import partial
 import hashlib
 import json
 import logging
 import os
-from types import NoneType
 import urllib
 import urlparse
+from collections import OrderedDict
+from contextlib import closing
+from functools import partial
+from types import NoneType
 
+import cloudstorage
+from babel.dates import format_datetime, get_timezone, format_date
+from dateutil.relativedelta import relativedelta
 from google.appengine.api import images, users as gusers, urlfetch
 from google.appengine.ext import deferred, db, ndb
 
-from babel.dates import format_datetime, get_timezone, format_date
-import cloudstorage
-from dateutil.relativedelta import relativedelta
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from oauth2client.contrib.appengine import OAuth2Decorator
 from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.communities.models import Community
-from rogerthat.bizz.elasticsearch import get_elasticsearch_config, create_index,\
+from rogerthat.bizz.elasticsearch import get_elasticsearch_config, create_index, \
     delete_index, es_request, index_doc
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.maps.services import SearchTag
@@ -90,7 +90,7 @@ from shop.to import CustomerChargeTO, CustomerChargesTO, AppRightsTO, CustomerSe
 from solution_server_settings import get_solution_server_settings, CampaignMonitorWebhook
 from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
 from solutions import translate as common_translate, translate
-from solutions.common.bizz import SolutionModule, common_provision, campaignmonitor, DEFAULT_BROADCAST_TYPES
+from solutions.common.bizz import SolutionModule, common_provision, campaignmonitor
 from solutions.common.bizz.grecaptcha import recaptcha_verify
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
 from solutions.common.bizz.service import new_inbox_message, send_signup_update_messages, \
@@ -102,7 +102,6 @@ from solutions.common.handlers import JINJA_ENVIRONMENT
 from solutions.common.models import SolutionInboxMessage, SolutionServiceConsent
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
-
 
 try:
     from cStringIO import StringIO
@@ -609,7 +608,7 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
 
     r = create_flex_service(customer.service_email if redeploy else service.email, customer.name,
                             service.phone_number, [service.language], u'EUR', modules,
-                            service.broadcast_types, redeploy, service.organization_type,
+                            redeploy, service.organization_type,
                             search_enabled, broadcast_to_users=broadcast_to_users, websites=websites, password=password,
                             tos_version=tos_version, community_id=service.community_id)
 
@@ -1622,9 +1621,8 @@ def get_regiomanagers_by_app_id(app_id):
     return RegioManager.list_by_app_id(app_id)
 
 
-def create_customer_service_to(name, email, language, phone_number, organization_type, community_id, broadcast_types,
-                               modules):
-    # type: (str, str, str, str, int, str, list[str], list[str]) -> CustomerServiceTO
+def create_customer_service_to(name, email, language, phone_number, organization_type, community_id, modules):
+    # type: (str, str, str, str, int, str, List[str]) -> CustomerServiceTO
     service = CustomerServiceTO()
     service.name = name
     service.email = email and email.lower()
@@ -1632,7 +1630,6 @@ def create_customer_service_to(name, email, language, phone_number, organization
     service.phone_number = phone_number
 
     service.organization_type = organization_type
-    service.broadcast_types = list(set(broadcast_types))
     service.modules = modules
     service.managed_organization_types = []
     service.community_id = community_id
@@ -2146,12 +2143,9 @@ def import_customer(
         phone = phone or contact_phone
         city = city or contact_city
         zip_code = zip_code or contact_zipcode
-        broadcast_types, modules = map(list, [
-            DEFAULT_BROADCAST_TYPES, get_default_modules(city_customer)
-        ])
+        modules = get_default_modules(city_customer)
 
-        service = create_customer_service_to(name, email, language, phone, org_type, community_id, broadcast_types,
-                                             modules)
+        service = create_customer_service_to(name, email, language, phone, org_type, community_id, modules)
 
         customer, _, is_new_service = create_customer_with_service(
             city_customer, None, service, name, contact_address, '', contact_zipcode,

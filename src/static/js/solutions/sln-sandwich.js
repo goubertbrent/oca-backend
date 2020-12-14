@@ -272,13 +272,6 @@ $(function () {
         });
         $("#sandwich_order_from").timepicker('setTime', sln.intToTime(settings.from_));
         $("#sandwich_order_till").timepicker('setTime', sln.intToTime(settings.till));
-        $.each([1, 2, 4, 8, 16, 32, 64], function (i, val) {
-            $("#sandwiches_broadcast_days input[value=" + val + "]").prop('checked', (settings.reminder_days & val) == val);
-            if (!$("#sandwiches_available_days input[value=" + val + "]").prop('checked'))
-                $("#sandwiches_broadcast_days input[value=" + val + "]").prop('disabled', true);
-        });
-        $("#sandwich_broadcast_at").timepicker('setTime', sln.intToTime(settings.reminder_at));
-        $("#sandwich_order_reminder_broadcast_message").val(settings.reminder_message);
         attachTimePickerEvents();
         var leapTimeEnabledElem = $('#sandwich_order_leaptime_enabled');
         var leapTimeElem = $('#sandwich_order_leaptime');
@@ -301,32 +294,16 @@ $(function () {
 
 
 	$("#sandwiches_available_days input[type=checkbox]").change(function () {
-		var checkbox = $(this);
-		var val = parseInt(checkbox.val());
-		var reminder_checkbox = $("#sandwiches_broadcast_days input[value="+val+"]");
-		if (! checkbox.prop('checked')) {
-            updatedSandwichSettings.days = updatedSandwichSettings.days & ~val;
-            updatedSandwichSettings.reminder_days = updatedSandwichSettings.reminder_days & ~val;
-			reminder_checkbox.prop('checked', false).prop('disabled', true);
-		} else {
+        var checkbox = $(this);
+        var val = parseInt(checkbox.val());
+        if (checkbox.prop('checked')) {
             updatedSandwichSettings.days = updatedSandwichSettings.days | val;
-			reminder_checkbox.prop('disabled', false);
-		}
-        var data = {days: updatedSandwichSettings.days, reminder_days: updatedSandwichSettings.reminder_days};
-		saveSettings(data);
-	});
-
-    $("#sandwiches_broadcast_days input[type=checkbox]").change(function () {
-		var checkbox = $(this);
-		var val = parseInt(checkbox.val());
-		if (! checkbox.prop('checked')) {
-            updatedSandwichSettings.reminder_days = updatedSandwichSettings.reminder_days & ~val;
-		} else {
-            updatedSandwichSettings.reminder_days = updatedSandwichSettings.reminder_days | val;
+        } else {
+            updatedSandwichSettings.days = updatedSandwichSettings.days & ~val;
         }
-        var data = {reminder_days: updatedSandwichSettings.reminder_days};
-		saveSettings(data);
-	});
+        var data = {days: updatedSandwichSettings.days};
+        saveSettings(data);
+    });
 
     function attachTimePickerEvents() {
         var onFromChange = sln.debounce(function (e) {
@@ -342,21 +319,8 @@ $(function () {
             var data = {till: till};
             saveSettings(data);
         }, 2000);
-        var onBroadcastChanged = sln.debounce(function (e) {
-            var at = 3600 * e.time.hours;
-            at += 60 * e.time.minutes;
-            var data = {reminder_at: at};
-            saveSettings(data);
-        }, 2000);
         $('#sandwich_order_from').on('changeTime.timepicker', onFromChange);
         $('#sandwich_order_till').on('changeTime.timepicker', onTillChange);
-
-        $('#sandwich_broadcast_at').on('changeTime.timepicker', onBroadcastChanged);
-
-        sln.configureDelayedInput($('#sandwich_order_reminder_broadcast_message'), function () {
-            var data = {reminder_message: $('#sandwich_order_reminder_broadcast_message').val()};
-            saveSettings(data);
-        });
     }
 
     $("#sandwichHidePrices, #sandwichShowPrices").click(function () {

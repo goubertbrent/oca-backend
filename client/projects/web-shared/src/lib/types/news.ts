@@ -101,10 +101,6 @@ export interface NewsItem {
   sender: NewsSender;
   title: string;
   message: string;
-  /**
-   * @deprecated use group_type instead
-   */
-  broadcast_type: string;
   buttons: NewsActionButton[];
   qr_code_content: string | null;
   qr_code_caption: string | null;

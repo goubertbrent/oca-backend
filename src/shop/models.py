@@ -533,7 +533,7 @@ class CustomerSignupStatus(Enum):
 class CustomerSignup(db.Model):
     EXPIRE_TIME = DAY * 3
     DEFAULT_MODULES = [
-        SolutionModule.BROADCAST,
+        SolutionModule.NEWS,
         SolutionModule.QR_CODES,
         SolutionModule.STATIC_CONTENT,
         SolutionModule.WHEN_WHERE,

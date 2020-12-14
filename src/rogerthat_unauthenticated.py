@@ -15,14 +15,15 @@
 #
 # @@license_version:1.7@@
 
-from google.appengine.api import app_identity
 import webapp2
+from google.appengine.api import app_identity
 
+import rogerthat.web_client.api.app
+import rogerthat.web_client.api.news
 from mcfw.restapi import rest_functions, GenericRESTRequestHandler
 from rogerthat.bizz.jobs import worker_callbacks as jobs_worker_callbacks
 from rogerthat.consts import DEBUG
 from rogerthat.handlers.apple import AppleAppSiteAssociationHandler
-from rogerthat.handlers.image_handlers import AppQRTemplateHandler
 from rogerthat.handlers.itsme import ItsmeAuthorizeHandler, ItsmeLoginHandler, ItsmeAuthorizedHandler, ItsmeJWKsHandler
 from rogerthat.pages import ViewImageHandler
 from rogerthat.pages.account import AccountLogoutHandler, AccountDeleteHandler, \
@@ -58,16 +59,13 @@ from rogerthat.pages.service_map import ServiceMapHandler
 from rogerthat.pages.service_page import GetServiceAppHandler
 from rogerthat.pages.settings import ForwardLog, DebugLog
 from rogerthat.pages.shortner import ShortUrlHandler
-from rogerthat.pages.unsubscribe_reminder_service import UnsubscribeReminderHandler, UnsubscribeBroadcastHandler, \
-    UnsubscribeDeactivateHandler
-from rogerthat.restapi import user, srv, service_map, news, payment, logger, embedded_apps, firebase, build_api
+from rogerthat.pages.unsubscribe_reminder_service import UnsubscribeReminderHandler, UnsubscribeDeactivateHandler
+from rogerthat.restapi import user, srv, service_map, news, logger, firebase, build_api
 from rogerthat.restapi.admin import ApplePushFeedbackHandler, ServerTimeHandler, ApplePushCertificateDownloadHandler
 from rogerthat.rpc.http import JSONRPCRequestHandler, UserAuthenticationHandler, \
     InstantJSONRPCRequestHandler
 from rogerthat.rpc.service import ServiceApiHandler, CallbackResponseReceiver
 from rogerthat.service.api import XMLSchemaHandler
-import rogerthat.web_client.api.app
-import rogerthat.web_client.api.news
 from rogerthat.web_client.pages.news import NewsPageHandler
 from rogerthat.wsgi import RogerthatWSGIApplication
 from rogerthat_service_api_calls import register_all_service_api_calls
@@ -138,7 +136,6 @@ handlers = [
     ('/api/1/apple_certs', ApplePushCertificateDownloadHandler),
     ('/api/1/servertime', ServerTimeHandler),
     ('/unsubscribe_reminder', UnsubscribeReminderHandler),
-    ('/unsubscribe_broadcast', UnsubscribeBroadcastHandler),
     ('/unsubscribe_deactivate', UnsubscribeDeactivateHandler),
     ('/auto_login', AutoLogin),
     ('/mobi/js_embedding/(.*)', JSEmbeddingDownloadHandler),

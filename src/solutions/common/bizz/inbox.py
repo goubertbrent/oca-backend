@@ -53,7 +53,6 @@ from shop.exceptions import InvalidEmailFormatException
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule, create_pdf
-from solutions.common.bizz.broadcast_statistics import get_broadcast_statistics_excel
 from solutions.common.bizz.loyalty import update_user_data_admins
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
 from solutions.common.models import SolutionInboxMessage, SolutionSettings
@@ -440,7 +439,6 @@ def _deferred_statistics_email_export(service_user, service_identity, lang, emai
     users.set_user(service_user)
     try:
         messages_pdf, message_statistics_excel = export_inbox_messages(service_user, service_identity)
-        broadcast_statistics = get_broadcast_statistics_excel(service_user, service_identity)
         flow_statistics_excel = base64.b64decode(system.export_flow_statistics(service_identity))
     finally:
         users.clear_user()
@@ -449,17 +447,12 @@ def _deferred_statistics_email_export(service_user, service_identity, lang, emai
     body_text = common_translate(lang, 'see_attachment_for_detailed_statistics')
     attachment_name_pdf = 'Inbox ' + cur_date + '.pdf'
     attachment_name_inbox_excel = 'Inbox messages ' + cur_date + '.xls'
-    attachment_name_broadcast_statistics = common_translate(lang, 'broadcast_statistics') + '.xls'
     attachment_name_flow_statistics_excel = 'Flow statistics ' + cur_date + '.xls'
 
-    attachments = []
-    attachments.append((attachment_name_pdf,
-                        base64.b64encode(messages_pdf)))
-    attachments.append((attachment_name_inbox_excel,
-                        base64.b64encode(message_statistics_excel)))
-    attachments.append((attachment_name_broadcast_statistics,
-                        base64.b64encode(broadcast_statistics)))
-    attachments.append((attachment_name_flow_statistics_excel,
-                        base64.b64encode(flow_statistics_excel)))
+    attachments = [
+        (attachment_name_pdf, base64.b64encode(messages_pdf)),
+        (attachment_name_inbox_excel, base64.b64encode(message_statistics_excel)),
+        (attachment_name_flow_statistics_excel, base64.b64encode(flow_statistics_excel))
+    ]
 
     send_mail(MC_DASHBOARD.email(), email, subject, body_text, attachments=attachments)

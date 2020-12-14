@@ -19,23 +19,6 @@
                     {{/each}}
                 </div>
             </div>
-
-            <label for="service_broadcast_types" class="control-label" style="display: none;">${T('broadcast_types')}</label>
-            <div id="service_broadcast_types" class="control-group" style="display: none;">
-                <div class="controls">
-                    {{each(i, broadcast_type) broadcast_types}}
-                    <label class="checkbox">
-                        <input name="service_broadcast_type" value="${broadcast_type}" type="checkbox" checked/>
-                        ${broadcast_type}
-                    </label>
-                    {{/each}}
-                    <input type="text" id="extra_broadcast_type" placeholder="${T('add_custom_broadcast_type')}"
-                               style="width: 292px;">
-                    <button type="button" id="add_extra_broadcast_type" class="btn btn-default">
-                            <i class="fa fa-plus"></i>
-                    </button>
-                </div>
-            </div>
         </form>
     </div>
 

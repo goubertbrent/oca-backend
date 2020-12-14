@@ -42,7 +42,7 @@ from rogerthat.bizz.job import run_job
 from rogerthat.capi.messaging import newMessage, updateMessageMemberStatus, messageLocked, conversationDeleted, \
     transferCompleted, updateMessage
 from rogerthat.consts import MC_DASHBOARD, MESSAGE_ACKED, MESSAGE_ACK_FAILED_LOCKED, MESSAGE_ACKED_NO_CHANGES, \
-    MICRO_MULTIPLIER, MC_RESERVED_TAG_PREFIX, CHAT_MAX_BUTTON_REPLIES, SCHEDULED_QUEUE, FAST_QUEUE, DEBUG, \
+    MICRO_MULTIPLIER, MC_RESERVED_TAG_PREFIX, CHAT_MAX_BUTTON_REPLIES, SCHEDULED_QUEUE, FAST_QUEUE, \
     FAST_CONTROLLER_QUEUE
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.app import get_app_name_by_id, get_app_by_user, get_app_by_id
@@ -51,14 +51,11 @@ from rogerthat.dal.messaging import get_message, get_branding, get_messages, get
     count_transfer_chunks, get_transfer_chunks, get_message_key, get_thread_avatar
 from rogerthat.dal.profile import get_user_profile, get_service_profile, get_profile_infos, \
     is_service_identity_user, get_profile_key, get_profile_info
-from rogerthat.dal.service import get_friend_serviceidentity_connection, \
-    get_friend_service_identity_connections_of_service_identity_query, get_api_keys, get_service_identity, \
-    get_service_identities
+from rogerthat.dal.service import get_friend_serviceidentity_connection, get_api_keys, get_service_identity
 from rogerthat.models import Message, FormMessage, ServiceProfile, UserProfile, ServiceMenuDef, Branding, \
-    TransferResult, TransferChunk, ServiceTranslation, FlowResultMailFollowUp, Broadcast, ChatWriterMembers, \
+    TransferResult, TransferChunk, ServiceTranslation, FlowResultMailFollowUp, ChatWriterMembers, \
     ChatReaderMembers, ChatMembers, DeleteMemberFromChatJob, AddMemberToChatJob, UpdateChatMemberJob, ThreadAvatar, \
-    AbstractChatJob, App, BroadcastStatistic, FlowStatistics, ServiceIdentity, \
-    ChatAdminMembers
+    AbstractChatJob, App, FlowStatistics, ServiceIdentity, ChatAdminMembers
 from rogerthat.models.apps import EmbeddedApplicationType
 from rogerthat.models.payment import PaymentProvider
 from rogerthat.models.properties.forms import Form, RangeSlider, SingleSlider, MultiSelect, SingleSelect, \
@@ -83,8 +80,8 @@ from rogerthat.to.friends import FRIEND_TYPE_SERVICE
 from rogerthat.to.messaging import ButtonTO, NewMessageRequestTO, NewMessageResponseTO, MemberStatusUpdateRequestTO, \
     MemberStatusUpdateResponseTO, MessageTO, MessageLockedRequestTO, MessageLockedResponseTO, AnswerTO, DirtyBehavior, \
     UserMemberTO, ConversationDeletedResponseTO, ConversationDeletedRequestTO, MemberStatusTO, \
-    TransferCompletedRequestTO, TransferCompletedResponseTO, AttachmentTO, BroadcastTargetAudienceTO, \
-    MemberTO, UpdateMessageResponseTO, UpdateMessageRequestTO, KeyValueTO, BaseMemberTO, \
+    TransferCompletedRequestTO, TransferCompletedResponseTO, AttachmentTO, MemberTO, UpdateMessageResponseTO, \
+    UpdateMessageRequestTO, KeyValueTO, BaseMemberTO, \
     GetConversationStatisticsResponseTO, ChatMemberStatisticsTO, \
     GetConversationMembersResponseTO, ConversationMemberTO, \
     GetConversationMemberMatchesResponseTO
@@ -608,13 +605,11 @@ def dashboardNotification(user, message, lock_immediately=True, context=None):
 @returns(FormMessage)
 @arguments(sender_user_possibly_with_slash_default=users.User, parent_key=unicode, member=users.User, message=unicode,
            form=FormTO, flags=int, branding=unicode, tag=unicode, alert_flags=int, context=unicode, key=unicode,
-           is_mfr=bool, forced_member_status=MemberStatusTO, forced_form_result=FormResult, broadcast_type=unicode,
-           attachments=[AttachmentTO], broadcast_guid=unicode, step_id=unicode, allow_reserved_tag=bool)
+           is_mfr=bool, forced_member_status=MemberStatusTO, forced_form_result=FormResult,
+           attachments=[AttachmentTO], step_id=unicode, allow_reserved_tag=bool)
 def sendForm(sender_user_possibly_with_slash_default, parent_key, member, message, form, flags, branding, tag,
              alert_flags=Message.ALERT_FLAG_VIBRATE, context=None, key=None, is_mfr=False, forced_member_status=None,
-             forced_form_result=None, broadcast_type=None, attachments=None, broadcast_guid=None, step_id=None,
-             allow_reserved_tag=False):
-
+             forced_form_result=None, attachments=None, step_id=None, allow_reserved_tag=False):
     sender_user_without_slash_default = remove_slash_default(sender_user_possibly_with_slash_default)
     _validate_form(form, sender_user_without_slash_default, member)
 
@@ -677,7 +672,7 @@ def sendForm(sender_user_possibly_with_slash_default, parent_key, member, messag
                     _get_flow_stats_breadcrumbs(pk, child_messages)
                 on_trans_committed(bump_flow_statistics_by_member_status, member, service_identity_user,
                                    readable_parent_message_tag, today(), breadcrumbs, step_id, forced_member_status,
-                                   broadcast_guid, flags)
+                                   flags)
             else:
                 parent_message = Message.get(pk)
 
@@ -693,7 +688,7 @@ def sendForm(sender_user_possibly_with_slash_default, parent_key, member, messag
                 on_trans_committed(bump_flow_statistics_by_member_status, member,
                                    add_slash_default(sender_user_without_slash_default),
                                    parse_to_human_readable_tag(tag), today(), list(), step_id, forced_member_status,
-                                   broadcast_guid, flags)
+                                   flags)
 
             fm = FormMessage(key_name=key)
             fm.childMessages = list()
@@ -746,8 +741,6 @@ def sendForm(sender_user_possibly_with_slash_default, parent_key, member, messag
                 fm.removeStatusIndex(member, Message.MEMBER_INDEX_STATUS_SHOW_IN_INBOX)
             if is_flag_set(MemberStatus.STATUS_DELETED, forced_member_status.status):
                 fm.removeStatusIndex(member, Message.MEMBER_INDEX_STATUS_NOT_DELETED)
-        fm.broadcast_type = broadcast_type
-        fm.broadcast_guid = broadcast_guid
         fm.step_id = step_id
         _add_attachments(attachments, fm)
         put = list()
@@ -820,60 +813,7 @@ def sendForm(sender_user_possibly_with_slash_default, parent_key, member, messag
     msg_dict = serialize_complex_value(WebFormMessageTO.fromMessage(fm, thread_size), WebFormMessageTO, False)
     msg_dict['context'] = context
     channel.send_message(member, u'rogerthat.messaging.newMessage', message=msg_dict)
-
-    if fm.broadcast_guid and not fm.parent_key():
-        slog(msg_="Broadcast stats sent", function_=log_analysis.BROADCAST_STATS, service=fm.sender.email(),
-             type_=log_analysis.BROADCAST_STATS_SENT, broadcast_guid=broadcast_guid)
-
     return fm
-
-
-@returns(unicode)
-@arguments(service_identity_user=users.User, broadcast_type=unicode, message=unicode,
-           answers=[AnswerTO], flags=int, branding=unicode, tag=unicode, alert_flags=int,
-           dismiss_button_ui_flags=int, target_audience=BroadcastTargetAudienceTO, attachments=[AttachmentTO],
-           timeout=int)
-def broadcastMessage(service_identity_user, broadcast_type, message, answers, flags, branding,
-                     tag, alert_flags=Message.ALERT_FLAG_VIBRATE, dismiss_button_ui_flags=0, target_audience=None,
-                     attachments=None, timeout=0):
-
-    from rogerthat.bizz.service import validate_app_id_for_service_identity_user
-
-    # First dry run inline to trigger potential parameter validation errors
-    if target_audience not in (MISSING, None) and target_audience.app_id is not MISSING:
-
-        validate_app_id_for_service_identity_user(service_identity_user, target_audience.app_id)
-        qry = get_friend_service_identity_connections_of_service_identity_query(
-            service_identity_user, target_audience.app_id)
-    else:
-        qry = get_friend_service_identity_connections_of_service_identity_query(service_identity_user)
-    volunteer = qry.get()
-    if not volunteer:
-        return
-    volunteer = UserMemberTO(volunteer.friend, alert_flags)
-    sendMessage(service_identity_user, [volunteer], flags, timeout, None, message, answers, None, branding, tag,
-                dismiss_button_ui_flags, dry_run=True, broadcast_type=broadcast_type)
-    # Dry run succeeded, let's schedule the real job
-
-    from rogerthat.bizz.job.service_broadcast import schedule_identity_broadcast_message
-    extra_kwargs = dict()
-    if target_audience not in (MISSING, None):
-        extra_kwargs.update(min_age=target_audience.min_age,
-                            max_age=target_audience.max_age,
-                            gender=UserProfile.gender_from_string(target_audience.gender),
-                            app_id=target_audience.app_id if target_audience.app_id is not MISSING else None)
-
-    def trans():
-        broadcast_guid = schedule_identity_broadcast_message(service_identity_user, broadcast_type, message, answers, flags, branding, tag,
-                                                             alert_flags, dismiss_button_ui_flags, attachments=attachments, timeout=timeout,
-                                                             **extra_kwargs)
-        stats = BroadcastStatistic(key=BroadcastStatistic.create_key(broadcast_guid, service_identity_user),
-                                   timestamp=now())
-        stats.message = message[:500]
-        stats.put()
-        return broadcast_guid
-
-    return db.run_in_transaction(trans)
 
 
 @returns(str)
@@ -928,20 +868,18 @@ def _send_message_as_group_chat(sender_user, members, flags, timeout, message, a
 @arguments(sender_user_possibly_with_slash_default=users.User, members=[UserMemberTO], flags=int, timeout=int,
            parent_key=unicode, message=unicode, answers=[ButtonTO], sender_answer=unicode, branding=unicode,
            tag=unicode, dismiss_button_ui_flags=int, context=unicode, key=unicode, is_mfr=bool,
-           forced_member_status=MemberStatusTO, dry_run=bool, allow_reserved_tag=bool, broadcast_type=unicode,
+           forced_member_status=MemberStatusTO, allow_reserved_tag=bool,
            attachments=[AttachmentTO], check_friends=bool, check_friends_of=users.User,
-           thread_avatar=str, thread_background_color=unicode, thread_text_color=unicode, priority=int, broadcast_guid=unicode,
+           thread_avatar=str, thread_background_color=unicode, thread_text_color=unicode, priority=int,
            default_priority=(int, long), default_sticky=bool, step_id=unicode, default_alert_flags=int,
            embedded_app=MessageEmbeddedApp, skip_sender=bool)
 def sendMessage(sender_user_possibly_with_slash_default, members, flags, timeout, parent_key, message, answers,
                 sender_answer, branding, tag, dismiss_button_ui_flags=0, context=None, key=None, is_mfr=False,
-                forced_member_status=None, dry_run=False, allow_reserved_tag=False, broadcast_type=None,
-                attachments=None, check_friends=True, check_friends_of=None,
+                forced_member_status=None, allow_reserved_tag=False, attachments=None,
+                check_friends=True, check_friends_of=None,
                 thread_avatar=None, thread_background_color=None, thread_text_color=None,
-                priority=Message.PRIORITY_NORMAL, broadcast_guid=None,
-                default_priority=Message.PRIORITY_NORMAL, default_sticky=False, step_id=None,
-                default_alert_flags=Message.ALERT_FLAG_VIBRATE, embedded_app=None, skip_sender=True):
-
+                priority=Message.PRIORITY_NORMAL, default_priority=Message.PRIORITY_NORMAL, default_sticky=False,
+                step_id=None, default_alert_flags=Message.ALERT_FLAG_VIBRATE, embedded_app=None, skip_sender=True):
     from rogerthat.service.api.messaging import new_chat_message
 
     STICKY_TIMEOUT = 60 * 60 * 12
@@ -1056,9 +994,6 @@ def sendMessage(sender_user_possibly_with_slash_default, members, flags, timeout
                 return m.alert_flags
         return _alert_flags
 
-    class DryRunException(Exception):
-        pass
-
     def put_chat_members(cls, member_emails):
         max_size = size = MAX_CHAT_MEMBERS_SIZE
         chat_members_models = list()
@@ -1082,7 +1017,7 @@ def sendMessage(sender_user_possibly_with_slash_default, members, flags, timeout
 
                 on_trans_committed(bump_flow_statistics_by_member_status, member_users[0], service_identity_user,
                                    readable_parent_message_tag, today(), breadcrumbs, step_id, forced_member_status,
-                                   broadcast_guid, flags)
+                                   flags)
 
             elif child_messages:
                 parent_message, previous_message = Message.get([pk, child_messages[-1]])
@@ -1156,7 +1091,7 @@ def sendMessage(sender_user_possibly_with_slash_default, members, flags, timeout
                 on_trans_committed(bump_flow_statistics_by_member_status, member_users[0],
                                    add_slash_default(sender_user_without_slash_default),
                                    parse_to_human_readable_tag(tag), today(), list(), step_id,
-                                   forced_member_status, broadcast_guid, flags)
+                                   forced_member_status, flags)
 
             m = Message(key_name=key)
             m.childMessages = list()
@@ -1189,7 +1124,7 @@ def sendMessage(sender_user_possibly_with_slash_default, members, flags, timeout
             m.thread_background_color = thread_background_color
             m.thread_text_color = thread_text_color
 
-        _validate_buttons(answers, m.flags, dry_run)
+        _validate_buttons(answers, m.flags)
         _validateSenderReply(sender_answer, answers, recipients, sender_user_without_slash_default)
 
         m.service_api_updates = parent_message.service_api_updates if parent_message else None
@@ -1210,8 +1145,6 @@ def sendMessage(sender_user_possibly_with_slash_default, members, flags, timeout
         m.dismiss_button_ui_flags = dismiss_button_ui_flags
         m.sender_type = sender_type
 
-        m.broadcast_type = broadcast_type
-        m.broadcast_guid = broadcast_guid
         if parent_message:
             if parent_message.default_priority is None:
                 parent_message.default_priority = Message.PRIORITY_NORMAL
@@ -1300,21 +1233,15 @@ def sendMessage(sender_user_possibly_with_slash_default, members, flags, timeout
         put = [m]
         if parent_key:
             put.append(parent_message)
-        if dry_run:
-            raise DryRunException()
-        else:
-            db.put(put)
+        db.put(put)
 
         return m, recipients, parent_message
 
     is_in_transaction = db.is_in_transaction()
-    try:
-        if is_in_transaction:
-            m, recipients, parent_message = run(recipients, member_users, _alert_flags)
-        else:
-            m, recipients, parent_message = db.run_in_transaction(run, recipients, member_users, _alert_flags)
-    except DryRunException:
-        return None
+    if is_in_transaction:
+        m, recipients, parent_message = run(recipients, member_users, _alert_flags)
+    else:
+        m, recipients, parent_message = db.run_in_transaction(run, recipients, member_users, _alert_flags)
 
     if m.timeout > 0:
         countdown = m.timeout - now()
@@ -1398,11 +1325,6 @@ def sendMessage(sender_user_possibly_with_slash_default, members, flags, timeout
         for recipient in recipients:
             request = _create_request(recipient)
             try_or_defer(_send_newMessage_channel_api_call, recipient, request, context)
-
-    if m.broadcast_guid and not m.parent_key():
-        slog(msg_="Broadcast stats sent", function_=log_analysis.BROADCAST_STATS, service=m.sender.email(),
-             type_=log_analysis.BROADCAST_STATS_SENT, broadcast_guid=broadcast_guid)
-
     return m
 
 
@@ -2108,14 +2030,9 @@ def _markMessagesAsRead(user, parent_message_key, message_keys, mobile):
                 channel.send_message(user, u'rogerthat.messaging.memberUpdate',
                                      update=serialize_complex_value(request, MemberStatusUpdateRequestTO, False))
             updateMessageMemberStatus(message_member_response_handler, logError, user, request=request, **kwargs)
-        return filtered_puts
 
     xg_on = db.create_transaction_options(xg=True)
-    messages = db.run_in_transaction_options(xg_on, run)
-    for message in messages:
-        if message.broadcast_guid and not message.parent_key():
-            slog(msg_="Broadcast stats read", function_=log_analysis.BROADCAST_STATS, service=message.sender.email(),
-                 type_=log_analysis.BROADCAST_STATS_READ, broadcast_guid=message.broadcast_guid)
+    db.run_in_transaction_options(xg_on, run)
 
 
 @returns(Message)
@@ -3098,21 +3015,6 @@ def process_mfr_email_reply_rogerthat_reply(message):
 
 
 @returns(NoneType)
-@arguments(app_user=users.User, service_identity_user=users.User, parent_message_key=unicode, tag=unicode)
-def check_test_flow_broadcast_ended(app_user, service_identity_user, parent_message_key, tag):
-    if tag and tag.startswith("{") and tag.endswith("}"):
-        try:
-            tag_dict = json.loads(tag)
-        except:
-            pass
-        else:
-            if Broadcast.TAG_MC_BROADCAST in tag_dict:
-                from rogerthat.bizz.service.broadcast import flow_test_person_ended
-                flow_test_person_ended(
-                    app_user, parent_message_key, service_identity_user, tag_dict[Broadcast.TAG_MC_BROADCAST])
-
-
-@returns(NoneType)
 @arguments(svc_user=users.User, service_identity=unicode, message_flow_run_id=unicode, parent_message_key=unicode,
            app_user=users.User, steps=[object_factory("step_type", FLOW_STEP_MAPPING)], flush_id=unicode,
            end_id=unicode, tag=unicode, flow_params=unicode, timestamp=(int, long))
@@ -3226,9 +3128,6 @@ def message_received(user, message_key, timestamp):
     if result:
         message, ms = result
         _send_updates(user, message, ms, False, ServiceProfile.CALLBACK_MESSAGING_RECEIVED)
-        if message.broadcast_guid and not message.parent_key():
-            slog(msg_="Broadcast stats received", function_=log_analysis.BROADCAST_STATS, service=message.sender.email(
-            ), type_=log_analysis.BROADCAST_STATS_RECEIVED, broadcast_guid=message.broadcast_guid)
 
 
 def _validate_members(sender, sender_is_service_identity, members):
@@ -4359,7 +4258,7 @@ def _validate_tag(tag, allow_reserved_tag=False):
         raise ReservedTagException()
 
 
-def _validate_buttons(buttons, flags, dry_run):
+def _validate_buttons(buttons, flags):
     if buttons:
         buttonids = list()
         for b in buttons:
@@ -4367,13 +4266,12 @@ def _validate_buttons(buttons, flags, dry_run):
                 scheme, _, _, _, _, _ = urllib2.urlparse.urlparse(b.action)
                 if not scheme in ALLOWED_BUTTON_ACTIONS:
                     raise UnsupportedActionTypeException(scheme)
-                if not dry_run:
-                    if b.action.startswith("mailto:") and not b.action.startswith("mailto://"):
-                        b.action = "mailto://" + b.action[7:]
-                    elif b.action.startswith("smi://"):
-                        b.action = 'smi://' + ServiceMenuDef.hash_tag(b.action[6:])
-                        if not is_flag_set(Message.UI_FLAG_EXPECT_NEXT_WAIT_5, b.ui_flags):
-                            b.ui_flags = set_flag(Message.UI_FLAG_EXPECT_NEXT_WAIT_5, b.ui_flags)
+                if b.action.startswith("mailto:") and not b.action.startswith("mailto://"):
+                    b.action = "mailto://" + b.action[7:]
+                elif b.action.startswith("smi://"):
+                    b.action = 'smi://' + ServiceMenuDef.hash_tag(b.action[6:])
+                    if not is_flag_set(Message.UI_FLAG_EXPECT_NEXT_WAIT_5, b.ui_flags):
+                        b.ui_flags = set_flag(Message.UI_FLAG_EXPECT_NEXT_WAIT_5, b.ui_flags)
 
             if isinstance(b, AnswerTO) and b.type != "button":
                 raise UnknownAnswerWidgetType(b.type)
@@ -4783,23 +4681,6 @@ def _get_flow_stats_breadcrumbs(parent_message_datastore_key, child_message_data
     return breadcrumbs, service_identity_user, tag, parent_message, messages[-1] if messages else parent_message
 
 
-@returns(unicode)
-@arguments(flags=int, broadcast_guid=unicode, tag=unicode, service_identity_user=users.User)
-def _get_flow_stats_tag(flags, broadcast_guid, tag, service_identity_user):
-    if broadcast_guid and is_flag_set(Message.FLAG_SENT_BY_MFR, flags):
-        try:
-            db.Key(tag)  # tag is created by MFR and is a db.Key of kind 'Member', find the real tag in bc_stats
-            bc_stats_key = BroadcastStatistic.create_key(broadcast_guid, service_identity_user)
-            bc_stats = BroadcastStatistic.get(bc_stats_key)
-            if bc_stats:
-                tag = bc_stats.tag
-            else:
-                logging.warn('Excepted to find BroadcastStatistic %r!', bc_stats_key)
-        except:
-            pass
-    return tag
-
-
 @returns()
 @arguments(app_user=users.User, flow_stats_statuses=[unicode], message=Message, parent_message=Message, btn_id=unicode)
 def bump_flow_statistics_for_message_update(app_user, flow_stats_statuses, message, parent_message=None, btn_id=None):
@@ -4811,17 +4692,15 @@ def bump_flow_statistics_for_message_update(app_user, flow_stats_statuses, messa
         service_identity_user = add_slash_default(message.sender)
         tag = parse_to_human_readable_tag(message.tag)
 
-    tag = _get_flow_stats_tag(message.flags, message.broadcast_guid, tag, service_identity_user)
     on_trans_committed(bump_flow_statistics, app_user, service_identity_user, tag, today(), breadcrumbs,
                        flow_stats_statuses, message.step_id, btn_id)
 
 
 @returns()
 @arguments(app_user=users.User, service_identity_user=users.User, tag=unicode, today=int,
-           breadcrumbs=[unicode], current_step_id=unicode, member_status=MemberStatusTO, broadcast_guid=unicode,
-           flags=int)
+           breadcrumbs=[unicode], current_step_id=unicode, member_status=MemberStatusTO, flags=int)
 def bump_flow_statistics_by_member_status(app_user, service_identity_user, tag, today, breadcrumbs, current_step_id,
-                                          member_status, broadcast_guid, flags):
+                                          member_status, flags):
     statuses = [FlowStatistics.STATUS_SENT]
     current_btn_id = None
     if member_status:
@@ -4833,7 +4712,6 @@ def bump_flow_statistics_by_member_status(app_user, service_identity_user, tag, 
             statuses.append(FlowStatistics.STATUS_ACKED)
             current_btn_id = member_status.button_id
 
-    tag = _get_flow_stats_tag(flags, broadcast_guid, tag, service_identity_user)
     bump_flow_statistics(app_user, service_identity_user, tag, today, breadcrumbs, statuses, current_step_id,
                          current_btn_id)
 

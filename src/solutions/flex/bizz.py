@@ -20,7 +20,6 @@ import uuid
 from types import NoneType
 
 from mcfw.rpc import returns, arguments
-from rogerthat.models import ServiceMenuDef
 from rogerthat.models.settings import SyncedNameValue
 from rogerthat.rpc import users
 from rogerthat.service.api import system
@@ -63,12 +62,7 @@ DEFAULT_COORDS = {
         }
     },
     SolutionModule.BILLING: None,
-    SolutionModule.BROADCAST: {
-        ServiceMenuDef.TAG_MC_BROADCAST_SETTINGS: {
-            "preferred_page": 0,
-            "coords": [3, 2, 0],
-            "priority": 20
-        },
+    SolutionModule.NEWS: {
         POKE_TAG_BROADCAST_CREATE_NEWS: {
             "preferred_page": -1,
             "coords": [-1, -1, -1],
@@ -230,10 +224,10 @@ def provision(service_user, friends=None, transactional=True):
 
 @returns(ProvisionResponseTO)
 @arguments(email=unicode, name=unicode, phone_number=unicode, languages=[unicode], currency=unicode,
-           modules=[unicode], broadcast_types=[unicode], allow_redeploy=bool, organization_type=int,
+           modules=[unicode], allow_redeploy=bool, organization_type=int,
            search_enabled=bool, broadcast_to_users=[users.User], websites=[SyncedNameValue], password=unicode,
            tos_version=(int, long, NoneType), community_id=(int, long))
-def create_flex_service(email, name, phone_number, languages, currency, modules, broadcast_types, allow_redeploy,
+def create_flex_service(email, name, phone_number, languages, currency, modules, allow_redeploy,
                         organization_type=OrganizationType.PROFIT, search_enabled=False,
                         broadcast_to_users=None, websites=None, password=None, tos_version=None, community_id=0):
     from rogerthat.bizz.rtemail import EMAIL_REGEX
@@ -247,7 +241,6 @@ def create_flex_service(email, name, phone_number, languages, currency, modules,
         service_email = u"service-%s@rogerth.at" % uuid.uuid4()
 
     return create_or_update_solution_service(SOLUTION_FLEX, service_email, name, phone_number, languages, currency,
-                                             redeploy, organization_type, modules, broadcast_types, owner_user_email,
+                                             redeploy, organization_type, modules, owner_user_email,
                                              search_enabled, broadcast_to_users, websites, password, tos_version,
                                              community_id)
-

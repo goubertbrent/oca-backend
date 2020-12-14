@@ -40,78 +40,20 @@ indexes:
   - name: user
   - name: friend
 
-- kind: FriendServiceIdentityConnectionArchive
-  properties:
-  - name: deleted
-  - name: service_identity_email
-
 - kind: FriendServiceIdentityConnection
   ancestor: yes
   properties:
-  - name: deleted
   - name: service_identity_email
 
 - kind: FriendServiceIdentityConnection
   properties:
-  - name: deleted
-  - name: service_identity_email
-
-- kind: FriendServiceIdentityConnection
-  properties:
-  - name: deleted
   - name: service_identity_email
   - name: friend_name
 
 - kind: FriendServiceIdentityConnection
   properties:
-  - name: deleted
   - name: service_identity_email
-  - name: friend_name
   - name: app_id
-
-- kind: FriendServiceIdentityConnection
-  properties:
-  - name: broadcast_type
-  - name: service_identity_email
-  - name: disabled_broadcast_types
-
-- kind: FriendServiceIdentityConnection
-  properties:
-  - name: broadcast_type
-  - name: service_identity_email
-  - name: birthdate
-
-- kind: FriendServiceIdentityConnection
-  properties:
-  - name: disabled_broadcast_types
-  - name: service_identity_email
-
-- kind: FriendServiceIdentityConnection
-  properties:
-  - name: deleted
-  - name: service_identity_email
-  - name: birthdate
-
-- kind: FriendServiceIdentityConnection
-  properties:
-  - name: deleted
-  - name: service_identity_email
-  - name: birthdate
-  - name: enabled_broadcast_types
-
-- kind: FriendServiceIdentityConnection
-  properties:
-  - name: deleted
-  - name: service_identity_email
-  - name: birthdate
-  - name: enabled_broadcast_types
-  - name: gender
-
-- kind: FriendServiceIdentityConnection
-  properties:
-  - name: deleted
-  - name: service_identity_email
-  - name: enabled_broadcast_types
   - name: friend_name
 
 - kind: Installation
@@ -292,11 +234,6 @@ indexes:
   ancestor: yes
   properties:
   - name: action
-
-- kind: BroadcastStatistic
-  ancestor: yes
-  properties:
-  - name: timestamp
 
 # ======================================================== NEWS ========================================================
 
@@ -997,22 +934,6 @@ indexes:
   - name: deleted
   - name: timestamp
     direction: desc
-
-- kind: SolutionScheduledBroadcast
-  properties:
-  - name: deleted
-  - name: broadcast_epoch
-
-- kind: SolutionScheduledBroadcast
-  ancestor: yes
-  properties:
-  - name: broadcast_epoch
-
-- kind: SolutionScheduledBroadcast
-  ancestor: yes
-  properties:
-  - name: deleted
-  - name: broadcast_epoch
 
 - kind: SolutionCityWideLottery
   ancestor: yes

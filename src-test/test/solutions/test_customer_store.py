@@ -86,7 +86,6 @@ class CustomerStoreTestCase(oca_unittest.TestCase):
     def _create_service(self, customer):
         service = CustomerServiceTO()
         service.apps = [App.APP_ID_ROGERTHAT, u'be-loc']
-        service.broadcast_types = [u'broadcast']
         service.email = u'test@example.com'
         service.language = u'en'
         service.community_id = self.communities[2].id
@@ -104,7 +103,6 @@ class CustomerStoreTestCase(oca_unittest.TestCase):
 
         service = CustomerServiceTO()
         service.apps = [App.APP_ID_ROGERTHAT, u'be-loc']
-        service.broadcast_types = [u'broadcast']
         service.email = u'test@example.com'
         service.language = u'en'
         mods = [m for m in SolutionModule.MANDATORY_MODULES]

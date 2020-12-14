@@ -17,12 +17,14 @@
 
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
+from typing import List
 
 from mcfw.consts import MISSING
 from mcfw.rpc import arguments, returns
 from rogerthat.capi.forms import testForm, test_form_response_handler
 from rogerthat.dal.mobile import get_mobile_key_by_account
 from rogerthat.dal.profile import get_service_profile, get_profile_infos, get_user_profile
+from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceMenuDef, Message
 from rogerthat.models.forms import Form, FormSubmissions, Submission
 from rogerthat.rpc import users
@@ -39,6 +41,7 @@ from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import localize
 from .exceptions import FormValidationException, EmptyPropertyException, FormNotFoundException, \
     FormInUseException, LocalizedSubmitFormException, NoPermissionToFormException, SubmitFormException
+from rogerthat.utils.service import create_service_identity_user
 
 
 @returns(Form)
@@ -118,12 +121,12 @@ def delete_form_submissions(service_user, form_id, validate=True):
 
 @arguments(service_user=users.User, form_id=(int, long), testers=[users.User])
 def test_form(service_user, form_id, testers):
-    # type: (users.User, int, list[users.User]) -> None
+    # type: (users.User, int, List[users.User]) -> None
     form = get_form(form_id, service_user)
     request = TestFormRequestTO(id=form_id, version=form.version)
     to_put = []
     prof = get_service_profile(service_user)
-    branding = prof.broadcastBranding
+    branding = get_service_identity(create_service_identity_user(service_user)).menuBranding
     caption = localize(prof.defaultLanguage, 'forms.test_form')
     answers = [AnswerTO(id_=u'test',
                         caption=caption,

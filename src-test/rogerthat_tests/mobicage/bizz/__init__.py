@@ -39,6 +39,5 @@ class TestFeatures(mc_unittest.TestCase):
         self.assertNotEqual(Version(0, 1), Version(0, 2))
 
     def testFeature(self):
-        self.assertLess(Features.BROADCAST_VIA_FLOW_CODE.ios, Features.BROADCAST_VIA_FLOW_CODE.android)
         self.assertLess(Features.FRIEND_SET.ios.minor, Features.FRIEND_SET.android.minor)  # @UndefinedVariable
         self.assertEqual(Features.FRIEND_SET.ios.major, Features.FRIEND_SET.android.major)  # @UndefinedVariable

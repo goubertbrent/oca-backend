@@ -218,7 +218,6 @@ var openCreateServiceIdentityDialog = function(successCallback) {
 var openEditServiceIdentityDialog = function(serviceIdentity, successCallback) {
     searchLocations = serviceIdentity.search_config.locations;
     adminEmails = serviceIdentity.admin_emails;
-    canEditSupportedApps = serviceIdentity.can_edit_supported_apps;
 
     createIdentityDialog.dialog({
         title : "Edit service identity",

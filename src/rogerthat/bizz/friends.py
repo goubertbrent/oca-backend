@@ -20,7 +20,6 @@ import hashlib
 import itertools
 import json
 import logging
-import threading
 import uuid
 from types import NoneType
 
@@ -46,15 +45,12 @@ from rogerthat.dal.friend import get_friends_map, get_friends_friends_maps, get_
 from rogerthat.dal.location import get_user_location
 from rogerthat.dal.mobile import get_mobile_key_by_account
 from rogerthat.dal.profile import get_profile_info, get_user_profile, is_service_identity_user, get_service_profile, \
-    get_profile_infos, are_service_identity_users, get_user_profiles, get_profile_key, get_deactivated_user_profile_keys
+    get_profile_infos, are_service_identity_users, get_profile_key, get_deactivated_user_profile_keys
 from rogerthat.dal.roles import list_service_roles_by_type
-from rogerthat.dal.service import get_friend_serviceidentity_connection, get_service_identity, \
-    get_friend_service_identity_connections_of_service_identity_query, \
-    get_broadcast_audience_of_service_identity_keys_query, \
-    get_friend_service_identity_connections_of_service_identity_keys_query
+from rogerthat.dal.service import get_friend_serviceidentity_connection, get_service_identity
 from rogerthat.models import ProfileInfo, ServiceProfile, UserData, FriendServiceIdentityConnection, ServiceRole, \
     FriendInvitationHistory, ServiceTranslation, UserInvitationSecret, UserProfile, Message, ServiceIdentity, \
-    ServiceInteractionDef, App, Group, BroadcastSettingsFlowCache, ProfilePointer, FriendMap
+    ServiceInteractionDef, App, Group, ProfilePointer, FriendMap
 from rogerthat.models.properties.friend import FriendDetail
 from rogerthat.models.properties.keyvalue import KVStore
 from rogerthat.rpc import users
@@ -65,10 +61,9 @@ from rogerthat.service.api.friends import invited, is_in_roles
 from rogerthat.settings import get_server_settings
 from rogerthat.templates import render
 from rogerthat.to.friends import UpdateFriendResponseTO, UpdateFriendRequestTO, FriendTO, FriendRelationTO, \
-    BecameFriendsRequestTO, BecameFriendsResponseTO, ServiceFriendStatusTO, SubscribedBroadcastUsersTO, \
-    BroadcastFriendTO, \
-    UpdateFriendSetResponseTO, GroupTO, UpdateGroupsResponseTO, UpdateGroupsRequestTO, FindFriendResponseTO, \
-    FindFriendItemTO, SubscribedBroadcastReachTO, RegistrationResultTO, FRIEND_TYPE_SERVICE
+    BecameFriendsRequestTO, BecameFriendsResponseTO, ServiceFriendStatusTO, UpdateFriendSetResponseTO, GroupTO, \
+    UpdateGroupsResponseTO, UpdateGroupsRequestTO, FindFriendResponseTO, \
+    FindFriendItemTO, RegistrationResultTO, FRIEND_TYPE_SERVICE
 from rogerthat.to.location import GetLocationRequestTO
 from rogerthat.to.messaging import ButtonTO, UserMemberTO
 from rogerthat.to.roles import RoleTO
@@ -415,11 +410,9 @@ def makeFriends(invitor, invitee, original_invitee, servicetag, origin, notify_i
                         user_data_model.put()
                         has_user_data = True
                         user_profile = get_user_profile(from_)
-                        fsic_key = FriendServiceIdentityConnection.createKey(from_, to_profile_info.user)
-                        models = db.get([fsic_key] + [get_mobile_key_by_account(mobile_detail.account)
-                                                      for mobile_detail in user_profile.mobiles])
-                        fsic, mobiles = models[0], models[1:]
-                        to_put.extend(create_send_user_data_requests(mobiles, user_data_model, fsic, from_,
+                        mobiles = db.get([get_mobile_key_by_account(mobile_detail.account)
+                                          for mobile_detail in user_profile.mobiles])
+                        to_put.extend(create_send_user_data_requests(mobiles, user_data_model, from_,
                                                                      to_profile_info.user))
                 else:
                     has_user_data = False
@@ -437,9 +430,6 @@ def makeFriends(invitor, invitee, original_invitee, servicetag, origin, notify_i
             else:
                 helper = FriendHelper.from_data_store(users.User(to_friendDetail.email), to_friendDetail.type)
             side_effects.append(lambda: notifyActorInWebUI(helper, from_, friendMap, actor_type, to_friendDetail))
-            # TODO: for newly connected users, the fsic (used for broadcast settings flow)
-            # will not exist yet as we're creating it in the parent transaction
-            # This call should be moved outside of the transaction
             to_put.extend(create_update_friend_requests(helper, to, friendMap, UpdateFriendRequestTO.STATUS_ADD))
             if not to_profile_info.isServiceIdentity:
                 notifyFriends = (from_, to, friendMap, to_friendDetail)  # both from and to are human users
@@ -449,21 +439,13 @@ def makeFriends(invitor, invitee, original_invitee, servicetag, origin, notify_i
             # to is a human
             from_ = add_slash_default(from_)
 
-            existing_fsic = get_friend_serviceidentity_connection(to, from_)
             svc_user, identifier = get_service_identity_tuple(from_)
             svc_profile = service_helper.get_service_profile() if service_helper else get_service_profile(svc_user)
             new_fsic = FriendServiceIdentityConnection.create(to,
                                                               to_profile_info.name,
                                                               to_profile_info.avatarId,
                                                               from_,
-                                                              svc_profile.broadcastTypes or [],
-                                                              to_profile_info.birthdate,
-                                                              to_profile_info.gender,
                                                               to_profile_info.app_id)
-            if existing_fsic and existing_fsic.disabled_broadcast_types:
-                new_fsic.disabled_broadcast_types = existing_fsic.disabled_broadcast_types
-                new_fsic.enabled_broadcast_types = list(set(new_fsic.enabled_broadcast_types) -
-                                                        set(existing_fsic.disabled_broadcast_types))
             new_fsic.put()
 
             user_details = [UserDetailsTO.fromUserProfile(to_profile_info)]
@@ -966,16 +948,7 @@ def breakFriendShip(user1, user2, current_mobile=None):
                         from rogerthat.bizz.roles import _send_service_role_grants_updates
                         on_trans_committed(_send_service_role_grants_updates,
                                            get_service_user_from_service_identity_user(service_identity_user))
-
-                    fsic = get_friend_serviceidentity_connection(from_, service_identity_user)
-                    if fsic and fsic.disabled_broadcast_types:
-                        # Set the FriendDetail.existence to DELETED to keep the disabled broadcast types
-                        friendDetail.existence = FriendDetail.FRIEND_EXISTENCE_DELETED
-                        friendDetail.hasUserData = False
-                    else:
-                        friendMap.friendDetails.remove(email)
-                else:
-                    friendMap.friendDetails.remove(email)
+                friendMap.friendDetails.remove(email)
                 friend_map_updated = True
 
                 def side_effects():
@@ -1023,21 +996,11 @@ def breakFriendShip(user1, user2, current_mobile=None):
             # from_ is service identity user
             # to is human
             from_ = add_slash_default(from_)
-            fsic_key = FriendServiceIdentityConnection.createKey(friend_user=to, service_identity_user=from_)
-            fsic = db.get(fsic_key)
-            if fsic and not fsic.deleted:
+            fsic = db.get(FriendServiceIdentityConnection.createKey(friend_user=to, service_identity_user=from_))
+            if fsic:
                 on_trans_committed(slog, msg_="Service user lost", function_=log_analysis.SERVICE_STATS,
                                    service=from_.email(), tag=to.email(), type_=log_analysis.SERVICE_STATS_TYPE_LOST)
-
-            to_delete = [BroadcastSettingsFlowCache.create_key(to, from_)]
-
-            if fsic and fsic.disabled_broadcast_types:
-                # Logical delete the FSIC to keep the disabled broadcast types
-                fsic.deleted = True
-                fsic.put()
-            else:
-                to_delete.append(fsic_key)
-            db.delete(to_delete)
+                db.delete(fsic)
             clear_service_inbox.schedule(from_, to)
 
             def side_effects():
@@ -1304,7 +1267,7 @@ def get_service_friend_status(service_identity_user, app_user):
     fsic, friend_profile = models[:2]
     app = get_app_by_id(app_id)
 
-    is_friend = fsic is not None and not fsic.deleted
+    is_friend = fsic is not None
     if is_friend:
         last_heartbeat = memcache.get("last_user_heart_beat_%s" % app_user.email()) or 0  # @UndefinedVariable
     else:
@@ -1609,82 +1572,6 @@ def _get_full_name(user):
 def _poke_service_directly(invitor, tag, context, message_flow_run_id, service_identity_user, timestamp):
     from rogerthat.bizz.service import poke_service_with_tag
     poke_service_with_tag(invitor, service_identity_user, tag, context, message_flow_run_id, timestamp)
-
-
-@returns(SubscribedBroadcastUsersTO)
-@arguments(service_identity_user=users.User, broadcast_type=unicode)
-def getSubscribedBroadcastUsers(service_identity_user, broadcast_type):
-    from rogerthat.bizz.service import validate_broadcast_type
-    validate_broadcast_type(get_service_user_from_service_identity_user(service_identity_user), broadcast_type)
-
-    qry = get_friend_service_identity_connections_of_service_identity_query(service_identity_user)
-    sbuto = SubscribedBroadcastUsersTO()
-    sbuto.connected_users = list()
-    sbuto.not_connected_users = 0
-    app_users = list()
-    connections = dict()
-    for connection in qry:
-        app_user = users.User(connection.friend)
-        if broadcast_type in connection.enabled_broadcast_types:
-            app_users.append(app_user)
-            connections[app_user.email()] = connection
-        else:
-            sbuto.not_connected_users = sbuto.not_connected_users + 1
-
-    for user_profile in get_user_profiles(app_users):
-        connection = connections[user_profile.user.email()]
-        svc_friend = BroadcastFriendTO()
-        svc_friend.avatar = u"%s/unauthenticated/mobi/cached/avatar/%s" % (
-            get_server_settings().baseUrl, connection.friend_avatarId)
-        svc_friend.name = connection.friend_name
-        svc_friend.age = user_profile.age
-        svc_friend.gender = user_profile.gender_str
-        svc_friend.app_id = user_profile.app_id
-        sbuto.connected_users.append(svc_friend)
-
-    return sbuto
-
-
-@returns(SubscribedBroadcastReachTO)
-@arguments(service_identity_user=users.User, broadcast_type=unicode, min_age=(int, long, NoneType),
-           max_age=(int, long, NoneType), gender=unicode)
-def getSubscribedBroadcastReach(service_identity_user, broadcast_type, min_age=None, max_age=None, gender=None):
-    from rogerthat.bizz.service import validate_broadcast_type
-    validate_broadcast_type(get_service_user_from_service_identity_user(service_identity_user), broadcast_type)
-
-    gender = UserProfile.gender_from_string(gender)
-
-    @cached(1, request=False, memcache=True)
-    @returns(int)
-    @arguments(service_identity_user=users.User)
-    def get_total_number_of_users(service_identity_user):
-        return get_friend_service_identity_connections_of_service_identity_keys_query(service_identity_user) \
-            .count(limit=None)
-
-    @cached(1, request=False, memcache=True)
-    @returns(int)
-    @arguments(service_identity_user=users.User, min_age=int, max_age=int, gender=int, broadcast_type=unicode)
-    def get_subscribed_number_of_users(service_identity_user, min_age=None, max_age=None, gender=None,
-                                       broadcast_type=None):
-        default = lambda x: None if x == -1 else x
-        return get_broadcast_audience_of_service_identity_keys_query(service_identity_user, min_age=default(min_age),
-                                                                     max_age=default(max_age), gender=default(gender),
-                                                                     broadcast_type=broadcast_type).count(limit=None)
-
-    def get_number_of_users():
-        threading.current_thread().count = get_total_number_of_users(service_identity_user)
-
-    thread = threading.Thread(target=get_number_of_users)
-    thread.start()
-    default = lambda x: -1 if x is None else x
-    subscribed_count = get_subscribed_number_of_users(service_identity_user, default(min_age), default(max_age),
-                                                      default(gender), broadcast_type)
-    thread.join()
-    total_count = thread.count
-    result = SubscribedBroadcastReachTO()
-    result.total_users = total_count
-    result.subscribed_users = subscribed_count
-    return result
 
 
 @returns([GroupTO])

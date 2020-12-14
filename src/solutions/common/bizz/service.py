@@ -40,7 +40,7 @@ from rogerthat.utils.transactions import run_in_xg_transaction
 from shop.models import Product, RegioManagerTeam, CustomerSignup, Customer, CustomerSignupStatus
 from shop.to import CustomerServiceTO
 from solutions import translate as common_translate
-from solutions.common.bizz import SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES, common_provision
+from solutions.common.bizz import SolutionModule, common_provision
 from solutions.common.bizz.campaignmonitor import send_smart_email
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
@@ -48,7 +48,6 @@ from solutions.common.bizz.settings import get_service_info
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionServiceConsent, SolutionServiceConsentHistory
 from solutions.common.to import SolutionInboxMessageTO, ProvisionResponseTO
-
 
 # signup smart emails with the countdown (seconds) they should be sent after a successfull registration
 SMART_EMAILS_ID_COMPLETE_DASHBOARD = 'f98e0153-f295-412b-89a3-4d4cc6b95162'
@@ -59,17 +58,6 @@ SMART_EMAILS = {
     SMART_EMAILS_ID_COMPLETE_DASHBOARD: 3 * DAY, # Dashboard Aanvullen params: {'appName': 'stringValue'}
     #'c87c3b2c-e1e8-4680-914e-6f81f2bd37f5': 4 * DAY, # 3. Uw eigen reservatie-systeem
 }
-
-
-def get_allowed_broadcast_types(city_customer):
-    """
-    Args:
-        city_customer (Customer)
-    """
-    if city_customer.can_only_edit_organization_type(ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT):
-        return ASSOCIATION_BROADCAST_TYPES
-    else:
-        return DEFAULT_BROADCAST_TYPES
 
 
 def get_allowed_modules(city_customer):
@@ -92,21 +80,16 @@ def get_default_modules(city_customer):
     ]
 
 
-def filter_modules(city_customer, modules, broadcast_types):
+def filter_modules(city_customer, modules):
     """Given a modules list, it will return the mandatory and allowed modules and discard others.
 
     Args:
         city_customer (Customer): city customer
         modules (list of unicode)
-        broadcast_types (list of unicode)
     """
     mods = [m for m in SolutionModule.MANDATORY_MODULES]
     mods.extend([m for m in modules if m in get_allowed_modules(city_customer)])
     modules = list(set(mods))
-
-    if SolutionModule.BROADCAST in modules and not broadcast_types:
-        modules.remove(SolutionModule.BROADCAST)
-
     return modules
 
 

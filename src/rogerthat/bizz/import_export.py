@@ -21,10 +21,10 @@ import os
 import re
 import zipfile
 
-from cloudstorage import RetryParams
 import cloudstorage
-
+from cloudstorage import RetryParams
 from google.appengine.ext import db
+
 from mcfw.rpc import arguments, returns, serialize_complex_value, parse_complex_value
 from rogerthat.bizz.branding import get_branding_cloudstorage_path, replace_branding, validate_delete_branding
 from rogerthat.bizz.roles import create_service_roles
@@ -46,7 +46,6 @@ from rogerthat.to.service import ExportMessageFlowDesignTO
 from rogerthat.to.service_panel import WebServiceMenuTO
 from rogerthat.utils.models import reconstruct_key
 from rogerthat.utils.transactions import run_in_transaction
-
 
 try:
     from cStringIO import StringIO
@@ -268,12 +267,11 @@ def _import_roles(service_user, roles):
 
 def _import_menu(service_user, menu, role_mapping):
     # type: (users.User, WebServiceMenuTO, dict[int, int]) -> None
-    logging.info('Importing %s menu items', len([i for i in menu.items if not i.isBroadcastSettings]))
+    logging.info('Importing %s menu items', len(menu.items))
     for item in menu.items:
-        if not item.isBroadcastSettings:
-            logging.debug('Importing menu item %s', item.label)
-            roles = [role_mapping[role] for role in item.roles]
-            create_menu_item(service_user, item.iconName, item.iconColor, item.label, item.tag, item.coords,
-                             item.screenBranding, item.staticFlowName, item.requiresWifi, item.runInBackground,
-                             roles, item.isBroadcastSettings, None, item.action, item.link, item.fallThrough,
-                             item.formId, item.embeddedApp)
+        logging.debug('Importing menu item %s', item.label)
+        roles = [role_mapping[role] for role in item.roles]
+        create_menu_item(service_user, item.iconName, item.iconColor, item.label, item.tag, item.coords,
+                         item.screenBranding, item.staticFlowName, item.requiresWifi, item.runInBackground,
+                         roles, item.action, item.link, item.fallThrough,
+                         item.formId, item.embeddedApp)

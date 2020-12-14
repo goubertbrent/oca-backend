@@ -16,12 +16,12 @@
 # @@license_version:1.7@@
 
 import base64
-from datetime import datetime
 import json
 import logging
 import os
 import re
 import urllib
+from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
 from google.appengine.ext import deferred
@@ -43,14 +43,11 @@ from rogerthat.dal.mobile import get_mobile_by_account
 from rogerthat.dal.profile import get_profile_info, get_service_or_user_profile, get_deactivated_user_profile, \
     get_user_profile
 from rogerthat.exceptions import ServiceExpiredException
-from rogerthat.models import ActivationLog, App, CurrentlyForwardingLogs, FriendServiceIdentityConnection, \
-    ServiceIdentity, UserContext, UserProfileInfo, UserAddressType,\
-    UserContextScope
+from rogerthat.models import ActivationLog, App, CurrentlyForwardingLogs, UserContext, UserProfileInfo, \
+    UserAddressType, UserContextScope
 from rogerthat.rpc import users
-from rogerthat.rpc.models import Mobile
 from rogerthat.settings import get_server_settings
 from rogerthat.templates import get_languages_from_request, JINJA_ENVIRONMENT, render
-from rogerthat.to.statistics import UserStatisticsTO
 from rogerthat.to.system import ProfileAddressTO, ProfilePhoneNumberTO
 from rogerthat.translations import DEFAULT_LANGUAGE, localize
 from rogerthat.utils import now, is_clean_app_user_email, send_mail, get_server_url
@@ -58,7 +55,6 @@ from rogerthat.utils.app import create_app_user_by_email, \
     get_human_user_from_app_user, sanitize_app_user
 from rogerthat.utils.cookie import set_cookie
 from rogerthat.utils.crypto import encrypt, sha256_hex, decrypt
-
 
 SIGNUP_SUCCESS = 1
 SIGNUP_INVALID_EMAIL = 2
@@ -309,32 +305,6 @@ def authenticate_mobile(email, password):
 
     mobile = get_mobile_by_account(email)
     return bool(mobile) and mobile.accountPassword == password
-
-
-@rest("/mobi/rest/user/statistics", "get")
-@returns(UserStatisticsTO)
-@arguments()
-def user_statistic():
-    qry1 = Mobile.all(keys_only=True).filter('status >=', 4).filter('status <', 8)
-    qry2 = FriendServiceIdentityConnection.all(keys_only=True).filter('deleted', False)
-    qry3 = ServiceIdentity.all(keys_only=True)
-    qries = [qry1, qry2, qry3]
-
-    def stats(qry):
-        cursor = None
-        fetched = 1
-        count = 0
-        while fetched != 0:
-            fetched = qry.with_cursor(cursor).count()
-            count += fetched
-            cursor = qry.cursor()
-        return count - 1
-    user_count, application_user_count, application_count = [stats(q) for q in qries]
-    us = UserStatisticsTO()
-    us.user_count = user_count
-    us.service_user_count = application_user_count
-    us.service_count = application_count
-    return us
 
 
 @rest("/mobi/rest/user/context/<uid:[^/]+>", "get")

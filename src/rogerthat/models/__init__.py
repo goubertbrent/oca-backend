@@ -39,7 +39,7 @@ from mcfw.properties import azzert
 from mcfw.serialization import deserializer, ds_model, register, s_model, s_long, ds_long, serializer, \
     model_deserializer, s_any, ds_any
 from mcfw.utils import Enum
-from rogerthat.consts import MC_RESERVED_TAG_PREFIX, IOS_APPSTORE_WEB_URI_FORMAT, \
+from rogerthat.consts import IOS_APPSTORE_WEB_URI_FORMAT, \
     ANDROID_MARKET_ANDROID_URI_FORMAT, ANDROID_MARKET_WEB_URI_FORMAT, ANDROID_BETA_MARKET_WEB_URI_FORMAT
 from rogerthat.dal import parent_key
 from rogerthat.models.common import NdbModel
@@ -57,7 +57,7 @@ from rogerthat.models.utils import get_meta, add_meta
 from rogerthat.rpc import users
 from rogerthat.rpc.models import Mobile
 from rogerthat.translations import DEFAULT_LANGUAGE
-from rogerthat.utils import base38, base65, llist, now, calculate_age_from_date, set_flag, unset_flag, is_flag_set
+from rogerthat.utils import base38, base65, llist, now, calculate_age_from_date
 from rogerthat.utils.crypto import sha256_hex, encrypt
 from rogerthat.utils.translations import localize_app_translation
 
@@ -538,29 +538,19 @@ class UserDataArchive(UserData):
 class FriendServiceIdentityConnection(db.Model, ArchivedModel):
     friend_name = db.StringProperty()  # duplicate info - for performance + listing all users
     friend_avatarId = db.IntegerProperty(indexed=False)  # duplicate info - for performance
-    friend_avatar_id = db.IntegerProperty(indexed=False)  # duplicate info - for performance
     service_identity_email = db.StringProperty()  # Needed to find all humans connected to a svc
-    enabled_broadcast_types = db.StringListProperty()  # Needed for querying
-    disabled_broadcast_types = db.StringListProperty(indexed=False)
-    birthdate = db.IntegerProperty(indexed=True)  # Needed for querying (broadcast)
-    gender = db.IntegerProperty(indexed=True)  # Needed for querying (broadcast)
     app_id = db.StringProperty(indexed=True, default=App.APP_ID_ROGERTHAT)  # Needed for querying
-    deleted = db.BooleanProperty(indexed=True)  # FSICs with disabled_broadcast_types are logically deleted
+    # TODO remove after migration _009_nuke_broadcast (models with deleted == True will be deleted)
+    deleted = db.BooleanProperty(indexed=True)
 
     # Should always construct using this factory method
     @classmethod
-    def create(cls, friend_user, friend_name, friend_avatarId, service_identity_user, broadcast_types, birthdate,
-               gender, app_id, deleted=False):
+    def create(cls, friend_user, friend_name, friend_avatarId, service_identity_user, app_id):
         return cls(key=cls.createKey(friend_user, service_identity_user),
                    friend_name=friend_name,
                    friend_avatarId=friend_avatarId,
                    service_identity_email=service_identity_user.email(),
-                   disabled_broadcast_types=list(),
-                   enabled_broadcast_types=broadcast_types,
-                   birthdate=birthdate,
-                   gender=gender,
-                   app_id=app_id,
-                   deleted=deleted)
+                   app_id=app_id)
 
     @classmethod
     def createKey(cls, friend_user, service_identity_user):
@@ -569,16 +559,29 @@ class FriendServiceIdentityConnection(db.Model, ArchivedModel):
         return db.Key.from_path(cls.kind(), service_identity_user.email(), parent=parent_key(friend_user))
 
     @property
-    def service_identity(self):  # this is historical, a better name was service_identity_user
-        return users.User(self.key().name())
-
-    @property
     def service_identity_user(self):
         return users.User(self.key().name())
 
     @property
     def friend(self):
         return users.User(self.parent_key().name())
+
+    @classmethod
+    def list(cls, service_identity_email, keys_only=False):
+        return cls.all(keys_only=keys_only) \
+            .filter('service_identity_email', service_identity_email) \
+            .order('friend_name')
+
+    @classmethod
+    def list_by_app_id(cls, service_identity_email, app_id):
+        return cls.all() \
+            .filter('service_identity_email', service_identity_email) \
+            .filter('app_id', app_id) \
+            .order('friend_name')
+
+    @classmethod
+    def list_by_app_user(cls, app_user, keys_only=False):
+        return cls.all(keys_only=keys_only).ancestor(parent_key(app_user))
 
 
 FriendServiceIdentityConnectionArchive = ArchivedModel.constructArchivedModel("FriendServiceIdentityConnectionArchive",
@@ -1082,9 +1085,6 @@ class BaseServiceProfile(object):
                           ORGANIZATION_TYPE_CITY, ORGANIZATION_TYPE_EMERGENCY]
     # don't forget to update ServiceProfile.localizedOrganizationType when adding an organization type
 
-    FLAG_CLEAR_BROADCAST_SETTINGS_CACHE = 1
-    FLAGS = (FLAG_CLEAR_BROADCAST_SETTINGS_CACHE,)
-
     ORGANIZATION_TYPE_TRANSLATION_KEYS = {
         ORGANIZATION_TYPE_NON_PROFIT: 'Associations',
         ORGANIZATION_TYPE_PROFIT: 'Merchants',
@@ -1115,16 +1115,6 @@ class BaseServiceProfile(object):
     @property
     def service_user(self):
         return self.user
-
-    def addFlag(self, flag):
-        azzert(flag in ServiceProfile.FLAGS)
-        self.flags = set_flag(flag, self.flags)
-
-    def clearFlag(self, flag):
-        self.flags = unset_flag(flag, self.flags)
-
-    def isFlagSet(self, flag):
-        return is_flag_set(flag, self.flags)
 
     def localizedOrganizationType(self, language, app_id):
         return self.localized_plural_organization_type(self.organizationType, language, app_id)
@@ -1167,9 +1157,6 @@ class NdbServiceProfile(NdbProfile, BaseServiceProfile):
     languages = ndb.StringProperty(name='supportedLanguages', indexed=False, repeated=True)
     activeTranslationSet = ndb.StringProperty(indexed=False)
     editableTranslationSet = ndb.StringProperty(indexed=False)
-    broadcastTypes = ndb.StringProperty(indexed=False, repeated=True)
-    broadcastTestPersons = ndb.UserProperty(repeated=True, indexed=False)
-    broadcastBranding = ndb.StringProperty(indexed=False)
     solution = ndb.StringProperty(indexed=False)
     monitor = ndb.BooleanProperty(indexed=True)
     autoUpdating = ndb.BooleanProperty(indexed=False, default=False)  # Auto-updates suspended by default
@@ -1178,8 +1165,6 @@ class NdbServiceProfile(NdbProfile, BaseServiceProfile):
     organizationType = ndb.IntegerProperty(indexed=False, default=BaseServiceProfile.ORGANIZATION_TYPE_PROFIT)
     version = ndb.IntegerProperty(indexed=False,
                                   default=0)  # bumped every time that FriendTO-related properties are updated
-    flags = ndb.IntegerProperty(indexed=False, default=0)
-    canEditSupportedApps = ndb.BooleanProperty(indexed=False, default=False)
     expiredAt = ndb.IntegerProperty(default=0)
 
     @property
@@ -1223,9 +1208,6 @@ class ServiceProfile(Profile, BaseServiceProfile):
     supportedLanguages = db.StringListProperty(indexed=False, default=[DEFAULT_LANGUAGE])
     activeTranslationSet = db.StringProperty(indexed=False)
     editableTranslationSet = db.StringProperty(indexed=False)
-    broadcastTypes = db.StringListProperty(indexed=False)
-    broadcastTestPersons = db.ListProperty(users.User, indexed=False)
-    broadcastBranding = db.StringProperty(indexed=False)
     solution = db.StringProperty(indexed=False)
     monitor = db.BooleanProperty(indexed=True)
     autoUpdating = db.BooleanProperty(indexed=False, default=False)  # Auto-updates suspended by default
@@ -1234,8 +1216,6 @@ class ServiceProfile(Profile, BaseServiceProfile):
     organizationType = db.IntegerProperty(indexed=False, default=BaseServiceProfile.ORGANIZATION_TYPE_PROFIT)
     version = db.IntegerProperty(indexed=False,
                                  default=0)  # bumped every time that FriendTO-related properties are updated
-    flags = db.IntegerProperty(indexed=False, default=0)
-    canEditSupportedApps = db.BooleanProperty(indexed=False, default=False)
     expiredAt = db.IntegerProperty(default=0)
 
 
@@ -1363,71 +1343,6 @@ class ServiceAPIFailures(db.Model):
         from rogerthat.dal import parent_key
         return db.Key.from_path(ServiceAPIFailures.kind(), service_user_email,
                                 parent=parent_key(users.User(service_user_email)))
-
-
-class Broadcast(db.Model):
-    TAG_MC_BROADCAST = "%s.broadcast" % MC_RESERVED_TAG_PREFIX
-
-    TEST_PERSON_STATUS_ACCEPTED = 1
-    TEST_PERSON_STATUS_DECLINED = 0
-    TEST_PERSON_STATUS_UNDECIDED = -1
-
-    name = db.StringProperty(indexed=False)
-    type_ = db.StringProperty(indexed=False)
-    creation_time = db.IntegerProperty(indexed=False)
-    message_flow = db.StringProperty(indexed=False)
-    test_persons = db.ListProperty(users.User, indexed=False)
-    test_persons_statuses = db.ListProperty(int, indexed=False)
-    sent_time = db.IntegerProperty(indexed=False, default=0)
-    tag = db.TextProperty()
-    scheduled_at = db.IntegerProperty(indexed=False, default=0)
-    broadcast_guid = db.StringProperty(indexed=True)
-
-    @staticmethod
-    def create(service_user):
-        from rogerthat.dal import parent_key
-        return Broadcast(parent=parent_key(service_user))
-
-    @property
-    def service_user(self):
-        return users.User(self.parent_key().name())
-
-    @property
-    def sent(self):
-        return bool(self.sent_time)
-
-    def set_status(self, test_user, status):
-        self.test_persons_statuses[self.test_persons.index(test_user)] = status
-
-    def get_status_count(self, status):
-        return sum([status == s for s in self.test_persons_statuses])
-
-    @property
-    def declined(self):
-        return any((Broadcast.TEST_PERSON_STATUS_DECLINED == s for s in self.test_persons_statuses))
-
-    @property
-    def approved(self):
-        return all((Broadcast.TEST_PERSON_STATUS_ACCEPTED == s for s in self.test_persons_statuses))
-
-
-class BroadcastSettingsFlowCache(db.Model):
-    static_flow = db.TextProperty()
-    timestamp = db.IntegerProperty(indexed=True)
-
-    @property
-    def service_identity_user(self):
-        return users.User(self.key().name())
-
-    @property
-    def human_user(self):  # TODO app_user
-        return users.User(self.parent_key().name())
-
-    @staticmethod
-    def create_key(app_user, service_identity_user):
-        from rogerthat.dal import parent_key
-        return db.Key.from_path(BroadcastSettingsFlowCache.kind(), service_identity_user.email(),
-                                parent=parent_key(app_user))
 
 
 class ServiceIdentity(CachedModelMixIn, db.Model, ProfileInfo):
@@ -1730,15 +1645,12 @@ class ServiceTranslation(db.Model):
     IDENTITY_TEXT = 201
     IDENTITY_BRANDING = 202
     SID_BUTTON = 301
-    BROADCAST_TYPE = 401
-    BROADCAST_BRANDING = 402
     BRANDING_CONTENT = 501
 
     MFLOW_TYPES = [MFLOW_TEXT, MFLOW_BUTTON, MFLOW_FORM, MFLOW_POPUP, MFLOW_BRANDING]
     MFLOW_TYPES_ALLOWING_LANGUAGE_FALLBACK = [MFLOW_BRANDING]
     HOME_TYPES = [HOME_TEXT, HOME_BRANDING]
     IDENTITY_TYPES = [IDENTITY_TEXT, IDENTITY_BRANDING]
-    BROADCAST_TYPES = [BROADCAST_BRANDING, BROADCAST_TYPE]
     BRANDING_TYPES = [BRANDING_CONTENT]
 
     TYPE_MAP = {MFLOW_BRANDING: 'Message flow message branding',
@@ -1752,8 +1664,6 @@ class ServiceTranslation(db.Model):
                 HOME_BRANDING: 'Service menu item branding',
                 HOME_TEXT: 'Service menu item label',
                 SID_BUTTON: 'QR code button caption',
-                BROADCAST_TYPE: 'Broadcast type',
-                BROADCAST_BRANDING: 'Broadcast branding',
                 BRANDING_CONTENT: 'Branding content'}
 
     zipped_translations = db.BlobProperty()
@@ -2461,14 +2371,12 @@ class Message(db.Expando, polymodel.PolyModel):
     dismiss_button_ui_flags = db.IntegerProperty(indexed=False)
     member_status_index = db.StringListProperty()
     sender_type = db.IntegerProperty()
-    broadcast_type = db.StringProperty(indexed=False)
     attachments = AttachmentsProperty()
     service_api_updates = db.UserProperty(indexed=False)
     thread_avatar_hash = db.StringProperty(indexed=False)  # -------|
     thread_background_color = db.StringProperty(indexed=False)  # --| Equal for all messages in the thread
     thread_text_color = db.StringProperty(indexed=False)  # --------|
     priority = db.IntegerProperty(indexed=False)
-    broadcast_guid = db.StringProperty(indexed=False)
     default_priority = db.IntegerProperty(indexed=False)  # --------|
     default_sticky = db.BooleanProperty(indexed=False)  # ----------| Only on parent message
     step_id = db.StringProperty(indexed=False)  # used for FlowStatistics
@@ -2577,8 +2485,6 @@ class SmartphoneChoice(db.Model):
 
 
 class ServiceMenuDef(db.Model):
-    TAG_MC_BROADCAST_SETTINGS = u"%s.broadcast_settings" % MC_RESERVED_TAG_PREFIX
-
     label = db.StringProperty(indexed=False)
     tag = db.TextProperty()
     timestamp = db.IntegerProperty(indexed=False)
@@ -2591,7 +2497,6 @@ class ServiceMenuDef(db.Model):
     link = db.TextProperty()
     isExternalLink = db.BooleanProperty(indexed=False, default=False)
     requestUserLink = db.BooleanProperty(indexed=False, default=False)
-    isBroadcastSettings = db.BooleanProperty(indexed=True)
     requiresWifi = db.BooleanProperty(indexed=False, default=False)
     runInBackground = db.BooleanProperty(indexed=False, default=True)
     roles = db.ListProperty(int, indexed=True)
@@ -2639,8 +2544,6 @@ class ServiceMenuDef(db.Model):
 
 
 class NdbServiceMenuDef(NdbModel):
-    TAG_MC_BROADCAST_SETTINGS = u"%s.broadcast_settings" % MC_RESERVED_TAG_PREFIX
-
     label = ndb.StringProperty(indexed=False)
     tag = ndb.TextProperty()
     timestamp = ndb.IntegerProperty(indexed=False)
@@ -2652,7 +2555,6 @@ class NdbServiceMenuDef(NdbModel):
     staticFlowKey = ndb.StringProperty(indexed=True)
     link = ndb.TextProperty()
     isExternalLink = ndb.BooleanProperty(indexed=False, default=False)
-    isBroadcastSettings = ndb.BooleanProperty(indexed=True)
     requiresWifi = ndb.BooleanProperty(indexed=False, default=False)
     runInBackground = ndb.BooleanProperty(indexed=False, default=True)
     roles = ndb.IntegerProperty(indexed=True, repeated=True)
@@ -3318,52 +3220,6 @@ class FlowStatistics(CompressedIntegerListExpando):
     def list_by_service_user(cls, service_user):
         from rogerthat.dal import parent_key
         return cls.all().ancestor(parent_key(service_user))
-
-
-class BroadcastStatistic(db.Model):
-    tag = db.TextProperty()
-    timestamp = db.IntegerProperty()
-    message = db.StringProperty(indexed=False, multiline=True)
-    sent = db.IntegerProperty(indexed=False, default=0)
-    received = db.IntegerProperty(indexed=False, default=0)
-    read = db.IntegerProperty(indexed=False, default=0)
-    acknowledged = db.IntegerProperty(indexed=False, default=0)  # TODO: Add logs
-
-    @property
-    def broadcast_guid(self):
-        return self.key().name()
-
-    @property
-    def service_identity(self):
-        return self.parent_key().name()
-
-    @property
-    def service_user(self):
-        return users.User(self.parent_key().parent().name())
-
-    @property
-    def service_identity_user(self):
-        from rogerthat.utils.service import create_service_identity_user
-        return create_service_identity_user(self.service_user, self.service_identity)
-
-    @staticmethod
-    def create_key(broadcast_guid, service_identity_user):
-        from rogerthat.utils.service import get_service_identity_tuple
-        from rogerthat.dal import parent_key
-        service_user, service_identity = get_service_identity_tuple(service_identity_user)
-        service_parent_key = parent_key(service_user)
-        return db.Key.from_path(BroadcastStatistic.kind(), broadcast_guid,
-                                parent=db.Key.from_path(service_parent_key.kind(), service_identity,
-                                                        parent=service_parent_key))
-
-    @classmethod
-    def get_all_by_service_identity_user(cls, service_identity_user):
-        from rogerthat.utils.service import get_service_identity_tuple
-        from rogerthat.dal import parent_key
-        service_user, service_identity = get_service_identity_tuple(service_identity_user)
-        service_parent_key = parent_key(service_user)
-        ancestor = db.Key.from_path(service_parent_key.kind(), service_identity, parent=service_parent_key)
-        return cls.all().ancestor(ancestor)
 
 
 class JSEmbedding(db.Model):

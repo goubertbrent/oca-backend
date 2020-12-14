@@ -25,7 +25,6 @@ from google.appengine.api import app_identity
 from google.appengine.ext import deferred
 from google.appengine.ext.webapp.mail_handlers import InboundMailHandler
 
-from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.messaging import process_mfr_email_reply
 from rogerthat.bizz.user import calculate_secure_url_digest
@@ -115,19 +114,6 @@ def generate_unsubscribe_link(app_user):
 
     data = dict(n=profile_info.name, e=app_user.email(), t=0, a="unsubscribe reminder", c=None)
     return generate_user_specific_link('/unsubscribe_reminder', app_user, data)
-
-
-@returns(str)
-@arguments(app_user=users.User, service_identity_user=users.User, service_identity_name=unicode,
-           broadcast_type=unicode)
-def generate_unsubscribe_broadcast_link(app_user, service_identity_user, service_identity_name, broadcast_type):
-    if not broadcast_type:
-        return None
-
-    azzert('/' in service_identity_user.email())
-    data = dict(n=service_identity_name, e=service_identity_user.email(), t=0, a="unsubscribe broadcast", c=None,
-                bt=broadcast_type)
-    return generate_user_specific_link('/unsubscribe_broadcast', app_user, data)
 
 
 @returns(str)

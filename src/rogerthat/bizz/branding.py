@@ -637,10 +637,6 @@ def validate_delete_branding(key, message_flow_flow_designs, service_identities,
         raise BrandingInUseException(u"Branding is used in menu item '%s' and thus can't be deleted!" % smi.label,
                                      id=key, type='menu_item', identifier=smi.label)
 
-    if service_profile.broadcastBranding == key:
-        raise BrandingInUseException(u"Branding is used for broadcast settings and thus can't be deleted!", id=key,
-                                     type='broadcast_branding')
-
 
 class HtmlTranslationStringsExtractorParser(HTMLParser):
 

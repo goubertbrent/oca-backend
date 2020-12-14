@@ -21,28 +21,25 @@ from base64 import b64encode
 from datetime import datetime
 from types import NoneType
 
-import cloudstorage
 import pytz
 from google.appengine.api import urlfetch
 from google.appengine.ext import deferred, db
 from google.appengine.ext.deferred import PermanentTaskFailure
 
-from mcfw.consts import MISSING
 from mcfw.properties import azzert, object_factory
-from mcfw.rpc import returns, arguments, serialize_complex_value
+from mcfw.rpc import returns, arguments
 from rogerthat.bizz.messaging import CanOnlySendToFriendsException
 from rogerthat.bizz.service import InvalidAppIdException
-from rogerthat.consts import SCHEDULED_QUEUE, ROGERTHAT_ATTACHMENTS_BUCKET, FAST_QUEUE
-from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe
+from rogerthat.consts import FAST_QUEUE
+from rogerthat.dal import parent_key_unsafe
 from rogerthat.dal.profile import get_service_profile
-from rogerthat.models import Message, ServiceIdentity, ServiceInteractionDef
+from rogerthat.models import Message, ServiceInteractionDef
 from rogerthat.models.news import NewsItem, MediaType
 from rogerthat.models.properties.forms import FormResult, Form
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import messaging, system
-from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
-from rogerthat.to.messaging import AttachmentTO, BroadcastTargetAudienceTO, MemberTO, AnswerTO, KeyValueTO
+from rogerthat.to.messaging import AttachmentTO, MemberTO, AnswerTO, KeyValueTO
 from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING
 from rogerthat.to.messaging.forms import TextBlockFormTO, TextBlockTO
 from rogerthat.to.messaging.service_callback_results import MessageAcknowledgedCallbackResultTO, \
@@ -56,8 +53,7 @@ from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.channel import send_message
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
-from solutions.common.bizz import _format_date, _format_time, timezone_offset, \
-    SolutionModule, create_news_publisher
+from solutions.common.bizz import _format_date, _format_time, SolutionModule, create_news_publisher
 from solutions.common.bizz.appointment import appointment_asked
 from solutions.common.bizz.city_vouchers import solution_voucher_resolve
 from solutions.common.bizz.coupons import API_METHOD_SOLUTION_COUPON_REDEEM, solution_coupon_redeem, \
@@ -85,8 +81,7 @@ from solutions.common.bizz.questions import chat_question_poke, \
 from solutions.common.bizz.repair import repair_order_received
 from solutions.common.bizz.reservation import reservation_part1, my_reservations_poke, my_reservations_overview_updated, \
     my_reservations_detail_updated
-from solutions.common.bizz.sandwich import order_sandwich_received, \
-    sandwich_order_from_broadcast_pressed
+from solutions.common.bizz.sandwich import order_sandwich_received
 from solutions.common.bizz.settings import get_service_info
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, get_solution_identity_settings, \
     get_solution_settings_or_identity_settings, get_news_publisher_from_app_user
@@ -98,9 +93,9 @@ from solutions.common.integrations.qmatic import qmatic
 from solutions.common.jobs.solicitations import chat_send_job_solicitation_message, chat_disable_solicitation
 from solutions.common.migrations.trash_calendar.bizz import POKE_TAG_TRASH_CALENDAR_TRANSFER_ADDRESS, \
     trash_transfer_address_pressed
-from solutions.common.models import SolutionMessage, SolutionScheduledBroadcast, SolutionInboxMessage, \
+from solutions.common.models import SolutionMessage, SolutionInboxMessage, \
     SolutionSettings, SolutionMainBranding, SolutionBrandingSettings
-from solutions.common.to import UrlTO, TimestampTO, SolutionInboxMessageTO
+from solutions.common.to import SolutionInboxMessageTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user, \
     create_service_identity_user_wo_default
 
@@ -140,8 +135,6 @@ POKE_TAG_RESERVE_PART2 = u'reserve2'
 MESSAGE_TAG_RESERVE_FAIL = u'reserve_fail'
 MESSAGE_TAG_RESERVE_SUCCESS = u'reserve_success'
 POKE_TAG_MY_RESERVATIONS = u'my_reservations'
-
-MESSAGE_TAG_SANDWICH_ORDER_NOW = u'sandwich.order.now'
 
 MESSAGE_TAG_MY_RESERVATIONS_OVERVIEW = u'my-reservations-overview'
 MESSAGE_TAG_MY_RESERVATIONS_DETAIL = u'my-reservations-detail'
@@ -187,61 +180,6 @@ def validate_broadcast_url(url, language=DEFAULT_LANGUAGE):
             logging.debug("Could not validate url via GET. Response status code: %s", result.status_code)
             raise BusinessException(
                 common_translate(language, "Could not validate url %(url)s", url=url))
-
-
-@returns(ReturnStatusTO)
-@arguments(service_user=users.User, service_identity=unicode, broadcast_type=unicode, message=unicode,
-           target_audience_enabled=bool, target_audience_min_age=int,
-           target_audience_max_age=int, target_audience_gender=unicode, msg_attachments=[AttachmentTO],
-           msg_urls=[UrlTO], broadcast_date=TimestampTO, broadcast_to_all_locations=bool)
-def broadcast_send(service_user, service_identity, broadcast_type, message,
-                   target_audience_enabled=False, target_audience_min_age=0, target_audience_max_age=0,
-                   target_audience_gender="MALE_OR_FEMALE", msg_attachments=None, msg_urls=None,
-                   broadcast_date=None, broadcast_to_all_locations=False):
-    # function that takes message type and message text and spreads it to users.
-    try:
-        sln_settings = get_solution_settings(service_user)
-        attachments = list()
-        error_msgs = list()
-        if msg_attachments:
-            for ma in msg_attachments:
-                at = AttachmentTO()
-                at.download_url = ma.download_url
-                at.name = ma.name
-                # extract the cloudstorage file path from the url and determine content type and size
-                filename = ma.download_url.split(ROGERTHAT_ATTACHMENTS_BUCKET)[1]
-                stat = cloudstorage.stat(ROGERTHAT_ATTACHMENTS_BUCKET + filename)
-                at.size = stat.st_size
-                at.content_type = stat.content_type.decode('utf-8')
-                attachments.append(at)
-
-        if msg_urls:
-            for mu in msg_urls:
-                mu.url = mu.url.strip()
-                try:
-                    if not mu.url.startswith("mailto:"):
-                        validate_broadcast_url(mu.url, sln_settings.main_language)
-                except BusinessException as e:
-                    error_msgs.append(e.message)
-
-        if broadcast_date:
-            now_ = now()
-            broadcast_epoch = broadcast_date.toEpoch()
-            countdown = (broadcast_epoch + timezone_offset(sln_settings.timezone)) - now_
-            if countdown >= 60 * 60 * 24 * 30:
-                error_msgs.append(common_translate(sln_settings.main_language,
-                                                   u'broadcast-schedule-too-far-in-future'))
-
-        if error_msgs:
-            logging.info(error_msgs)
-            return ReturnStatusTO.create(False, "\n".join(error_msgs))
-
-        send_broadcast(service_user, service_identity, broadcast_type, message, target_audience_enabled,
-                       target_audience_min_age, target_audience_max_age, target_audience_gender, attachments, msg_urls,
-                       broadcast_date, broadcast_to_all_locations)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException as e:
-        return ReturnStatusTO.create(False, e.message)
 
 
 @returns(PokeCallbackResultTO)
@@ -589,130 +527,6 @@ def _delete_all_trash(service_user, service_identity):
 
 
 @returns(NoneType)
-@arguments(service_user=users.User, service_identity=unicode, broadcast_type=unicode, message=unicode,
-           target_audience_enabled=bool,
-           target_audience_min_age=int, target_audience_max_age=int, target_audience_gender=unicode,
-           attachments=[AttachmentTO], urls=[UrlTO], broadcast_date=TimestampTO, broadcast_to_all_locations=bool)
-def send_broadcast(service_user, service_identity, broadcast_type, message, target_audience_enabled,
-                   target_audience_min_age,
-                   target_audience_max_age, target_audience_gender, attachments, urls, broadcast_date,
-                   broadcast_to_all_locations=False):
-    sln_main_branding = get_solution_main_branding(service_user)
-    branding = sln_main_branding.branding_key if sln_main_branding else None
-    if target_audience_enabled:
-        target_audience = BroadcastTargetAudienceTO()
-        target_audience.min_age = target_audience_min_age
-        target_audience.max_age = target_audience_max_age
-        target_audience.gender = target_audience_gender
-        target_audience.app_id = MISSING
-    else:
-        target_audience = None
-
-    answers = []
-    if urls:
-        for url in urls:
-            btn = AnswerTO()
-            btn.id = u'broadcast-website: %s' % url.url
-            btn.type = u'button'
-            btn.caption = url.name
-            btn.action = url.url
-            btn.ui_flags = 0
-            answers.append(btn)
-
-    sln_settings = get_solution_settings(service_user)
-
-    now_ = now()
-    ssb = SolutionScheduledBroadcast(parent=parent_key(service_user, SOLUTION_COMMON))
-    if broadcast_date:
-        broadcast_epoch = broadcast_date.toEpoch()
-        countdown = (broadcast_epoch + timezone_offset(sln_settings.timezone)) - now_
-        if countdown > 0:
-            ssb.deleted = False
-            ssb.put()
-            logging.debug("Scheduled broadcast in %s seconds", countdown)
-            deferred.defer(_send_scheduled_broadcast, service_user, ssb.key_str,
-                           _countdown=countdown, _queue=SCHEDULED_QUEUE)
-    else:
-        ssb.deleted = True  # Save non-delayed broadcasts as well for statistical purposes.
-        broadcast_epoch = now_
-    ssb.service_identity = service_identity
-    ssb.timestamp = now_
-    ssb.broadcast_epoch = broadcast_epoch
-    ssb.broadcast_type = broadcast_type
-    ssb.message = message
-    ssb.target_audience_enabled = target_audience_enabled
-    ssb.target_audience_min_age = target_audience_min_age
-    ssb.target_audience_max_age = target_audience_max_age
-    ssb.target_audience_gender = target_audience_gender
-    ssb.json_attachments = json.dumps(serialize_complex_value(attachments, AttachmentTO, True))
-    ssb.json_urls = json.dumps(serialize_complex_value(urls, UrlTO, True))
-    ssb.broadcast_to_all_locations = broadcast_to_all_locations
-    if broadcast_date:
-        ssb.put()
-        return
-
-    if broadcast_to_all_locations and sln_settings.identities:
-        identities = [ServiceIdentity.DEFAULT]
-        identities.extend(sln_settings.identities)
-    else:
-        identities = [service_identity if service_identity else ServiceIdentity.DEFAULT]
-
-    ssb.statistics_keys = []
-    ssb.identities = []
-    for service_identity in identities:
-        result = messaging.broadcast(broadcast_type=broadcast_type,
-                                     message=message,
-                                     answers=answers,
-                                     flags=Message.FLAG_ALLOW_DISMISS,
-                                     branding=branding,
-                                     tag=None,
-                                     service_identity=service_identity,
-                                     target_audience=target_audience,
-                                     attachments=attachments)
-        if result.statistics_key:
-            ssb.statistics_keys.append(result.statistics_key)
-            ssb.identities.append(service_identity)
-
-    if not ssb.statistics_keys:
-        raise BusinessException(
-            common_translate(sln_settings.main_language, "Broadcast failed, no connected users"))
-    ssb.put()
-
-    sln_settings.broadcast_to_all_locations = broadcast_to_all_locations
-    put_and_invalidate_cache(sln_settings)
-
-
-@returns(NoneType)
-@arguments(service_user=users.User, str_key=unicode)
-def _send_scheduled_broadcast(service_user, str_key):
-    ssb = SolutionScheduledBroadcast.get(str_key)
-    if not ssb:
-        return
-    azzert(ssb.service_user == service_user)
-    if not ssb.deleted:
-        users.set_user(service_user)
-        try:
-            send_broadcast(service_user, ssb.service_identity, ssb.broadcast_type, ssb.message,
-                           ssb.target_audience_enabled,
-                           ssb.target_audience_min_age, ssb.target_audience_max_age, ssb.target_audience_gender,
-                           ssb.attachments, ssb.urls, None, ssb.broadcast_to_all_locations)
-        finally:
-            users.clear_user()
-        ssb.delete()
-
-
-@returns(NoneType)
-@arguments(service_user=users.User, key=unicode)
-def delete_scheduled_broadcast(service_user, key):
-    service_user = users.get_current_user()
-    ssb = SolutionScheduledBroadcast.get(key)
-    if ssb:
-        if ssb.service_user != service_user:
-            raise BusinessException("No permission to delete this scheduled broadcast")
-        ssb.delete()
-
-
-@returns(NoneType)
 @arguments(service_user=users.User, service_identity=unicode, app_user=users.User, body=unicode, msg_params=dict,
            solution=unicode,
            message_key=unicode, attachments=[AttachmentTO], reply_enabled=bool, send_reminder=bool, answers=[AnswerTO],
@@ -917,7 +731,6 @@ POKE_TAG_MAPPING = {
 }
 
 MESSAGE_TAG_MAPPING = {
-    MESSAGE_TAG_SANDWICH_ORDER_NOW: sandwich_order_from_broadcast_pressed,
     MESSAGE_TAG_MY_RESERVATIONS_OVERVIEW: my_reservations_overview_updated,
     MESSAGE_TAG_MY_RESERVATIONS_DETAIL: my_reservations_detail_updated,
     MESSAGE_TAG_DENY_SIGNUP: deny_signup,

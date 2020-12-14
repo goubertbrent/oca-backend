@@ -236,7 +236,6 @@ export interface AdvancedOrderFormMessageTO {
   member: MemberStatusTO | null;
   alert_flags: number;
   branding: string | null;
-  broadcast_type: string | null;
   context: string | null;
   default_priority: number;
   default_sticky: boolean;
@@ -323,7 +322,6 @@ export interface AutoCompleteFormMessageTO {
   member: MemberStatusTO | null;
   alert_flags: number;
   branding: string | null;
-  broadcast_type: string | null;
   context: string | null;
   default_priority: number;
   default_sticky: boolean;
@@ -510,7 +508,6 @@ export interface DateSelectFormMessageTO {
   member: MemberStatusTO | null;
   alert_flags: number;
   branding: string | null;
-  broadcast_type: string | null;
   context: string | null;
   default_priority: number;
   default_sticky: boolean;
@@ -791,7 +788,6 @@ export interface FormMessageTO {
   member: MemberStatusTO | null;
   alert_flags: number;
   branding: string | null;
-  broadcast_type: string | null;
   context: string | null;
   default_priority: number;
   default_sticky: boolean;
@@ -878,7 +874,6 @@ export interface FriendSelectFormMessageTO {
   member: MemberStatusTO | null;
   alert_flags: number;
   branding: string | null;
-  broadcast_type: string | null;
   context: string | null;
   default_priority: number;
   default_sticky: boolean;
@@ -919,7 +914,6 @@ export interface FriendTO {
   appData: string | null;
   avatarHash: string | null;
   avatarId: number;
-  broadcastFlowHash: string | null;
   callbacks: number;
   category_id: string | null;
   contentBrandingHash: string | null;
@@ -950,7 +944,6 @@ export interface GPSLocationFormMessageTO {
   member: MemberStatusTO | null;
   alert_flags: number;
   branding: string | null;
-  broadcast_type: string | null;
   context: string | null;
   default_priority: number;
   default_sticky: boolean;
@@ -2006,7 +1999,6 @@ export interface MessageTO {
   members: MemberStatusTO[];
   alert_flags: number;
   branding: string | null;
-  broadcast_type: string | null;
   context: string | null;
   default_priority: number;
   default_sticky: boolean;
@@ -2083,7 +2075,6 @@ export interface MultiSelectFormMessageTO {
   member: MemberStatusTO | null;
   alert_flags: number;
   branding: string | null;
-  broadcast_type: string | null;
   context: string | null;
   default_priority: number;
   default_sticky: boolean;
@@ -2157,7 +2148,6 @@ export interface MyDigiPassFormMessageTO {
   member: MemberStatusTO | null;
   alert_flags: number;
   branding: string | null;
-  broadcast_type: string | null;
   context: string | null;
   default_priority: number;
   default_sticky: boolean;
@@ -2473,7 +2463,6 @@ export interface OauthFormMessageTO {
   member: MemberStatusTO | null;
   alert_flags: number;
   branding: string | null;
-  broadcast_type: string | null;
   context: string | null;
   default_priority: number;
   default_sticky: boolean;
@@ -2523,7 +2512,6 @@ export interface OpenIdFormMessageTO {
   member: MemberStatusTO | null;
   alert_flags: number;
   branding: string | null;
-  broadcast_type: string | null;
   context: string | null;
   default_priority: number;
   default_sticky: boolean;
@@ -2641,7 +2629,6 @@ export interface PayFormMessageTO {
   member: MemberStatusTO | null;
   alert_flags: number;
   branding: string | null;
-  broadcast_type: string | null;
   context: string | null;
   default_priority: number;
   default_sticky: boolean;
@@ -2784,7 +2771,6 @@ export interface PhotoUploadFormMessageTO {
   member: MemberStatusTO | null;
   alert_flags: number;
   branding: string | null;
-  broadcast_type: string | null;
   context: string | null;
   default_priority: number;
   default_sticky: boolean;
@@ -2914,7 +2900,6 @@ export interface RangeSliderFormMessageTO {
   member: MemberStatusTO | null;
   alert_flags: number;
   branding: string | null;
-  broadcast_type: string | null;
   context: string | null;
   default_priority: number;
   default_sticky: boolean;
@@ -3193,7 +3178,6 @@ export interface SignFormMessageTO {
   member: MemberStatusTO | null;
   alert_flags: number;
   branding: string | null;
-  broadcast_type: string | null;
   context: string | null;
   default_priority: number;
   default_sticky: boolean;
@@ -3260,7 +3244,6 @@ export interface SingleSelectFormMessageTO {
   member: MemberStatusTO | null;
   alert_flags: number;
   branding: string | null;
-  broadcast_type: string | null;
   context: string | null;
   default_priority: number;
   default_sticky: boolean;
@@ -3302,7 +3285,6 @@ export interface SingleSliderFormMessageTO {
   member: MemberStatusTO | null;
   alert_flags: number;
   branding: string | null;
-  broadcast_type: string | null;
   context: string | null;
   default_priority: number;
   default_sticky: boolean;
@@ -3635,7 +3617,6 @@ export interface TextBlockFormMessageTO {
   member: MemberStatusTO | null;
   alert_flags: number;
   branding: string | null;
-  broadcast_type: string | null;
   context: string | null;
   default_priority: number;
   default_sticky: boolean;
@@ -3697,7 +3678,6 @@ export interface TextLineFormMessageTO {
   member: MemberStatusTO | null;
   alert_flags: number;
   branding: string | null;
-  broadcast_type: string | null;
   context: string | null;
   default_priority: number;
   default_sticky: boolean;

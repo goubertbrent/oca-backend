@@ -15,7 +15,6 @@
 #
 # @@license_version:1.7@@
 
-import json
 import logging
 
 from babel import Locale
@@ -25,16 +24,13 @@ from google.appengine.ext import db, ndb
 
 from mcfw.cache import invalidate_cache, CachedModelMixIn
 from mcfw.properties import azzert
-from mcfw.rpc import returns, arguments, parse_complex_value
+from mcfw.rpc import returns, arguments
 from mcfw.serialization import deserializer, ds_model, serializer, s_model, register
 from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_key, parent_key_unsafe, parent_ndb_key
 from rogerthat.models import ServiceIdentity
 from rogerthat.models.common import NdbModel
-from rogerthat.models.news import NewsGroup
 from rogerthat.rpc import users
-from rogerthat.to.messaging import AttachmentTO
-from rogerthat.utils import now
 from rogerthat.utils.service import get_identity_from_service_identity_user, \
     get_service_user_from_service_identity_user
 from solutions.common import SOLUTION_COMMON
@@ -221,7 +217,6 @@ class SolutionIdentitySettings(db.Expando):
     description = db.TextProperty()  # TODO: remove after migration 006
     address = db.TextProperty()  # TODO: remove after migration 006
     location = db.GeoPtProperty(indexed=False)  # TODO: remove after migration 006
-    search_keywords = db.TextProperty()  # TODO: remove after migration 006
 
     # Inbox
     inbox_forwarders = db.StringListProperty(indexed=False)
@@ -229,7 +224,6 @@ class SolutionIdentitySettings(db.Expando):
     inbox_mail_forwarders = db.StringListProperty(indexed=False)
     inbox_email_reminders_enabled = db.BooleanProperty(indexed=False)
 
-    # Broadcast create news
     broadcast_create_news_qrcode = db.StringProperty(indexed=False)
 
     payment_enabled = db.BooleanProperty(default=False)
@@ -299,10 +293,6 @@ class SolutionSettings(SolutionIdentitySettings):
     default_calendar = db.IntegerProperty(indexed=False)
     uitdatabank_actor_id = db.StringProperty(indexed=True)
 
-    # Broadcast
-    broadcast_types = db.StringListProperty(indexed=False)
-    broadcast_to_all_locations = db.BooleanProperty(indexed=False, default=False)
-
     facebook_page = db.StringProperty(indexed=False)
     facebook_name = db.StringProperty(indexed=False)
     facebook_action = db.StringProperty(indexed=False)
@@ -371,26 +361,6 @@ class SolutionSettings(SolutionIdentitySettings):
     @property
     def currency_symbol(self):
         return Locale.parse(self.main_language).currency_symbols.get(self.currency, self.currency)
-
-
-class SolutionAutoBroadcastTypes(db.Model):
-    broadcast_types = db.StringListProperty(indexed=False)
-
-    @property
-    def module(self):
-        return self.key().name()
-
-    @property
-    def solution_settings_key(self):
-        return self.parent_key()
-
-    @staticmethod
-    def list(sln_settings):
-        return SolutionAutoBroadcastTypes.all().ancestor(sln_settings)
-
-    @classmethod
-    def create_key(cls, sln_settings_key, module_name):
-        return db.Key().from_path(cls.kind(), module_name, parent=sln_settings_key)
 
 
 class SolutionBrandingSettings(db.Model):
@@ -541,58 +511,6 @@ class SolutionQR(db.Model):
     def list_by_user(cls, service_user, service_identity, solution):
         service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
         return cls.all().ancestor(parent_key_unsafe(service_identity_user, solution))
-
-
-class SolutionScheduledBroadcast(db.Model):
-    timestamp = db.IntegerProperty()
-    broadcast_epoch = db.IntegerProperty()
-
-    broadcast_type = db.StringProperty(indexed=False)
-    message = db.TextProperty()
-    target_audience_enabled = db.BooleanProperty(indexed=False)
-    target_audience_min_age = db.IntegerProperty(indexed=False)
-    target_audience_max_age = db.IntegerProperty(indexed=False)
-    target_audience_gender = db.StringProperty(indexed=False)
-    json_attachments = db.TextProperty()
-    json_urls = db.TextProperty()
-
-    service_identity = db.StringProperty(indexed=False)  # Service who created the broadcast
-    broadcast_to_all_locations = db.BooleanProperty(indexed=False, default=False)
-    statistics_keys = db.StringListProperty(indexed=False)  # Link to BroadcastStatistic
-    identities = db.StringListProperty(indexed=False)
-
-    deleted = db.BooleanProperty(default=False)
-
-    news_id = db.IntegerProperty(indexed=False)
-    scheduled_task_name = db.StringProperty(indexed=False)
-
-    @property
-    def key_str(self):
-        return str(self.key())
-
-    @property
-    def service_user(self):
-        return users.User(self.parent_key().name())
-
-    @property
-    def attachments(self):
-        return parse_complex_value(AttachmentTO, json.loads(self.json_attachments), True)
-
-    @property
-    def urls(self):
-        from solutions.common.to import UrlTO
-        return parse_complex_value(UrlTO, json.loads(self.json_urls), True)
-
-    @classmethod
-    def get_keys_last_month(cls):
-        return db.Query(cls, keys_only=True) \
-            .filter('broadcast_epoch <', now()) \
-            .filter('broadcast_epoch >', now() - 2592000)
-
-    @classmethod
-    def create_key(cls, news_id, service_user, solution):
-        parent = parent_key(service_user, solution)
-        return db.Key.from_path(cls.kind(), news_id, parent=parent)
 
 
 class SolutionNewsPublisher(db.Model):

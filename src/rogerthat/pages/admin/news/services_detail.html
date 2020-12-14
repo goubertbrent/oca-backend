@@ -29,7 +29,7 @@ $(function () {
             }
         });
     });
-	
+
     $(".service-detail-groups-skip").click(function() {
         $.ajax({
             url : "/mobiadmin/google/news/services/setup",
@@ -49,7 +49,7 @@ $(function () {
             }
         });
     });
-    
+
     $(".service-detail-groups-save").click(function() {
     	var groups = $(this).attr('groups');
     	$.ajax({
@@ -84,10 +84,9 @@ $(function () {
 	    	<p><b>Latest activity</b>: {{ latest_activity.date }} ({{ latest_activity.days }} days){% if delete_enabled %}<button class="btn btn-danger service-detail-groups-delete">Delete</button>{% endif %}</p>
 	    	{% if disabled_reason %}<p><b>Disabled</b>:{{ disabled_reason }}</p>{% endif %}
 	    	<p><b>Organization type</b>: {% if sp.organizationType == 1 %}NON_PROFIT{% else %}{% if sp.organizationType == 2 %}PROFIT{% else %}{% if sp.organizationType == 3 %}CITY{% else %}{% if sp.organizationType == 4 %}EMERGENCY{% else %}UNSPECIFIED{% endif %}{% endif %}{% endif %}{% endif %}</p>
-	    	<p><b>Broadcast types</b>: {{ sp.broadcastTypes }}</p>
 	    	<p><b>Identities</b>: {{ identities }}</p>
-	    	
-	    	{% if sni == 0 %}
+
+            {% if sni == 0 %}
 	    		<p><b>Groups</b>: {{ item.group_types }}</p>
 	    	{% else %}
 	    		<p><b>Groups</b></p>
@@ -98,8 +97,8 @@ $(function () {
 			            </label>
 		            {% endfor %}
 		        </div>
-		        
-		        <button class="btn btn-primary service-detail-groups-save" groups="city">CITY</button><br/><br/>
+
+                <button class="btn btn-primary service-detail-groups-save" groups="city">CITY</button><br/><br/>
 		        <button class="btn btn-primary service-detail-groups-save" groups="other">OTHER</button><br/><br/>
 	    		{% if sni != 999 %}
 		    		<button class="btn btn-warning service-detail-groups-skip">Skip</button>

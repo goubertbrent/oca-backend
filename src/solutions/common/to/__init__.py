@@ -29,7 +29,6 @@ from mcfw.properties import unicode_property, long_property, bool_property, type
 from mcfw.rpc import parse_complex_value, serialize_complex_value
 from rogerthat.settings import get_server_settings
 from rogerthat.to import ReturnStatusTO, TO
-from rogerthat.to.messaging import AttachmentTO
 from rogerthat.utils import get_epoch_from_datetime
 from solutions import translate as common_translate
 from solutions.common.models import SolutionInboxMessage, SolutionBrandingSettings, SolutionSettings, \
@@ -697,9 +696,6 @@ class SandwichSettingsTO(object):
     days = long_property('6')
     from_ = long_property('7')
     till = long_property('8')
-    reminder_days = long_property('9')
-    reminder_message = unicode_property('10')
-    reminder_at = long_property('11')
     leap_time_enabled = bool_property('12')
     leap_time = long_property('13')
     leap_time_type = long_property('14')
@@ -723,9 +719,6 @@ class SandwichSettingsTO(object):
         to.days = sandwich_settings.status_days
         to.from_ = sandwich_settings.time_from
         to.till = sandwich_settings.time_until
-        to.reminder_days = sandwich_settings.broadcast_days
-        to.reminder_message = sandwich_settings.reminder_broadcast_message
-        to.reminder_at = sandwich_settings.remind_at
         to.leap_time_enabled = sandwich_settings.leap_time_enabled
         to.leap_time = sandwich_settings.leap_time
         to.leap_time_type = sandwich_settings.leap_time_type
@@ -862,34 +855,6 @@ class UrlTO(object):
     name = unicode_property('2')
 
 
-class SolutionScheduledBroadcastTO(object):
-    key = unicode_property('1')
-    scheduled = typed_property('2', TimestampTO, False)
-    broadcast_type = unicode_property('3')
-    message = unicode_property('4')
-    target_audience_enabled = bool_property('5')
-    target_audience_min_age = long_property('6')
-    target_audience_max_age = long_property('7')
-    target_audience_gender = unicode_property('8')
-    attachments = typed_property('9', AttachmentTO, True)
-    urls = typed_property('10', UrlTO, True)
-
-    @staticmethod
-    def fromModel(model):
-        ssb = SolutionScheduledBroadcastTO()
-        ssb.key = unicode(model.key_str)
-        ssb.scheduled = TimestampTO.fromEpoch(model.broadcast_epoch)
-        ssb.broadcast_type = model.broadcast_type
-        ssb.message = model.message
-        ssb.target_audience_enabled = model.target_audience_enabled
-        ssb.target_audience_min_age = model.target_audience_min_age
-        ssb.target_audience_max_age = model.target_audience_max_age
-        ssb.target_audience_gender = model.target_audience_gender
-        ssb.attachments = model.attachments
-        ssb.urls = model.urls or list()
-        return ssb
-
-
 class SolutionEmailSettingsTO(object):
     inbox = bool_property('1')
 
@@ -911,7 +876,6 @@ class ServiceTO(object):
     telephone = unicode_property('8')
     language = unicode_property('9')
     modules = unicode_list_property('10')
-    broadcast_types = unicode_list_property('11')
     organization_type = long_property('12')
     vat = unicode_property('13')
     website = unicode_property('14')
@@ -919,8 +883,8 @@ class ServiceTO(object):
     hidden_by_city = unicode_property('hidden_by_city')
 
     def __init__(self, customer_id=None, name=None, address1=None, address2=None, zip_code=None, city=None,
-                 user_email=None, telephone=None, language=None, modules=None, broadcast_types=None,
-                 organization_type=None, vat=None, website=None, facebook_page=None, hidden_by_city=None):
+                 user_email=None, telephone=None, language=None, modules=None, organization_type=None, vat=None,
+                 website=None, facebook_page=None, hidden_by_city=None):
         self.customer_id = customer_id
         self.name = name
         self.address1 = address1
@@ -931,7 +895,6 @@ class ServiceTO(object):
         self.telephone = telephone
         self.language = language
         self.modules = modules
-        self.broadcast_types = broadcast_types
         self.organization_type = organization_type
         self.vat = vat
         self.website = website
@@ -957,18 +920,6 @@ class PictureReturnStatusTO(ReturnStatusTO):
         r = super(PictureReturnStatusTO, cls).create(success=success, errormsg=errormsg)
         r.picture = picture
         return r
-
-
-class BroadcastTypesTO(object):
-    all = unicode_list_property('1')
-    editable = unicode_list_property('2')
-
-    @classmethod
-    def create(cls, all_, editable):
-        to = cls()
-        to.all = all_
-        to.editable = editable
-        return to
 
 
 class ServiceMenuItemWithCoordinatesTO(object):

@@ -104,7 +104,6 @@ class TestCase(oca_unittest.TestCase):
 
     def _create_service(self, customer, community_id):
         service = CustomerServiceTO()
-        service.broadcast_types = [u'broadcast']
         service.email = u'test@example.com'
         service.phone_number = u'00248498498494'
         service.language = u'en'

@@ -19,9 +19,9 @@ import base64
 import json
 import logging
 import re
-from types import NoneType
 import uuid
 import zlib
+from types import NoneType
 
 from google.appengine.ext import db
 
@@ -63,7 +63,6 @@ from rogerthat.utils.attachment import get_attachment_content_type_and_length
 from rogerthat.utils.crypto import md5_hex
 from rogerthat.utils.service import add_slash_default
 from rogerthat.utils.transactions import run_in_transaction
-
 
 try:
     from cStringIO import StringIO
@@ -1374,9 +1373,7 @@ def render_js_for_message_flow_designs(mfds, notify_friends=True):
         else:
             service_profile_or_user = mfds[0].user
         from rogerthat.bizz.job.update_friends import schedule_update_all_friends_of_service_user
-        schedule_update_all_friends_of_service_user(service_profile_or_user,
-                                                    bump_service_version=True,
-                                                    clear_broadcast_settings_cache=False)
+        schedule_update_all_friends_of_service_user(service_profile_or_user, bump_service_version=True)
 
     return changed_languages
 

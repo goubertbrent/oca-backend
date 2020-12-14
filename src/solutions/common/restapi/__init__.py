@@ -18,20 +18,20 @@
 from __future__ import unicode_literals
 
 import base64
-from collections import defaultdict
-from datetime import datetime
 import logging
 import re
+from collections import defaultdict
+from datetime import datetime
 from types import NoneType
 
+import cloudstorage
+from babel import Locale
+from babel.numbers import format_currency
+from dateutil.relativedelta import relativedelta
 from google.appengine.api import urlfetch
 from google.appengine.api.taskqueue import taskqueue
 from google.appengine.ext import db, deferred, ndb
 
-from babel import Locale
-from babel.numbers import format_currency
-import cloudstorage
-from dateutil.relativedelta import relativedelta
 from mcfw.consts import MISSING, REST_TYPE_TO
 from mcfw.exceptions import HttpBadRequestException, HttpForbiddenException
 from mcfw.properties import azzert, get_members
@@ -45,14 +45,13 @@ from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueEx
 from rogerthat.consts import DEBUG, SCHEDULED_QUEUE
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks, parent_ndb_key
 from rogerthat.dal.profile import get_user_profile, get_profile_key, get_service_profile
-from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import system
 from rogerthat.settings import get_server_settings
-from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, WarningReturnStatusTO
+from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.to.friends import FriendListResultTO
 from rogerthat.to.messaging import AttachmentTO, BaseMemberTO
 from rogerthat.to.service import UserDetailsTO
@@ -460,7 +459,7 @@ def api_send_message_to_services(organization_types=None, message=None):
 @rest('/common/news/rss', 'get', read_only_access=True)
 @returns(SolutionRssSettingsTO)
 @arguments()
-def rest_get_broadcast_rss_feeds():
+def rest_get_news_rss_feeds():
     service_user = users.get_current_user()
     session_ = users.get_current_session()
     service_identity = session_.service_identity
@@ -495,7 +494,7 @@ def rest_validate_rss_feed(url):
 @rest('/common/news/rss', 'put', type=REST_TYPE_TO)
 @returns(SolutionRssSettingsTO)
 @arguments(data=SolutionRssSettingsTO)
-def rest_save_broadcast_rss_feeds(data):
+def rest_save_news_rss_feeds(data):
     # type: (SolutionRssSettingsTO) -> SolutionRssSettingsTO
     service_user = users.get_current_user()
     session_ = users.get_current_session()
@@ -507,7 +506,7 @@ def rest_save_broadcast_rss_feeds(data):
 @rest('/common/news/rss/validate', 'post')
 @returns(UrlReturnStatusTO)
 @arguments(url=unicode, allow_empty=bool)
-def broadcast_validate_url(url, allow_empty=False):
+def rest_news_validate_rss(url, allow_empty=False):
     try:
         service_user = users.get_current_user()
         sln_settings = get_solution_settings(service_user)
@@ -1553,12 +1552,6 @@ def save_sandwich_settings(sandwich_settings):
             sandwich_settings_model.time_from = sandwich_settings.from_
         if sandwich_settings.till != MISSING:
             sandwich_settings_model.time_until = sandwich_settings.till
-        if sandwich_settings.reminder_days != MISSING:
-            sandwich_settings_model.broadcast_days = sandwich_settings.reminder_days
-        if sandwich_settings.reminder_message != MISSING:
-            sandwich_settings_model.reminder_broadcast_message = sandwich_settings.reminder_message
-        if sandwich_settings.reminder_at != MISSING:
-            sandwich_settings_model.remind_at = sandwich_settings.reminder_at
         if sandwich_settings.leap_time is not MISSING:
             sandwich_settings_model.leap_time = sandwich_settings.leap_time
         if sandwich_settings.leap_time_enabled is not MISSING:

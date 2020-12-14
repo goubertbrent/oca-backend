@@ -25,7 +25,6 @@ from rogerthat.bizz.friend_helper import FriendHelper
 from rogerthat.bizz.friends import invite, ORIGIN_USER_INVITE
 from rogerthat.bizz.service import InvalidValueException, get_and_validate_app_id_for_service_identity_user, \
     validate_app_id_for_service_identity_user
-from rogerthat.bizz.service.broadcast import ConfirmationNeededException
 from rogerthat.dal import parent_key
 from rogerthat.dal.app import get_visible_apps
 from rogerthat.dal.mfd import get_service_message_flow_designs, get_service_message_flow_design_key_by_name, \
@@ -47,8 +46,7 @@ from rogerthat.to.roles import RoleTO, GrantTO
 from rogerthat.to.service import ServiceConfigurationTO, ServiceLogTO, GetServiceUsersResponseTO, ServiceUserTO, \
     GetServiceInteractionDefsResponseTO, ServiceInteractionDefTO, MessageFlowDesignTO, LibraryMenuIconTO, \
     ServiceIdentityDetailsTO, ServiceIdentitySummaryTO, ServiceLanguagesTO, MessageFlowListTO, \
-    ServiceBroadCastConfigurationTO, BroadcastTestPersonReturnStatusTO, UserDetailsTO, TestBroadcastReturnStatusTO, \
-    BroadcastTO, DeleteBroadcastTypeReturnStatusTO
+    UserDetailsTO
 from rogerthat.to.service_panel import WebServiceMenuTO
 from rogerthat.utils.app import create_app_user, create_app_user_by_email
 from rogerthat.utils.service import create_service_identity_user
@@ -478,18 +476,17 @@ def list_icon_library():
 @rest("/mobi/rest/service/menu/create", "post")
 @returns(ReturnStatusTO)
 @arguments(icon_name=unicode, icon_color=unicode, label=unicode, tag=unicode, coords=[int], screen_branding=unicode,
-           static_flow=unicode, is_broadcast_settings=bool, broadcast_branding=unicode, requires_wifi=bool,
+           static_flow=unicode, requires_wifi=bool,
            run_in_background=bool, roles=[(int, long)], link=ServiceMenuItemLinkTO, fall_through=bool,
            form_id=(int, long, NoneType), embedded_app=unicode)
-def create_menu_item(icon_name, icon_color, label, tag, coords, screen_branding, static_flow, is_broadcast_settings,
-                     broadcast_branding, requires_wifi, run_in_background, roles, link=None, fall_through=False,
-                     form_id=None, embedded_app=None):
+def create_menu_item(icon_name, icon_color, label, tag, coords, screen_branding, static_flow, requires_wifi,
+                     run_in_background, roles, link=None, fall_through=False, form_id=None, embedded_app=None):
     from rogerthat.bizz.service import create_menu_item as create_menu_item_bizz
     service_user = users.get_current_user()
     try:
         create_menu_item_bizz(service_user, icon_name, icon_color, label, tag, coords, screen_branding, static_flow,
-                              requires_wifi, run_in_background, roles, is_broadcast_settings, broadcast_branding,
-                              link=link, fall_through=fall_through, form_id=form_id, embedded_app=embedded_app)
+                              requires_wifi, run_in_background, roles, link=link, fall_through=fall_through,
+                              form_id=form_id, embedded_app=embedded_app)
         return RETURNSTATUS_TO_SUCCESS
     except InvalidValueException as e:
         return ReturnStatusTO.create(False, e.fields.get('reason') or e.message)
@@ -605,103 +602,6 @@ def delete_service_identity(identifier):
     return RETURNSTATUS_TO_SUCCESS
 
 
-@rest("/mobi/rest/service/broadcast_configuration", "get")
-@returns(ServiceBroadCastConfigurationTO)
-@arguments()
-def get_broadcast_configuration():
-    from rogerthat.dal.service import list_broadcasts as dal_list_broadcasts
-    service_user = users.get_current_user()
-    service_profile = get_service_profile(service_user)
-    broadcasts = dal_list_broadcasts(users.get_current_user())
-    return ServiceBroadCastConfigurationTO.fromServiceProfile(service_profile, broadcasts)
-
-
-@rest("/mobi/rest/service/add_broadcast_type", "post")
-@returns(ReturnStatusTO)
-@arguments(broadcast_type=unicode)
-def add_broadcast_type(broadcast_type):
-    from rogerthat.bizz.service.broadcast import add_broadcast_type as bizz_add_broadcast_type
-    try:
-        bizz_add_broadcast_type(users.get_current_user(), broadcast_type)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, be:
-        return ReturnStatusTO.create(False, be.message)
-
-
-@rest("/mobi/rest/service/rm_broadcast_type", "post")
-@returns(ReturnStatusTO)
-@arguments(broadcast_type=unicode, force=bool)
-def rm_broadcast_type(broadcast_type, force):
-    from rogerthat.bizz.service.broadcast import delete_broadcast_type
-    r = DeleteBroadcastTypeReturnStatusTO()
-    try:
-        delete_broadcast_type(users.get_current_user(), broadcast_type, force)
-    except ConfirmationNeededException, e:
-        r.success = False
-        r.errormsg = None
-        r.confirmation = e.message.decode('UTF-8') if e.message is not None else None
-    except BusinessException, be:
-        r.success = False
-        r.errormsg = be.message.decode('UTF-8') if be.message is not None else None
-        r.confirmation = None
-    else:
-        r.success = True
-        r.errormsg = None
-        r.confirmation = None
-    return r
-
-
-@rest("/mobi/rest/service/add_broadcast_test_person", "post")
-@returns(BroadcastTestPersonReturnStatusTO)
-@arguments(email=unicode, app_id=unicode)
-def add_broadcast_test_person(email, app_id=None):
-    from rogerthat.bizz.service.broadcast import add_broadcast_test_person as bizz_add_broadcast_test_person
-    r = BroadcastTestPersonReturnStatusTO()
-    service_user = users.get_current_user()
-    default_service_identity_user = create_service_identity_user(service_user, ServiceIdentity.DEFAULT)
-    app_id = get_and_validate_app_id_for_service_identity_user(default_service_identity_user, app_id, email)
-    try:
-        user_profile = bizz_add_broadcast_test_person(service_user, create_app_user(users.User(email), app_id))
-        r.user_details = UserDetailsTO.fromUserProfile(user_profile)
-        r.success = True
-        r.errormsg = None
-    except BusinessException, be:
-        r.user_details = None
-        r.success = False
-        r.errormsg = be.message.decode('UTF-8') if be.message is not None else None
-    return r
-
-
-@rest("/mobi/rest/service/rm_broadcast_test_person", "post")
-@returns(ReturnStatusTO)
-@arguments(email=unicode, app_id=unicode)
-def rm_broadcast_test_person(email, app_id=None):
-    from rogerthat.bizz.service.broadcast import delete_broadcast_test_person
-    service_user = users.get_current_user()
-    default_service_identity_user = create_service_identity_user(service_user, ServiceIdentity.DEFAULT)
-    app_id = get_and_validate_app_id_for_service_identity_user(default_service_identity_user, app_id, email)
-    try:
-        delete_broadcast_test_person(users.get_current_user(), create_app_user(users.User(email), app_id))
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, be:
-        return ReturnStatusTO.create(False, be.message)
-
-
-@rest("/mobi/rest/service/search_connected_users", "get")
-@returns([UserDetailsTO])
-@arguments(name_or_email_term=unicode, app_id=unicode, service_identity=unicode)
-def search_connected_users(name_or_email_term, app_id=None, service_identity=None):
-    from rogerthat.bizz.profile import search_users_via_friend_connection_and_name_or_email
-    service_user = users.get_current_user()
-    if service_identity is None:
-        service_identity = ServiceIdentity.DEFAULT
-    service_identity_user = create_service_identity_user(service_user, service_identity)
-    if app_id is not None:
-        validate_app_id_for_service_identity_user(service_identity_user, app_id)
-
-    return search_users_via_friend_connection_and_name_or_email(service_user.email() if service_identity is None else service_identity_user.email(), name_or_email_term, app_id)
-
-
 @rest("/mobi/rest/service/search_users", "get")
 @returns([UserDetailsTO])
 @arguments(term=unicode, app_id=unicode, admin=bool)
@@ -713,64 +613,6 @@ def search_users(term, app_id=None, admin=False):
         validate_app_id_for_service_identity_user(default_service_identity_user, app_id)
     return sorted(search_users_via_name_or_email(term, app_id),
                   key=lambda x: (x.app_id, x.name.upper()))
-
-
-@rest("/mobi/rest/service/send_broadcast", "post")
-@returns(ReturnStatusTO)
-@arguments(broadcast_key=unicode)
-def send_broadcast(broadcast_key):
-    return ReturnStatusTO.create(False, 'This function is no longer supported and will be removed soon')
-    from rogerthat.bizz.service.broadcast import send_broadcast as bizz_send_broadcast
-    try:
-        bizz_send_broadcast(users.get_current_user(), broadcast_key)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, be:
-        return ReturnStatusTO.create(False, be.message)
-
-
-@rest("/mobi/rest/service/schedule_broadcast", "post")
-@returns(ReturnStatusTO)
-@arguments(broadcast_key=unicode, timestamp=int)
-def schedule_broadcast(broadcast_key, timestamp):
-    return ReturnStatusTO.create(False, 'This function is no longer supported and will be removed soon')
-    from rogerthat.bizz.service.broadcast import schedule_broadcast as bizz_schedule_broadcast
-    try:
-        bizz_schedule_broadcast(users.get_current_user(), broadcast_key, timestamp)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, be:
-        return ReturnStatusTO.create(False, be.message)
-
-
-@rest("/mobi/rest/service/test_broadcast", "post")
-@returns(TestBroadcastReturnStatusTO)
-@arguments(name=unicode, broadcast_type=unicode, message_flow_id=unicode, tag=unicode)
-def test_broadcast(name, broadcast_type, message_flow_id, tag):
-    return ReturnStatusTO.create(False, 'This function is no longer supported and will be removed soon')
-    from rogerthat.bizz.service.broadcast import test_broadcast as bizz_test_broadcast
-    serivce_user = users.get_current_user()
-    r = TestBroadcastReturnStatusTO()
-    try:
-        broadcast = bizz_test_broadcast(serivce_user, name, broadcast_type, message_flow_id, tag)
-        r.broadcast = BroadcastTO.fromBroadcast(broadcast)
-        r.success = True
-        r.errormsg = None
-    except BusinessException, be:
-        r.broadcast = None
-        r.success = False
-        r.errormsg = be.message.decode("UTF-8") if be.message is not None else None
-    return r
-
-
-@rest("/mobi/rest/service/rm_broadcast", "post")
-@returns(ReturnStatusTO)
-@arguments(broadcast_key=unicode)
-def rm_broadcast(broadcast_key):
-    from rogerthat.bizz.service.broadcast import delete_broadcast
-    try:
-        delete_broadcast(users.get_current_user(), broadcast_key)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, be:
-        return ReturnStatusTO.create(False, be.message)
 
 
 @rest("/mobi/rest/service/publish_changes", "post")
