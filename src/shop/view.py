@@ -37,7 +37,7 @@ from google.appengine.ext.webapp import template
 from oauth2client.client import HttpAccessTokenRefreshError
 from typing import List
 
-from add_1_monkey_patches import DEBUG, APPSCALE
+from add_1_monkey_patches import DEBUG
 from mcfw.cache import cached
 from mcfw.consts import MISSING, REST_TYPE_TO
 from mcfw.exceptions import HttpBadRequestException
@@ -241,7 +241,6 @@ def get_shop_context(**kwargs):
                CURRENCIES=json.dumps(currencies),
                prospect_status_type_strings=json.dumps(Prospect.STATUS_TYPES),
                DEBUG=DEBUG,
-               APPSCALE=APPSCALE,
                organization_types=_get_default_organization_types(),
                )
     ctx.update(kwargs)
@@ -311,7 +310,6 @@ class BizzAdminHandler(BizzManagerHandler):
             path = os.path.join(os.path.dirname(__file__), 'html', 'index.html')
             context = {
                 'DEBUG': DEBUG,
-                'APPSCALE': APPSCALE,
             }
             channel.append_firebase_params(context)
         else:

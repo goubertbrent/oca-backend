@@ -29,7 +29,7 @@ from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.communities.models import AppFeatures
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.session import set_service_identity
-from rogerthat.consts import DEBUG, APPSCALE
+from rogerthat.consts import DEBUG
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.models import ServiceIdentity
 from rogerthat.pages.legal import get_version_content, DOC_TERMS_SERVICE, get_current_document_version
@@ -199,7 +199,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
     def _get_location_templates(self, service_user, language):
         tmpl_params = {'language': language,
                        'debug': DEBUG,
-                       'appscale': APPSCALE,
                        'service_user_email': service_user}
         templates = {}
         templates_to_get = {'location'}
@@ -213,7 +212,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
         tmpl_params = {
             'language': lang or DEFAULT_LANGUAGE,
             'debug': DEBUG,
-            'appscale': APPSCALE,
             'currency': currency,
         }
         templates = {}
@@ -266,7 +264,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
                 params = {
                     'language': lang,
                     'debug': DEBUG,
-                    'appscale': APPSCALE,
                     'templates': self._get_location_templates(service_user, lang),
                     'service_name': service_info.name,
                     'service_user_email': service_user.email().encode("utf-8"),
@@ -356,7 +353,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'sln_i_settings': sln_i_settings,
                   'hidden_by_city': sln_settings.hidden_by_city,
                   'debug': DEBUG,
-                  'appscale': APPSCALE,
                   'templates': self._get_templates(lang, currency, sln_settings.modules),
                   'service_name': service_info.name,
                   'service_user_email': service_user.email().encode("utf-8"),

@@ -26,7 +26,7 @@ from google.appengine.api import memcache
 from google.appengine.ext import db
 
 from mcfw.properties import azzert
-from rogerthat.consts import MAX_RPC_SIZE, DEBUG, APPSCALE
+from rogerthat.consts import MAX_RPC_SIZE, DEBUG
 from rogerthat.dal.rpc_call import get_limited_backlog, get_filtered_backlog
 from rogerthat.rpc import users
 from rogerthat.rpc.models import Mobile, OutStandingFirebaseKick
@@ -219,9 +219,8 @@ def process(body, instant=False):
             memcache.set_multi(memcache_stuff, 10)  # @UndefinedVariable
 
     result = {API_VERSION: 1}
-    no_api_direct_path = DEBUG or APPSCALE
     endpoint = u'/json-rpc/instant' if instant else u'/json-rpc'
-    if no_api_direct_path:
+    if DEBUG:
         result[API_DIRECT_PATH_KEY] = "%s%s" % (get_server_settings().baseUrl, endpoint)
     else:
         result[API_DIRECT_PATH_KEY] = u"https://%s.appspot.com%s" % (APPENGINE_APP_ID, endpoint)

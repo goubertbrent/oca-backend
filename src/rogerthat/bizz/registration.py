@@ -43,7 +43,7 @@ from rogerthat.bizz.service.mfr import start_local_flow
 from rogerthat.bizz.system import update_settings_response_handler, unregister_mobile
 from rogerthat.bizz.user import reactivate_user_profile, archiveUserDataAfterDisconnect
 from rogerthat.capi.system import updateSettings
-from rogerthat.consts import APPSCALE, MC_DASHBOARD, DEBUG, FAST_QUEUE
+from rogerthat.consts import MC_DASHBOARD, DEBUG, FAST_QUEUE
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_ndb_key
 from rogerthat.dal.app import get_app_by_id, get_app_settings
 from rogerthat.dal.friend import get_friends_map_key_by_user
@@ -153,8 +153,7 @@ def register_mobile(human_user, name=None, first_name=None, last_name=None, app_
     mobile.user = app_user
     mobile.account = account.account
     mobile.accountPassword = account.password
-    need_jabber_account = not APPSCALE and use_xmpp_kick_channel
-    if need_jabber_account:
+    if use_xmpp_kick_channel:
         mobile.status = Mobile.STATUS_NEW  # Account created status is set as soon as the ejabberd account is ready
     else:
         mobile.status = Mobile.STATUS_NEW | Mobile.STATUS_ACCOUNT_CREATED
@@ -164,8 +163,7 @@ def register_mobile(human_user, name=None, first_name=None, last_name=None, app_
         mobile.pushId = firebase_registration_id
     mobile.put()
 
-    # AppScale deployments authenticate jabber users against rogerthat app directly
-    if need_jabber_account:
+    if use_xmpp_kick_channel:
         try_or_defer(create_jabber_account, account, mobile.key())
 
     age_and_gender_set = False

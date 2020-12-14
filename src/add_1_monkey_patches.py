@@ -38,7 +38,6 @@ import influxdb
 from influxdb.resultset import ResultSet
 
 SERVER_SOFTWARE = os.environ.get("SERVER_SOFTWARE", "Development")
-APPSCALE = SERVER_SOFTWARE.startswith('AppScaleServer')
 DEBUG = SERVER_SOFTWARE.startswith('Development')
 
 
@@ -199,8 +198,6 @@ def _wrap_run_in_transaction_func(is_retries, is_options):
 
         if not retries:
             retries = 3
-        if APPSCALE:
-            retries += 3
 
         def run(transaction_guid):
             max_tries = retries + 1

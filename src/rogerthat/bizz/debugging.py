@@ -22,7 +22,7 @@ from google.appengine.ext import deferred, db
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.system import start_log_forwarding, delete_xmpp_account
-from rogerthat.consts import APPSCALE, SCHEDULED_QUEUE
+from rogerthat.consts import SCHEDULED_QUEUE
 from rogerthat.dal.mobile import get_mobile_by_id, get_user_active_mobiles
 from rogerthat.models import StartDebuggingRequest, CurrentlyForwardingLogs
 from rogerthat.rpc import users
@@ -88,7 +88,7 @@ def stop_debugging(app_user, mobile_id, debug_request=None, notify_user=True):
                 db.delete_async(debug_request_from_ds)
                 start_log_forwarding(app_user, None, mobile)  # target_jid=None ==> will stop log forwarding
                 stopped = True
-            if not APPSCALE and debug_request_from_ds.target_id.startswith('dbg_'):
+            if debug_request_from_ds.target_id.startswith('dbg_'):
                 on_trans_committed(try_or_defer, delete_xmpp_account, debug_request_from_ds.target_id, None)
 
         return stopped
