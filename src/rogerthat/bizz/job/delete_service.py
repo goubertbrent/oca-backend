@@ -47,7 +47,6 @@ from rogerthat.rpc.service import BusinessException
 from rogerthat.utils.app import create_app_user
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from rogerthat.utils.service import create_service_identity_user
-from solutions.common.integrations.cirklo.models import CirkloMerchant
 
 
 class DeleteServiceTasks(db.Model):

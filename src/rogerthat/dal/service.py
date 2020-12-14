@@ -207,8 +207,8 @@ def get_all_service_friend_keys_query(service_user):
     # service_user can be a service_identity_user
     email = get_service_user_from_service_identity_user(service_user).email() + '/'
     qry = db.GqlQuery("SELECT __key__ FROM FriendServiceIdentityConnection"
-                      "  AND service_identity_email >= :from_service_identity_email"
-                      "  AND service_identity_email < :to_service_identity_email")
+                      " WHERE service_identity_email >= :from_service_identity_email"
+                      " AND service_identity_email < :to_service_identity_email")
     qry.bind(from_service_identity_email=email, to_service_identity_email=email + u"\ufffd")
     return qry
 
