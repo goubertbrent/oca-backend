@@ -72,10 +72,6 @@ handlers:
     script: main_unauthenticated.app
     secure: always
 
-  - url: /shop/prospects/discover/callback
-    script: main_unauthenticated.app
-    secure: always
-
   - url: /shop/oauth2callback
     script: main_google_authenticated.app
     secure: always

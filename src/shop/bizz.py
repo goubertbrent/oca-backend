@@ -31,15 +31,13 @@ import urlparse
 
 from google.appengine.api import images, users as gusers, urlfetch
 from google.appengine.ext import deferred, db, ndb
-import httplib2
-from oauth2client.client import HttpAccessTokenRefreshError
 
 from babel.dates import format_datetime, get_timezone, format_date
 import cloudstorage
 from dateutil.relativedelta import relativedelta
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.properties import azzert
-from mcfw.rpc import returns, arguments, serialize_complex_value
+from mcfw.rpc import returns, arguments
 from oauth2client.contrib.appengine import OAuth2Decorator
 from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.communities.models import Community
@@ -66,8 +64,6 @@ from rogerthat.translations import DEFAULT_LANGUAGE, localize
 from rogerthat.utils import bizz_check, now, channel, generate_random_key, get_epoch_from_datetime, send_mail, \
     get_server_url
 from rogerthat.utils.crypto import encrypt, decrypt, sha256_hex
-from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException, \
-    address_to_coordinates, GeoCodeException
 from rogerthat.utils.transactions import run_in_transaction, run_in_xg_transaction, run_after_transaction
 from shop import SHOP_JINJA_ENVIRONMENT
 from shop.business.audit import audit_log
@@ -78,7 +74,7 @@ from shop.business.order import validate_and_sanitize_order_items, calculate_ord
 from shop.business.permissions import is_admin, is_admin_or_other_legal_entity, is_payment_admin, \
     user_has_permissions_to_team, regio_manager_has_permissions_to_team
 from shop.business.service import set_service_enabled
-from shop.constants import PROSPECT_CATEGORIES, OFFICIALLY_SUPPORTED_LANGUAGES
+from shop.constants import OFFICIALLY_SUPPORTED_LANGUAGES
 from shop.exceptions import BusinessException, CustomerNotFoundException, ContactNotFoundException, \
     ReplaceBusinessException, InvalidEmailFormatException, EmptyValueException, NoOrderException, \
     InvalidServiceEmailException, InvalidLanguageException, ModulesNotAllowedException, \
@@ -86,10 +82,10 @@ from shop.exceptions import BusinessException, CustomerNotFoundException, Contac
     NotOperatingInCountryException, ContactHasOrdersException, ContactHasCreditCardException, \
     NoSupportManagerException, NoPermissionException
 from shop.models import Customer, Contact, normalize_vat, Invoice, Order, Charge, OrderItem, Product, \
-    StructuredInfoSequence, ChargeNumber, InvoiceNumber, Prospect, ShopTask, ProspectRejectionReason, RegioManager, \
-    RegioManagerStatistic, ProspectHistory, OrderNumber, RegioManagerTeam, CreditCard, LegalEntity, CustomerSignup, \
-    ShopApp, LegalDocumentAcceptance, LegalDocumentType
-from shop.to import CustomerChargeTO, CustomerChargesTO, BoundsTO, ProspectTO, AppRightsTO, CustomerServiceTO, \
+    StructuredInfoSequence, ChargeNumber, InvoiceNumber, RegioManager, \
+    RegioManagerStatistic, OrderNumber, RegioManagerTeam, CreditCard, LegalEntity, CustomerSignup, \
+    LegalDocumentAcceptance, LegalDocumentType
+from shop.to import CustomerChargeTO, CustomerChargesTO, AppRightsTO, CustomerServiceTO, \
     OrderItemTO, CompanyTO, CustomerTO
 from solution_server_settings import get_solution_server_settings, CampaignMonitorWebhook
 from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
@@ -302,10 +298,10 @@ def re_index_customer(customer_key):
 @returns(Customer)
 @arguments(current_user=users.User, customer_id=(int, long, NoneType), vat=unicode, name=unicode, address1=unicode,
            address2=unicode, zip_code=unicode, city=unicode, country=unicode, language=unicode,
-           organization_type=(int, long), prospect_id=unicode, force=bool, team_id=(int, long, NoneType),
+           organization_type=(int, long), force=bool, team_id=(int, long, NoneType),
            website=unicode, facebook_page=unicode, community_id=(int, long, NoneType))
 def create_or_update_customer(current_user, customer_id, vat, name, address1, address2, zip_code, city, country,
-                              language, organization_type, prospect_id, force=False, team_id=None,
+                              language, organization_type, force=False, team_id=None,
                               website=None, facebook_page=None, community_id=0):
     is_in_transaction = db.is_in_transaction()
     name = name.strip()
@@ -384,19 +380,7 @@ def create_or_update_customer(current_user, customer_id, vat, name, address1, ad
         customer.website = website
     if facebook_page is not None:
         customer.facebook_page = facebook_page
-    if prospect_id is not None:
-        customer.prospect_id = prospect_id
     customer.put()
-
-    if prospect_id is not None:
-        def trans():
-            prospect = Prospect.get_by_key_name(prospect_id)
-            _link_prospect_to_customer(current_user, prospect, customer)
-
-        if is_in_transaction:
-            trans()
-        else:
-            run_in_xg_transaction(trans)
 
     deferred.defer(re_index_customer, customer.key(), _transactional=is_in_transaction, _queue=FAST_QUEUE)
 
@@ -1338,461 +1322,6 @@ def generate_order_or_invoice_pdf(output_stream, customer, order, contact, invoi
                                    payment_type, products, recurrent, legal_entity, contact)
 
 
-@returns(tuple)
-@arguments(app_id=unicode, category=unicode, cursor=unicode)
-def list_prospects(app_id, category, cursor=None):
-    qry = Prospect.all()
-    qry.filter('app_id =', app_id)
-    if category != 'all':
-        qry.filter('categories =', category)
-    qry.order("address")
-    qry.with_cursor(cursor)
-    prospects = qry.fetch(500)
-    if not prospects:
-        return [], None
-    return prospects, unicode(qry.cursor())
-
-
-@returns(dict)
-@arguments(date_from=int, date_to=int)
-def list_history_tasks(date_from, date_to):
-    return ShopTask.history(date_from, date_to)
-
-
-@returns(BoundsTO)
-@arguments(city=unicode, country=unicode)
-def find_city_bounds(city, country):
-    address = "%s,%s" % (city, country)
-    try:
-        result = geo_code(address)
-    except GeoCodeStatusException, e:
-        raise BusinessException('Got unexpected geo-code status: %s' % e.message)
-    except GeoCodeZeroResultsException, e:
-        raise BusinessException('No results found for %s' % address)
-
-    bounds_dict = result['geometry'].get('bounds') or result['geometry'].get('viewport')
-
-    bounds = BoundsTO.create(bounds_dict['southwest']['lat'],
-                             bounds_dict['southwest']['lng'],
-                             bounds_dict['northeast']['lat'],
-                             bounds_dict['northeast']['lng'])
-    return bounds
-
-
-@returns(Prospect)
-@arguments(current_user=users.User, prospect_id=unicode, name=unicode, phone=unicode, address=unicode, email=unicode,
-           website=unicode, new_comment=unicode, prospect_types=[unicode], categories=[unicode], app_id=unicode,
-           status_code=(int, long, NoneType), invite_code=(int, long, NoneType))
-def put_prospect(current_user, prospect_id, name, phone, address, email, website, new_comment, prospect_types=None,
-                 categories=None, app_id=None, status_code=None, invite_code=None):
-    if not name:
-        raise EmptyValueException('name')
-    if not address:
-        raise EmptyValueException('address')
-    if not categories:
-        raise EmptyValueException('categories')
-    for c in categories:
-        if c not in PROSPECT_CATEGORIES:
-            raise BusinessException('Invalid category \"%s\"' % c)
-
-    is_update = bool(prospect_id)
-
-    must_resolve_address = True
-    if is_update:
-        if not phone:
-            raise EmptyValueException('phone')
-
-        prospect = Prospect.get_by_key_name(prospect_id)
-        must_resolve_address = prospect.address != address
-    else:
-        if not app_id:
-            raise EmptyValueException('app')
-        if not prospect_types:
-            raise EmptyValueException('type')
-    formatted_address = None
-    if must_resolve_address:
-        try:
-            lat, lon, google_place_id, postal_code, formatted_address = address_to_coordinates(address,
-                                                                                               postal_code_required=False)
-            if not postal_code:
-                # if Google didn't know the postal code, then the formatted address will propably be incomplete
-                formatted_address = None
-            if not is_update:
-                prospect_id = google_place_id
-        except GeoCodeStatusException, e:
-            logging.debug('Got unexpected status %s', e.message, exc_info=True)
-            raise Exception('Got unexpected status %s' % e.message)
-        except (GeoCodeZeroResultsException, GeoCodeException), e:
-            raise BusinessException('We could not find %s.\nMake sure your search is spelled correctly. '
-                                    'Try adding a city, state, or zip code.' % address)
-        geo_point = db.GeoPt(lat, lon)
-
-    else:
-        geo_point = None
-
-    def trans():
-        if is_update:
-            prospect = Prospect.get_by_key_name(prospect_id)
-        else:
-            azzert(prospect_id)
-            prospect = Prospect(key_name=prospect_id, app_id=app_id)
-
-        prospect.name = name
-        prospect.phone = phone
-        prospect.address = formatted_address or address
-        prospect.email = email
-        prospect.website = website
-        prospect.categories = categories
-        if geo_point:
-            prospect.geo_point = geo_point
-
-        to_put = list()
-        if new_comment:
-            prospect.add_comment(new_comment, current_user)
-            # Create a history object
-            # this here rarely happens though.
-            p_history = ProspectHistory(executed_by=current_user.email(), created_time=now(),
-                                        type=ProspectHistory.TYPE_ADDED_COMMENT, comment=new_comment,
-                                        status=status_code,
-                                        reason=None, parent=prospect.key())
-            to_put.append(p_history)
-
-        if prospect_types is not None:
-            prospect.type = sorted(prospect_types)
-
-        if status_code is not None:
-            prospect.status = status_code
-
-        if invite_code is not None:
-            prospect.invite_code = invite_code
-
-        to_put.append(prospect)
-        db.put(to_put)
-
-        deferred.defer(broadcast_prospect_update if is_update else broadcast_prospect_creation,
-                       current_user, prospect, _transactional=True, _queue=FAST_QUEUE)
-        from shop.business.prospect import re_index_prospect
-        deferred.defer(re_index_prospect, prospect, _transactional=True, _queue=FAST_QUEUE)
-        return prospect
-
-    prospect = db.run_in_transaction(trans)
-    return prospect
-
-
-def _link_prospect_to_customer(current_user, prospect, customer):
-    azzert(db.is_in_transaction())
-
-    customer.prospect_id = prospect.id
-    prospect.customer_id = customer.id
-    prospect.status = Prospect.STATUS_CUSTOMER
-
-    to_put = [prospect, customer]
-    updated_task_lists = set()
-    # Check if we need to close a current VISIT/CALL task
-    _close_existing_prospect_tasks(prospect, to_put, updated_task_lists)
-
-    deferred.defer(broadcast_prospect_update, current_user, prospect, _transactional=True, _queue=FAST_QUEUE)
-    if updated_task_lists:
-        deferred.defer(broadcast_task_updates, filter(None, updated_task_lists), _transactional=True, _queue=FAST_QUEUE)
-
-    put_and_invalidate_cache(*to_put)
-
-
-@returns(Prospect)
-@arguments(current_user=users.User, prospect_id=unicode, customer_id=(int, long))
-def link_prospect_to_customer(current_user, prospect_id, customer_id):
-    def trans():
-        customer, prospect = db.get([Customer.create_key(customer_id), Prospect.create_key(prospect_id)])
-        azzert(customer and prospect)
-
-        if customer.prospect_id is not None and customer.prospect_id != prospect_id:
-            logging.info('Customer %s is already linked to prospect %s', customer_id, customer.prospect_id)
-            raise BusinessException(u'This customer is already linked to a prospect')
-
-        if prospect.customer_id is not None and prospect.customer_id != customer_id:
-            logging.info('Prospect %s is already linked to customer %s', prospect_id, prospect.customer_id)
-            raise BusinessException(u'This prospect is already linked to a customer')
-
-        _link_prospect_to_customer(current_user, prospect, customer)
-        return prospect
-
-    xg_on = db.create_transaction_options(xg=True)
-    return db.run_in_transaction_options(xg_on, trans)
-
-
-def _close_existing_prospect_tasks(prospect, to_put, updated_task_lists):
-    existing_tasks = ShopTask.list_by_prospect(prospect,
-                                               [ShopTask.TYPE_CALL, ShopTask.TYPE_VISIT],
-                                               [ShopTask.STATUS_NEW]).fetch(None)
-    for existing_task in existing_tasks:
-        logging.debug('Closing existing task: %s', db.to_dict(existing_task))
-        existing_task.status = ShopTask.STATUS_CLOSED
-        existing_task.closed_by = '<auto>'
-        existing_task.closed_time = now()
-        to_put.append(existing_task)
-        updated_task_lists.add(existing_task.assignee)
-
-
-@returns(tuple)
-@arguments(current_user=users.User, prospect_id=unicode, status=(int, long), reason=unicode,
-           action_timestamp=(int, long, NoneType), assignee=unicode, comment=unicode, customer_id=(int, long, NoneType),
-           certainty=(int, long, NoneType), subscription=(int, long, NoneType), email=unicode, invite_language=unicode,
-           appointment_type=(int, long, NoneType))
-def set_prospect_status(current_user, prospect_id, status, reason=None, action_timestamp=None, assignee=None,
-                        comment=None, customer_id=None, certainty=None, subscription=None, email=None,
-                        invite_language=None, appointment_type=None):
-    ACTION_STATUSES = (Prospect.STATUS_CALL_BACK, Prospect.STATUS_APPOINTMENT_MADE)
-    REASON_STATUSES = (Prospect.STATUS_IRRELEVANT, Prospect.STATUS_NOT_INTERESTED)
-
-    bizz_check(reason or status not in REASON_STATUSES, u'Reason is required')
-    bizz_check(action_timestamp or status not in ACTION_STATUSES, u'Action timestamp is required')
-
-    if action_timestamp is not None:
-        bizz_check(action_timestamp > now(), u'Action timestamp must be in the future')
-
-    if invite_language and not invite_language in OFFICIALLY_SUPPORTED_LANGUAGES:
-        raise InvalidLanguageException(invite_language)
-
-    def trans():
-        prospect = Prospect.get(Prospect.create_key(prospect_id))
-        azzert(prospect)
-
-        to_put = [prospect]
-        updated_task_lists = set()
-
-        # Check if we need to close a current VISIT/CALL task
-        _close_existing_prospect_tasks(prospect, to_put, updated_task_lists)
-
-        prospect.status = status
-        prospect.reason = reason
-        prospect.assignee = assignee
-        prospect.certainty = certainty
-        prospect.subscription = subscription
-        if email and not prospect.email:
-            prospect.email = email
-
-        if status in ACTION_STATUSES:
-            task_type = ShopTask.type_from_prospect_status(status)
-            task = create_task(current_user.email(), prospect, assignee, action_timestamp, task_type, prospect.app_id,
-                               address=prospect.address, certainty=certainty, subscription=subscription)
-            to_put.append(task)
-            updated_task_lists.add(task.assignee)
-
-            prospect.action_timestamp = action_timestamp
-
-        else:
-            prospect.action_timestamp = None
-            task_type = None
-
-        if comment:
-            prospect.add_comment(comment, current_user)
-
-        if customer_id is not None:
-            prospect.customer_id = customer_id
-
-        put_and_invalidate_cache(*to_put)
-        if updated_task_lists:
-            deferred.defer(broadcast_task_updates, filter(None, updated_task_lists), _transactional=True,
-                           _queue=FAST_QUEUE)
-        deferred.defer(broadcast_prospect_update, current_user, prospect, _transactional=True, _queue=FAST_QUEUE)
-        # Create a history object
-        p_history = ProspectHistory(executed_by=current_user.email(), created_time=now(), type=task_type,
-                                    comment=comment, status=status, reason=reason, parent=prospect.key())
-        p_history.put()
-
-        return prospect
-
-    def create_google_calendar_event(prospect):
-        """
-        Creates a task in the Google calendar of the assigned manager.
-        Google will then send an invitation email to the prospect
-
-        Returns:
-            calendar_error(unicode): The error that occurred, if any.
-        """
-        from apiclient.discovery import build
-        from apiclient.errors import HttpError
-        calendar_error = None
-        # If we don't have access to the calendar of the manager or something else goes wrong,
-        # the ShopTask will still be created but the invitation will have to be send manually.
-        if email is not None and email != u'':
-            manager = RegioManager.get_by_key_name(assignee)  # type: RegioManager
-            if manager.credentials is None or manager.credentials.invalid:
-                logging.warn(
-                    'Not creating a calendar event for %s as we don\'t have permission to user their calendar' % manager.name)
-                calendar_error = 'Could not automatically create a calendar event for this visit because no' \
-                                 ' permission to use the calendar of %s was granted.' \
-                                 ' Please create the event manually.' % manager.name
-
-            else:
-                http = manager.credentials.authorize(httplib2.Http(timeout=15))
-                calendar_service = build('calendar', 'v3')
-                tz = 'Europe/Brussels'
-                appointment_date = datetime.datetime.fromtimestamp(action_timestamp,
-                                                                   tz=get_timezone(tz))
-                appointment_hdate = format_datetime(appointment_date, locale='nl_BE',
-                                                    format='EEEE d/M/yyyy H:mm')
-
-                with closing(StringIO()) as sb:
-                    sb.write(shop_translate(invite_language, 'dear_name', name='').encode('utf-8'))
-                    sb.write('\n\n')
-                    sb.write(shop_translate(invite_language, 'appointment_confirmed_via_phone',
-                                            date=appointment_hdate).encode('utf-8'))
-                    sb.write('\n\n')
-                    if appointment_type == ShopTask.APPOINTMENT_TYPE_LOYALTY_EXPLANATION:
-                        sb.write(shop_translate(invite_language, 'loyalty_explanation').encode('utf-8'))
-                        sb.write('\n')
-                    if appointment_type == ShopTask.APPOINTMENT_TYPE_LOYALTY_INSTALATION:
-                        sb.write(shop_translate(invite_language, 'loyalty_installation').encode('utf-8'))
-                        sb.write('\n')
-                        sb.write(shop_translate(invite_language, 'loyalty_installation_preparations').encode('utf-8'))
-                        sb.write('\n- ')
-                        sb.write(shop_translate(invite_language, 'loyalty_installation_space').encode('utf-8'))
-                        sb.write('\n- ')
-                        sb.write(shop_translate(invite_language, 'loyalty_installation_wifi').encode('utf-8'))
-                        sb.write('\n- ')
-                        sb.write(shop_translate(invite_language, 'loyalty_installation_power').encode('utf-8'))
-                        sb.write('\n')
-                    sb.write('\n')
-                    sb.write(shop_translate(invite_language, 'with_regards').encode('utf-8'))
-                    sb.write('\n\n')
-                    sb.write(manager.name.encode('utf-8'))
-                    sb.write('\n')
-                    sb.write(manager.email.encode('utf-8'))
-                    if manager.phone:
-                        sb.write('\n')
-                        sb.write(shop_translate(invite_language, 'telephone_abbr').encode('utf-8'))
-                        sb.write(': ')
-                        sb.write(manager.phone.encode('utf-8'))
-                    description = sb.getvalue()
-
-                event = {
-                    'summary': shop_translate(invite_language, 'appointment_with_osa',
-                                              prospect_name=prospect.name),
-                    'location': u'%s' % prospect.address,
-                    'start': {
-                        'dateTime': appointment_date.isoformat('T'),
-                        'timeZone': tz
-                    },
-                    'end': {
-                        'dateTime': datetime.datetime.fromtimestamp(
-                            action_timestamp + ShopTask.VISIT_DURATION * 60, tz=get_timezone(tz)).isoformat(
-                            'T'),
-                        'timeZone': tz
-                    },
-                    'attendees': [
-                        {'email': assignee, 'displayName': manager.name, 'responseStatus': 'accepted'},
-                        {'email': email, 'displayName': prospect.name}
-                    ],
-                    'visibility': 'public',
-                    'email_reminders': {
-                        'useDefault': False,
-                        'overrides': [
-                            {'method': 'popup', 'minutes': 30},
-                        ],
-                    },
-                    'description': description
-                }
-                logging.debug('Creating Google calendar event %s', event)
-                try:
-                    # sendNotifications sends an email when the event is created.
-                    # If the email address doesn't exist Google will send an email to the regiomanager.
-                    calendar_service.events().insert(calendarId='primary', body=event,
-                                                     sendNotifications=True).execute(http=http)
-                except HttpAccessTokenRefreshError as e:
-                    logging.warning(u'Could not create calendar event for user %s: %s', assignee, e.message)
-                    manager.credentials.revoke(httplib2.Http(timeout=15))
-                    calendar_error = u'Task created, but could not automatically create an event in the manager his' \
-                                     u' calendar (error was \"%s\").' \
-                                     u' Please refresh the page to prevent this error in the future.' % e.message
-                except HttpError, error:
-                    # This can happen when for example the email address was invalid (e.g test@examplecom)
-                    logging.warning(
-                        u'Could not create calendar event for user %s: %s' % (assignee, error._get_reason()))
-                    calendar_error = u'Task created, but could not automatically create an event in the manager his' \
-                                     u' calendar (error was \"%s\").' \
-                                     u' Please create this event manually.' % error._get_reason()
-
-        else:
-            calendar_error = u'Task created, but could not automatically create an event in Google Calendar' \
-                             u'because no email address for the potential customer was specified.' \
-                             u' Please manually create this event and send a confirmation email to the prospect'
-        return calendar_error
-
-    xg_on = db.create_transaction_options(xg=True)
-    prospect = db.run_in_transaction_options(xg_on, trans)
-
-    calendar_error = None
-    if status == Prospect.STATUS_APPOINTMENT_MADE:
-        calendar_error = create_google_calendar_event(prospect)
-
-    if reason and status in REASON_STATUSES:
-        # Store the reason if not yet existing
-        if not ProspectRejectionReason.all().filter('reason', reason).get():
-            ProspectRejectionReason(reason=reason).put()
-
-    return prospect, calendar_error
-
-
-@returns(ShopTask)
-@arguments(created_by=unicode, prospect_or_key=(Prospect, db.Key), assignee=unicode, execution_time=(int, long),
-           task_type=int, app_id=unicode, status=int, address=unicode, comment=unicode, certainty=(int, long, NoneType),
-           subscription=(int, long, NoneType), notify_by_email=bool)
-def create_task(created_by, prospect_or_key, assignee, execution_time, task_type, app_id, status=ShopTask.STATUS_NEW,
-                address=None, comment=None, certainty=None, subscription=None, notify_by_email=False):
-    if not assignee:
-        raise BusinessException('No assignee specified for task')
-
-    if notify_by_email:
-        subject = u'You have been assigned a new task: %s' % ShopTask.TYPE_STRINGS[task_type]
-        send_mail(get_server_settings().dashboardEmail, assignee, subject, body=(comment or u''))
-
-    return ShopTask(parent=prospect_or_key,
-                    created_by=created_by,
-                    status=status,
-                    assignee=assignee,
-                    creation_time=now(),
-                    execution_time=execution_time,
-                    type=task_type,
-                    address=address,
-                    comment=comment,
-                    certainty=certainty,
-                    subscription=subscription,
-                    app_id=app_id)
-
-
-@returns()
-@arguments(assignees=[unicode])
-def broadcast_task_updates(assignees):
-    target_users = set(map(users.User, assignees))
-    solutions_server_settings = get_solution_server_settings()
-    target_users.update([gusers.User(email) for email in solutions_server_settings.shop_bizz_admin_emails])
-    channel.send_message(target_users, 'shop.task.updated', assignees=assignees)
-
-
-@returns()
-@arguments(current_user=users.User, prospect=Prospect)
-def broadcast_prospect_update(current_user, prospect):
-    target_users = {users.User(k.name()) for k in RegioManager.all(keys_only=True)}
-    target_users.add(current_user)
-    solutions_server_settings = get_solution_server_settings()
-    target_users.update([gusers.User(email) for email in solutions_server_settings.shop_bizz_admin_emails])
-    channel.send_message(target_users, 'shop.prospect.updated',
-                         prospect=serialize_complex_value(ProspectTO.from_model(prospect), ProspectTO, False))
-
-
-@returns()
-@arguments(current_user=users.User, prospect=Prospect)
-def broadcast_prospect_creation(current_user, prospect):
-    target_users = {users.User(k.name()) for k in RegioManager.all(keys_only=True)}
-    if current_user:
-        target_users.add(current_user)
-    solutions_server_settings = get_solution_server_settings()
-    target_users.update([gusers.User(email) for email in solutions_server_settings.shop_bizz_admin_emails])
-    channel.send_message(target_users, 'shop.prospect.created',
-                         prospect=serialize_complex_value(ProspectTO.from_model(prospect), ProspectTO, False))
-
-
 @returns(RegioManagerTeam)
 @arguments(team_id=(int, long, NoneType), name=unicode, legal_entity_id=(int, long, NoneType),
            app_ids=[unicode])
@@ -1940,21 +1469,6 @@ def update_regiomanager_statistic(gained_value, manager):
         statistic.month_revenue.append(month_date)
         statistic.month_revenue.append(gained_value)
     statistic.put()
-
-
-@returns([ProspectHistory])
-@arguments(prospect_id=unicode)
-def get_prospect_history(prospect_id):
-    return ProspectHistory.all().ancestor(Prospect.create_key(prospect_id))
-
-
-def put_shop_app(app_id):
-    # type: (str) -> ShopApp
-    key = ShopApp.create_key(app_id)
-    shop_app = key.get() or ShopApp(key=key,
-                                    name=get_app_by_id(app_id).name)
-    shop_app.put()
-    return shop_app
 
 
 @returns(db.Query)
@@ -2138,7 +1652,7 @@ def put_customer_with_service(service, name, address1, address2, zip_code, city,
         customer = create_or_update_customer(current_user=None, customer_id=customer_id, vat=vat, name=name,
                                              address1=address1, address2=address2, zip_code=zip_code,
                                              country=country, language=language, city=city,
-                                             organization_type=organization_type, prospect_id=None,
+                                             organization_type=organization_type,
                                              force=force, team_id=team_id, website=website, facebook_page=facebook_page,
                                              community_id=service.community_id)
 

@@ -56,7 +56,6 @@ class CustomerStoreTestCase(oca_unittest.TestCase):
                                              country=u'BE',
                                              language=DEFAULT_LANGUAGE,
                                              organization_type=OrganizationType.PROFIT,
-                                             prospect_id=None,
                                              team_id=RegioManagerTeam.all().get().id,
                                              community_id=self.communities[0].id)
 

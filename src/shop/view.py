@@ -21,7 +21,6 @@ import datetime
 import json
 import logging
 import os
-import re
 from cgi import FieldStorage
 from collections import namedtuple
 from datetime import date, timedelta
@@ -35,7 +34,6 @@ from google.appengine.api import urlfetch, users as gusers
 from google.appengine.ext import db, deferred, ndb
 from google.appengine.ext.webapp import template
 from oauth2client.client import HttpAccessTokenRefreshError
-from typing import List
 
 from add_1_monkey_patches import DEBUG
 from mcfw.cache import cached
@@ -49,7 +47,7 @@ from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.gcs import upload_to_gcs
 from rogerthat.bizz.profile import create_user_profile
 from rogerthat.bizz.session import switch_to_service_identity, create_session
-from rogerthat.consts import FAST_QUEUE, OFFICIALLY_SUPPORTED_COUNTRIES, ROGERTHAT_ATTACHMENTS_BUCKET
+from rogerthat.consts import  OFFICIALLY_SUPPORTED_COUNTRIES, ROGERTHAT_ATTACHMENTS_BUCKET
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.app import get_apps, get_apps_by_type, get_apps_by_id, get_app_by_id
 from rogerthat.dal.profile import get_service_profile, get_profile_info
@@ -68,44 +66,37 @@ from rogerthat.utils.transactions import on_trans_committed, allow_transaction_p
 from shop import SHOP_JINJA_ENVIRONMENT
 from shop.bizz import search_customer, create_or_update_customer, \
     generate_order_or_invoice_pdf, generate_transfer_document_image, \
-    PaymentFailedException, list_prospects, set_prospect_status, find_city_bounds, \
-    put_prospect, put_regio_manager, link_prospect_to_customer, \
-    list_history_tasks, get_invoices, get_regiomanager_statistics, get_prospect_history, create_contact, create_order, export_customers_csv, \
+    PaymentFailedException, put_regio_manager, get_invoices, get_regiomanager_statistics, create_contact, create_order, export_customers_csv, \
     put_service, update_contact, put_regio_manager_team, \
     get_regiomanagers_by_app_id, delete_contact, finish_on_site_payment, send_payment_info, manual_payment, \
     shopOauthDecorator, get_customer_charges, sign_order, import_customer, \
     export_cirklo_customers_csv
 from shop.business.audit import audit_log, dict_str_for_audit_log
 from shop.business.charge import cancel_charge
-from shop.business.expired_subscription import set_expired_subscription_status, delete_expired_subscription
 from shop.business.legal_entities import put_legal_entity
 from shop.business.order import get_customer_subscription_length, cancel_subscription, get_subscription_order, \
-    set_next_charge_date, list_quotations, cancel_order, create_quotation
+    set_next_charge_date, cancel_order
 from shop.business.permissions import is_admin, is_payment_admin, is_team_admin, user_has_permissions_to_team, \
     regio_manager_has_permissions_to_team, user_has_permissions_to_question
 from shop.business.product import list_products
-from shop.business.prospect import search_prospects, generate_prospect_export_excel
 from shop.business.qr import generate_unassigned_qr_codes_zip_for_app
 from shop.constants import OFFICIALLY_SUPPORTED_LANGUAGES, COUNTRY_DEFAULT_LANGUAGES, \
-    LOGO_LANGUAGES, PROSPECT_CATEGORY_KEYS, STORE_MANAGER
+    LOGO_LANGUAGES, STORE_MANAGER
 from shop.dal import get_shop_loyalty_slides, get_shop_loyalty_slides_new_order, get_mobicage_legal_entity, \
     get_customer
 from shop.exceptions import DuplicateCustomerNameException, ReplaceBusinessException, NoSubscriptionFoundException, \
     CustomerNotFoundException, NoPermissionException
 from shop.jobs.migrate_user import migrate as migrate_user
-from shop.jobs.prospects import find_prospects, get_grid
 from shop.jobs.remove_regio_manager import remove_regio_manager
-from shop.models import Customer, Contact, normalize_vat, Order, Invoice, Charge, RegioManager, Prospect, \
-    ShopLoyaltySlide, ShopApp, \
-    ProspectRejectionReason, ShopTask, ShopLoyaltySlideNewOrder, RegioManagerTeam, RegioManagerStatistic, \
-    ExpiredSubscription, LegalEntity, ShopExternalLinks
+from shop.models import Customer, Contact, normalize_vat, Order, Invoice, Charge, RegioManager, \
+    ShopLoyaltySlide, ShopLoyaltySlideNewOrder, RegioManagerTeam, RegioManagerStatistic, \
+    LegalEntity, ShopExternalLinks
 from shop.to import CustomerTO, ContactTO, OrderItemTO, CompanyTO, CustomerServiceTO, CustomerReturnStatusTO, \
     CreateOrderReturnStatusTO, JobReturnStatusTO, JobStatusTO, SignOrderReturnStatusTO, \
-    CityBoundsReturnStatusTO, CreateQuotationTO, ShopAppTO, PointTO, ProspectsMapTO, TaskListTO, ProspectDetailsTO, \
-    ProspectReturnStatusTO, RegioManagerReturnStatusTO, RegioManagerTeamsTO, AppRightsTO, ModulesReturnStatusTO, \
-    OrderAndInvoiceTO, RegioManagerStatisticTO, ProspectHistoryTO, SimpleAppTO, TaskTO, ProductTO, RegioManagerTeamTO, \
-    ProspectTO, RegioManagerTO, SubscriptionLengthReturnStatusTO, OrderReturnStatusTO, LegalEntityTO, \
-    LegalEntityReturnStatusTO, CustomerChargesTO, ImportCustomersReturnStatusTO, QuotationTO
+    RegioManagerReturnStatusTO, RegioManagerTeamsTO, AppRightsTO, ModulesReturnStatusTO, \
+    OrderAndInvoiceTO, RegioManagerStatisticTO, SimpleAppTO, ProductTO, RegioManagerTeamTO, \
+    RegioManagerTO, SubscriptionLengthReturnStatusTO, OrderReturnStatusTO, LegalEntityTO, \
+    LegalEntityReturnStatusTO, CustomerChargesTO, ImportCustomersReturnStatusTO
 from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz import SolutionModule, get_all_existing_broadcast_types, OrganizationType
 from solutions.common.bizz.locations import create_new_location
@@ -113,7 +104,7 @@ from solutions.common.bizz.loyalty import update_all_user_data_admins
 from solutions.common.consts import CURRENCIES, get_currency_name
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionSettings
-from solutions.common.q_and_a.models import QuestionReply, Question, QuestionStatus
+from solutions.common.q_and_a.models import QuestionReply, Question
 from solutions.common.to import ProvisionReturnStatusTO
 from solutions.common.to.loyalty import LoyaltySlideTO, LoyaltySlideNewOrderTO
 from solutions.common.utils import get_extension_for_content_type
@@ -213,8 +204,6 @@ def get_shop_context(**kwargs):
         team_admin = manager and manager.admin
     # These are the variables used in base.html
     js_templates = kwargs.pop('js_templates', {})
-    if 'prospect_comment' not in js_templates:
-        js_templates.update(render_js_templates(['prospect_comment', 'prospect_types', 'prospect_task_history']))
     js_templates.update(render_js_templates(['customer_popup'], is_folders=True))
     js_templates.update(render_js_templates(['app_select_modal']))
     locale = Locale.parse(DEFAULT_LANGUAGE)
@@ -227,19 +216,15 @@ def get_shop_context(**kwargs):
                payment_admin=is_payment_admin(user),
                broadcast_types=get_all_existing_broadcast_types(),
                js_templates=json.dumps(js_templates),
-               prospect_reasons_json=u"[]",
                disabled_reasons_json=json.dumps(Customer.DISABLED_REASONS),
-               appointment_types=sorted(ShopTask.APPOINTMENT_TYPES.iteritems(), key=lambda (k, v): v),
                languages=sorted(OFFICIALLY_SUPPORTED_LANGUAGES.iteritems(), key=lambda (k, v): v),
                languages_json=json.dumps(OFFICIALLY_SUPPORTED_LANGUAGES),
                countries=sorted(OFFICIALLY_SUPPORTED_COUNTRIES.iteritems(), key=lambda (k, v): v),
                countries_json=json.dumps(OFFICIALLY_SUPPORTED_COUNTRIES),
                default_languages_json=json.dumps(COUNTRY_DEFAULT_LANGUAGES),
                logo_languages_json=json.dumps(LOGO_LANGUAGES),
-               PROSPECT_CATEGORIES=PROSPECT_CATEGORY_KEYS,
                currencies=currencies.items(),
                CURRENCIES=json.dumps(currencies),
-               prospect_status_type_strings=json.dumps(Prospect.STATUS_TYPES),
                DEBUG=DEBUG,
                organization_types=_get_default_organization_types(),
                )
@@ -497,7 +482,7 @@ class QuestionsHandler(BizzManagerHandler):
                 questions_qry = questions_qry.filter(Question.team_id == long(team_id))
 
         teams = {team.id: team for team in RegioManagerTeam.all()}
-        questions, new_cursor, more = questions_qry.fetch_page(20, start_cursor=cursor and ndb.Cursor.from_websafe_string(cursor))
+        questions, new_cursor, _ = questions_qry.fetch_page(20, start_cursor=cursor and ndb.Cursor.from_websafe_string(cursor))
         for question in questions:  # type: Question
             question.team = teams[question.team_id]
         path = os.path.join(os.path.dirname(__file__), 'html', 'questions.html')
@@ -537,75 +522,6 @@ class RegioManagersHandler(BizzManagerHandler):
                                                                      'regio_manager_team_apps',
                                                                      'regio_manager_app_rights']),
                                    legal_entities=LegalEntity.list_all())
-        self.response.out.write(template.render(path, context))
-
-
-class TasksHandler(BizzManagerHandler):
-
-    def get(self):
-        path = os.path.join(os.path.dirname(__file__), 'html', 'tasks.html')
-        prospect_reasons = sorted((x.reason for x in ProspectRejectionReason.all()),
-                                  key=lambda r: r.lower(),
-                                  reverse=True)
-        current_user = gusers.get_current_user()
-        if is_admin(current_user):
-            app_ids = [app_key.name() for app_key in App.all(keys_only=True).filter('type =', App.APP_TYPE_CITY_APP)]
-        else:
-            manager = RegioManager.get(RegioManager.create_key(current_user.email()))
-            app_ids = manager.app_ids
-        context = get_shop_context(js_templates=render_js_templates(['task_list']),
-                                   current_user=gusers.get_current_user(),
-                                   prospect_reasons_json=json.dumps(prospect_reasons),
-                                   task_types=ShopTask.TYPE_STRINGS.items(),
-                                   apps=app_ids)
-        self.response.out.write(template.render(path, context))
-
-
-class HistoryTasksHandler(BizzManagerHandler):
-
-    def get(self):
-        current_user = gusers.get_current_user()
-        if not is_admin(current_user):
-            self.abort(403)
-        path = os.path.join(os.path.dirname(__file__), 'html', 'history_tasks.html')
-        context = get_shop_context(js_templates=render_js_templates(['history_tasks']))
-        self.response.out.write(template.render(path, context))
-
-
-class ProspectsHandler(BizzManagerHandler):
-
-    def get(self):
-        path = os.path.join(os.path.dirname(__file__), 'html', 'prospects.html')
-        prospect_reasons = sorted((x.reason for x in ProspectRejectionReason.all()),
-                                  key=lambda r: r.lower(),
-                                  reverse=True)
-
-        google_user = gusers.get_current_user()
-        if is_admin(google_user):
-            shop_apps = ShopApp.query()
-        else:
-            regio_manager = RegioManager.get(RegioManager.create_key(google_user.email()))
-            regio_manager_team = RegioManagerTeam.get_by_id(regio_manager.team_id)
-            shop_apps = [shop_app for shop_app in ShopApp.query() if shop_app.app_id in regio_manager_team.app_ids]
-
-        context = get_shop_context(shop_apps=shop_apps,
-                                   current_user=google_user,
-                                   js_templates=render_js_templates(
-                                       ['prospect_list_view_row', 'prospect_task_history']),
-                                   prospect_reasons_json=json.dumps(prospect_reasons))
-        self.response.out.write(template.render(path, context))
-
-
-class FindProspectsHandler(BizzManagerHandler):
-
-    def get(self):
-        current_user = gusers.get_current_user()
-        if not is_admin(current_user):
-            self.abort(403)
-        path = os.path.join(os.path.dirname(__file__), 'html', 'prospects_find.html')
-        context = get_shop_context(COUNTRY_STRINGS=sorted(OFFICIALLY_SUPPORTED_COUNTRIES.iteritems(),
-                                                          key=lambda (k, v): v),
-                                   current_user_apps=_get_current_user_apps())
         self.response.out.write(template.render(path, context))
 
 
@@ -652,40 +568,6 @@ class LoginAsCustomerHandler(BizzManagerHandler):
             self.redirect("/")
 
 
-class ProspectsUploadHandler(BizzManagerHandler):
-
-    def post(self):
-        app_id = self.request.get("appId")
-        logging.info("uploading new prospect for app_id: %s", app_id)
-        new_prospects_file = self.request.get("newProspects")
-        csv_reader = csv.reader(new_prospects_file.split('\n'), delimiter=',', quotechar='"')
-
-        new_prospects = list()
-        currect_phone_numbers = set()
-        for p in Prospect().all():
-            currect_phone_numbers.add(p.phone)
-
-        for row in csv_reader:
-            try:
-                name, type_, address, phone, website = row
-                phone_ = re.sub('[ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\-./ ]', '', phone)
-                if phone_ not in currect_phone_numbers:
-                    p = Prospect()
-                    p.app_id = app_id
-                    p.name = name
-                    p.type = type_.split('|')
-                    p.address = address
-                    p.phone = phone_
-                    p.website = website
-                    new_prospects.append(p)
-            except:
-                logging.warning('Error occurred while validating row %s "%s" in csv prospects list' %
-                                (len(new_prospects), row), exc_info=True)
-        logging.info("added %s new prospects" % len(new_prospects))
-        if new_prospects:
-            db.put(new_prospects)
-
-
 class ExportEmailAddressesHandler(BizzManagerHandler):
 
     def get(self):
@@ -696,10 +578,6 @@ class ExportEmailAddressesHandler(BizzManagerHandler):
         result = dict()
         for contact in Contact.all():
             result[contact.email.strip().lower()] = Export(contact.email, contact.first_name, contact.last_name)
-
-        for prospect in Prospect.all().filter("email > ", None):
-            first_name, last_name = (prospect.name + " ").split(' ', 1)
-            result[prospect.email.strip().lower()] = Export(prospect.email, first_name, last_name.strip())
 
         self.response.headers['Content-Type'] = 'application/vnd.ms-excel'
         self.response.headers['Content-Disposition'] = str('attachment; filename=contacts_export_%s.csv' % now())
@@ -714,23 +592,6 @@ class CustomersImportHandler(BizzManagerHandler):
 
     def get(self):
         return self.render_template('customers_import')
-
-
-class ExpiredSubscriptionsHandler(BizzManagerHandler):
-
-    def get(self):
-        current_user = gusers.get_current_user()
-        if not is_admin(current_user):
-            self.abort(403)
-        path = os.path.join(os.path.dirname(__file__), 'html', 'expired_subscriptions.html')
-        expired_subscriptions = list(ExpiredSubscription.list_all())
-        to_get = list()
-        for expired_sub in expired_subscriptions:
-            to_get.append(expired_sub.customer_id)
-        customers = list(Customer.get_by_id(to_get))
-        statuses = ExpiredSubscription.STATUSES.iteritems()
-        context = get_shop_context(expired_subscriptions=zip(expired_subscriptions, customers), statuses=statuses)
-        self.response.out.write(template.render(path, context))
 
 
 class LegalEntityHandler(BizzManagerHandler):
@@ -797,31 +658,6 @@ def export_cirklo_customers(app_id):
     return RETURNSTATUS_TO_SUCCESS
 
 
-@rest("/internal/shop/rest/customers/expired_subscriptions/set_status", "post")
-@returns(ReturnStatusTO)
-@arguments(customer_id=(int, long), status=(int, long))
-def rest_set_expired_subscription_status(customer_id, status):
-    try:
-        set_expired_subscription_status(customer_id, status)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, exception:
-        return ReturnStatusTO.create(False, exception.message)
-
-
-@rest("/internal/shop/rest/customers/expired_subscriptions/delete", "post")
-@returns(ReturnStatusTO)
-@arguments(customer_id=(int, long))
-def rest_delete_expired_subscription(customer_id):
-    try:
-        if is_admin(users.get_current_user()):
-            delete_expired_subscription(customer_id)
-        else:
-            raise NoPermissionException('delete expired subscription')
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, exception:
-        return ReturnStatusTO.create(False, exception.message)
-
-
 class SalesStatisticsHandler(BizzManagerHandler):
 
     def get(self):
@@ -850,243 +686,6 @@ def sales_stats():
                     stats.append(rm_stats)
 
     return [RegioManagerStatisticTO.create(s, r) for s, r in zip(stats, regio_managers) if s and r]
-
-
-@rest('/internal/shop/rest/prospect/put', 'post')
-@returns(ProspectReturnStatusTO)
-@arguments(prospect_id=unicode, name=unicode, phone=unicode, address=unicode, email=unicode, website=unicode,
-           comment=unicode, types=[unicode], categories=[unicode], app_id=unicode)
-def prospect_put(prospect_id, name, phone, address, email, website, comment=None, types=None, categories=None,
-                 app_id=None):
-    try:
-        prospect = put_prospect(gusers.get_current_user(), prospect_id, name, phone, address, email, website,
-                                comment, types, categories, app_id)
-        audit_log(prospect.customer_id, u'Save prospect', prospect_id=prospect_id)
-        return ProspectReturnStatusTO.create(prospect=prospect)
-    except BusinessException, be:
-        return ProspectReturnStatusTO.create(False, be.message)
-
-
-@rest('/internal/shop/rest/prospect/link_to_customer', 'post')
-@returns(ProspectReturnStatusTO)
-@arguments(prospect_id=unicode, customer_id=(int, long))
-def prospect_link_to_customer(prospect_id, customer_id):
-    try:
-        prospect = link_prospect_to_customer(gusers.get_current_user(), prospect_id, customer_id)
-        audit_log(customer_id, u'Linked prospect to customer', prospect_id=prospect_id)
-        return ProspectReturnStatusTO.create(prospect=prospect)
-    except BusinessException, be:
-        return ProspectReturnStatusTO.create(False, be.message)
-
-
-@rest('/internal/shop/rest/prospect/findbycustomer', 'get')
-@returns(ProspectDetailsTO)
-@arguments(customer_id=(int, long))
-def prospect_find_by_customer(customer_id):
-    audit_log(customer_id, u'Get prospect by customer', None, gusers.get_current_user(), None)
-    customer = Customer.get_by_id(customer_id)
-    if customer.prospect_id is not None:
-        prospect = Prospect.get_by_key_name(customer.prospect_id)
-    else:
-        prospect = None
-    return ProspectDetailsTO.from_model(prospect, RegioManager.list_by_app_id(prospect.app_id)) if prospect else None
-
-
-@rest('/internal/shop/rest/prospect/task_history', 'get')
-@returns([TaskTO])
-@arguments(id=unicode)
-def prospect_task_history(id):  # @ReservedAssignment
-    prospect = Prospect.get(Prospect.create_key(id))
-    return [TaskTO.from_model(s, prospect)
-            for s in ShopTask.get_all_history(id)]
-
-
-@rest('/internal/shop/rest/prospects/export', 'post', silent=True)
-@returns(ReturnStatusTO)
-@arguments(prospect_ids=[unicode])
-def rest_prospect_export(prospect_ids):
-    if not prospect_ids:
-        return ReturnStatusTO.create(False, 'No prospects to export')
-    deferred.defer(generate_prospect_export_excel, prospect_ids, True, [gusers.get_current_user().email()],
-                   _queue=FAST_QUEUE)
-    return RETURNSTATUS_TO_SUCCESS
-
-
-@rest('/internal/shop/rest/prospects/detail', 'get')
-@returns(ProspectTO)
-@arguments(prospect_id=unicode)
-def prospects_detail(prospect_id):
-    audit_log(None, u'Get prospect', prospect_id=prospect_id)
-    prospect = Prospect.get_by_key_name(prospect_id)
-    return ProspectTO.from_model(prospect) if prospect else None
-
-
-@rest('/internal/shop/rest/prospects/map', 'get', silent_result=True)
-@returns(ProspectsMapTO)
-@arguments(app_id=unicode, category=unicode, cursor=unicode)
-def prospects_map(app_id, category, cursor=None):
-    audit_log(None, u'Load prospects by app')
-    import time
-    start = time.time()
-    prospects, new_cursor = list_prospects(app_id, category, cursor)
-    regio_managers = RegioManager.list_by_app_id(app_id)
-    all_prospects = ProspectsMapTO.from_model(new_cursor, prospects, regio_managers)
-    logging.info(
-        'Took %s seconds to load prospects filtered on app %s and category %s' % (
-            time.time() - start, app_id, category))
-    return all_prospects
-
-
-@rest('/internal/shop/rest/prospects/search', 'get')
-@returns([ProspectTO])
-@arguments(query=unicode)
-def prospects_search(query):
-    audit_log(None, u'Search prospect')
-    return [ProspectTO.from_model(p) for p in search_prospects(query)]
-
-
-@rest('/internal/shop/rest/prospects/set_status', 'post')
-@returns(ProspectReturnStatusTO)
-@arguments(prospect_id=unicode, status=(int, long), reason=unicode, action_timestamp=(int, long, NoneType),
-           assignee=unicode, comment=unicode, certainty=(int, long, NoneType), subscription=(int, long, NoneType),
-           email=unicode, invite_language=unicode, appointment_type=(int, long, NoneType))
-def prospects_set_status(prospect_id, status, reason=None, action_timestamp=None, assignee=None, comment=None,
-                         certainty=None, subscription=None, email=None, invite_language=None,
-                         appointment_type=None):
-    try:
-        prospect, calendar_error = set_prospect_status(gusers.get_current_user(), prospect_id, status,
-                                                       reason and reason.strip(), action_timestamp, assignee,
-                                                       comment and comment.strip(),
-                                                       certainty=certainty,
-                                                       subscription=subscription, email=email,
-                                                       invite_language=invite_language,
-                                                       appointment_type=appointment_type)
-        audit_log(prospect.customer_id, u'Set prospect status', prospect_id=prospect_id)
-        return ProspectReturnStatusTO.create(prospect=prospect, calendar_error=calendar_error)
-    except BusinessException, be:
-        return ProspectReturnStatusTO.create(False, be.message)
-
-
-@rest('/internal/shop/rest/prospects/find', 'post')
-@returns(ReturnStatusTO)
-@arguments(app_id=unicode, postal_codes=unicode, sw_lat=float, sw_lon=float, ne_lat=float, ne_lon=float, radius=int,
-           city_name=unicode, check_phone_number=bool)
-def prospects_find(app_id, postal_codes, sw_lat, sw_lon, ne_lat, ne_lon, radius, city_name, check_phone_number):
-    audit_log(None, u'Find new prospects')
-    postal_codes = filter(None, postal_codes.strip().replace(' ', '').split(','))
-    try:
-        find_prospects(app_id, postal_codes, sw_lat, sw_lon, ne_lat, ne_lon, city_name, check_phone_number, radius)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, be:
-        return ReturnStatusTO.create(False, be.message)
-
-
-@rest('/internal/shop/rest/prospects/find_city_bounds', 'post')
-@returns(CityBoundsReturnStatusTO)
-@arguments(city=unicode, country=unicode)
-def prospects_find_city_bounds(city, country):
-    azzert(is_admin(gusers.get_current_user()))
-    try:
-        bounds = find_city_bounds(city, country)
-        return CityBoundsReturnStatusTO.create(bounds=bounds)
-    except BusinessException, be:
-        return CityBoundsReturnStatusTO.create(False, be.message)
-
-
-@rest('/internal/shop/rest/prospects/grid', 'get')
-@returns([PointTO])
-@arguments(sw_lat=float, sw_lon=float, ne_lat=float, ne_lon=float, radius=(int, long))
-def prospects_get_grid(sw_lat, sw_lon, ne_lat, ne_lon, radius=200):
-    azzert(is_admin(gusers.get_current_user()))
-    points = get_grid(sw_lat, sw_lon, ne_lat, ne_lon, radius)
-    return [PointTO.create(*p) for p in points]
-
-
-@rest('/internal/shop/rest/shopapp/save_postal_codes', 'post')
-@returns(ReturnStatusTO)
-@arguments(app_id=unicode, postal_codes=[unicode])
-def save_app_postal_codes(app_id, postal_codes):
-    shop_app_key = ShopApp.create_key(app_id)
-    app = shop_app_key.get() or ShopApp(key=shop_app_key)
-    app.postal_codes = postal_codes
-    app.put()
-    return RETURNSTATUS_TO_SUCCESS
-
-
-@rest('/internal/shop/rest/prospects/shop_app', 'get')
-@returns(ShopAppTO)
-@arguments(app_id=unicode)
-def prospects_get_shop_app(app_id):
-    azzert(is_admin(gusers.get_current_user()))
-    try:
-        shop_app = ShopApp.create_key(app_id).get()
-        return ShopAppTO.from_model(shop_app) if shop_app else None
-    except BusinessException as be:
-        return CityBoundsReturnStatusTO.create(False, be.message)
-
-
-@rest('/internal/shop/rest/history/tasks', 'get')
-@returns([TaskListTO])
-@arguments(date_from=int, date_to=int)
-def history_tasks(date_from, date_to):
-    azzert(is_admin(gusers.get_current_user()))
-    audit_log(None, u'Load tasks history')
-    regio_manager_dict = {r.email: r for r in RegioManager.all()}
-    tasks_dict = list_history_tasks(date_from, date_to)
-    task_lists = list()
-    to_get = set()
-    for email, tasks in tasks_dict.iteritems():
-        for task in tasks:
-            to_get.add(task.parent_key())
-    prospects = {p.key().name(): p for p in Prospect.get(list(to_get))}
-    for email, tasks in tasks_dict.iteritems():
-        regio_manager = regio_manager_dict.get(email)
-        task_lists.append(TaskListTO.create(email, regio_manager, tasks, prospects))
-    return task_lists
-
-
-@rest('/internal/shop/rest/task/list', 'post', silent_result=True)
-@returns([TaskListTO])
-@arguments(assignees=[unicode], app_id=unicode, task_type=(int, long, None))
-def tasks_list(assignees, app_id=None, task_type=None):
-    current_user = gusers.get_current_user()
-    audit_log(None, u'Load tasks')
-
-    regio_manager_dict = dict()
-    manager = RegioManager.get(RegioManager.create_key(current_user.email()))
-    if manager and manager.admin:
-        regio_manager_dict = {r.email: r for r in RegioManager.all().filter("team_id =", manager.team_id)}
-    elif not is_admin(current_user):
-        regio_manager_dict = {current_user.email(): manager}
-    else:
-        regio_manager_dict = {r.email: r for r in RegioManager.all()}
-
-    regio_manager_emails = None if is_admin(current_user) else regio_manager_dict.keys()
-    if assignees and regio_manager_emails:
-        # filter out tasks we do not want
-        for regio_manager_email in reversed(regio_manager_emails):
-            if regio_manager_email not in assignees:
-                regio_manager_emails.remove(regio_manager_email)
-                del regio_manager_dict[regio_manager_email]
-
-    if app_id == 'all':
-        app_id = None
-    if task_type:
-        azzert(task_type in ShopTask.TYPE_STRINGS, 'Invalid task type')
-    tasks_dict = ShopTask.group_by_assignees(regio_manager_emails, app_id, task_type)
-    task_lists = list()
-    to_get = set()
-    for email, tasks in tasks_dict.iteritems():
-        for task in tasks:
-            to_get.add(task.parent_key())
-    prospects = {p.key().name(): p for p in Prospect.get(list(to_get))}
-    for email, tasks in tasks_dict.iteritems():
-        regio_manager = regio_manager_dict.get(email)
-        task_lists.append(TaskListTO.create(email, regio_manager, tasks, prospects))
-
-    task_lists.sort(key=lambda l: (l.assignee != current_user.email(),  # your own agenda first
-                                   l.assignee_name.lower()))
-    return task_lists
 
 
 @rest("/internal/shop/rest/regio_manager/get_all_by_app", "get")
@@ -1212,14 +811,14 @@ def rest_set_next_charge_date(customer_id, next_charge_date):
 @returns(CustomerReturnStatusTO)
 @arguments(customer_id=(int, long, NoneType), name=unicode, address1=unicode, address2=unicode, zip_code=unicode,
            city=unicode, country=unicode, language=unicode, vat=unicode, organization_type=(int, long),
-           prospect_id=unicode, force=bool, team_id=(int, long, NoneType), community_id=(int, long))
+           force=bool, team_id=(int, long, NoneType), community_id=(int, long))
 def put_customer(customer_id, name, address1, address2, zip_code, city, country, language, vat, organization_type,
-                 prospect_id=None, force=False, team_id=None, community_id=0):
+                 force=False, team_id=None, community_id=0):
     try:
         customer = create_or_update_customer(gusers.get_current_user(), customer_id, vat, name, address1, address2,
-                                             zip_code, city, country, language, organization_type, prospect_id, force,
+                                             zip_code, city, country, language, organization_type, force,
                                              team_id, community_id=community_id)
-        audit_log(customer.id, u"Save Customer.", prospect_id=prospect_id)
+        audit_log(customer.id, u"Save Customer.")
     except DuplicateCustomerNameException as ex:
         return CustomerReturnStatusTO.create(False, warning=ex.message)
     except BusinessException as be:
@@ -1313,26 +912,6 @@ def delete_contact_rest(customer_id, contact_id):
 @arguments(customer_id=(int, long))
 def list_contacts(customer_id):
     return [ContactTO.fromContactModel(c) for c in Contact.list(Customer.create_key(customer_id))]
-
-
-@rest('/internal/shop/rest/customers/<customer_id:[^/]+>/quotations', 'get')
-@returns([QuotationTO])
-@arguments(customer_id=(int, long))
-def rest_list_quotations(customer_id):
-    base_url = get_server_settings().baseUrl
-    return [QuotationTO.from_model(model, customer_id, base_url) for model in list_quotations(customer_id)]
-
-
-@rest('/internal/shop/rest/customers/<customer_id:[^/]+>/quotations', 'post', type=REST_TYPE_TO)
-@returns(QuotationTO)
-@arguments(customer_id=(int, long), data=CreateQuotationTO)
-def rest_create_quotation(customer_id, data):
-    base_url = get_server_settings().baseUrl
-    try:
-        quotation = create_quotation(customer_id, data, gusers.get_current_user())
-        return QuotationTO.from_model(quotation, customer_id, base_url)
-    except BusinessException as e:
-        raise HttpBadRequestException(e.message)
 
 
 @rest("/internal/shop/rest/customer/get_default_modules", "get")
@@ -1492,47 +1071,6 @@ def rest_cancel_charge(customer_id, order_number, charge_id):
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, exception:
         return ReturnStatusTO.create(False, exception.message)
-
-
-def parseDataDotBeAddressBE(address):
-    address = address.split(',')
-    if len(address) == 1:
-        address1 = address2 = ''
-    else:
-        address1 = address[0].strip()
-        address2 = address[1].strip()
-    zip_code, city = address[-1].strip().split(' ', 1)
-    return address1, address2, zip_code.strip(), city.strip()
-
-
-@rest("/internal/shop/rest/company/discover", "get")
-@returns([CompanyTO])
-@arguments(lat=float, lon=float)
-def get_companies_at_location(lat, lon):
-    audit_log(-1, u"Discover companies")
-    solution_server_settings = get_solution_server_settings()
-    url = 'https://api.data.be/1.0/search/geo?lat=%s&lng=%s&max=50&api_id=%s&api_key=%s' % \
-        (lat, lon, solution_server_settings.data_be_app_id, solution_server_settings.data_be_app_key)
-    logging.info(url)
-    response = urlfetch.fetch(url, deadline=10)
-    if response.status_code != 200:
-        logging.error(response.content)
-        return None
-    logging.info(response.content)
-    data = json.loads(response.content)
-    if not data['success']:
-        return None
-
-    def toCompanyTO(company):
-        c = CompanyTO()
-        c.name = company['company-name'].split(u'\u003Cbr/\u003E')[0]  # remove metadata: split by <br>
-        c.address1, c.address2, c.zip_code, c.city = parseDataDotBeAddressBE(company['address-nl'])
-        c.country = company['vat-formatted'][:2]
-        c.vat = normalize_vat(c.country, company['vat-formatted'])
-        c.organization_type = ServiceProfile.ORGANIZATION_TYPE_PROFIT
-        return c
-
-    return map(toCompanyTO, data['data']['companies'])
 
 
 @rest("/internal/shop/rest/order/sign", "post")
@@ -1901,13 +1439,6 @@ def load_unsigned_orders_by_customer(customer_id):
     orders = Order.list(customer_key)
     invoices = get_invoices(customer_key)
     return OrderAndInvoiceTO.create(orders, invoices)
-
-
-@rest("/internal/shop/prospect/history", "get")
-@returns([ProspectHistoryTO])
-@arguments(prospect_id=unicode)
-def load_prospect_history(prospect_id):
-    return [ProspectHistoryTO.create(h) for h in get_prospect_history(prospect_id)]
 
 
 @rest("/internal/shop/rest/apps/all", "get")

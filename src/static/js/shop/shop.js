@@ -83,18 +83,14 @@ var customer_selected = [];
 var CustomerFormType = {
     NEW: 'new',
     SEARCH: 'search',
-    LINK_PROSPECT: 'link-prospect',
     OPEN_TAB: 'open-tab'
 };
 var TABTYPES = {
     DETAILS: 'details',
     CONTACTS: 'contacts',
-    PROSPECT: 'prospect',
     NEW_ORDER: 'new-order',
     ORDERS: 'orders',
-    QUOTATIONS: 'quotations',
-    SERVICE: 'service',
-    HISTORY: 'history'
+    SERVICE: 'service'
 };
 
 var SUBSCRIPTION_MODULES = {
@@ -490,18 +486,6 @@ var showCustomerForm = function (mode, tabFunction, customerId) {
         prepareNewCustomer();
     } else if (mode == CustomerFormType.SEARCH) {
         prepareSearchCustomer();
-    } else if (mode == CustomerFormType.LINK_PROSPECT) {
-        prepareSearchCustomer();
-        $('#tab-nav-container').find('a').each(function () {
-            var $this = $(this);
-            var tab = $this.attr('data-target');
-            if (tab == '#tab-prospect' || tab == '#tab-orders') {
-                $this.hide();
-            } else {
-                $this.show();
-            }
-        });
-        readonly = true;
     } else if (mode == CustomerFormType.OPEN_TAB) {
         prepareShowTab(tabFunction, customerId);
     }
@@ -529,23 +513,14 @@ var showCustomerForm = function (mode, tabFunction, customerId) {
             case '#tab-contacts':
                 showContacts(currentCustomer.id);
                 break;
-            case '#tab-prospect':
-                showProspect();
-                break;
             case '#tab-new-order':
                 showNewOrder();
                 break;
             case '#tab-orders':
                 showOrders();
                 break;
-            case '#tab-quotations':
-                showQuotations();
-                break;
             case '#tab-service':
                 showCreateService();
-                break;
-            case '#tab-history':
-                showHistory();
                 break;
         }
     });
@@ -596,9 +571,7 @@ var showDetails = function () {
     } else {
         $('#other-customer-info').addClass('hide');
     }
-    if (currentMode == CustomerFormType.LINK_PROSPECT) {
-        $('#button_save_customer').hide();
-    } else if (currentMode == CustomerFormType.NEW) {
+    if (currentMode == CustomerFormType.NEW) {
         $('#tab-nav-container').find('a').parent().hide();
         currentCustomer.creating = true;
     } else if (currentMode == CustomerFormType.SEARCH || currentMode == CustomerFormType.OPEN_TAB) {
@@ -624,32 +597,6 @@ var showContacts = function (customerId, reload) {
         return;
     }
     ShopRequests.getContacts(customerId, {cached: !reload}).then(contacts => renderContacts(contacts));
-};
-
-var showProspect = function (reload) {
-    $('a[data-target="#tab-prospect"]').tab('show');
-    var customerId = currentCustomer.id;
-    showRelevantButtons(TABTYPES.PROSPECT);
-    // Load the prospect from remote, if necessary.
-    if (currentCustomer.prospect && !reload) {
-        renderProspect(currentCustomer.prospect);
-    } else {
-        sln.call({
-            url: '/internal/shop/rest/prospect/findbycustomer',
-            type: 'GET',
-            data: {
-                customer_id: customerId
-            },
-            success: function (data) {
-                if (data) {
-                    currentCustomer.prospect = data.prospect;
-                    $('#button_link_prospect').hide();
-                }
-                renderProspect(currentCustomer.prospect);
-            },
-            error: sln.showAjaxError
-        });
-    }
 };
 
 var showNewOrder = function () {
@@ -800,162 +747,6 @@ var showNewOrder = function () {
     });
 };
 
-var renderProspect = function (prospect) {
-    if (!prospect) {
-        prospect = {};
-        prospect.unassigned = true;
-    } else {
-        for (var i = 0; i < prospect.comments.length; i++) {
-            prospect.comments[i].datetime = sln.format(new Date(prospect.comments[i].timestamp * 1000));
-        }
-    }
-    if (prospect.subscription) {
-        prospect.probableSubscription = (SUBSCRIPTION_TYPES[prospect.subscription]) + ', ';
-    }
-    var html = $.tmpl(JS_TEMPLATES['customer_popup/prospects_tab'], {
-        prospect: prospect ? prospect : {}
-    });
-    var tab = $('#tab-prospect');
-    tab.html(html);
-    tab.find('.edit-prospect-type-btn').unbind('click').click(function () {
-        $('#prospect-types-modal').modal('show');
-    });
-    tab.find('.edit-prospect-categories-btn').unbind('click').click(function () {
-        $('#prospect-categories-modal').modal('show');
-    });
-    $('#prospect-categories-modal').find('input[type="checkbox"]').each(function () {
-        var $this = $(this);
-        $this.prop('checked', prospect.categories ? prospect.categories.indexOf($this.val()) !== -1 : false);
-    });
-
-    if (!prospect.unassigned) {
-        $('#save-prospect-button, #button_save_prospect').hide();
-        $('#edit-prospect-button').show().unbind('click').click(function () {
-            tab.find('.edit').show().siblings().hide();
-            $('#edit-prospect-button').hide();
-
-            $('#prospect-types-modal').find('input[type="checkbox"]').each(function () {
-                var $this = $(this);
-                $this.prop('checked', prospect.types.indexOf($this.val()) != -1);
-            });
-            // show 'save' button
-            $('#button_save_prospect').show().unbind('click').click(function () {
-                putProspect(prospect.id);
-                $('#button_save_prospect').hide();
-                $('#edit-prospect-button').show();
-                tab.find('.edit').hide().siblings().show();
-            });
-        });
-        var historyContainer = $('#customer-prospect-history-container');
-        historyContainer.html('');
-
-        $('#customer-prospect-task-history').show().unbind('click').click(function () {
-            $(this).hide();
-            historyContainer.html(TMPL_LOADING_SPINNER)
-                .css('min-height', '105px');
-            sln.call({
-                url: '/internal/shop/rest/prospect/task_history',
-                data: {
-                    id: currentCustomer.prospect.id
-                },
-                success: function (data) {
-                    $.each(data, function (i, task) {
-                        task.created = sln.format(new Date(task.creation_time * 1000));
-                        task.closed = task.closed_time ? sln.format(new Date(task.closed_time * 1000)) : '';
-                        var manager = currentRegioManagers[task.assignee]; //  currentRegioManagers is only filled in on the prospects page
-                        if (manager) {
-                            task.manager = manager.name;
-                        } else {
-                            task.manager = task.assignee;
-                        }
-                        task.type_icon = ShopTaskIcons[task.type];
-
-                    });
-                    var html = $.tmpl(JS_TEMPLATES.prospect_task_history, {
-                        history: data
-                    });
-                    historyContainer.show().html(html);
-                }
-            });
-        });
-    } else {
-        $('#edit-prospect-button, #button_save_prospect').hide();
-        tab.find('.edit').show().siblings().hide();
-    }
-};
-
-var putProspect = function (prospectId) {
-    var tab = $('#tab-prospect');
-    var data = {
-        prospect_id: prospectId === undefined ? null : prospectId,
-        name: tab.find('.edit-prospect-name').val(),
-        phone: tab.find('.edit-prospect-phone').val(),
-        address: tab.find('.edit-prospect-address').val(),
-        email: tab.find('.edit-prospect-email').val() || null,
-        website: tab.find('.edit-prospect-website').val() || null,
-        comment: tab.find('.edit-prospect-comment').val() || null,
-        types: $('#prospect-types-modal').find('input[type="checkbox"]:checked').map(function () {
-            return this.value;
-        }).get(),
-        categories: $('#prospect-categories-modal').find('input[type="checkbox"]:checked').map(function () {
-            return this.value;
-        }).get()
-    };
-
-    if (!data.name) {
-        showError('Name is required');
-        return;
-    }
-    if (!data.address) {
-        showError('Address is required');
-        return;
-    }
-    if (!data.types.length) {
-        showError('Type is required');
-        return;
-    }
-
-    if (!prospectId) {
-        // new prospect
-        data.prospect_id = null;
-        data.status = StatusType.TODO;
-        data.app_id = tab.find('.edit-prospect-app-id').val();
-
-        if (!data.app_id) {
-            showError('App is required');
-            return;
-        }
-    } else {
-        if (!data.phone) {
-            showError('Phone is required');
-            return;
-        }
-    }
-
-    showProcessing('Saving prospect');
-    sln.call({
-        url: '/internal/shop/rest/prospect/put',
-        type: 'post',
-        data: {
-            data: JSON.stringify(data)
-        },
-        success: function (data) {
-            hideProcessing();
-            if (!data.success) {
-                showError(data.errormsg);
-                return;
-            }
-            // show the newly created / updated prospect in this tab.
-            currentCustomer.prospect = data.prospect;
-            showProspect();
-        },
-        error: function () {
-            hideProcessing();
-            showError('An unknown error occurred. Check with the administrators.');
-        }
-    });
-};
-
 function renderContacts(data) {
     var html = $.tmpl(JS_TEMPLATES['customer_popup/contacts_tab'], {
         contacts: data
@@ -1025,18 +816,6 @@ var showAddContact = function () {
     form.find('.add_contact').show();
     form.find('input').val('');
     form.modal('show');
-
-    // Try to pre-fill by prospect
-    var prospect = $('#customer_form').data('prospect');
-    if (prospect) {
-        var splittedName = prospect.name.split('/');
-        if (splittedName.length == 2) {
-            form.find('#first_name').val(splittedName[1]);
-            form.find('#last_name').val(splittedName[0]);
-        }
-        form.find('#email').val(prospect.email);
-        form.find('#phone_number').val(prospect.phone);
-    }
 };
 
 var showChangeServiceEmail = function (customer) {
@@ -1243,9 +1022,7 @@ var initCustomerForm = function (customer) {
     $('.modal-footer', customerForm).show();
     $('#new_customer_error', customerForm).hide();
 
-    if (customerForm.data('mode') == CustomerFormType.LINK_PROSPECT) {
-        $('.migrating-only', customerForm).hide();
-    } else if (customer.migration_job) {
+    if (customer.migration_job) {
         $('.migrating-only', customerForm).show();
     } else if (customer.service_email || !customer.id) {
         $('.migrating-only', customerForm).hide();
@@ -1289,9 +1066,6 @@ var showRelevantButtons = function (tabType) {
             form.find('.' + t + '-only').hide();
         }
     });
-    if (currentCustomer.name) {
-        $('#button_discover').hide();
-    }
     if (currentCustomer.id) {
         $('#button_add_customer').hide();
     }
@@ -1321,56 +1095,6 @@ var showOrders = function (refresh) {
     }
     $('#button_set_next_charge_date').toggle(currentCustomer.is_admin || currentCustomer.can_edit).unbind('click').click(showSetNextChargeDate);
 };
-
-function showQuotations(refresh) {
-    var tab = $('#tab-quotations');
-    tab.html(TMPL_LOADING_SPINNER);
-    showRelevantButtons(TABTYPES.QUOTATIONS);
-    var contactsPromise = ShopRequests.getContacts(currentCustomer.id);
-    var productsPromise = ShopRequests.getProducts(currentCustomer.language);
-    var quotationsPromise = ShopRequests.getQuotations(currentCustomer.id, {cached: !refresh});
-    Promise.all([contactsPromise, productsPromise, quotationsPromise]).then(([contacts, products, quotations]) => {
-        getLegalEntity(legalEntity => {
-            var html = $.tmpl(JS_TEMPLATES['customer_popup/quotations_tab'], {
-                contacts: contacts
-            });
-            tab.html(html);
-            renderQuotations(legalEntity, quotations);
-            var itemList = new OrderItemList($('#quotation-item-list'), legalEntity, products, currentCustomer.organization_type);
-            itemList.render();
-            $('#add-quotation-item').click(() => itemList.showAddItemDialog());
-            var createButton = $('#create-quotation');
-            createButton.click(() => {
-                if (createButton.prop('disbaled')) {
-                    return;
-                }
-                createButton.prop('disabled', true);
-                var quotation = {
-                    contact_id: parseInt($('#new_quotation_contact').val(), 10),
-                    order_items: itemList.selectedItems,
-                };
-                ShopRequests.createQuotation(currentCustomer.id, quotation).then(() => {
-                    createButton.prop('disabled', false);
-                    itemList.selectedItems = [];
-                    itemList.render();
-                    ShopRequests.getQuotations(currentCustomer.id, {cached: false}).then(quotations => {
-                        renderQuotations(legalEntity, quotations);
-                    });
-                }).catch(() => createButton.prop('disabled', false));
-            });
-        });
-    });
-}
-
-function renderQuotations(legalEntity, quotations) {
-    var html = $.tmpl(JS_TEMPLATES['customer_popup/quotations_list'], {
-        quotations: quotations.map(q => Object.assign({}, q, {
-            date: sln.format(new Date(q.date * 1000)),
-            total_amount: `${legalEntity.currency} ${(q.total_amount / 100).toFixed(2)}`,
-        }))
-    });
-    $('#quotations-list').html(html);
-}
 
 var renderBilling = function () {
     var html = $.tmpl(JS_TEMPLATES['customer_popup/billing_tab'], {
@@ -1442,43 +1166,6 @@ var loadOrdersAndInvoices = function () {
 };
 
 
-function showHistory () {
-    $('#customer_form').find('[data-target=#tab-history]').tab('show');
-    showRelevantButtons(TABTYPES.HISTORY);
-    if (currentCustomer.prospect_id) {
-        sln.call({
-            url: '/internal/shop/prospect/history',
-            type: 'GET',
-            data: {
-                prospect_id: currentCustomer.prospect_id
-            },
-            success: function (data) {
-                renderProspectHistory(data);
-            },
-            error: sln.showAjaxError
-        });
-    } else {
-        renderProspectHistory(null);
-    }
-}
-
-function renderProspectHistory (data) {
-    if (data != null) {
-        // sort by date (newest first)
-        data.sort(function (a, b) {
-            return a.created_time < b.created_time;
-        });
-        for (var i = 0; i < data.length; i++) {
-            data[i].status = StatusTypeStrings[data[i].status];
-            data[i].datetime = sln.format(new Date(data[i].created_time * 1000));
-        }
-    }
-    var html = $.tmpl(JS_TEMPLATES['customer_popup/history_tab'], {
-        history: data
-    });
-    $("#tab-history").html(html);
-}
-
 $(function () {
     loadRegioManagerTeams();
 
@@ -1545,7 +1232,6 @@ $(function () {
         var country = $('#customer_form #country').val();
         var communityId = $('#customer_form #customer-community-id').val();
         var language = $('#customer_form').find('#language').val();
-        var prospect = $('#customer_form').data('prospect');
         var type = parseInt($('#customer_form #customer_organization_type').val());
         if (!(name && address1 && zipcode && city && country && type) || (!customerId && !communityId)) {
             $('#new_customer_error').show()
@@ -1579,7 +1265,6 @@ $(function () {
                 country: country,
                 language: language,
                 vat: vat,
-                prospect_id: prospect ? prospect.id : null,
                 customer_id: customerId,
                 team_id: parseInt(teamId),
                 community_id: communityId ? parseInt(communityId) : undefined,
@@ -1623,7 +1308,6 @@ $(function () {
         currentMode = null;
         currentSubscription = null;
         $('#search_customer_name').val('');
-        $(this).data('prospect', null).data('mode', null);
     });
 
     $('#customer_form #customer_organization_type').change(function () {
@@ -1646,16 +1330,6 @@ $(function () {
             customerId = currentCustomer.id;
 
         putCustomer(customerId, false);
-    });
-
-    $('#customer_form #button_link_prospect').unbind('click').click(function () {
-        var customer = $('#customer_form #search_customer_name').data('customer');
-        var prospectId = $('#customer_form').data('prospect');
-        // linkProspectToCustomer is defined in prospects.js
-        linkProspectToCustomer(customer.id, prospectId, function (data) {
-            // show tab 'prospects'
-            showProspect(true);
-        });
     });
 
     $('#button_add_contact').click(
@@ -1697,70 +1371,6 @@ $(function () {
             $('#language').val(DEFAULT_LANGUAGES[countryCode]);
         }
     });
-
-    $('#button_discover').click(
-        function () {
-            $('#select_company_info').text('Discovering companies in the neighbourhood ...').show();
-            $('#select_company_error').hide();
-            $('#select_company').modal('show');
-            var tbody = $('#select_company table tbody').empty();
-            navigator.geolocation.getCurrentPosition(function (location) {
-                sln.call({
-                    url: '/internal/shop/rest/company/discover',
-                    data: {
-                        lat: location.coords.latitude,
-                        lon: location.coords.longitude
-                    },
-                    success: function (data) {
-                        if (!data) {
-                            $('#select_company_error span').text(
-                                'Failed to discover comapnies in the neighbourhood!');
-                            $('#select_company_error').show();
-                            $('#select_company_info').hide();
-                            return;
-                        }
-
-                        data.sort(function (a, b) {
-                            var lowerCaseA = a.name.toLowerCase();
-                            var lowerCaseB = b.name.toLowerCase();
-                            if (lowerCaseA < lowerCaseB)
-                                return -1;
-                            if (lowerCaseA > lowerCaseB)
-                                return 1;
-                            return 0;
-                        });
-
-                        $('#select_company_info').text('Found ' + data.length + ' companies!');
-                        $.each(data, function (i, company) {
-                            var tr = $('<tr></tr>').append(
-                                $('<td></td>').text(
-                                    company.name + ', ' + company.address1
-                                    + (company.address2 ? ', ' + company.address2 : '') + ', '
-                                    + company.zip_code + ', ' + company.city));
-                            tr.unbind('click').click(function () {
-                                $('#customer_form #vat').val(company.vat);
-                                $('#customer_form #customer_name').val(company.name);
-                                $('#customer_form #address1').val(company.address1);
-                                $('#customer_form #address2').val(company.address2);
-                                $('#customer_form #zipcode').val(company.zip_code);
-                                $('#customer_form #city').val(company.city);
-                                $('#customer_form #country').val(company.country).change();
-                                $('#customer_form #customer_organization_type').val('' + OrganizationType.MERCHANT)
-                                    .change();
-                                $('#new_customer_error').hide();
-                                $('#select_company').modal('hide');
-                            });
-                            tbody.append(tr);
-                        });
-                    },
-                    error: function () {
-                        $('#select_company_error span').text('Unknown error occurred!');
-                        $('#select_company_error').show();
-                        $('#select_company_info').hide();
-                    }
-                });
-            });
-        });
 
     $('#button_cancel_customer').unbind('click').click(function () {
         $('#customer_form').modal('hide');

@@ -27,10 +27,9 @@ from shop.models import AuditLog
 
 
 @db.non_transactional
-def audit_log(customer_id, message, variables=None, user=None, prospect_id=None):
+def audit_log(customer_id, message, variables=None, user=None):
     al = AuditLog()
     al.customer_id = customer_id
-    al.prospect_id = prospect_id
     al.date = now()
     if user:
         al.user = user
@@ -41,7 +40,7 @@ def audit_log(customer_id, message, variables=None, user=None, prospect_id=None)
         al.variables = variables
     else:
         al.variables = dict_str_for_audit_log(sys._getframe(2).f_locals)
-    rpc_items.append(db.put_async(al), audit_log, customer_id, message, al.variables, al.user, al.prospect_id)
+    rpc_items.append(db.put_async(al), audit_log, customer_id, message, al.variables, al.user)
 
 
 def dict_str_for_audit_log(variables_dict):

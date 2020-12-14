@@ -24,37 +24,6 @@ MAPS_CONTROLLER_QUEUE = "maps-controller-queue"
 LOGO_LANGUAGES = ['nl', 'en', 'fr']
 
 
-"""
-Key: Our own prospect categories,
-Value: Google place types.
-"""
-PROSPECT_CATEGORIES = {
-    'amusement': ['amusement_park', 'bowling_alley', 'gym'],
-    'automotive': ['car_dealer', 'car_rental', 'car_repair', 'car_wash'],
-    'book / media': ['book_store', 'movie_rental', 'movie_theather'],
-    'contractors': ['electrician', 'general_contractor', 'painter', 'plumber', 'roofing_contractor'],
-    'finance': ['bank', 'accounting', 'atm', 'embassy', 'finance', 'insurance_agency', 'lawyer',
-                'real_estate_agency'],
-    'food': ['meal_delivery', 'meal_takeaway', 'convenience_store', 'food', 'bakery', 'grocery_or_supermarket'],
-    'health': ['doctor', 'dentist', 'health', 'hospital', 'pharmacy', 'physiotherapist', 'veterinary'],
-    'hospitality': ['bar', 'cafe', 'campground', 'lodging', 'restaurant'],
-    'probably irrelevant': ['library', 'airport', 'aquarium', 'cemetry', 'church', 'city_hall',
-                            'courthouse', 'fire_station', 'funeral_home', 'hindu_temple', 'laundry',
-                            'local_goverment_office', 'locksmith', 'mosque', 'moving_company', 'museum', 'night_club',
-                            'park', 'place_of_worship', 'police', 'post_office', 'rv_park', 'school', 'stadium',
-                            'storage', 'subway_station', 'synagogue', 'taxi_stand', 'train_station',
-                            'travel_agency', 'university', 'zoo', 'shopping_mall'],
-    'stores': ['clothing_store', 'jewelry_store', 'shoe_store', 'department_store', 'electronics_store',
-               'hardware_store', 'home_goods_store', 'furniture_store', 'florist', 'liquor_store', 'pet_store',
-               'bicycle store', 'store'],
-    'wellness': ['beauty_salon', 'spa', 'hair_care'],
-    'other': [],  # must be empty
-    'unclassified': []  # added via prospect discovery
-}
-PROSPECT_CATEGORY_KEYS = sorted(PROSPECT_CATEGORIES.iterkeys())
-
-PROSPECT_INDEX = 'PROSPECT_INDEX'
-
 COUNTRY_DEFAULT_LANGUAGES = {
     u'BE': u'nl',
     u'NL': u'nl',

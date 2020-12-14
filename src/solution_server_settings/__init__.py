@@ -74,9 +74,6 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     shop_payment_admin_emails = add_meta(db.StringListProperty(indexed=False),
                                          doc="The email addresses that can set the payment status of an order",
                                          order=308)
-    shop_new_prospect_sik = add_meta(db.StringProperty(indexed=False),
-                                      doc="New prospect sik",
-                                      order=310)
 
     shop_gcs_bucket = add_meta(db.StringProperty(indexed=False), doc='Cloud storage bucket for shop-related files',
                                order=311)
@@ -93,14 +90,6 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     solution_sync_calendar_events_client_secret = add_meta(db.StringProperty(indexed=False),
                                             doc="Client secret to sync calendar events",
                                             order=608)
-
-    data_be_app_id = add_meta(db.StringProperty(indexed=False),
-                              doc="The app_id for data.be",
-                              order=1101)
-    data_be_app_key = add_meta(db.StringProperty(indexed=False),
-                               doc="The app_key for data.be",
-                               order=1103)
-
 
     twitter_app_key = add_meta(db.StringProperty(indexed=False),
                                doc="The app_key for twitter",

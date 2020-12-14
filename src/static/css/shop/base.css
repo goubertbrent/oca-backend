@@ -359,9 +359,6 @@ pre.formatted {
 }
 
 /* end new order styles */
-#prospect-info .modal-footer .btn {
-    margin-left: 5px;
-}
 
 .modal-footer .btn.pull-right {
     margin-right: 5px;
@@ -369,14 +366,6 @@ pre.formatted {
 
 #task-table .progress {
     margin-bottom: 0;
-}
-
-.prospect-comment {
-    margin: 10px 0;
-    background-color: #f9f9f9;
-    border: 1px solid #dddddd;
-    padding: 5px 10px;
-    border-radius: 5px;
 }
 
 .container-padding {

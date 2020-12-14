@@ -40,14 +40,12 @@ SLN_CONSTS.LOG_ERROR_URL = "/internal/shop/log_error";
     var DEBUG = {% if DEBUG %}true{% else %}false{% endif %};
 var JS_TEMPLATES = {{ js_templates|safe }};
 var CURRENT_USER = "{{ current_user.email }}";
-var PROSPECT_REASONS = {{ prospect_reasons_json }};
 var DISABLED_REASONS = {{ disabled_reasons_json }}
 var LANGUAGES = {{ languages_json }};
 var DEFAULT_LANGUAGES = {{ default_languages_json }};
 var LOGO_LANGUAGES = {{ logo_languages_json }};
-    var COUNTRIES = {{ countries_json }},
-            CURRENCIES = {{ CURRENCIES }},
-            StatusTypeStrings = {{ prospect_status_type_strings }};
+var COUNTRIES = {{ countries_json }};
+var CURRENCIES = {{ CURRENCIES }};
 {% endautoescape %}
 //Used by sln-utils
 var CommonTranslations = {
@@ -80,20 +78,18 @@ var CommonTranslations = {
                         <li><a href="#" id="menu_search_customer"><i class="icon-search"></i> Search</a></li>
 {% if admin %}
                         <li class="divider"></li>
-                        <li><a href="/internal/shop/invoices/open"><i class="icon-download-alt"></i> Download open invoices</a></li>
+                        <!-- <li><a href="/internal/shop/invoices/open"><i class="icon-download-alt"></i> Download open invoices</a></li> -->
                         <li><a href="/internal/shop/contacts_export"><i class="icon-file"></i> Export contacts</a></li>
-                        <li><a href="/internal/shop/customers/import" id="import-customers"><i class="fa fa-file"></i> Import customers</a></li>
+                        <!-- <li><a href="/internal/shop/customers/import" id="import-customers"><i class="fa fa-file"></i> Import customers</a></li> -->
                         <li><a href="#" id="export-customers"><i class="fa fa-file"></i> Export customers</a></li>
                         <li><a href="#" id="export-cirklo-customers"><i class="fa fa-file"></i> Export CIRKLO customers</a></li>
                         <li class="divider"></li>
                         <li><a href="/internal/shop/customers/generate-qr"><i class="fa fa-qrcode"></i> Generate QR codes</a></li>
-                        <li class="divider"></li>
-                        <li><a href="/internal/shop/expired_subscriptions"><i class="fa fa-money"></i> Expired subscriptions</a></li>
 {% endif %}
                     </ul>
                 </li>
-                <li><a href="/internal/shop/orders">Orders</a></li>
-                <li class="dropdown">
+                <!-- <li><a href="/internal/shop/orders">Orders</a></li> -->
+                <!-- <li class="dropdown">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                         Charges<b class="caret"></b>
                     </a>
@@ -101,20 +97,7 @@ var CommonTranslations = {
                         <li><a href="/internal/shop/charges"><i class="icon-book"></i> Outstanding charges</a></li>
                         <li><a href="/internal/shop/charges?paid"><i class="icon-check"></i> Paid charges</a></li>
                     </ul>
-                </li>
-                <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                        Prospects<b class="caret"></b>
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li><a href="/internal/shop/prospects"><i class="icon-globe"></i> View</a></li>
-                        <li><a href="#" id="menu_new_prospect"><i class="icon-plus-sign"></i> Create new</a></li>
-{% if admin %}
-                        <li class="divider"></li>
-                        <li><a href="/internal/shop/prospects_find"><i class="icon-search"></i> Find new</a></li>
-{% endif %}
-                    </ul>
-                </li>
+                </li> -->
                 <li class="dropdown">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                         Regional managers<b class="caret"></b>
@@ -123,10 +106,9 @@ var CommonTranslations = {
 {% if admin %}
                         <li><a href="/internal/shop/regio_managers"><i class="icon-user"></i> View</a></li>
 {% endif %}
-                        <li><a href="/internal/shop/tasks"><i class="icon-tasks"></i> Tasks</a></li>
-                        <li><a href="/internal/shop/stats"><i class="fa fa-line-chart"></i> Stats</a></li>
+                        <!-- <li><a href="/internal/shop/stats"><i class="fa fa-line-chart"></i> Stats</a></li> -->
                         {% if admin %}
-                            <li class="divider"></li>
+                            <!-- <li class="divider"></li> -->
                             <li><a href="/internal/shop/legal_entities#/legal_entities"><i
                                     class="fa fa-building-o"></i> Legal entities</a>
                             </li>
@@ -135,16 +117,6 @@ var CommonTranslations = {
                 </li>
 {% if admin or team_admin %}
                 <li><a href="/internal/shop/questions">Questions</a></li>
-{% endif %}
-{% if admin %}
-                <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                        History<b class="caret"></b>
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li><a href="/internal/shop/history/tasks"><i class="icon-tasks"></i> Tasks</a></li>
-                    </ul>
-                </li>
 {% endif %}
 {% if admin %}
                 <li class="dropdown">
@@ -166,8 +138,6 @@ var CommonTranslations = {
             </ul>
         </div>
     </div>
-
-{% include "prospects_base.html" %}
 
 <div class="container-padding">
 {% block body %}&nbsp;{% endblock %}
@@ -275,27 +245,6 @@ var CommonTranslations = {
             <a href="#" class="btn" id="button_close">Close</a>
         </div>
     </div>
-    <div class="modal hide fade" id="select_company">
-        <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-            <h3>Select company</h3>
-        </div>
-        <div class="modal-body">
-            <form>
-                <fieldset>
-                    <div class="alert alert-info" id="select_company_info">
-                      Discovering companies in the neighbourhood ...
-                    </div>
-                    <div class="alert alert-error" id="select_company_error">
-                    </div>
-                    <table class="table">
-                        <tbody>
-                        </tbody>
-                    </table>
-                </fieldset>
-            </form>
-        </div>
-    </div>
 
     <div class="modal hide fade" id="payment_options_modal" style="width: 832px; margin-left: -416px;" data-backdrop="static">
         <div class="modal-header">
@@ -388,7 +337,6 @@ var CommonTranslations = {
 <script type="text/javascript" src="/static/js/shop/shop.js"></script>
 <script src="/static/js/shop/order_item_list.js"></script>
 <script type="text/javascript" src="/static/js/shop/create_service.js"></script>
-<script type="text/javascript" src="/static/js/shop/prospects.js"></script>
 {% block custom_javascript %}{% endblock %}
 </body>
 </html>

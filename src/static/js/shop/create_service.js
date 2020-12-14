@@ -432,24 +432,6 @@ var customerSelected = function(customer) {
         });
     } else {
         ShopRequests.getContacts(customer.id).then(contacts => prefillServiceData(customer, contacts[0]));
-
-        if(currentCustomer.prospect_id){
-            // get prospect
-            if(!currentCustomer.prospect){
-                sln.call({
-                    url: '/internal/shop/rest/prospect/findbycustomer',
-                    type: 'GET',
-                    data: {
-                        customer_id: currentCustomer.id
-                    },
-                    success: function (data) {
-                        if (data) {
-                            currentCustomer.prospect = data.prospect;
-                        }
-                    }
-                });
-            }
-        }
         getServiceCommunities(customer.country, null);
     }
 };

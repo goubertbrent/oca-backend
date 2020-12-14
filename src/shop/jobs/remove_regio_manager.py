@@ -29,7 +29,7 @@ from rogerthat.rpc.service import BusinessException
 from rogerthat.utils import bizz_check
 from rogerthat.utils.transactions import run_in_transaction
 from shop.constants import STORE_MANAGER
-from shop.models import RegioManager, Prospect, Charge, Customer, Order, ShopTask, RegioManagerStatistic
+from shop.models import RegioManager, Charge, Customer, Order, RegioManagerStatistic
 
 
 @returns()
@@ -37,9 +37,6 @@ from shop.models import RegioManager, Prospect, Charge, Customer, Order, ShopTas
 def remove_regio_manager(manager_email):
     logging.info('Removing regional manager %s', manager_email)
     bizz_check(manager_email != STORE_MANAGER, 'Deleting the <Customer shop> regional manager is not allowed.')
-    task_list = ShopTask.group_by_assignees([manager_email])
-    task_count = len(task_list[manager_email])
-    bizz_check(task_count == 0, 'There are still %s tasks assigned to this regional manager' % task_count)
 
     def trans():
         manager_key = RegioManager.create_key(manager_email)
@@ -58,19 +55,9 @@ def remove_regio_manager(manager_email):
         return team
 
     team = run_in_transaction(trans, xg=True)
-    deferred.defer(_unassign_prospects, manager_email)
     deferred.defer(_change_charges_manager, manager_email, team.support_manager)
     deferred.defer(_change_orders_manager, manager_email, team.support_manager)
     deferred.defer(_change_customers_manager, manager_email)
-
-
-def _unassign_prospects(manager_email):
-    logging.info('Unassigning regional manager %s from all prospects', manager_email)
-    to_put = []
-    for prospect in Prospect.find_by_assignee(manager_email).fetch(None):
-        prospect.assignee = None
-        to_put.append(prospect)
-    put_in_chunks(to_put)
 
 
 def _change_charges_manager(manager_email, replacement_manager_email):

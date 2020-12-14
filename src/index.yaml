@@ -592,28 +592,6 @@ indexes:
   properties:
   - name: number
 
-- kind: Prospect
-  properties:
-  - name: app_id
-  - name: address
-
-- kind: Prospect
-  properties:
-  - name: app_id
-  - name: categories
-  - name: address
-
-- kind: Prospect
-  properties:
-  - name: app_id
-  - name: categories
-  - name: geo_point
-
-- kind: Prospect
-  properties:
-  - name: app_id
-  - name: geo_point
-
 - kind: Question
   properties:
   - name: author
@@ -1106,11 +1084,6 @@ indexes:
   ancestor: yes
   properties:
   - name: timestamp
-
-- kind: Quotation
-  ancestor: yes
-  properties:
-  - name: date
 
 - kind: SolutionRssScraperItem
   ancestor: yes

@@ -26,7 +26,6 @@ from mcfw.consts import NOT_AUTHENTICATED
 from mcfw.restapi import rest_functions
 from rogerthat.handlers.blobstore import CloudStorageBlobstoreHandler
 from rogerthat.wsgi import RogerthatWSGIApplication
-from shop.callbacks import ProspectDiscoverCallbackHandler
 from shop.handlers import ExportInvoicesHandler, ExportProductsHandler, \
     CustomerMapHandler, CustomerMapServicesHandler, CustomerSigninHandler, \
     CustomerSignupHandler, CustomerSetPasswordHandler, CustomerResetPasswordHandler, CustomerSignupPasswordHandler, \
@@ -56,7 +55,6 @@ handlers = [
     ('/bob/api/apps/set_ios_app_id', SetIosAppIdHandler),
     ('/shop/invoices/export', ExportInvoicesHandler),
     ('/shop/products/export', ExportProductsHandler),
-    ('/shop/prospects/discover/callback', ProspectDiscoverCallbackHandler),
     ('/customers/map/([a-z-_0-9]+)/services', CustomerMapServicesHandler),
     ('/customers/map/([a-z-_0-9]+)', CustomerMapHandler),
     RedirectRoute('/vcards', VCardHandler, 'vcard', strict_slash=True),

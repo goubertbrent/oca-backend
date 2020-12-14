@@ -64,8 +64,7 @@ from shop.bizz import create_customer_signup, complete_customer_signup, get_orga
 from shop.business.i18n import shop_translate
 from shop.business.permissions import is_admin
 from shop.constants import OFFICIALLY_SUPPORTED_LANGUAGES
-from shop.models import Invoice, OrderItem, Product, Prospect, RegioManagerTeam, LegalEntity, Customer, \
-    Quotation, CustomerSignup
+from shop.models import Invoice, OrderItem, Product, RegioManagerTeam, LegalEntity, Customer
 from shop.to import CompanyTO, CustomerTO, CustomerLocationTO
 from shop.view import get_shop_context, get_current_http_host
 from solution_server_settings import get_solution_server_settings
@@ -565,20 +564,6 @@ def get_privacy_settings(community_id, language=None):
         request = GenericRESTRequestHandler.getCurrentRequest()
         language = get_languages_from_request(request)[0]
     return get_consents_for_community(community_id, language, [])
-
-
-class QuotationHandler(webapp2.RequestHandler):
-
-    def get(self, customer_id, quotation_id):
-        customer_id = long(customer_id)
-        quotation_id = long(quotation_id)
-        quotation = db.get(Quotation.create_key(quotation_id, customer_id))
-        if not quotation:
-            self.abort(404)
-        bucket = get_solution_server_settings().shop_gcs_bucket
-        url = Quotation.download_url(Quotation.filename(bucket, customer_id, quotation_id)).encode('ascii')
-        logging.info('Redirection to %s', url)
-        self.redirect(url)
 
 
 class CustomerCirkloAcceptHandler(PublicPageHandler):

@@ -44,8 +44,7 @@ from shop.exceptions import NoSubscriptionException, EmptyValueException, \
     OrderAlreadyCanceledException, NoSubscriptionFoundException, ContactNotFoundException, ProductNotFoundException, \
     ProductNotAllowedException, InvalidProductAmountException, InvalidProductQuantityException, \
     MissingProductDependencyException, NoProductsSelectedException
-from shop.models import Customer, Order, Quotation, Contact, Product, OrderItem, RegioManagerTeam, QuotationItem, \
-    Charge
+from shop.models import Customer, Order, Contact, Product, OrderItem, RegioManagerTeam, Charge
 from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz.jobs import delete_solution
 
@@ -229,68 +228,8 @@ def calculate_order_totals(vat_pct, items, all_products):
     return price, total, vat, total_vat_incl
 
 
-def create_quotation(customer_id, data, google_user):
-    # type: (long, CreateQuotationTO, gusers.User) -> Quotation
-    customer_key = Customer.create_key(customer_id)
-    contact_key = Contact.create_key(data.contact_id, customer_id)
-    customer, contact = db.get((customer_key, contact_key))
-    if not contact:
-        raise ContactNotFoundException(data.contact_id)
-    team = RegioManagerTeam.get_by_id(customer.team_id)
-    if google_user:
-        azzert(user_has_permissions_to_team(google_user, customer.team_id))
-    bucket = get_solution_server_settings().shop_gcs_bucket
-    if not bucket:
-        raise BusinessException('Shop GCS bucket is not set')
-    all_products = {p.code: p for p in Product.list_by_legal_entity(team.legal_entity_id)}
-    validate_and_sanitize_order_items(customer, all_products, data.order_items)
-    vat_pct = get_vat_pct(customer, team)
-    _, total, vat, total_vat_incl = calculate_order_totals(vat_pct, data.order_items, all_products)
-    audit_log(customer.id, u"Creating new quotation.")
-
-    def trans():
-        quotation_id = allocate_id(Quotation, parent=customer_key)
-
-        quotation_key = Quotation.create_key(quotation_id, customer_id)
-        quotation = Quotation(key=quotation_key)
-        quotation.contact_id = data.contact_id
-        quotation.date = now()
-        quotation.vat_pct = vat_pct
-        quotation.amount = int(round(total))
-        quotation.vat = int(round(vat))
-        quotation.total_amount = int(round(total_vat_incl))
-        quotation.manager = google_user
-
-        to_put = [quotation]
-        number = 0
-        order_items = []
-        for item in data.order_items:
-            number += 1
-            order_item = QuotationItem(parent=quotation_key)
-            order_item.number = number
-            order_item.comment = item.comment
-            order_item.product_code = item.product
-            order_item.count = item.count
-            order_item.price = item.price
-            order_items.append(order_item)
-        to_put.extend(order_items)
-        db.put(to_put)
-        pdf_contents = StringIO()
-        _generate_order_or_invoice_pdf(None, customer, None, quotation, order_items, pdf_contents, 'order_pdf.html', None,
-                                       None, all_products, False, team.legal_entity, contact, is_quotation=True)
-        file_name = Quotation.filename(bucket, customer_id, quotation_id)
-        with cloudstorage.open(file_name, 'w', content_type='application/pdf') as f:
-            f.write(pdf_contents.getvalue())
-        return quotation
-    return run_in_transaction(trans, xg=True)
-
-
-def list_quotations(customer_id):
-    return Quotation.list(Customer.create_key(customer_id))
-
-
 def _generate_order_or_invoice_pdf(charge, customer, invoice, order, order_items, output_stream, path, payment_note,
-                                   payment_type, products, recurrent, legal_entity, contact, is_quotation=False):
+                                   payment_type, products, recurrent, legal_entity, contact):
     # type: (Charge, Customer, Invoice, Order, list[OrderItem], StringIO,
     # unicode, unicode, int, dict[str, Product], bool, LegalEntity, Contact)
     # -> None
@@ -315,8 +254,7 @@ def _generate_order_or_invoice_pdf(charge, customer, invoice, order, order_items
         "payment_type": payment_type,
         "order_items": sorted(order_items, key=lambda x: x.number),
         "recurrent": recurrent,
-        'logo_path': logo_path,
-        'is_quotation': is_quotation
+        'logo_path': logo_path
     }
     source_html = SHOP_JINJA_ENVIRONMENT.get_template(path).render(variables)
     # Monkey patch problem in PIL
