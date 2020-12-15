@@ -83,7 +83,7 @@ export const getCollections = createSelector(getTrashUserdata, s => {
   for (const collection of collections) {
     const date = getDate(collection.epoch);
     // skip dates in the past
-    if (date > today0) {
+    if (date >= today0) {
       const epoch = date.getTime();
       const uiCollection = collectionMap.get(epoch) ?? { date, epoch, activities: [] };
       let icon = collection.activity.icon;
