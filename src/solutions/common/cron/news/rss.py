@@ -117,7 +117,7 @@ def _worker(rss_settings_key):
             if scraped_item.id in new_news_item_ids:
                 continue
             if item:
-                if not item.dry_run and item.news_id and scraped_item.hash != item.hash:
+                if not item.dry_run and item.news_id and item.rss_url == scraped_item.rss_url and scraped_item.hash != item.hash:
                     logging.debug('update_news_item guid:%s url:%s', scraped_item.guid, scraped_item.url)
                     new_news_item_ids.append(scraped_item.id)
                     tasks.append(create_task(update_news_item, item.news_id, sln_settings, rss_link.group_type,
