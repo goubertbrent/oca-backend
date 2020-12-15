@@ -28,7 +28,7 @@ export const getAppointments = createSelector(getQMaticState, s => s.appointment
 export const getAppointmentsList = createSelector(getQMaticState, s => {
   const items = s.appointments.state === CallStateType.SUCCESS ? s.appointments.result.appointmentList : [];
   const now = new Date();
-  const results = items.map(item => ({ ...item, start: convertDateTime(item.start), end: convertDateTime(item.end) }))
+  const results = items.map(item => ({ ...item, start: new Date(item.start), end: new Date(item.end) }))
     .sort((first, second) => {
       return first.start.getTime() < second.start.getTime() ? -1 : 1;
     });
@@ -52,7 +52,3 @@ export const isLoadingNewAppointmentInfo = createSelector(getQMaticState, s => s
   s.dates.state === CallStateType.LOADING ||
   s.times.state === CallStateType.LOADING ||
   s.reservedAppointment.state === CallStateType.LOADING);
-
-export function convertDateTime(dateString: string): Date {
-  return new Date(dateString.split('+')[ 0 ]);
-}

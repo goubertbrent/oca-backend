@@ -26,7 +26,7 @@ from datetime import datetime
 
 import cloudstorage
 import dateutil
-from babel.dates import format_date, format_time
+from babel.dates import format_date
 from google.appengine.api import urlfetch
 from icalendar import Calendar, Event, vCalAddress, vText
 from typing import Union
@@ -320,7 +320,7 @@ def create_ical(qmatic_settings, app_user, appointment_id):
         organizer_email = customer['email']
         organizer_name = customer['name']
     event.add('location', location)
-    start_date = dateutil.parser.parse(appointment['start'])
+    start_date = dateutil.parser.parse(appointment['start'])  # type: datetime
     event.add('dtstart', start_date)
     end_date = dateutil.parser.parse(appointment['end'])
     event.add('dtend', end_date)
@@ -339,11 +339,8 @@ def create_ical(qmatic_settings, app_user, appointment_id):
     ical_attachment = ('%s.ics' % appointment['title'] or 'Event', b64encode(cal.to_ical()))
     subject = appointment['title']
     lang = sln_settings.main_language
-    when = '%s, %s - %s' % (
-        format_date(start_date, format='full', locale=lang),
-        format_time(start_date, format='short', locale=lang),
-        format_time(end_date, format='short', locale=lang),
-    )
+    # TODO show *correct* time
+    when = format_date(start_date, format='full', locale=sln_settings.locale)
     body = [
         appointment['title'],
         '',
