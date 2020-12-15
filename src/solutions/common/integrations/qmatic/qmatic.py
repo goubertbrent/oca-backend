@@ -24,12 +24,13 @@ import uuid
 from base64 import b64encode
 from datetime import datetime
 
-from google.appengine.api import urlfetch
-
 import cloudstorage
 import dateutil
 from babel.dates import format_date, format_time
+from google.appengine.api import urlfetch
 from icalendar import Calendar, Event, vCalAddress, vText
+from typing import Union
+
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.rpc import returns, arguments
 from models import QMaticSettings, QMaticUser
@@ -184,24 +185,40 @@ def handle_method(service_user, email, method, params, tag, service_identity, us
 
 
 def get_appointments(qmatic_settings, app_user):
-    # type: (QMaticSettings, users.User) -> urlfetch._URLFetchResult
-    qmatic_user = QMaticUser.create_key(app_user).get()
+    # type: (QMaticSettings, users.User) -> Union[urlfetch._URLFetchResult, dict]
+    qmatic_user = QMaticUser.create_key(app_user).get()  # type: QMaticUser
     if not qmatic_user:
-        return {
-            'meta': {
-                'start': '',
-                'end': '',
-                'totalResults': 0,
-                'offset': None,
-                'limit': None,
-                'fields': '',
-                'arguments': {}
-            },
-            'appointmentList': [],
-            'notifications': [],
-        }
+        return _get_empty_appointment_list()
     url = '%s/customers/externalId/%s/appointments' % (URL_PREFIX, qmatic_user.qmatic_id)
-    return do_request(qmatic_settings, url)
+    result = do_request(qmatic_settings, url)
+    if result.status_code == 404:
+        try:
+            parsed = json.loads(result.content)
+        except ValueError:
+            return result
+        # catch "ExternalID identified 0 customers. Must identify a single customer." message
+        if 'identified 0 customers' in parsed.get('msg'):
+            # User no longer exists, so delete our model as well
+            logging.warning('Deleting user that no longer exists on QMatic: %s', qmatic_user.key)
+            qmatic_user.key.delete()
+            return _get_empty_appointment_list()
+    return result
+
+
+def _get_empty_appointment_list():
+    return {
+        'meta': {
+            'start': '',
+            'end': '',
+            'totalResults': 0,
+            'offset': None,
+            'limit': None,
+            'fields': '',
+            'arguments': {}
+        },
+        'appointmentList': [],
+        'notifications': [],
+    }
 
 
 def get_services(qmatic_settings):

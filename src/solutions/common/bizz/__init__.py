@@ -89,8 +89,9 @@ SERVICE_AUTOCONNECT_INVITE_TAG = u'service_autoconnect_invite_tag'
 
 class OCAEmbeddedApps(Enum):
     # Contains shared functionality that is the same for many of the services
-    # Including but not limitted to: q-matic appointments
+    # Includes: events, jcc appointments
     OCA = 'oca'
+    QMATIC = 'qmatic'
     HOPLR = 'hoplr'
     CIRKLO = 'cirklo'
 

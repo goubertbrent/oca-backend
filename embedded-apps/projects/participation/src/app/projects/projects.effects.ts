@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { AlertController, LoadingController, ToastController } from '@ionic/angular';
 import { AlertOptions, LoadingOptions } from '@ionic/core';
-import { Actions, Effect, ofType } from '@ngrx/effects';
+import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
@@ -47,29 +47,29 @@ import { getCurrentProject, getMerchants, ProjectsState } from './projects.state
 @Injectable()
 export class ProjectsEffects {
 
-  @Effect() getCity$ = this.actions$.pipe(
+   getCity$ = createEffect(() => this.actions$.pipe(
     ofType<GetCityAction>(ProjectsActionTypes.GET_CITY),
     switchMap(() => this.projectsService.getCity(rogerthat.user.communityId).pipe(
       map(data => new GetCityCompleteAction(data)),
       catchError(err => of(new GetCityFailedAction(err)))),
-    ));
+    )));
 
-  @Effect() getProjects$ = this.actions$.pipe(
+   getProjects$ = createEffect(() => this.actions$.pipe(
     ofType<GetProjectsAction>(ProjectsActionTypes.GET_PROJECTS),
     switchMap(() => this.projectsService.getProjects(rogerthat.user.communityId).pipe(
       map(data => new GetProjectsCompleteAction(data)),
       catchError(err => of(new GetProjectsFailedAction(err)))),
-    ));
+    )));
 
-  @Effect() getProjectDetails$ = this.actions$.pipe(
+   getProjectDetails$ = createEffect(() => this.actions$.pipe(
     ofType<GetProjectDetailsAction>(ProjectsActionTypes.GET_PROJECT_DETAILS),
     switchMap(action => this.projectsService.getProjectDetails(rogerthat.user.communityId, action.payload.id,
       createAppUser(rogerthat.user.account, rogerthat.system.appId)).pipe(
       map(data => new GetProjectDetailsCompleteAction(data)),
       catchError(err => of(new GetProjectDetailsFailedAction(err)))),
-    ));
+    )));
 
-  @Effect() addParticipation$ = this.actions$.pipe(
+   addParticipation$ = createEffect(() => this.actions$.pipe(
     ofType<AddParticipationAction>(ProjectsActionTypes.ADD_PARTICIPATION),
     tap(() => this.showDialog({
       type: 'loading',
@@ -108,9 +108,9 @@ export class ProjectsEffects {
             return of(new AddParticipationFailedAction(errorMsg.message));
           }));
       },
-    ));
+    )));
 
-  @Effect() getMerchant$ = this.actions$.pipe(
+   getMerchant$ = createEffect(() => this.actions$.pipe(
     ofType<GetMerchantAction>(ProjectsActionTypes.GET_MERCHANT),
     withLatestFrom(this.store.pipe(select(getMerchants))),
     switchMap(([action, merchants]) => {
@@ -124,16 +124,16 @@ export class ProjectsEffects {
           map(data => new GetMerchantCompleteAction(data)),
           catchError(err => of(new GetMerchantFailedAction(this.getErrorMessage(err).message))));
       },
-    ));
+    )));
 
-  @Effect() getCityMerchants$ = this.actions$.pipe(
+   getCityMerchants$ = createEffect(() => this.actions$.pipe(
     ofType<GetMerchantsAction>(ProjectsActionTypes.GET_MERCHANTS),
     switchMap(() => this.projectsService.getCityMerchants(rogerthat.user.communityId).pipe(
       map(data => new GetMerchantsCompleteAction(data)),
       catchError(err => of(new GetMerchantsFailedAction(this.getErrorMessage(err).message)))),
-    ));
+    )));
 
-  @Effect() getMoreProjectMerchants$ = this.actions$.pipe(
+   getMoreProjectMerchants$ = createEffect(() => this.actions$.pipe(
     ofType<GetMoreMerchantsAction>(ProjectsActionTypes.GET_MORE_MERCHANTS),
     switchMap(action => this.store.pipe(
       select(getCurrentProject),
@@ -143,20 +143,20 @@ export class ProjectsEffects {
       map(([project, list]) => this.projectsService.getCityMerchants(project.city_id, list?.cursor).pipe(
         map(data => new GetMoreMerchantsCompleteAction(data)),
         catchError(err => of(new GetMoreMerchantsFailedAction(this.getErrorMessage(err).message)))),
-      ))));
+      )))));
 
-  @Effect() getUserSettings$ = this.actions$.pipe(
+   getUserSettings$ = createEffect(() => this.actions$.pipe(
     ofType<GetUserSettingsAction>(ProjectsActionTypes.GET_USER_SETTINGS),
     switchMap(() => this.projectsService.getUserSettings(createAppUser(rogerthat.user.account, rogerthat.system.appId)).pipe(
       map(data => new GetUserSettingsCompleteAction(data)),
       catchError(err => of(new GetUserSettingsFailedAction(this.getErrorMessage(err).message)))),
-    ));
-  @Effect() saveUserSettings$ = this.actions$.pipe(
+    )));
+   saveUserSettings$ = createEffect(() => this.actions$.pipe(
     ofType<SaveUserSettingsAction>(ProjectsActionTypes.SAVE_USER_SETTINGS),
     switchMap(a => this.projectsService.saveUserSettings(createAppUser(rogerthat.user.account, rogerthat.system.appId), a.payload).pipe(
       map(data => new SaveUserSettingsCompleteAction(data)),
       catchError(err => of(new SaveUserSettingsFailedAction(this.getErrorMessage(err).message)))),
-    ));
+    )));
 
   constructor(private actions$: Actions<ProjectsActions>,
               private store: Store<ProjectsState>,

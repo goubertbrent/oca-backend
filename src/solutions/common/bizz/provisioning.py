@@ -1744,7 +1744,7 @@ def put_q_matic_module(sln_settings, current_coords, current_label, main_brandin
                                    common_translate(default_lang, 'appointments'),
                                    tag,
                                    action=SolutionModule.action_order(SolutionModule.Q_MATIC),
-                                   embedded_app=OCAEmbeddedApps.OCA)
+                                   embedded_app=OCAEmbeddedApps.QMATIC)
     return [item]
 
 

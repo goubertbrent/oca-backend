@@ -1,0 +1,35 @@
+{
+  "app": {
+    "qm": {
+      "add_to_calendar": "Toevoegen aan kalender",
+      "appointments": "Afspraken",
+      "cancel": "Annuleren",
+      "close": "Sluiten",
+      "confirm": "Bevestigen",
+      "confirm_appointment": "Afspraak bevestigen",
+      "confirm_delete_appointment": "Bent u zeker dat u de afspraak op {{ date }} wilt annuleren?",
+      "create_appointment": "Afspraak maken",
+      "date": "Datum",
+      "email": "E-mailadres",
+      "error": "Fout",
+      "first_name": "Voornaam",
+      "former_appointments": "Vorige afspraken",
+      "last_name": "Achternaam",
+      "location": "Locatie",
+      "no": "Nee",
+      "no_activities_found": "Geen activiteiten gevonden",
+      "no_upcoming_appointments_yet": "U heeft geen toekomstige afspraken",
+      "notes": "Notities",
+      "ok": "Ok",
+      "phone": "Telefoonnummer",
+      "retry": "Opnieuw proberen",
+      "search": "Zoeken",
+      "service": "Dienst",
+      "time": "Tijd",
+      "unknown_error": "Er is een fout opgetreden, probeer het later opnieuw.",
+      "validation_error_message": "Gelieve alle verplichte velden in te vullen",
+      "via_app": "Via de {{ appName }} app",
+      "yes": "Ja"
+    }
+  }
+}

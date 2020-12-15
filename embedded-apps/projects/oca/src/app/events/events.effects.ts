@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { AlertController } from '@ionic/angular';
-import { Actions, Effect, ofType } from '@ngrx/effects';
+import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { RogerthatService } from '@oca/rogerthat';
@@ -35,13 +35,13 @@ const ApiCalls = {
 
 @Injectable()
 export class EventsEffects {
-  @Effect() getAnnouncements$ = this.actions$.pipe(
+   getAnnouncements$ = createEffect(() => this.actions$.pipe(
     ofType<GetAnnouncementsAction>(EventsActionTypes.GET_ANNOUNCEMENTS),
     switchMap(() => this.rogerthatService.apiCall<EventAnnouncementList>(ApiCalls.GET_ANNOUNCEMENTS).pipe(
       map(result => new GetAnnouncementsSuccessAction(result)),
       catchError(err => of(new GetAnnouncementsFailedAction(err)))),
-    ));
-  @Effect() getEvents$ = this.actions$.pipe(
+    )));
+   getEvents$ = createEffect(() => this.actions$.pipe(
     ofType<GetEventsAction>(EventsActionTypes.GET_EVENTS),
     switchMap(action => this.rogerthatService.apiCall<OcaEventList>(ApiCalls.GET_EVENTS, action.payload).pipe(
       map(result => new GetEventsSuccessAction(result)),
@@ -49,9 +49,9 @@ export class EventsEffects {
         this.errorService.showErrorDialog(action, err);
         return of(new GetEventsFailedAction(err));
       })),
-    ));
+    )));
 
-  @Effect() getMoreEvents$ = this.actions$.pipe(
+   getMoreEvents$ = createEffect(() => this.actions$.pipe(
     ofType<GetMoreEventsAction>(EventsActionTypes.GET_MORE_EVENTS),
     switchMap(action => this.rogerthatService.apiCall<OcaEventList>(ApiCalls.GET_EVENTS, action.payload).pipe(
       map(result => new GetMoreEventsSuccessAction(result)),
@@ -59,9 +59,9 @@ export class EventsEffects {
         this.errorService.showErrorDialog(action, err);
         return of(new GetMoreEventsFailedAction(err));
       })),
-    ));
+    )));
 
-  @Effect() addToCalendar = this.actions$.pipe(
+   addToCalendar = createEffect(() => this.actions$.pipe(
     ofType<AddEventToCalendarAction>(EventsActionTypes.ADD_EVENT_TO_CALENDAR),
     switchMap(action => {
         return this.rogerthatService.apiCall<{ message: string }>(ApiCalls.ADD_TO_CALENDAR, action.payload).pipe(
@@ -78,7 +78,7 @@ export class EventsEffects {
             return of(new AddEventToCalendarFailedAction(err));
           }));
       },
-    ));
+    )));
 
   constructor(private actions$: Actions<EventsActions>,
               private store: Store<AppState>,

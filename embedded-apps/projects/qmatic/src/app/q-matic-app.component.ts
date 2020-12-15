@@ -2,8 +2,7 @@ import { Location } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, NgZone, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
-import { AlertController, Platform } from '@ionic/angular';
-import { AlertOptions } from '@ionic/core';
+import { Platform } from '@ionic/angular';
 import { Actions } from '@ngrx/effects';
 import { TranslateService } from '@ngx-translate/core';
 import { RogerthatService } from '@oca/rogerthat';
@@ -11,12 +10,12 @@ import { DEFAULT_LANGUAGE, getLanguage, setColor } from '@oca/shared';
 
 
 @Component({
-  selector: 'app-root',
-  templateUrl: 'app.component.html',
+  selector: 'qm-root',
+  templateUrl: 'q-matic-app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
 })
-export class AppComponent {
+export class QMaticAppComponent {
   loaded = false;
 
   constructor(private platform: Platform,
@@ -27,8 +26,7 @@ export class AppComponent {
               private router: Router,
               private cdRef: ChangeDetectorRef,
               private location: Location,
-              private ngZone: NgZone,
-              private alertController: AlertController) {
+              private ngZone: NgZone) {
     this.initializeApp().catch(err => console.error(err));
   }
 
@@ -55,58 +53,23 @@ export class AppComponent {
         } else {
           this.statusBar.styleDefault();
         }
-        if (this.isCompatible() && ['', '/'].includes(this.location.path())) {
-          this.router.navigate(this.getRootPage());
-        }
         this.cdRef.markForCheck();
+        if (rogerthat.system.debug) {
+          this.actions$.subscribe(action => {
+            const { type, ...rest } = action;
+            return console.log(`${type} - ${JSON.stringify(rest)}`);
+          });
+        }
       });
     });
-    // this.actions$.subscribe(action => {
-    //   const { type, ...rest } = action;
-    //   return console.log(`${type} - ${JSON.stringify(rest)}`);
-    // });
   }
 
   private shouldExitApp(): boolean {
-    const whitelist = [
-      '/q-matic/appointments',
-      '/jcc-appointments/appointments',
-      '/events',
-    ];
+    const whitelist = ['/appointments'];
     return whitelist.includes(this.location.path());
-  }
-
-  private getRootPage(): string[] {
-    const TAGS = {
-      EVENTS: sha256('agenda'),
-      JCC_APPOINTMENTS: sha256('__sln__.jcc_appointments'),
-    };
-    const PAGE_MAPPING = {
-      [ TAGS.EVENTS ]: ['events'],
-      [ TAGS.JCC_APPOINTMENTS ]: ['jcc-appointments'],
-    };
-    const tag = rogerthat.menuItem.hashedTag in PAGE_MAPPING ? rogerthat.menuItem.hashedTag : TAGS.EVENTS;
-    return PAGE_MAPPING[ tag ];
   }
 
   private exit() {
     rogerthat.app.exit();
   }
-
-  private isCompatible(): boolean {
-    if (!rogerthat.system.debug && !this.rogerthatService.isSupported([2, 1, 1], [2, 1, 1])) {
-      const opts: AlertOptions = {
-        header: this.translate.instant('app.oca.update_required'),
-        message: this.translate.instant('app.oca.update_app_to_use_feat'),
-        buttons: [{ role: 'cancel', text: this.translate.instant('app.oca.ok') }],
-      };
-      this.alertController.create(opts).then(alert => {
-        alert.present();
-        alert.onDidDismiss().then(() => this.exit());
-      });
-      return false;
-    }
-    return true;
-  }
-
 }

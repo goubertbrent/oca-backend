@@ -846,6 +846,213 @@
           }
         }
       }
+    },
+    "qmatic": {
+      "root": "projects/qmatic",
+      "sourceRoot": "projects/qmatic/src",
+      "projectType": "application",
+      "prefix": "qm",
+      "schematics": {
+        "@schematics/angular:component": {
+          "changeDetection": "OnPush",
+          "style": "scss"
+        }
+      },
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:browser",
+          "options": {
+            "aot": true,
+            "outputPath": "dist/qmatic",
+            "index": "projects/qmatic/src/index.html",
+            "main": "projects/qmatic/src/main.ts",
+            "polyfills": "projects/qmatic/src/polyfills.ts",
+            "tsConfig": "projects/qmatic/tsconfig.app.json",
+            "assets": [
+              {
+                "glob": "favicon.ico",
+                "input": "projects/qmatic/src/",
+                "output": "/"
+              },
+              {
+                "glob": "**/*",
+                "input": "projects/qmatic/src/assets",
+                "output": "assets"
+              },
+              {
+                "glob": "**/*.svg",
+                "input": "node_modules/ionicons/dist/ionicons/svg",
+                "output": "./svg"
+              }
+            ],
+            "styles": [
+              {
+                "input": "projects/qmatic/src/theme/variables.scss"
+              },
+              {
+                "input": "projects/qmatic/src/global.scss"
+              }
+            ],
+            "scripts": []
+          },
+          "configurations": {
+            "production": {
+              "fileReplacements": [
+                {
+                  "replace": "projects/qmatic/src/environments/environment.ts",
+                  "with": "projects/qmatic/src/environments/environment.prod.ts"
+                }
+              ],
+              "optimization": true,
+              "outputHashing": "all",
+              "sourceMap": false,
+              "namedChunks": false,
+              "extractLicenses": true,
+              "vendorChunk": false,
+              "buildOptimizer": true,
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "2mb",
+                  "maximumError": "5mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb"
+                }
+              ]
+            },
+            "ci": {
+              "budgets": [
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb"
+                }
+              ],
+              "progress": false
+            }
+          }
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "browserTarget": "qmatic:build",
+            "port": 4204
+          },
+          "configurations": {
+            "production": {
+              "browserTarget": "qmatic:build:production"
+            },
+            "ci": {
+              "progress": false
+            }
+          }
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "browserTarget": "qmatic:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "projects/qmatic/src/test.ts",
+            "polyfills": "projects/qmatic/src/polyfills.ts",
+            "tsConfig": "projects/qmatic/tsconfig.spec.json",
+            "karmaConfig": "projects/qmatic/karma.conf.js",
+            "styles": [
+              {
+                "input": "projects/qmatic/src/theme/variables.scss"
+              },
+              {
+                "input": "projects/qmatic/src/global.scss"
+              }
+            ],
+            "scripts": [],
+            "assets": [
+              {
+                "glob": "favicon.ico",
+                "input": "projects/qmatic/src/",
+                "output": "/"
+              },
+              {
+                "glob": "**/*",
+                "input": "projects/qmatic/src/assets",
+                "output": "/assets"
+              },
+              {
+                "glob": "**/*",
+                "input": "projects/qmatic/src/assets",
+                "output": "assets"
+              },
+              {
+                "glob": "**/*.svg",
+                "input": "node_modules/ionicons/dist/ionicons/svg",
+                "output": "./svg"
+              }
+            ]
+          },
+          "configurations": {
+            "ci": {
+              "progress": false,
+              "watch": false
+            }
+          }
+        },
+        "lint": {
+          "builder": "@angular-devkit/build-angular:tslint",
+          "options": {
+            "tsConfig": [
+              "projects/qmatic/tsconfig.app.json",
+              "projects/qmatic/tsconfig.spec.json",
+              "projects/qmatic/e2e/tsconfig.json"
+            ],
+            "exclude": [
+              "**/node_modules/**"
+            ]
+          }
+        },
+        "e2e": {
+          "builder": "@angular-devkit/build-angular:protractor",
+          "options": {
+            "protractorConfig": "projects/qmatic/e2e/protractor.conf.js",
+            "devServerTarget": "qmatic:serve"
+          },
+          "configurations": {
+            "production": {
+              "devServerTarget": "qmatic:serve:production"
+            },
+            "ci": {
+              "devServerTarget": "qmatic:serve:ci"
+            }
+          }
+        },
+        "ionic-cordova-build": {
+          "builder": "@ionic/angular-toolkit:cordova-build",
+          "options": {
+            "browserTarget": "qmatic:build"
+          },
+          "configurations": {
+            "production": {
+              "browserTarget": "qmatic:build:production"
+            }
+          }
+        },
+        "ionic-cordova-serve": {
+          "builder": "@ionic/angular-toolkit:cordova-serve",
+          "options": {
+            "cordovaBuildTarget": "qmatic:ionic-cordova-build",
+            "devServerTarget": "qmatic:serve"
+          },
+          "configurations": {
+            "production": {
+              "cordovaBuildTarget": "qmatic:ionic-cordova-build:production",
+              "devServerTarget": "qmatic:serve:production"
+            }
+          }
+        }
+      }
     }
   },
   "cli": {
