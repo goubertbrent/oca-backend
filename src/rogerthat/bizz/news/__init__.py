@@ -732,6 +732,8 @@ def save_group_services(app_user, group_id, key, action, service):
     settings = NewsSettingsUser.create_key(app_user).get()  # type: NewsSettingsUser
     if not settings:
         return SaveNewsGroupServicesResponseTO()
+    if key != u'notifications':
+        return SaveNewsGroupServicesResponseTO()
 
     if service:
         should_put = False
@@ -741,26 +743,35 @@ def save_group_services(app_user, group_id, key, action, service):
         if not service_settings:
             service_settings = NewsSettingsUserService(key=nsus_key, group_id=group_id,
                                                        notifications=NewsNotificationStatus.NOT_SET)
+        group = NewsGroup.create_key(group_id).get()  # type: NewsGroup
+        group_details = settings.get_group_by_id(group_id)
+        if group_details:
+            if group_details.notifications == NewsNotificationFilter.NOT_SET:
+                group_details.notifications = group.default_notification_filter
+                settings.put()
+        else:
+            group_details = UserNewsGroupSettings()
+            group_details.group_id = group_id
+            group_details.last_load_request = datetime.now()
+            group_details.notifications = group.default_notification_filter
+            settings.group_settings.append(group_details)
+            settings.put()
 
-        if key == u'notifications':
-            group_details = settings.get_group_by_id(group_id)
-            group = NewsGroup.create_key(group_id).get()  # type: NewsGroup
-            current_notifications = group_details.notifications if group_details else group.default_notification_filter
-            if action == u'enable':
-                if current_notifications == NewsNotificationFilter.ALL:
-                    service_settings.notifications = NewsNotificationStatus.NOT_SET
-                else:
-                    service_settings.notifications = NewsNotificationStatus.ENABLED
-                should_put = True
-            elif action == u'disable':
-                if current_notifications == NewsNotificationFilter.SPECIFIED:
-                    service_settings.notifications = NewsNotificationStatus.NOT_SET
-                else:
-                    service_settings.notifications = NewsNotificationStatus.DISABLED
-                should_put = True
+        if action == u'enable':
+            if group_details.notifications == NewsNotificationFilter.ALL:
+                service_settings.notifications = NewsNotificationStatus.NOT_SET
+            else:
+                service_settings.notifications = NewsNotificationStatus.ENABLED
+            should_put = True
+        elif action == u'disable':
+            if group_details.notifications == NewsNotificationFilter.SPECIFIED:
+                service_settings.notifications = NewsNotificationStatus.NOT_SET
+            else:
+                service_settings.notifications = NewsNotificationStatus.DISABLED
+            should_put = True
         if should_put:
             service_settings.put()
-    elif key == u'notifications':
+    else:
         if action in (NewsSettingsUser.NOTIFICATION_ENABLED_FOR_NONE,
                       NewsSettingsUser.NOTIFICATION_ENABLED_FOR_ALL,
                       NewsSettingsUser.NOTIFICATION_ENABLED_FOR_SPECIFIED):
