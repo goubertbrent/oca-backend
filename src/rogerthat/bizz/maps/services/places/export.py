@@ -30,7 +30,7 @@ from rogerthat.consts import FILES_BUCKET, DAY, SCHEDULED_QUEUE, FA_ICONS
 
 
 def export_place_types():
-    file_name = 'place-types-translations-%s.xlsx' % datetime.now().isoformat()
+    file_name = 'place-types-translations-%s.xls' % datetime.now().isoformat()
     gcs_path = '/%s/tmp/%s' % (FILES_BUCKET, file_name)
 
     verticals = _get_json_file('verticals.json')
@@ -44,7 +44,7 @@ def export_place_types():
     languages = translations.keys()
     translation_keys = sorted(translations[DEFAULT_LANGUAGE].keys())
     with cloudstorage.open(gcs_path, 'w',
-                           content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') as gcs_file:
+                           content_type='application/vnd.ms-excel') as gcs_file:
         book = xlwt.Workbook(encoding='utf-8')
         # Verticals
         rows = []

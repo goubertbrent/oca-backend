@@ -304,8 +304,8 @@ def api_export_cirklo_services():
         sheet.write(row, 5, translate(language, 'Yes') if service.merchant_registered else translate(language, 'No'))
 
     date = format_datetime(datetime.now(), locale=city_sln_settings.locale, format='medium')
-    gcs_path = '/%s/tmp/cirklo/export-cirklo-%s.xlsx' % (OCA_FILES_BUCKET, date.replace(' ', '-'))
-    content_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    gcs_path = '/%s/tmp/cirklo/export-cirklo-%s.xls' % (OCA_FILES_BUCKET, date.replace(' ', '-'))
+    content_type = 'application/vnd.ms-excel'
     with cloudstorage.open(gcs_path, 'w', content_type=content_type) as gcs_file:
         book.save(gcs_file)
 

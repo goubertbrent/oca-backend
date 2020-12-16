@@ -50,16 +50,16 @@ def export_submissions(service_user, form_id):
     submissions = FormSubmission.list(form_id)
     language = get_solution_settings(service_user).main_language
     oca_form = OcaForm.create_key(form.id, service_user).get()  # type: OcaForm
-    extension = 'xlsx'
-    content_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    extension = 'xls'
+    content_type = 'application/vnd.ms-excel'
     path = '/%s/tmp/forms/%d/exports/%s.%s' % (OCA_FILES_BUCKET, form.id, form.title, extension)
     with cloudstorage.open(path, 'w', content_type=content_type) as f:
-        _export_to_xlsx(form, oca_form, language, submissions, f)
+        _export_to_xls(form, oca_form, language, submissions, f)
     deferred.defer(_delete_file, path, _countdown=DAY, _queue=SCHEDULED_QUEUE)
     return get_serving_url(path)
 
 
-def _export_to_xlsx(form, oca_form, language, submissions, file_handle):
+def _export_to_xls(form, oca_form, language, submissions, file_handle):
     # type: (DynamicFormTO, OcaForm, str, List[FormSubmission], file) -> None
     book = xlwt.Workbook(encoding='utf-8')
     # Write headers
