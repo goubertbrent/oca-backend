@@ -145,11 +145,12 @@ def add_voucher(service_user, app_user, qr_content):
     try:
         parsed = json.loads(qr_content)
         voucher_id = parsed.get('voucher')
-        if not voucher_id:
-            # Some qrs for Dilbeek made in december 2020 contained this instead
-            voucher_id = parsed.get('qrContent')
     except ValueError:
-        voucher_id = None
+        if len(qr_content) == 36:
+            # Some qrs for Dilbeek made in december 2020 contained just the qr id and no json
+            voucher_id = qr_content
+        else:
+            voucher_id = None
     voucher_details = None
     if voucher_id:
         rpc = _cirklo_api_call(get_solution_server_settings(), '/vouchers/' + voucher_id, urlfetch.GET)
