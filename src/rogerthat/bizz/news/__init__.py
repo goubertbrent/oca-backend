@@ -1249,9 +1249,17 @@ def get_and_validate_media_info(type_, content):
             raise BusinessException('Invalid YouTube video. Please ensure the video is published.')
         if DEBUG:
             logging.debug('Video info: %s', result.content)
-        video_info = json.loads(result.content)
-        media.width = video_info['width']
-        media.height = video_info['height']
+        try:
+            video_info = json.loads(result.content)
+            media.width = video_info['width']
+            media.height = video_info['height']
+        except ValueError:
+            if result.content == 'Unauthorized':
+                # classic youtube, 200 but unauthorized. This could happen for a livestream that hasn't begun yet.
+                return media, None
+            else:
+                logging.debug('Video info: %s', result.content)
+                raise BusinessException('Invalid YouTube video. Please ensure the video is published.')
     return media, decoded_image
 
 
