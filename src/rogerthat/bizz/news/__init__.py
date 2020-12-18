@@ -1255,8 +1255,7 @@ def get_and_validate_media_info(type_, content):
             media.height = video_info['height']
         except ValueError:
             if result.content == 'Unauthorized':
-                # classic youtube, 200 but unauthorized. This could happen for a livestream that hasn't begun yet.
-                return media, None
+                raise BusinessException('Please ensure playback on other websites has been enabled for the video.')
             else:
                 logging.debug('Video info: %s', result.content)
                 raise BusinessException('Invalid YouTube video. Please ensure the video is published.')
