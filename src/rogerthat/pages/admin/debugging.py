@@ -22,7 +22,7 @@ from rogerthat.bizz import channel
 from rogerthat.bizz.debugging import start_admin_debugging, stop_debugging
 from rogerthat.bizz.profile import search_users_via_name_or_email
 from rogerthat.bizz.system import get_users_currently_forwarding_logs
-from rogerthat.consts import APPSCALE, DEBUG
+from rogerthat.consts import DEBUG
 from rogerthat.dal.app import get_all_apps
 from rogerthat.rpc import users
 from rogerthat.settings import get_server_settings
@@ -43,8 +43,7 @@ class UserTools(webapp.RequestHandler):
                                                    key=lambda x: (x.app_name, x.email)),
                        apps=sorted(get_all_apps(), key=lambda x: x.name),
                        bosh_service=get_server_settings().jabberBoshEndPoint,
-                       debug=DEBUG,
-                       appscale=APPSCALE)
+                       debug=DEBUG)
 
         channel.append_firebase_params(context)
         path = os.path.join(os.path.dirname(__file__), 'debugging.html')

@@ -1,0 +1,25 @@
+<h2>{{ 'oca.Email' | translate }}</h2>
+<p>{{ 'oca.form_integration_email_explanation' | translate }}</p>
+<mat-slide-toggle [(ngModel)]="configMapping[FormIntegrationProvider.EMAIL].enabled"
+                  [disabled]="!configMapping[FormIntegrationProvider.EMAIL].can_edit"
+                  (ngModelChange)="integrationToggled(FormIntegrationProvider.EMAIL)">
+  {{ 'oca.Enabled' | translate }}
+</mat-slide-toggle>
+<oca-form-integration-email-config (configurationChanged)="updateConfiguration(configMapping[FormIntegrationProvider.EMAIL], $event)"
+                                   [configuration]="configMapping[FormIntegrationProvider.EMAIL].configuration"></oca-form-integration-email-config>
+
+<h2>TOPDesk</h2>
+<p>{{ 'oca.form_topdesk_integration_info' | translate }}</p>
+<mat-slide-toggle [(ngModel)]="configMapping[FormIntegrationProvider.TOPDESK].enabled"
+                  [disabled]="!configMapping[FormIntegrationProvider.TOPDESK].can_edit"
+                  (ngModelChange)="integrationToggled(FormIntegrationProvider.TOPDESK)">
+  {{ 'oca.Enabled' | translate }}
+</mat-slide-toggle>
+<h2>Green Valley</h2>
+<p>{{ 'oca.form_integration_gv_explanation' | translate }}</p>
+
+<mat-slide-toggle [(ngModel)]="configMapping[FormIntegrationProvider.GREEN_VALLEY].enabled"
+                  [disabled]="!configMapping[FormIntegrationProvider.GREEN_VALLEY].can_edit"
+                  (ngModelChange)="integrationToggled(FormIntegrationProvider.GREEN_VALLEY)">
+  {{ 'oca.Enabled' | translate }}
+</mat-slide-toggle>

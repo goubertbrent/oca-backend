@@ -50,7 +50,9 @@
             </mat-form-field>
             <mat-form-field class="exception-description">
               <mat-label>{{ 'oca.description' | translate }}</mat-label>
-              <input [(ngModel)]="exception.description" [ngModelOptions]="{standalone: true}" matInput required>
+              <input [(ngModel)]="exception.description" [ngModelOptions]="{standalone: true}" matInput maxlength="50"
+                     required>
+              <mat-hint align="end">{{ exception.description?.length || 0 }} / 50</mat-hint>
             </mat-form-field>
             <button (click)="removeException(exception)" mat-icon-button type="button">
               <mat-icon>delete</mat-icon>

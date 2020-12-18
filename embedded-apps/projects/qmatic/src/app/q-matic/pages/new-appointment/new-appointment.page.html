@@ -1,0 +1,20 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ 'app.qm.create_appointment' | translate }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <qm-create-appointment (branchSelected)="branchChanged($event)"
+                         (confirmAppointment)="confirmAppointment($event)"
+                         (dateSelected)="dateChanged($event)"
+                         (serviceSelected)="serviceChanged($event)"
+                         [branches]="branches$ | async"
+                         [dates]="dates$ | async"
+                         [services]="services$ | async"
+                         [showLoading]="isLoading$ | async"
+                         [times]="times$ | async"></qm-create-appointment>
+</ion-content>

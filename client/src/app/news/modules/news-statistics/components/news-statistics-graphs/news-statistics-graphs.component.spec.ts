@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { NewsItemBasicStatistics, NewsItemTimeStatistics, NewsStats } from '@oca/web-shared';
 import { TestingModule } from '../../../../../../testing/testing.module';
@@ -17,7 +17,7 @@ describe('NewsStatisticsGraphsComponent', () => {
   let component: TestComponent;
   let fixture: ComponentFixture<TestComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       declarations: [ TestComponent ],
       imports: [ TestingModule, NewsStatisticsModule ],

@@ -34,7 +34,7 @@ from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, serialize_value, get_type_details, parse_parameter, run, parse_parameters, returns, \
     MissingArgumentException
-from rogerthat.consts import SERVICE_API_CALLBACK_RETRY_UNIT, DEBUG, APPSCALE
+from rogerthat.consts import SERVICE_API_CALLBACK_RETRY_UNIT, DEBUG
 from rogerthat.dal.profile import get_service_profile, get_user_profile
 from rogerthat.dal.service import get_sik, get_api_key, log_service_activity
 from rogerthat.models import ServiceProfile, ServiceCallBackSettings
@@ -353,8 +353,6 @@ def submit_service_api_callback(profile, service_api_callback, effective_kwargs=
 def get_postback_url():
     if DEBUG:
         return "%s/api/1/callback" % get_server_settings().baseUrl
-    elif APPSCALE:
-        return "https://%s/api/1/callback" % os.environ['SERVER_NAME']
     else:
         return "https://%s.appspot.com/api/1/callback" % APPENGINE_APP_ID
 

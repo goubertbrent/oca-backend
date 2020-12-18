@@ -15,15 +15,12 @@
 #
 # @@license_version:1.7@@
 
-import datetime
 import json
 import logging
 import time
 from types import NoneType
 
 from google.appengine.ext import db, ndb
-
-from dateutil.relativedelta import relativedelta
 from typing import List
 
 from mcfw.cache import cached
@@ -31,11 +28,11 @@ from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
 from rogerthat.dal import parent_key, generator
 from rogerthat.models import APIKey, SIKKey, FriendServiceIdentityConnection, ServiceInteractionDef, MFRSIKey, \
-    ServiceMenuDef, ServiceIdentity, Broadcast, QRTemplate, ServiceIdentityStatistic, UserProfile, \
-    ServiceProfile, FriendServiceIdentityConnectionArchive, NdbServiceMenuDef
+    ServiceMenuDef, ServiceIdentity, QRTemplate, ServiceIdentityStatistic, ServiceProfile, \
+    NdbServiceMenuDef
 from rogerthat.rpc import users, rpc
 from rogerthat.rpc.models import ServiceLog, ServiceAPICallback, NdbServiceLog
-from rogerthat.utils import now, get_epoch_from_datetime
+from rogerthat.utils import now
 from rogerthat.utils.service import create_service_identity_user, get_service_user_from_service_identity_user
 
 
@@ -165,92 +162,27 @@ def get_service_log(service_user, timestamp):
     return qry.fetch(100)
 
 
-@returns(db.GqlQuery)
+@returns(db.Query)
 @arguments(service_identity_user=users.User, app_id=unicode)
 def get_friend_service_identity_connections_of_service_identity_query(service_identity_user, app_id=None):
     azzert('/' in service_identity_user.email(), 'no slash in %s' % service_identity_user.email())
-    qry_string = "WHERE deleted = False AND service_identity_email = :service_identity_email"
-    qry_params = dict(service_identity_email=service_identity_user.email())
     if app_id:
-        qry_string += " AND app_id = :app_id"
-        qry_params['app_id'] = app_id
-    qry_string += " ORDER BY friend_name ASC"
-    qry = FriendServiceIdentityConnection.gql(qry_string)
-    qry.bind(**qry_params)
-    return qry
+        return FriendServiceIdentityConnection.list_by_app_id(service_identity_user.email(), app_id)
+    else:
+        return FriendServiceIdentityConnection.list(service_identity_user.email())
 
 
-@returns(db.GqlQuery)
-@arguments(service_identity_user=users.User)
 def get_friend_service_identity_connections_of_service_identity_keys_query(service_identity_user):
+    # type: (users.User) -> db.Query
     azzert('/' in service_identity_user.email(), 'no slash in %s' % service_identity_user.email())
-    qry = db.GqlQuery("SELECT __key__ FROM FriendServiceIdentityConnection "
-                      "WHERE deleted = False AND service_identity_email = :service_identity_email "
-                      "ORDER BY friend_name ASC")
-    qry.bind(service_identity_email=service_identity_user.email())
-    return qry
+    return FriendServiceIdentityConnection.list(service_identity_user.email(), keys_only=True)
 
 
-@returns(db.GqlQuery)
-@arguments(service_identity_user=users.User, min_age=(int, long, NoneType), max_age=(int, long, NoneType),
-           gender=(NoneType, int), app_id=(NoneType, int), broadcast_type=unicode)
-def get_broadcast_audience_of_service_identity_keys_query(service_identity_user, min_age=None, max_age=None,
-                                                          gender=None, app_id=None, broadcast_type=None):
-    azzert('/' in service_identity_user.email(), 'no slash in %s' % service_identity_user.email())
-    qry_string = "SELECT __key__ FROM FriendServiceIdentityConnection " \
-                 "WHERE deleted = False AND service_identity_email = :service_identity_email"
-    qry_params = dict(service_identity_email=service_identity_user.email())
-    if min_age is not None:
-        if min_age > 130:
-            min_age = 130
-        # must find users that are born BEFORE today - x years
-        # eg. today is 3 jan 2014, min_age is 29; then look for users born before
-        # 3 jan 1985 (first day a user can be 29)
-        qry_string += " AND birthdate <= :max_birthdate"
-        qry_params['max_birthdate'] = get_epoch_from_datetime(datetime.date.today() - relativedelta(years=min_age))
-    if max_age is not None:
-        if max_age > 130:
-            max_age = 130
-        # must find users that are born AFTER today + 1 day - (x + 1) years
-        # eg. today is 3 jan 2014, max_age is 29; then look for users born after 4 jan 1984 (last day a user can be 29)
-        qry_string += " AND birthdate >= :min_birthdate"
-        qry_params['min_birthdate'] = get_epoch_from_datetime(
-            datetime.date.today() - relativedelta(years=max_age + 1, days=-1))
-    if gender is not None and gender != UserProfile.GENDER_MALE_OR_FEMALE:
-        qry_string += " AND gender = :gender"
-        qry_params['gender'] = gender
-    if app_id is not None:
-        qry_string += " AND app_id = :app_id"
-        qry_params['app_id'] = app_id
-    if broadcast_type is not None:
-        qry_string += " AND enabled_broadcast_types = :broadcast_type"
-        qry_params['broadcast_type'] = broadcast_type
-    logging.debug("Broadcast audience query: %s\nparams: %s", qry_string, qry_params)
-
-    qry = db.GqlQuery(qry_string)
-    qry.bind(**qry_params)
-    return qry
-
-
-@returns(db.GqlQuery)
-@arguments(app_user=users.User)
 def get_friend_service_identity_connections_keys_of_app_user_query(app_user):
+    # type: (users.User) -> db.Query
     app_user_email = app_user.email()
     azzert('/' not in app_user_email, 'no slash expected in %s' % app_user_email)
-    qry = db.GqlQuery("SELECT __key__ FROM FriendServiceIdentityConnection"
-                      "  WHERE ANCESTOR IS :ancestor AND deleted = False")
-    qry.bind(ancestor=parent_key(app_user))
-    return qry
-
-
-@returns(db.GqlQuery)
-@arguments(app_user=users.User)
-def get_friend_service_identity_connections_of_app_user_query(app_user):
-    app_user_email = app_user.email()
-    azzert('/' not in app_user_email, 'no slash expected in %s' % app_user_email)
-    qry = db.GqlQuery("SELECT * FROM FriendServiceIdentityConnection WHERE ANCESTOR IS :ancestor AND deleted = False")
-    qry.bind(ancestor=parent_key(app_user))
-    return qry
+    return FriendServiceIdentityConnection.list_by_app_user(app_user, keys_only=True)
 
 
 @returns(tuple)
@@ -275,23 +207,10 @@ def get_all_service_friend_keys_query(service_user):
     # service_user can be a service_identity_user
     email = get_service_user_from_service_identity_user(service_user).email() + '/'
     qry = db.GqlQuery("SELECT __key__ FROM FriendServiceIdentityConnection"
-                      "  WHERE deleted = False"
-                      "  AND service_identity_email >= :from_service_identity_email"
-                      "  AND service_identity_email < :to_service_identity_email")
+                      " WHERE service_identity_email >= :from_service_identity_email"
+                      " AND service_identity_email < :to_service_identity_email")
     qry.bind(from_service_identity_email=email, to_service_identity_email=email + u"\ufffd")
     return qry
-
-
-@returns(db.Query)
-@arguments(service_user=users.User)
-def get_all_archived_service_friend_keys_query(service_user):
-    """Returns a query that results in all FriendServiceIdentityConnectionArchive of a service and all its identities.
-    """
-    email = get_service_user_from_service_identity_user(service_user).email() + '/'
-    return FriendServiceIdentityConnectionArchive.all(keys_only=True) \
-        .filter('deleted', False) \
-        .filter('service_identity_email >=', email) \
-        .filter('service_identity_email <', email + u"\ufffd")
 
 
 @returns(db.GqlQuery)
@@ -301,7 +220,6 @@ def get_friend_service_identity_connections_keys_query(service_user, app_user):
     email = service_user.email()
     qry = db.GqlQuery("SELECT __key__ FROM FriendServiceIdentityConnection"
                       "  WHERE ANCESTOR is :ancestor"
-                      "  AND deleted = False"
                       "  AND service_identity_email >= :from_service_identity_email"
                       "  AND service_identity_email < :to_service_identity_email")
     qry.bind(ancestor=parent_key(app_user),
@@ -317,7 +235,6 @@ def get_one_friend_service_identity_connection_keys_query(service_identity_user,
     service_identity_email = service_identity_user.email()
     qry = db.GqlQuery("SELECT __key__ FROM FriendServiceIdentityConnection"
                       "  WHERE ANCESTOR is :ancestor"
-                      "  AND deleted = False "
                       "  AND service_identity_email = :service_identity_email")
     qry.bind(ancestor=parent_key(app_user),
              service_identity_email=service_identity_email)
@@ -377,21 +294,6 @@ def get_service_menu_item_by_coordinates(service_identity_user, coords):
     # type: (users.User, list[int]) -> ServiceMenuDef
     service_user = get_service_user_from_service_identity_user(service_identity_user)
     return ServiceMenuDef.get_by_key_name("x".join((str(x) for x in coords)), parent=parent_key(service_user))
-
-
-@returns([ServiceMenuDef])
-@arguments(service_user=users.User, limit=int)
-def get_broadcast_settings_items(service_user, limit):
-    # No limit when limit is less than 1
-    return ServiceMenuDef.all().ancestor(parent_key(service_user)).filter("isBroadcastSettings =", True).fetch(
-        limit if limit > 0 else None)
-
-
-@returns(bool)
-@arguments(service_identity_user=users.User, friend_user=users.User, broadcast_type=unicode)
-def is_broadcast_type_enabled(service_identity_user, friend_user, broadcast_type):
-    fsic = get_friend_serviceidentity_connection(friend_user, service_identity_user)
-    return not fsic is None and broadcast_type not in fsic.disabled_broadcast_types
 
 
 @cached(1, request=True, lifetime=0, read_cache_in_transaction=True)
@@ -473,12 +375,6 @@ def get_service_identities_by_service_identity_users(service_identity_users, app
 def get_child_identities(service_user):
     # type: (users.User) -> List[ServiceIdentity]
     return [si for si in get_service_identities(service_user) if not si.is_default]
-
-
-@returns([Broadcast])
-@arguments(service_user=users.User)
-def list_broadcasts(service_user):
-    return Broadcast.all().ancestor(parent_key(service_user)).fetch(None)
 
 
 @returns(tuple)

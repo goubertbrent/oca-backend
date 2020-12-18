@@ -19,6 +19,7 @@ from datetime import datetime
 
 from google.appengine.api import urlfetch
 from google.appengine.ext import ndb
+from typing import List, Tuple, Optional, Any
 
 from mcfw.rpc import arguments
 from rogerthat.bizz.elasticsearch import delete_index, create_index, \
@@ -27,7 +28,9 @@ from rogerthat.bizz.job import run_job
 from rogerthat.consts import NEWS_MATCHING_QUEUE
 from rogerthat.dal.profile import get_service_visible_non_transactional
 from rogerthat.dal.service import get_service_identity
+from rogerthat.models.elasticsearch import ElasticsearchSettings
 from rogerthat.models.news import NewsItem
+from rogerthat.rpc import users
 
 
 def re_index_all(queue=NEWS_MATCHING_QUEUE):
@@ -61,6 +64,10 @@ def create_news_index(config):
         'mappings': {
             'properties': {
                 'community_ids': {
+                    'type': 'keyword'
+                },
+                # Service identity user
+                'service': {
                     'type': 'keyword'
                 },
                 'txt': {
@@ -111,15 +118,15 @@ def re_index_news_item(news_item):
     timestamp = news_item.scheduled_at if news_item.scheduled_at else news_item.timestamp
     doc = {
         'community_ids': news_item.community_ids,
+        'service': news_item.sender.email(),  # Service identity user
         'timestamp': datetime.utcfromtimestamp(timestamp).isoformat() + 'Z',
         'txt': txt
     }
     return index_doc(config.news_index, news_id, doc)
 
 
-def find_news(community_id, search_string, cursor=None):
+def find_news(community_id, search_string, cursor=None, amount=10):
     start_offset = long(cursor) if cursor else 0
-    amount = 10
     if (start_offset + amount) > 10000:
         amount = 10000 - start_offset
     if amount <= 0:
@@ -147,10 +154,43 @@ def find_news(community_id, search_string, cursor=None):
             {'timestamp': 'desc'}
         ]
     }
+    return _es_qry_to_news_result(qry, start_offset)
 
+
+def find_news_by_service(service_identity_user, search_string, amount, cursor=None):
+    # type: (users.User, unicode, int, unicode) -> Tuple[Optional[unicode], List[int]]
+    start_offset = long(cursor) if cursor else 0
+    if (start_offset + amount) > 10000:
+        amount = 10000 - start_offset
+    if amount <= 0 or not search_string:
+        return None, []
+    qry = {
+        'size': amount,
+        'from': start_offset,
+        'query': {
+            'bool': {
+                'filter': [
+                    {'term': {'service': service_identity_user.email()}}
+                ],
+                'must': [
+                    {'match_phrase': {'txt': search_string}}
+                ],
+            }
+        },
+        'stored_fields': [],
+        'sort': [
+            '_score',
+            {'timestamp': 'desc'}
+        ]
+    }
+    return _es_qry_to_news_result(qry, start_offset)
+
+
+def _es_qry_to_news_result(query, start_offset):
+    # type: (dict, long) -> Tuple[Optional[unicode], List[long]]
     config = get_elasticsearch_config()
     path = '/%s/_search' % config.news_index
-    result_data = es_request(path, urlfetch.POST, qry)
+    result_data = es_request(path, urlfetch.POST, query)
     new_cursor = None
     next_offset = start_offset + len(result_data['hits']['hits'])
     if result_data['hits']['total']['relation'] in ('eq', 'gte'):

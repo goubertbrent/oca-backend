@@ -23,7 +23,6 @@ from mcfw.properties import unicode_property, long_property, typed_property, boo
 from rogerthat.dal.profile import get_user_profile
 from rogerthat.models import ServiceTranslation, ServiceMenuDef, App
 from rogerthat.models.properties.friend import BaseFriendDetail
-from rogerthat.models.properties.messaging import JsFlowDefinition
 from rogerthat.rpc import users
 from rogerthat.to import TO
 from rogerthat.translations import localize
@@ -46,7 +45,7 @@ class FormVersionTO(TO):
     version = long_property('version')
 
 
-class BaseServiceMenuItemTO(object):
+class BaseServiceMenuItemTO(TO):
     coords = long_list_property('1')
     label = unicode_property('2')
     iconHash = unicode_property('3')
@@ -83,16 +82,7 @@ class BaseServiceMenuItemTO(object):
         smi.runInBackground = smd.runInBackground
         smi.action = smd.action
         static_flow = None
-        if target_user_profile and smd.isBroadcastSettings:
-            service_profile = helper.get_service_profile()
-            if service_profile.broadcastTypes and existence != FriendTO.FRIEND_EXISTENCE_DELETED:
-                from rogerthat.bizz.service.broadcast import get_broadcast_settings_static_flow_hash
-                static_flow = JsFlowDefinition()
-                static_flow.hash_ = get_broadcast_settings_static_flow_hash(helper, target_user_profile.user)
-                static_flow.brandings = [
-                    service_profile.broadcastBranding] if service_profile.broadcastBranding else list()
-                static_flow.attachments = list()
-        elif smd.staticFlowKey:
+        if smd.staticFlowKey:
             mfd = helper.get_message_flow(smd.staticFlowKey)
             static_flow = mfd.js_flow_definitions.get_by_language(language)
             if not static_flow:
@@ -259,7 +249,6 @@ class FriendTO(BaseFriendDetail):
     userData = unicode_property('107', default=None)  # deprecated
     appData = unicode_property('108', default=None)  # deprecated
     category_id = unicode_property('109', default=None)
-    broadcastFlowHash = unicode_property('110', default=None)
     organizationType = long_property('111', default=0)
     callbacks = long_property('113', default=0)
     versions = long_list_property('114', default=[],
@@ -333,7 +322,6 @@ class FriendTO(BaseFriendDetail):
                 f.descriptionBranding = None
                 f.actionMenu = None
                 f.actions = []
-                f.broadcastFlowHash = None
             else:
                 f.description = translator.translate(
                     ServiceTranslation.IDENTITY_TEXT, service_identity.description, language)
@@ -341,22 +329,6 @@ class FriendTO(BaseFriendDetail):
                     ServiceTranslation.IDENTITY_BRANDING, service_identity.descriptionBranding, language)
                 f.actionMenu = ServiceMenuTO.from_model(helper, language, targetProfile, existence)
                 f.actions = []
-                if service_profile.broadcastTypes and existence != FriendTO.FRIEND_EXISTENCE_DELETED:
-                    from rogerthat.bizz.service.broadcast import get_broadcast_settings_static_flow_hash
-                    tag_found = False
-                    # try to find hashtag in the action menu
-                    hashed_tag_of_broadcast_settings = ServiceMenuDef.hash_tag(ServiceMenuDef.TAG_MC_BROADCAST_SETTINGS)
-                    for smi in f.actionMenu.items:
-                        if smi.hashedTag == hashed_tag_of_broadcast_settings:
-                            f.broadcastFlowHash = smi.staticFlowHash
-                            tag_found = True
-                            break
-                    if not tag_found:
-                        # Can be that he has broadcast types but no service menu item
-                        logging.warning("Did not find the static flow in the menu :(")
-                        f.broadcastFlowHash = get_broadcast_settings_static_flow_hash(helper, targetUser)
-                else:
-                    f.broadcastFlowHash = None
 
             f.userData = None
             f.appData = None
@@ -378,7 +350,6 @@ class FriendTO(BaseFriendDetail):
             f.userData = None
             f.appData = None
             f.category_id = None
-            f.broadcastFlowHash = None
             f.organizationType = 0
             f.existence = existence
             f.callbacks = 0
@@ -582,7 +553,7 @@ class ServiceFriendStatusTO(ServiceFriendTO):
     is_friend = bool_property('101')
     last_heartbeat = long_property('102')
     devices = unicode_list_property('103')
-    deactivated = bool_property('104')
+    deactivated = bool_property('104') # todo check & remove property
 
 
 class GetFriendInvitationSecretsRequestTO(object):
@@ -661,24 +632,6 @@ class GetCategoryRequestTO(object):
 
 class GetCategoryResponseTO(object):
     category = typed_property('1', FriendCategoryTO, False)
-
-
-class BroadcastFriendTO(object):
-    name = unicode_property('1')
-    avatar = unicode_property('2')
-    age = long_property('3')
-    gender = unicode_property('4')
-    app_id = unicode_property('5')
-
-
-class SubscribedBroadcastUsersTO(object):
-    connected_users = typed_property('1', BroadcastFriendTO, True)
-    not_connected_users = long_property('2')
-
-
-class SubscribedBroadcastReachTO(object):
-    total_users = long_property('1')
-    subscribed_users = long_property('2')
 
 
 class GroupTO(object):

@@ -22,7 +22,7 @@ from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from google.appengine.ext import ndb
 from oauth2client.contrib.appengine import CredentialsNDBProperty
-from typing import List
+from typing import List, Tuple, Optional
 
 from mcfw.utils import Enum
 from rogerthat.dal import parent_ndb_key
@@ -98,9 +98,7 @@ class Event(NdbModel):
     SOURCE_UITDATABANK_BE = 1
     SOURCE_GOOGLE_CALENDAR = 2
 
-    # TODO communities: remove after migration
-    app_ids = ndb.StringProperty(indexed=True, repeated=True)
-    community_id = ndb.IntegerProperty() # todo communities
+    community_id = ndb.IntegerProperty()
     organization_type = ndb.IntegerProperty(indexed=True)
     calendar_id = ndb.IntegerProperty(indexed=True)
     source = ndb.IntegerProperty(indexed=True, default=SOURCE_CMS)
@@ -161,7 +159,7 @@ class Event(NdbModel):
         return cls.query().filter(cls.end_date < date)
 
     def get_closest_occurrence(self, date):
-        # type: (datetime) -> Tuple[EventDate, EventDate]
+        # type: (datetime) -> Tuple[Optional[EventDate], Optional[EventDate]]
         if self.calendar_type == EventCalendarType.SINGLE:
             if self.start_date > date:
                 return EventDate(datetime=self.start_date), EventDate(datetime=self.end_date)

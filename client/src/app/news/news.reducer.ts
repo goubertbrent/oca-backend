@@ -1,6 +1,6 @@
-import { stateError, stateLoading, stateSuccess, NewsItem } from '@oca/web-shared';
+import { NewsItem, stateError, stateLoading, stateSuccess } from '@oca/web-shared';
 import { onLoadableError, onLoadableLoad, onLoadableSuccess } from '../shared/loadable/loadable';
-import { CreateNews} from './news';
+import { CreateNews } from './news';
 import { NewsActions, NewsActionTypes } from './news.actions';
 import { initialNewsState, newsAdapter, NewsState } from './news.state';
 
@@ -13,11 +13,16 @@ export function newsReducer(state: NewsState = initialNewsState, action: NewsAct
     case NewsActionTypes.GET_NEWS_OPTIONS_FAILED:
       return { ...state, newsOptions: stateError(action.error, state.newsOptions.result) };
     case NewsActionTypes.GET_NEWS_LIST:
-      return { ...state, listStatus: onLoadableLoad(state.listStatus.data) };
+      return {
+        ...state,
+        listStatus: stateLoading(state.listStatus.result),
+        // In case cursor is null, clear the list of items
+        items: action.payload.cursor ? state.items : initialNewsState.items,
+      };
     case NewsActionTypes.GET_NEWS_LIST_COMPLETE:
       return {
         ...state,
-        listStatus: onLoadableSuccess(action.payload),
+        listStatus: stateSuccess(null),
         items: newsAdapter.addMany(action.payload.result, {
           ...state.items,
           cursor: action.payload.cursor,
@@ -25,7 +30,7 @@ export function newsReducer(state: NewsState = initialNewsState, action: NewsAct
         }),
       };
     case NewsActionTypes.GET_NEWS_LIST_FAILED:
-      return { ...state, listStatus: onLoadableError(action.error, state.listStatus.data) };
+      return { ...state, listStatus: stateError(action.error, state.listStatus.result) };
     case NewsActionTypes.GET_NEWS_ITEM:
       return {
         ...state,

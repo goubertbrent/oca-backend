@@ -6,7 +6,7 @@ import { Observable } from 'rxjs';
 import { auditTime, map } from 'rxjs/operators';
 import {
   COLLAPSE_NAVIGATION_ACTIONS,
-  FA_ICONS,
+  filterIcons,
   FontAwesomeIcon,
   HARDCODED_ICONS,
   iconValidator,
@@ -51,16 +51,16 @@ export class EditNavigationItemDialogComponent implements OnInit {
 
   ngOnInit() {
     this.navigationItem = { ...this.data.item };
-    this.textControl = new FormControl(this.navigationItem.text, [ Validators.required ]);
-    this.iconControl = new FormControl(this.navigationItem.icon, [ Validators.required, iconValidator ]);
-    this.actionTypeControl = new FormControl(this.navigationItem.action_type, [ Validators.required ]);
+    this.textControl = new FormControl(this.navigationItem.text, [Validators.required]);
+    this.iconControl = new FormControl(this.navigationItem.icon, [Validators.required, iconValidator]);
+    this.actionTypeControl = new FormControl(this.navigationItem.action_type, [Validators.required]);
     this.filteredText = this.textControl.valueChanges.pipe(map(text => this.filterText(text)));
-    this.filteredIcons = this.iconControl.valueChanges.pipe(auditTime(300), map(text => this.filterIcons(text)));
+    this.filteredIcons = this.iconControl.valueChanges.pipe(auditTime(300), map(text => Array.from(filterIcons(text))));
     this.filteredActionTypes = this.actionTypeControl.valueChanges.pipe(map(text => this.filterActionTypes(text)));
     this.useGlobalColor = !this.navigationItem.color;
     this.chosenIcon = this.navigationItem.icon;
-    if (this.data.customTranslations && this.data.customTranslations[ 'en' ]) {
-      this.translations = this.translations.concat(this.data.customTranslations[ 'en' ].map(t => t.value));
+    if (this.data.customTranslations && 'en' in this.data.customTranslations) {
+      this.translations = this.translations.concat(this.data.customTranslations.en.map(t => t.value));
     }
   }
 
@@ -77,7 +77,7 @@ export class EditNavigationItemDialogComponent implements OnInit {
   }
 
   isCollapsible(): boolean {
-    return COLLAPSE_NAVIGATION_ACTIONS.includes(<string>this.navigationItem.action);
+    return COLLAPSE_NAVIGATION_ACTIONS.includes(this.navigationItem.action as string);
   }
 
   isOpenApp(): boolean {
@@ -103,14 +103,6 @@ export class EditNavigationItemDialogComponent implements OnInit {
       return this.translations;
     }
     return this.translations.filter(t => new RegExp(text, 'gi').test(t));
-  }
-
-  private filterIcons(text: string) {
-    if (!text) {
-      return FA_ICONS;
-    }
-    const re = new RegExp(text, 'gi');
-    return FA_ICONS.filter(icon => re.test(icon.icon));
   }
 
   private filterActionTypes(text: string) {

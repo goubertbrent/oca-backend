@@ -19,6 +19,7 @@ import logging
 from types import NoneType
 
 from google.appengine.ext import db, deferred
+from typing import List
 
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
@@ -37,7 +38,7 @@ from rogerthat.dal.profile import get_user_profile, get_service_profile, get_ser
 from rogerthat.dal.service import get_friend_service_identity_connections_keys_of_app_user_query, \
     get_service_identities_query, get_one_friend_service_identity_connection_keys_query
 from rogerthat.models import ProfileInfo, ServiceTranslation, FriendServiceIdentityConnection, FriendMap, \
-    BroadcastSettingsFlowCache, ServiceProfile, App, UserProfile, UserData
+    ServiceProfile, UserProfile, UserData
 from rogerthat.models.properties.friend import FriendDetail
 from rogerthat.rpc import users
 from rogerthat.rpc.models import RpcCAPICall
@@ -46,7 +47,7 @@ from rogerthat.rpc.service import logServiceError
 from rogerthat.to.friends import UpdateFriendRequestTO, FriendTO, UpdateFriendSetRequestTO, FRIEND_TYPE_SERVICE
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import channel, get_current_queue
-from rogerthat.utils.app import remove_app_id, get_app_user_tuple
+from rogerthat.utils.app import remove_app_id
 from rogerthat.utils.service import remove_slash_default, get_service_user_from_service_identity_user, \
     create_service_identity_user
 from rogerthat.utils.transactions import run_in_transaction
@@ -62,8 +63,7 @@ def _determine_worker_queue():
     return HIGH_LOAD_WORKER_QUEUE if current_queue in (None, DEFAULT_QUEUE, SCHEDULED_QUEUE) else current_queue
 
 
-def _must_continue_with_update_service(service_profile_or_user, bump_service_version=False,
-                                       clear_broadcast_settings_cache=False):
+def _must_continue_with_update_service(service_profile_or_user, bump_service_version=False):
     def trans(service_profile):
         azzert(service_profile)
         service_profile_updated = False
@@ -72,9 +72,6 @@ def _must_continue_with_update_service(service_profile_or_user, bump_service_ver
             service_profile_updated = True
         if bump_service_version:
             service_profile.version += 1
-            service_profile_updated = True
-        if clear_broadcast_settings_cache:
-            service_profile.addFlag(ServiceProfile.FLAG_CLEAR_BROADCAST_SETTINGS_CACHE)
             service_profile_updated = True
 
         if service_profile_updated:
@@ -117,118 +114,78 @@ def schedule_update_friends_of_profile_info(profile_info, changed_properties=Non
 
 
 @returns(NoneType)
-@arguments(service_profile_or_user=(ServiceProfile, users.User), force=bool, bump_service_version=bool,
-           clear_broadcast_settings_cache=bool)
-def schedule_update_all_friends_of_service_user(service_profile_or_user, force=False, bump_service_version=False,
-                                                clear_broadcast_settings_cache=False):
+@arguments(service_profile_or_user=(ServiceProfile, users.User), force=bool, bump_service_version=bool)
+def schedule_update_all_friends_of_service_user(service_profile_or_user, force=False, bump_service_version=False):
     """Schedule update of all service_identities of a service to all connected users"""
     is_user = not isinstance(service_profile_or_user, ServiceProfile)
     service_user = service_profile_or_user if is_user else service_profile_or_user.user
     azzert('/' not in service_user.email(), "Expecting a service user, not a service identity.")
-    if not force and not _must_continue_with_update_service(service_profile_or_user, bump_service_version,
-                                                            clear_broadcast_settings_cache):
+    if not force and not _must_continue_with_update_service(service_profile_or_user, bump_service_version):
         return
     worker_queue = _determine_worker_queue()
-    deferred.defer(_run_update_all_friends_of_service_user, service_user, clear_broadcast_settings_cache,
+    deferred.defer(_run_update_all_friends_of_service_user, service_user,
                    worker_queue=worker_queue,
                    _transactional=db.is_in_transaction(),
                    _queue=worker_queue)
 
 
 @returns(NoneType)
-@arguments(service_profile_or_user=(ServiceProfile, users.User), target_user=users.User, force=bool,
-           clear_broadcast_settings_cache=bool)
-def schedule_update_a_friend_of_service_user(service_profile_or_user, target_user, force=False,
-                                             clear_broadcast_settings_cache=False):
+@arguments(service_profile_or_user=(ServiceProfile, users.User), target_user=users.User, force=bool)
+def schedule_update_a_friend_of_service_user(service_profile_or_user, target_user, force=False):
     '''Schedule update of all service_identities of a service to 1 user'''
     is_user = not isinstance(service_profile_or_user, ServiceProfile)
     service_user = service_profile_or_user if is_user else service_profile_or_user.user
     azzert('/' not in service_user.email(), "Expecting a service user, not a service identity.")
-    if not force and not _must_continue_with_update_service(service_profile_or_user, False,
-                                                            clear_broadcast_settings_cache):
+    if not force and not _must_continue_with_update_service(service_profile_or_user, False):
         return
-    deferred.defer(_run_update_friend_for_service_identities, service_user, clear_broadcast_settings_cache, target_user,
+    deferred.defer(_run_update_friend_for_service_identities, service_user, target_user,
                    _transactional=db.is_in_transaction())
 
 
 @returns(NoneType)
-@arguments(service_identity_user=users.User, target_user=users.User, force=bool, clear_broadcast_settings_cache=bool)
-def schedule_update_a_friend_of_a_service_identity_user(service_identity_user, target_user, force=False,
-                                                        clear_broadcast_settings_cache=False):
-    '''Schedule update of 1 service_identity to 1 user'''
+@arguments(service_identity_user=users.User, target_user=users.User, force=bool)
+def schedule_update_a_friend_of_a_service_identity_user(service_identity_user, target_user, force=False):
+    """Schedule update of 1 service_identity to 1 user"""
     azzert('/' in service_identity_user.email(), "Expecting a service identity user.")
     service_user = get_service_user_from_service_identity_user(service_identity_user)
     if db.is_in_transaction():
         service_profile_or_service_user = get_service_profile(service_user, False)
     else:
         service_profile_or_service_user = service_user
-    if not force and not _must_continue_with_update_service(service_profile_or_service_user, False,
-                                                            clear_broadcast_settings_cache):
+    if not force and not _must_continue_with_update_service(service_profile_or_service_user, False):
         return
-    deferred.defer(_run_update_friend_for_service_identity, service_identity_user,
-                   clear_broadcast_settings_cache,
+    deferred.defer(_serialize_and_update_friend_for_service_identity, service_identity_user,
                    get_one_friend_service_identity_connection_keys_query, [service_identity_user, target_user],
                    _transactional=db.is_in_transaction())
 
 
-def _should_clear_broadcast_settings_flag(service_user, clear_broadcast_settings_cache):
-    service_profile = get_service_profile(service_user)
-    clear = service_profile.isFlagSet(ServiceProfile.FLAG_CLEAR_BROADCAST_SETTINGS_CACHE)
-    if clear:
-        service_profile.clearFlag(ServiceProfile.FLAG_CLEAR_BROADCAST_SETTINGS_CACHE)
-        service_profile.put()
-    if clear or clear_broadcast_settings_cache:
-        logging.info("Clearing broadcast settings cache")
-
-    return clear
-
-
-def _run_update_all_friends_of_service_user(service_user, clear_broadcast_settings_cache,
-                                            worker_queue=HIGH_LOAD_WORKER_QUEUE):
-    should_clear = db.run_in_transaction(_should_clear_broadcast_settings_flag, service_user,
-                                         clear_broadcast_settings_cache)
-
+def _run_update_all_friends_of_service_user(service_user, worker_queue=HIGH_LOAD_WORKER_QUEUE):
     for si_key in get_service_identities_query(service_user, keys_only=True):
         si_user = create_service_identity_user(users.User(si_key.parent().name()), si_key.name())
         deferred.defer(_run_update_friends_by_profile_info, si_user, FRIEND_TYPE_SERVICE, None,
-                       worker_queue, should_clear or clear_broadcast_settings_cache, _queue=worker_queue)
+                       worker_queue, _queue=worker_queue)
 
 
-def _run_update_friend_for_service_identities(service_user, clear_broadcast_settings_cache, target_user,
+def _run_update_friend_for_service_identities(service_user, target_user,
                                               worker_queue=HIGH_LOAD_WORKER_QUEUE):
-    should_clear = db.run_in_transaction(_should_clear_broadcast_settings_flag, service_user,
-                                         clear_broadcast_settings_cache)
-
     for si_key in get_service_identities_query(service_user, keys_only=True):
         si_user = create_service_identity_user(users.User(si_key.parent().name()), si_key.name())
-        deferred.defer(_serialize_and_update_friend_for_service_identity, si_user, should_clear,
+        deferred.defer(_serialize_and_update_friend_for_service_identity, si_user,
                        get_one_friend_service_identity_connection_keys_query, [si_user, target_user],
                        worker_queue=worker_queue)
 
 
-def _run_update_friend_for_service_identity(service_identity_user, clear_broadcast_settings_cache,
-                                            get_fsics_query_function, get_fsics_query_function_args,
-                                            worker_queue=HIGH_LOAD_WORKER_QUEUE):
-    service_user = get_service_user_from_service_identity_user(service_identity_user)
-    should_clear = db.run_in_transaction(_should_clear_broadcast_settings_flag, service_user,
-                                         clear_broadcast_settings_cache)
-    _serialize_and_update_friend_for_service_identity(service_identity_user, should_clear,
-                                                      get_fsics_query_function, get_fsics_query_function_args,
-                                                      worker_queue)
-
-
-def _serialize_and_update_friend_for_service_identity(service_identity_user, clear_broadcast_settings_cache,
-                                                      get_fsics_query_function, get_fsics_query_function_args,
+def _serialize_and_update_friend_for_service_identity(service_identity_user, get_fsics_query_function,
+                                                      get_fsics_query_function_args,
                                                       worker_queue=HIGH_LOAD_WORKER_QUEUE):
     helper = FriendHelper.serialize(service_identity_user, FRIEND_TYPE_SERVICE)
 
     run_job(get_fsics_query_function, get_fsics_query_function_args, _update_friend_via_friend_connection,
-            [helper, clear_broadcast_settings_cache],
+            [helper],
             worker_queue=worker_queue)
 
 
-def _run_update_friends_by_profile_info(user, friend_type, changed_properties, worker_queue=HIGH_LOAD_WORKER_QUEUE,
-                                        clear_broadcast_settings_cache=False):
+def _run_update_friends_by_profile_info(user, friend_type, changed_properties, worker_queue=HIGH_LOAD_WORKER_QUEUE):
     def trans(user):
         helper = FriendHelper.serialize(user, friend_type)
 
@@ -237,7 +194,7 @@ def _run_update_friends_by_profile_info(user, friend_type, changed_properties, w
         else:
             update_friend_service_identity_connections(UserProfile.createKey(user), changed_properties)
 
-        run_job(get_friends_friends_maps_keys_query, [user], _update_friend, [helper, clear_broadcast_settings_cache],
+        run_job(get_friends_friends_maps_keys_query, [user], _update_friend, [helper],
                 worker_queue=worker_queue)
 
     run_in_transaction(trans, True, user)
@@ -250,15 +207,15 @@ def update_friend_service_identity_connections(profile_info_key, changed_propert
             MODE_BATCH, batch_timeout=2)
 
 
-def _update_friend_via_friend_connection(friend_connection_key, helper, clear_broadcast_settings_cache=False):
+def _update_friend_via_friend_connection(friend_connection_key, helper):
     fsic = db.get(friend_connection_key)
     if not fsic or fsic.deleted:
         return
-    _update_friend(get_friends_map_key_by_user(fsic.friend), helper, clear_broadcast_settings_cache)
+    _update_friend(get_friends_map_key_by_user(fsic.friend), helper)
 
 
-def _update_friend(friend_map_key, helper, clear_broadcast_settings_cache=False):
-    # type: (db.Key, FriendHelper, bool) -> None
+def _update_friend(friend_map_key, helper):
+    # type: (db.Key, FriendHelper) -> None
     profile_info = helper.get_profile_info()
     if profile_info.isServiceIdentity:
         service_profile = helper.get_service_profile()
@@ -268,7 +225,7 @@ def _update_friend(friend_map_key, helper, clear_broadcast_settings_cache=False)
         avatar_id = profile_info.avatarId
 
     def trans():
-        # type: () -> FriendMap
+        # type: () -> None
         friend_map = FriendMap.get(friend_map_key)  # type: FriendMap
         if not friend_map:
             logging.warn("FriendMap not found for key: %s" % friend_map_key)
@@ -298,49 +255,9 @@ def _update_friend(friend_map_key, helper, clear_broadcast_settings_cache=False)
 
         to_put = [friend_map]
 
-        if profile_info.isServiceIdentity:
-            fsic_key = FriendServiceIdentityConnection.createKey(friend_map.user, profile_info.user)
-            fsic = db.get(fsic_key)
-            if not fsic:
-                logging.warn("FriendServiceIdentityConnection not found for key: %s" % fsic_key)
-                return
-            for attr in ('disabled_broadcast_types', 'enabled_broadcast_types'):
-                if getattr(fsic, attr) is None:
-                    setattr(fsic, attr, [])
-
-            _, app_id = get_app_user_tuple(friend_map.user)
-
-            updated = False
-            enabled_broadcast_types = list(fsic.enabled_broadcast_types)
-            if app_id == App.APP_ID_OSA_LOYALTY:
-                if enabled_broadcast_types:
-                    enabled_broadcast_types = []
-                    updated = True
-            else:
-                # Add new broadcast types
-                for broadcast_type in service_profile.broadcastTypes:
-                    if broadcast_type not in (fsic.disabled_broadcast_types + fsic.enabled_broadcast_types):
-                        enabled_broadcast_types = list(set(enabled_broadcast_types) | {broadcast_type})
-                        updated = True
-                # Remove deleted broadcast types
-                for broadcast_type in fsic.enabled_broadcast_types:
-                    if broadcast_type not in service_profile.broadcastTypes:
-                        enabled_broadcast_types.remove(broadcast_type)
-                        updated = True
-
-            if updated:
-                friend_detail.relationVersion += 1
-                fsic.enabled_broadcast_types = enabled_broadcast_types
-                to_put.append(fsic)
-
-            if updated or clear_broadcast_settings_cache:
-                logging.info("Deleting BroadcastSettingsFlowCache from datastore")
-                db.delete_async(BroadcastSettingsFlowCache.create_key(friend_map.user, profile_info.user))
-
         logging.info("updating friend to friend_map.generation: %s, friend_detail.relationVersion: %s",
                      friend_map.generation, friend_detail.relationVersion)
 
-        logging.debug("debugging_branding _update_friend friend_map.gen %s, friend_detail.relv %s", friend_map.generation, friend_detail.relationVersion)
         to_put.extend(create_update_friend_requests(helper, helper.profile_info_user, friend_map,
                                                     UpdateFriendRequestTO.STATUS_MODIFIED))
         put_and_invalidate_cache(*to_put)
@@ -413,17 +330,16 @@ def convert_friend(helper, target_user, updated_friend_detail, status, extra_con
 @arguments(target_user=users.User, friend=FriendTO, status=int, friend_map=FriendMap, helper=FriendHelper,
            skip_mobiles=[unicode])
 def do_update_friend_request(target_user, friend, status, friend_map, helper, skip_mobiles=None):
-    # type: (users.User, FriendTO, int, FriendMap, FriendHelper, list[unicode]) -> list[RpcCAPICall]
+    # type: (users.User, FriendTO, int, FriendMap, FriendHelper, List[unicode]) -> List[RpcCAPICall]
     user_profile = get_user_profile(target_user)
     service_identity_user = helper.service_identity_user
     mobile_details = user_profile.mobiles or []
-    models = db.get([UserData.createKey(target_user, service_identity_user),
-                     FriendServiceIdentityConnection.createKey(target_user, service_identity_user)] + [
+    models = db.get([UserData.createKey(target_user, service_identity_user)] + [
         get_mobile_key_by_account(mobile_detail.account) for mobile_detail in mobile_details])
-    user_data, fsic, mobiles = models[0], models[1], models[2:]
+    user_data, mobiles = models[0], models[1:]
 
     def update_friend_set():
-        # type: () -> [RpcCAPICall]
+        # type: () -> List[RpcCAPICall]
         capi_calls = []
         request = UpdateFriendSetRequestTO()
         request.friends = [remove_app_id(users.User(f.email)).email() for f in friend_map.friendDetails]
@@ -440,14 +356,13 @@ def do_update_friend_request(target_user, friend, status, friend_map, helper, sk
 
         if status == UpdateFriendRequestTO.STATUS_ADD and friend.type == FriendTO.TYPE_SERVICE:
             from rogerthat.bizz.service import create_send_user_data_requests, create_send_app_data_requests
-            capi_calls.extend(create_send_user_data_requests(mobiles, user_data, fsic, target_user,
-                                                             service_identity_user))
+            capi_calls.extend(create_send_user_data_requests(mobiles, user_data, target_user, service_identity_user))
             capi_calls.extend(create_send_app_data_requests(mobiles, target_user, helper))
 
         return capi_calls
 
     def update_friend():
-        # type: () -> list[RpcCAPICall]
+        # type: () -> List[RpcCAPICall]
         request = UpdateFriendRequestTO()
         request.friend = friend
         request.generation = friend_map.generation  # deprecated
@@ -465,7 +380,7 @@ def do_update_friend_request(target_user, friend, status, friend_map, helper, sk
         if friend.type == FriendTO.TYPE_SERVICE:
             from rogerthat.bizz.service import create_send_user_data_requests, create_send_app_data_requests
             if not all_mobiles_support_feature(mobiles, Features.SPLIT_USER_DATA):
-                capi_calls.extend(create_send_user_data_requests(mobiles, user_data, fsic, target_user,
+                capi_calls.extend(create_send_user_data_requests(mobiles, user_data, target_user,
                                                                  service_identity_user))
             capi_calls.extend(create_send_app_data_requests(mobiles, target_user, helper))
 
@@ -488,14 +403,12 @@ def _update_service_friends(friend_service_identity_connection_keys, user_profil
         models = db.get([user_profile_key] + friend_service_identity_connection_keys)  # type: list
         user_profile = models.pop(0)  # type: UserProfile
         assert isinstance(user_profile, UserProfile)
-        friend_service_identity_connections = []  # type: list[FriendServiceIdentityConnection]
-        for fsic in models:
+        friend_service_identity_connections = []  # type: List[FriendServiceIdentityConnection]
+        for fsic in models:  # type: FriendServiceIdentityConnection
             if not fsic:
                 continue
             fsic.friend_name = user_profile.name
             fsic.friend_avatarId = user_profile.avatarId
-            fsic.birthdate = user_profile.birthdate
-            fsic.gender = user_profile.gender
             friend_service_identity_connections.append(fsic)
         if friend_service_identity_connections:
             db.put(friend_service_identity_connections)

@@ -21,22 +21,20 @@ import solutions.common.restapi.billing
 import solutions.common.restapi.cityapp
 import solutions.common.restapi.discussion_groups
 import solutions.common.restapi.forms
-import solutions.common.restapi.hints
 import solutions.common.restapi.locations
 import solutions.common.restapi.loyalty
-import solutions.common.restapi.maps
 import solutions.common.restapi.news
 import solutions.common.restapi.opening_hours
 import solutions.common.restapi.order
 import solutions.common.restapi.participation
 import solutions.common.restapi.payments
 import solutions.common.restapi.pharmacy.order
-import solutions.common.restapi.qanda
 import solutions.common.restapi.reports
 import solutions.common.restapi.reservation
 import solutions.common.restapi.services
 import solutions.common.restapi.settings
 import solutions.common.restapi.store
+import solutions.common.q_and_a.restapi
 from mcfw.restapi import rest_functions
 from rogerthat.wsgi import AuthenticatedRogerthatWSGIApplication
 from solutions.common.handlers import ImageViewerHandler, SolutionMainBrandingHandler, InvoicePdfHandler, \
@@ -76,10 +74,8 @@ modules = [
     solutions.common.restapi.cityapp,
     solutions.common.restapi.discussion_groups,
     solutions.common.restapi.forms,
-    solutions.common.restapi.hints,
     solutions.common.restapi.locations,
     solutions.common.restapi.loyalty,
-    solutions.common.restapi.maps,
     solutions.common.restapi.news,
     solutions.common.restapi.opening_hours,
     solutions.common.restapi.order,
@@ -87,7 +83,7 @@ modules = [
     solutions.common.restapi.payments,
     solutions.common.restapi.pharmacy.order,
     solutions.common.restapi.reservation,
-    solutions.common.restapi.qanda,
+    solutions.common.q_and_a.restapi,
     solutions.common.restapi.reports,
     solutions.common.restapi.store,
     solutions.common.restapi.settings,

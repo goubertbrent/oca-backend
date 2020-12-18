@@ -1,0 +1,61 @@
+<mat-list (cdkDropListDropped)="moveBottomNavigationButton($event)"
+          [cdkDropListDisabled]="editingBottomNavIndex != -1"
+          cdkDropList>
+  <ng-container *ngFor="let control of bottomNavButtonsForm.controls; let index = index;">
+    <mat-list-item *ngIf="editingBottomNavIndex !== index; else editTemplate" cdkDrag>
+      <mat-icon [fontIcon]="control.value.icon" fontSet="fa" mat-list-icon></mat-icon>
+      <p mat-line>{{ translationsMapping[control.value.label] || control.value.label }}</p>
+      <ng-container *ngIf="editingBottomNavIndex === -1">
+        <button (click)="setEditing(control.value, index)" mat-icon-button type="button">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button (click)="removeBottomNavButton(index)" mat-icon-button type="button">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </ng-container>
+      <mat-list *cdkDragPreview>
+        <mat-list-item>{{ translationsMapping[control.value.label] || control.value.label }}</mat-list-item>
+      </mat-list>
+    </mat-list-item>
+  </ng-container>
+</mat-list>
+<button (click)="addBottomNavButton()"
+        *ngIf="canAddBottomNavButton"
+        mat-stroked-button
+        type="button">Add button...
+</button>
+<ng-template #editTemplate>
+  <div [formGroup]="editingBottomNavFormGroup" class="bottomnav-form">
+    <rcc-home-screen-translation-select (addTranslation)="addTranslationClicked.emit()"
+                                        [control]="editingBottomNavFormGroup.controls.label"
+                                        [required]="true"
+                                        [translations]="translations"
+                                        label="Label"></rcc-home-screen-translation-select>
+    <mat-form-field>
+      <mat-label>{{ 'rcc.icon' | translate }}</mat-label>
+      <input [matAutocomplete]="iconComplete"
+             formControlName="icon"
+             matInput>
+      <mat-icon *ngIf="editingBottomNavFormGroup.controls.icon.valid"
+                [fontIcon]="editingBottomNavFormGroup.controls.icon.value"
+                fontSet="fa"
+                matSuffix></mat-icon>
+      <mat-error *ngIf="editingBottomNavFormGroup.controls.icon.errors?.icon">
+        {{ 'rcc.invalid_icon' | translate }}
+      </mat-error>
+      <mat-hint>
+        <a href="https://fontawesome.com/v4.7.0/icons" target="_blank">{{ 'rcc.icons_info' | translate }}</a>
+      </mat-hint>
+    </mat-form-field>
+    <mat-autocomplete #iconComplete="matAutocomplete">
+      <mat-option *ngFor="let icon of filteredIcons$ | async" [value]="icon.icon">
+        <mat-icon [fontIcon]="icon.icon" fontSet="fa"></mat-icon>
+        {{ icon.icon }} {{ icon.v ? '(v' + icon.v + ')' : '' }}
+      </mat-option>
+    </mat-autocomplete>
+    <rcc-app-action-editor formControlName="action"></rcc-app-action-editor>
+    <button (click)="saveBottomNavButton()" mat-stroked-button type="button">
+      <mat-icon>check</mat-icon>
+    </button>
+  </div>
+</ng-template>

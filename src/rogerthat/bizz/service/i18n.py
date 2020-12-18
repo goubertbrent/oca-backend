@@ -28,7 +28,7 @@ from rogerthat.models import ServiceTranslation
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.to.system import TranslationSetTO, TranslationTO, TranslationValueTO
-from rogerthat.utils import case_insensitive_compare, reversed_dict, get_full_language_string, now, bizz_check
+from rogerthat.utils import case_insensitive_compare, reversed_dict, get_full_language_string, now
 
 FIRST_CONTENT_ROW = 10
 LANGUAGES_ROW = FIRST_CONTENT_ROW - 3
@@ -214,24 +214,9 @@ def excel_import(service_user, book):
 
     logging.info(all_translations)
 
-    _validate_broadcast_types(all_translations)
-
     save_translations(editable_translation_set, all_translations)
     deploy_translation(service_user)
 
-def _validate_broadcast_types(all_translations):
-    # Translated broadcast types should not contain duplicates
-    if ServiceTranslation.BROADCAST_TYPE in all_translations:
-        broadcast_types = dict()
-        for translations in all_translations[ServiceTranslation.BROADCAST_TYPE].itervalues():
-            if translations:
-                for lang, translation in translations.iteritems():
-                    if lang in broadcast_types:
-                        bizz_check(translation not in broadcast_types[lang],
-                                   "Duplicate translated broadcast types are not allowed.\n(%s: %s)" % (lang, translation))
-                    else:
-                        broadcast_types[lang] = list()
-                    broadcast_types[lang].append(translation)
 
 @returns(NoneType)
 @arguments(service_user=users.User, translations=TranslationSetTO)
@@ -268,8 +253,6 @@ def translation_import(service_user, translations):
             all_translations[translation_type][default_string][value_to.language] = value_to.value
 
     logging.info(all_translations)
-
-    _validate_broadcast_types(all_translations)
 
     save_translations(editable_translation_set, all_translations)
     deploy_translation(service_user)

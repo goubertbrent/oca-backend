@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { Community, CreateCommunity, SimpleApp, UpdateNewsImagePayload } from './community/communities';
+import { HomeScreen } from './homescreen/models';
 import { NewsGroup, NewsSettings, NewsSettingsWithGroups } from './news/news';
 
 @Injectable({
@@ -59,4 +60,19 @@ export class CommunityService {
     return this.http.put<NewsGroup>(`/console-api/communities/${communityId}/news-settings/${groupId}/background-image`, formData);
   }
 
+  getHomeScreen(communityId: number, homeScreenId: string) {
+    return this.http.get<HomeScreen>(`/console-api/communities/${communityId}/home-screen/${homeScreenId}`);
+  }
+
+  updateHomeScreen(communityId: number, homeScreenId: string, data: HomeScreen) {
+    return this.http.put<HomeScreen>(`/console-api/communities/${communityId}/home-screen/${homeScreenId}`, data);
+  }
+
+  publishHomeScreen(communityId: number, homeScreenId: string) {
+    return this.http.put(`/console-api/communities/${communityId}/home-screen/${homeScreenId}/publish`, {});
+  }
+
+  testHomeScreen(communityId: number, homeScreenId: string, testUser: string) {
+    return this.http.post(`/console-api/communities/${communityId}/home-screen/${homeScreenId}/test`, {test_user: testUser});
+  }
 }

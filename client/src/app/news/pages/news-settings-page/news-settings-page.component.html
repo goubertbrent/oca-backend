@@ -4,16 +4,12 @@
   </a>
   <h1 class="flex-grow">{{ 'oca.Settings' | translate }}</h1>
 </mat-toolbar>
-<form [formGroup]="formGroup" class="notifications-form">
-  <mat-slide-toggle formControlName="notify" (change)="save()">
-    {{ 'oca.send_notifications' | translate }}
-  </mat-slide-toggle>
-</form>
 <mat-list>
   <h3 mat-subheader>{{ 'oca.RSS imports' | translate }}</h3>
   <mat-list-item *ngFor="let scraper of formGroup.controls.scrapers.value; let i = index">
     <h3 matLine>{{ scraper.url }}</h3>
     <p matLine>{{ scraper.group_type }}</p>
+    <p matLine>{{ 'oca.notifications' | translate }}: {{ (scraper.notify ? 'oca.Yes' : 'oca.No') | translate }}</p>
     <p *ngIf="scraper.community_ids.length > 0" matLine>Communities:
       <ng-container *ngFor="let communityId of scraper.community_ids; let last = last;">
         {{ communityNameMapping.get(communityId) || communityId }}
@@ -30,6 +26,7 @@
   <button mat-stroked-button (click)="addRss()" type="button"><mat-icon>add</mat-icon></button>
 </mat-list>
 <form [formGroup]="scraperFormGroup" *ngIf="editingScraper" (ngSubmit)="saveScraper()" class="edit-form">
+  <mat-slide-toggle formControlName="notify">{{ 'oca.send_notifications' | translate }}</mat-slide-toggle>
   <mat-form-field>
     <mat-label>{{ 'oca.Url' | translate }}</mat-label>
     <input formControlName="url" matInput required type="url">

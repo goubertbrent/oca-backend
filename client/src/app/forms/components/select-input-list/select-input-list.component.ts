@@ -1,4 +1,5 @@
 import { coerceBooleanProperty } from '@angular/cdk/coercion';
+import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
@@ -19,6 +20,7 @@ import { Observable, Subject, Subscription } from 'rxjs';
 import { withLatestFrom } from 'rxjs/operators';
 import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
 import { NextAction, UINextAction, Value } from '../../interfaces/forms';
+import { generateNewId } from '../../util';
 
 @Component({
   selector: 'oca-select-input-list',
@@ -131,14 +133,14 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
   }
 
   addChoice() {
-    let value = this.temporaryValue;
-    if (value) {
+    let label = this.temporaryValue;
+    if (label) {
       this.temporaryValue = '';
     } else {
       const count = this.values.length + 1;
-      value = this._translate.instant('oca.option_x', { number: count });
+      label = this._translate.instant('oca.option_x', { number: count });
     }
-    this.values = [ ...this.values, { value, label: value } ];
+    this.values = [...this.values, { value: generateNewId(), label }];
     this.valueFocus$.next();
   }
 
@@ -170,4 +172,9 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
 
   private onTouched = () => {
   };
+
+  itemMoved($event: CdkDragDrop<HTMLDivElement>) {
+    moveItemInArray(this.values, $event.previousIndex, $event.currentIndex);
+    this.values = [...this.values];  // ensure new ref to trigger changedetection
+  }
 }

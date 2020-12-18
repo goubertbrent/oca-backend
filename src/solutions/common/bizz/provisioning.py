@@ -44,7 +44,7 @@ from rogerthat.bizz.features import Features
 from rogerthat.consts import DEBUG, DAY
 from rogerthat.dal import parent_ndb_key, parent_key, put_and_invalidate_cache
 from rogerthat.dal.profile import get_service_profile
-from rogerthat.models import Branding, ServiceMenuDef, ServiceRole, OpeningHours, ServiceIdentity
+from rogerthat.models import Branding, ServiceRole, OpeningHours, ServiceIdentity
 from rogerthat.models.settings import ServiceInfo
 from rogerthat.models.utils import ndb_allocate_id
 from rogerthat.rpc import users
@@ -59,7 +59,7 @@ from rogerthat.utils.transactions import on_trans_committed
 from solutions import translate as common_translate
 from solutions.common.bizz import timezone_offset, render_common_content, SolutionModule, \
     get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, put_branding, \
-    OCAEmbeddedApps, OrganizationType
+    OCAEmbeddedApps, OrganizationType, get_coords_and_label_of_service_menu_item
 from solutions.common.bizz.group_purchase import provision_group_purchase_branding
 from solutions.common.bizz.loyalty import provision_loyalty_branding, get_loyalty_slide_footer
 from solutions.common.bizz.menu import _put_default_menu, get_item_image_url
@@ -74,7 +74,7 @@ from solutions.common.bizz.opening_hours import opening_hours_to_text
 from solutions.common.bizz.order import ORDER_FLOW_NAME
 from solutions.common.bizz.payment import get_providers_settings
 from solutions.common.bizz.reservation import put_default_restaurant_settings
-from solutions.common.bizz.sandwich import get_sandwich_reminder_broadcast_type, validate_sandwiches
+from solutions.common.bizz.sandwich import validate_sandwiches
 from solutions.common.bizz.system import generate_branding
 from solutions.common.consts import ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_GRAM, UNIT_KG, SECONDS_IN_HOUR, \
     SECONDS_IN_DAY, SECONDS_IN_MINUTE, SECONDS_IN_WEEK
@@ -82,7 +82,6 @@ from solutions.common.dal import get_solution_settings, get_restaurant_menu, \
     get_solution_group_purchase_settings, get_static_content_keys, \
     get_solution_identity_settings, get_solution_settings_or_identity_settings, get_solution_news_publishers
 from solutions.common.dal.appointment import get_solution_appointment_settings
-from solutions.common.dal.cityapp import get_uitdatabank_settings
 from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.dal.repair import get_solution_repair_settings
 from solutions.common.dal.reservations import get_restaurant_profile, get_restaurant_settings
@@ -90,7 +89,7 @@ from solutions.common.handlers import JINJA_ENVIRONMENT
 from solutions.common.integrations.jcc.jcc_appointments import get_jcc_settings
 from solutions.common.integrations.qmatic.qmatic import get_qmatic_settings
 from solutions.common.models import SolutionMainBranding, SolutionSettings, SolutionBrandingSettings, \
-    SolutionAutoBroadcastTypes, SolutionQR, RestaurantMenu, SolutionModuleAppText
+    SolutionQR, RestaurantMenu, SolutionModuleAppText
 from solutions.common.models.agenda import SolutionCalendar
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe
 from solutions.common.models.discussion_groups import DiscussionGroup
@@ -117,7 +116,7 @@ POKE_TAGS = {
     SolutionModule.AGENDA: POKE_TAG_EVENTS,
     SolutionModule.APPOINTMENT: POKE_TAG_APPOINTMENT,
     SolutionModule.ASK_QUESTION: POKE_TAG_ASK_QUESTION,
-    SolutionModule.BROADCAST: ServiceMenuDef.TAG_MC_BROADCAST_SETTINGS,
+    SolutionModule.NEWS: POKE_TAG_BROADCAST_CREATE_NEWS,
     SolutionModule.BILLING: None,
     SolutionModule.BULK_INVITE: None,
     SolutionModule.CITY_APP: None,
@@ -488,17 +487,6 @@ def create_app_data(sln_settings, service_identity, service_info, default_app_na
     return app_data
 
 
-@returns()
-@arguments(sln_settings=SolutionSettings, main_branding_key=unicode)
-def populate_identity_and_publish(sln_settings, main_branding_key):
-    users.set_user(sln_settings.service_user)
-    try:
-        populate_identity(sln_settings, main_branding_key)
-        system.publish_changes()
-    finally:
-        users.clear_user()
-
-
 @returns(dict)
 @arguments(sln_settings=SolutionSettings, service_identity=unicode)
 def get_app_data_broadcast(sln_settings, service_identity):
@@ -623,19 +611,11 @@ def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang
     _configure_inbox_qr_code_if_needed(sln_settings, main_branding)
     ssmi_modules = {}
     for module in sorted(sln_settings.modules, key=lambda m: SolutionModule.PROVISION_ORDER[m]):
-        current_coords = get_coords_of_service_menu_item(service_menu, POKE_TAGS[module])
+        current_coords, current_label = get_coords_and_label_of_service_menu_item(service_menu, POKE_TAGS[module])
         logging.debug("Provisioning module: %s", module)
         put_func = MODULES_PUT_FUNCS[module]
-        if module == SolutionModule.BROADCAST:
-            auto_broadcast_types = list()
-            for ssmi_list in ssmi_modules.itervalues():
-                for ssmi in ssmi_list:
-                    auto_broadcast_types.extend(ssmi.broadcast_types)
-            ssmi_modules[module] = put_func(sln_settings, current_coords, main_branding, default_lang,
-                                            POKE_TAGS[module], auto_broadcast_types)
-        else:
-            ssmi_modules[module] = put_func(sln_settings, current_coords, main_branding, default_lang,
-                                            POKE_TAGS[module])
+        ssmi_modules[module] = put_func(sln_settings, current_coords, current_label, main_branding, default_lang,
+                                        POKE_TAGS[module])
         sln_settings.provisioned_modules.append(module)
 
     logging.debug('Provisioned modules: %s', sln_settings.provisioned_modules)
@@ -700,12 +680,11 @@ def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang
         if coords[2] >= last_prefered_page and ssmi_dict["preferred_page"] != -1:
             last_prefered_page = coords[2] + 1
 
-        logging.debug("Putting menu item at %s: %s",
-                      coords, serialize_complex_value(ssmi, SolutionServiceMenuItem, False))
+        logging.debug("Putting menu item at %s: %s", coords, ssmi)
 
         args = [ssmi.icon_name, ssmi.label, ssmi.tag, coords, ssmi.icon_color, ssmi.screen_branding, ssmi.static_flow,
-                ssmi.requires_wifi, ssmi.run_in_background, ssmi.is_broadcast_settings, ssmi.broadcast_branding,
-                ssmi.roles, ssmi.action, ssmi.link, fall_through, None, ssmi.embedded_app]
+                ssmi.requires_wifi, ssmi.run_in_background, ssmi.roles, ssmi.action, ssmi.link, fall_through, None,
+                ssmi.embedded_app]
         if db.is_in_transaction():
             on_trans_committed(system.put_menu_item, *args)
         else:
@@ -719,9 +698,9 @@ def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
-def put_agenda(sln_settings, current_coords, main_branding, default_lang, tag):
+def put_agenda(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
     # type: (SolutionSettings, List[int], SolutionMainBranding, str, str) -> List[SolutionServiceMenuItem]
     ssmis = []
 
@@ -735,14 +714,8 @@ def put_agenda(sln_settings, current_coords, main_branding, default_lang, tag):
         sc.put()
 
     if sln_settings.events_visible:
-        if default_lang == "nl" and SolutionModule.CITY_APP in sln_settings.modules and get_uitdatabank_settings(
-            sln_settings.service_user).enabled:
-            icon = u"uit"
-            label = u"in %s" % sln_settings.name
-        else:
-            icon = u"fa-book"
-            label = common_translate(default_lang, 'agenda')
-
+        icon = u"fa-calendar"
+        label = current_label or common_translate(default_lang, 'Events')
         ssmis.append(SolutionServiceMenuItem(icon,
                                              None,
                                              label,
@@ -769,10 +742,6 @@ def delete_qr_codes(sln_settings, current_coords, service_menu):
 @arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], service_menu=ServiceMenuDetailTO)
 def delete_broadcast(sln_settings, current_coords, service_menu):
     _default_delete(sln_settings, current_coords, service_menu)
-    # create news menu
-    create_news_coords = get_coords_of_service_menu_item(service_menu,
-                                                         POKE_TAG_BROADCAST_CREATE_NEWS)
-    _default_delete(sln_settings, create_news_coords, service_menu)
 
     news_publishers = get_solution_news_publishers(sln_settings.service_user,
                                                    sln_settings.solution)
@@ -796,9 +765,9 @@ def delete_broadcast(sln_settings, current_coords, service_menu):
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
-def put_static_content(sln_settings, current_coords, main_branding, default_lang, tag):
+def put_static_content(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
     menu_items = list()
     to_put = list()
     to_delete = list()
@@ -834,9 +803,9 @@ def delete_static_content(sln_settings, current_coords, service_menu):
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
-def put_appointment(sln_settings, current_coords, main_branding, default_lang, tag):
+def put_appointment(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
     logging.info('Creating APPOINTMENT message flow')
 
     def timeframe_sort(tf1, tf2):
@@ -890,9 +859,9 @@ def put_appointment(sln_settings, current_coords, main_branding, default_lang, t
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
-def put_ask_question(sln_settings, current_coords, main_branding, default_lang, tag):
+def put_ask_question(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
     logging.info('Creating ASK QUESTION message flow')
 
     first_flow_message, menu_label = SolutionModuleAppText.get_text(
@@ -934,33 +903,14 @@ def _configure_inbox_forwarding_qr_code(service_user, service_identity, flow_ide
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
-           default_lang=unicode, tag=unicode, auto_broadcast_types=[unicode])
-def put_broadcast(sln_settings, current_coords, main_branding, default_lang, tag, auto_broadcast_types):
-    logging.info('Saving broadcast types')
-
-    def transl(key):
-        try:
-            return common_translate(default_lang, key, suppress_warning=True)
-        except:
-            return key
-
-    broadcast_types = map(transl, sln_settings.broadcast_types)
-    broadcast_types.extend(auto_broadcast_types)
-
-    ssmi = SolutionServiceMenuItem(u'fa-bell',
-                                   None,
-                                   common_translate(default_lang, 'broadcast-settings'),
-                                   tag,
-                                   is_broadcast_settings=True,
-                                   broadcast_branding=main_branding.branding_key,
-                                   action=SolutionModule.action_order(SolutionModule.BROADCAST))
-
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode,
+           main_branding=SolutionMainBranding,
+           default_lang=unicode, tag=unicode)
+def put_broadcast(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
     create_news_ssmi = _configure_broadcast_create_news(sln_settings, main_branding,
                                                         default_lang, POKE_TAG_BROADCAST_CREATE_NEWS)
 
-    system.put_broadcast_types(broadcast_types)
-    return [ssmi, create_news_ssmi]
+    return [create_news_ssmi]
 
 
 @returns()
@@ -996,7 +946,7 @@ def _configure_create_news_qr_code(sln_settings, flow_identifier):
 @arguments(sln_settings=SolutionSettings, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
 def _configure_broadcast_create_news(sln_settings, main_branding, default_lang, tag):
-    logging.info('Creating broadcast publish/create news flow')
+    logging.info('Creating create news flow')
     loyalty_enabled = SolutionModule.LOYALTY in sln_settings.modules
     flow_params = dict(branding_key=main_branding.branding_key,
                        language=default_lang,
@@ -1034,9 +984,9 @@ def _configure_broadcast_create_news(sln_settings, main_branding, default_lang, 
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
-def put_group_purchase(sln_settings, current_coords, main_branding, default_lang, tag):
+def put_group_purchase(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
     service_user = sln_settings.service_user
     sgps = get_solution_group_purchase_settings(service_user, sln_settings.solution)
     if sgps.visible:
@@ -1056,9 +1006,9 @@ def put_group_purchase(sln_settings, current_coords, main_branding, default_lang
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
-def put_loyalty(sln_settings, current_coords, main_branding, default_lang, tag):
+def put_loyalty(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
     service_user = sln_settings.service_user
 
     @db.non_transactional
@@ -1145,9 +1095,9 @@ def put_loyalty(sln_settings, current_coords, main_branding, default_lang, tag):
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
-def put_menu(sln_settings, current_coords, main_branding, default_lang, tag):
+def put_menu(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
     service_user = sln_settings.service_user
     menu = get_restaurant_menu(service_user)
     if not menu:
@@ -1336,9 +1286,9 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
-def put_order(sln_settings, current_coords, main_branding, default_lang, tag):
+def put_order(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
     logging.info('Creating ORDER message flow')
     sln_order_settings = get_solution_order_settings(sln_settings)
     order_type = sln_order_settings.order_type
@@ -1385,9 +1335,9 @@ def put_order(sln_settings, current_coords, main_branding, default_lang, tag):
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
-def put_pharmacy_order(sln_settings, current_coords, main_branding, default_lang, tag):
+def put_pharmacy_order(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
     logging.info('Creating PHARMACY ORDER message flow')
     flow_params = dict(branding_key=main_branding.branding_key, language=default_lang, name=sln_settings.name,
                        settings=sln_settings)
@@ -1406,9 +1356,9 @@ def put_pharmacy_order(sln_settings, current_coords, main_branding, default_lang
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
-def put_qr_codes(sln_settings, current_coords, main_branding, default_lang, tag):
+def put_qr_codes(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
     logging.info('Creating WELCOME message flow')
     flow_params = dict(branding_key=main_branding.branding_key, language=default_lang)
     flow = JINJA_ENVIRONMENT.get_template('flows/welcome.xml').render(flow_params)
@@ -1445,9 +1395,9 @@ def _configure_connect_qr_code(sln_settings, welcome_flow_identifier):
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
-def put_repair(sln_settings, current_coords, main_branding, default_lang, tag):
+def put_repair(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
     logging.info('Creating REPAIR message flow')
 
     first_flow_message, menu_label = SolutionModuleAppText.get_text(
@@ -1480,9 +1430,9 @@ def put_repair(sln_settings, current_coords, main_branding, default_lang, tag):
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
-def put_restaurant_reservation(sln_settings, current_coords, main_branding, default_lang, tag):
+def put_restaurant_reservation(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
     logging.info('Creating RESERVE message flow')
 
     first_flow_message, menu_label = SolutionModuleAppText.get_text(
@@ -1542,9 +1492,9 @@ def delete_restaurant_reservation(sln_settings, current_coords, service_menu):
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
-def put_sandwich_bar(sln_settings, current_coords, main_branding, default_lang, tag):
+def put_sandwich_bar(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
     """
     Args:
         sln_settings (SolutionSettings)
@@ -1681,31 +1631,22 @@ def put_sandwich_bar(sln_settings, current_coords, main_branding, default_lang, 
     order_sandwich_flow = system.put_flow(flow.encode('utf-8'), multilanguage=False)
     sandwich_settings.order_flow = order_sandwich_flow.identifier
     to_put.append(sandwich_settings)
-
-    # Configure automatic broadcast types
-    broadcast_types = list()
-    for day in SandwichSettings.DAYS:
-        if day & sandwich_settings.broadcast_days == day:
-            broadcast_types.append(get_sandwich_reminder_broadcast_type(default_lang, day))
-    auto_broadcast_types = SolutionAutoBroadcastTypes(key_name=SolutionModule.SANDWICH_BAR, parent=sln_settings,
-                                                      broadcast_types=broadcast_types)
-    to_put.append(auto_broadcast_types)
     db.put(to_put)
 
     logging.info('Creating ORDER SANDWICH menu item')
     ssmi = SolutionServiceMenuItem(u'hamburger',
                                    None,
                                    common_translate(default_lang, 'order-sandwich'),
-                                   tag, static_flow=order_sandwich_flow.identifier, broadcast_types=broadcast_types,
+                                   tag, static_flow=order_sandwich_flow.identifier,
                                    action=SolutionModule.action_order(SolutionModule.SANDWICH_BAR))
 
     return [ssmi]
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
-def put_when_where(sln_settings, current_coords, main_branding, default_lang, tag):
+def put_when_where(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
     logging.info('Creating WHEN_WHERE screen branding')
     content = render_common_content(default_lang, 'when_where.tmpl', {})
     map_png = os.path.join(os.path.dirname(solutions.__file__), 'common', 'templates', 'map.png')
@@ -1728,9 +1669,9 @@ def put_when_where(sln_settings, current_coords, main_branding, default_lang, ta
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
-def put_discussion_groups(sln_settings, current_coords, main_branding, default_lang, tag):
+def put_discussion_groups(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
     ssmi = SolutionServiceMenuItem(u'fa-comments',
                                    None,
                                    common_translate(default_lang, SolutionModule.DISCUSSION_GROUPS),
@@ -1756,9 +1697,9 @@ def delete_discussion_groups(sln_settings, current_coords, service_menu):
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
-def put_hidden_city_wide_lottery(sln_settings, current_coords, main_branding, default_lang, tag):
+def put_hidden_city_wide_lottery(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
     if SolutionModule.LOYALTY in sln_settings.modules:
         raise Exception(u"hidden_city_wide_lottery and loyalty should not be used together")
 
@@ -1786,10 +1727,10 @@ def put_hidden_city_wide_lottery(sln_settings, current_coords, main_branding, de
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
-def put_q_matic_module(sln_settings, current_coords, main_branding, default_lang, tag):
-    # type: (SolutionSettings, list[int], SolutionMainBranding, unicode, unicode) -> list[SolutionServiceMenuItem]
+def put_q_matic_module(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
+    # type: (SolutionSettings, List[int], unicode, SolutionMainBranding, unicode, unicode) -> List[SolutionServiceMenuItem]
     qmatic_settings = get_qmatic_settings(sln_settings.service_user)
     if not qmatic_settings.enabled:
         if current_coords:
@@ -1800,23 +1741,24 @@ def put_q_matic_module(sln_settings, current_coords, main_branding, default_lang
                                    common_translate(default_lang, 'appointments'),
                                    tag,
                                    action=SolutionModule.action_order(SolutionModule.Q_MATIC),
-                                   embedded_app=OCAEmbeddedApps.OCA)
+                                   embedded_app=OCAEmbeddedApps.QMATIC)
     return [item]
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
-def put_jcc_appointments_module(sln_settings, current_coords, main_branding, default_lang, tag):
-    # type: (SolutionSettings, list[int], SolutionMainBranding, unicode, unicode) -> list[SolutionServiceMenuItem]
+def put_jcc_appointments_module(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
+    # type: (SolutionSettings, List[int], unicode, SolutionMainBranding, unicode, unicode) -> List[SolutionServiceMenuItem]
     jcc_settings = get_jcc_settings(sln_settings.service_user)
     if not jcc_settings.enabled:
         if current_coords:
             system.delete_menu_item(current_coords)
         return []
+    label = current_label or common_translate(default_lang, 'appointments')
     item = SolutionServiceMenuItem(u'fa-calendar',
                                    None,
-                                   common_translate(default_lang, 'appointments'),
+                                   label,
                                    tag,
                                    action=SolutionModule.action_order(SolutionModule.JCC_APPOINTMENTS),
                                    embedded_app=OCAEmbeddedApps.OCA)
@@ -1824,13 +1766,14 @@ def put_jcc_appointments_module(sln_settings, current_coords, main_branding, def
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
-def put_cirklo_module(sln_settings, current_coords, main_branding, default_lang, tag):
-    # type: (SolutionSettings, list[int], SolutionMainBranding, unicode, unicode) -> list[SolutionServiceMenuItem]
+def put_cirklo_module(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
+    # type: (SolutionSettings, List[int], unicode, SolutionMainBranding, unicode, unicode) -> List[SolutionServiceMenuItem]
+    label = current_label or common_translate(default_lang, 'voucher')
     item = SolutionServiceMenuItem(u'fa-gift',
                                    None,
-                                   common_translate(default_lang, 'voucher'),
+                                   label,
                                    tag,
                                    action=SolutionModule.action_order(SolutionModule.CIRKLO_VOUCHERS),
                                    embedded_app=OCAEmbeddedApps.CIRKLO)
@@ -1848,10 +1791,10 @@ def delete_jobs(sln_settings, current_coords, service_menu=None):
 
 
 @returns([SolutionServiceMenuItem])
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
-def put_hoplr_module(sln_settings, current_coords, main_branding, default_lang, tag):
-    # type: (SolutionSettings, list[int], SolutionMainBranding, unicode, unicode) -> list[SolutionServiceMenuItem]
+def put_hoplr_module(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
+    # type: (SolutionSettings, List[int], unicode, SolutionMainBranding, unicode, unicode) -> List[SolutionServiceMenuItem]
     item = SolutionServiceMenuItem(u'fa-home',
                                    None,
                                    'Hoplr',
@@ -1878,7 +1821,7 @@ def _default_delete(sln_settings, current_coords, service_menu=None):
 
 
 MODULES_GET_APP_DATA_FUNCS = {
-    SolutionModule.BROADCAST: get_app_data_broadcast,
+    SolutionModule.NEWS: get_app_data_broadcast,
     SolutionModule.GROUP_PURCHASE: get_app_data_group_purchase,
     SolutionModule.LOYALTY: get_app_data_loyalty,
     SolutionModule.SANDWICH_BAR: get_app_data_sandwich_bar
@@ -1890,7 +1833,7 @@ MODULES_PUT_FUNCS = {
     SolutionModule.APPOINTMENT: put_appointment,
     SolutionModule.ASK_QUESTION: put_ask_question,
     SolutionModule.BILLING: _dummy_put,
-    SolutionModule.BROADCAST: put_broadcast,
+    SolutionModule.NEWS: put_broadcast,
     SolutionModule.BULK_INVITE: _dummy_put,
     SolutionModule.DISCUSSION_GROUPS: put_discussion_groups,
     SolutionModule.CITY_APP: _dummy_put,
@@ -1922,7 +1865,7 @@ MODULES_DELETE_FUNCS = {
     SolutionModule.APPOINTMENT: _default_delete,
     SolutionModule.ASK_QUESTION: _default_delete,
     SolutionModule.BILLING: _default_delete,
-    SolutionModule.BROADCAST: delete_broadcast,
+    SolutionModule.NEWS: delete_broadcast,
     SolutionModule.BULK_INVITE: _default_delete,
     SolutionModule.CITY_APP: _default_delete,
     SolutionModule.DISCUSSION_GROUPS: delete_discussion_groups,

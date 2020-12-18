@@ -15,12 +15,12 @@
 #
 # @@license_version:1.7@@
 
-from StringIO import StringIO
 import base64
 import json
 import os
 import sys
 import time
+from StringIO import StringIO
 
 from google.appengine.ext import db
 
@@ -31,7 +31,7 @@ from rogerthat.bizz.friends import makeFriends
 from rogerthat.bizz.i18n import get_all_translations, get_editable_translation_set
 from rogerthat.bizz.profile import create_service_profile, create_user_profile
 from rogerthat.bizz.service import ReservedMenuItemException, InvalidMenuItemCoordinatesException, \
-    CanNotDeleteBroadcastTypesException, FriendNotFoundException, InvalidJsonStringException
+    FriendNotFoundException, InvalidJsonStringException
 from rogerthat.bizz.service.mfr import MessageFlowDesignInUseException, InvalidMessageFlowXmlException, \
     MessageFlowDesignValidationException
 from rogerthat.dal.friend import get_friends_map
@@ -42,8 +42,8 @@ from rogerthat.rpc import users
 from rogerthat.service.api import qr
 from rogerthat.service.api.messaging import start_flow
 from rogerthat.service.api.system import put_identity, get_identity, get_translations, put_translations, delete_flow, \
-    put_menu_item, delete_menu_item, store_branding, put_broadcast_types, put_reserved_menu_item_label, \
-    list_broadcast_types, put_flow, put_user_data, del_user_data, get_user_data
+    put_menu_item, delete_menu_item, store_branding, put_reserved_menu_item_label, \
+    put_flow, put_user_data, del_user_data, get_user_data
 from rogerthat.to.friends import FriendTO, FRIEND_TYPE_SERVICE
 from rogerthat.to.messaging.flow import MessageFlowDesignTO
 from rogerthat.to.service import ServiceIdentityDetailsTO
@@ -262,9 +262,6 @@ class Test(mc_unittest.TestCase):
         stream.seek(0)
         branding = store_branding(u'description', base64.b64encode(stream.read()))
 
-        put_broadcast_types(['News', 'Coupons'])
-
-        put_menu_item(icon_name, label, tag, [0, 1, 0], is_broadcast_settings=True, broadcast_branding=branding.id)
         put_menu_item(icon_name, label, tag, [0, 1, 0], screen_branding=branding.id)
         put_menu_item(icon_name, label, tag, [0, 1, 0])
 
@@ -336,17 +333,6 @@ class Test(mc_unittest.TestCase):
 
         start_flow(None, None, mfd2.identifier, [human_user.email()])
 
-    def test_broadcast_types(self):
-        self._prepare_svc()
-
-        self.assertFalse(list_broadcast_types())
-        put_broadcast_types(['a', 'b'])
-
-        self.assertEqual(['a', 'b'], list_broadcast_types())
-        put_menu_item("3d", "label", "tag", [0, 1, 0], is_broadcast_settings=True)
-        self.assertRaises(CanNotDeleteBroadcastTypesException, put_broadcast_types, [])
-        put_broadcast_types([], force=True)
-
     def test_user_data(self):
         service_user = self._prepare_svc()
 
@@ -378,9 +364,7 @@ class Test(mc_unittest.TestCase):
 
         ud = db.get(UserData.createKey(human_user, create_service_identity_user(service_user)))
         ud_dict = ud.userData.to_json_dict()
-        ud_dict['__rt__disabledBroadcastTypes'] = ud_dict.get('__rt__disabledBroadcastTypes', [])
-        self.assertDictEqual(dict(test="tikkel", moe="hahaha", john="doe", __rt__disabledBroadcastTypes=[]),
-                             ud_dict)
+        self.assertDictEqual({'test': "tikkel", 'moe': "hahaha", 'john': "doe"}, ud_dict)
         self.assertTrue(get_friendto().hasUserData)
 
         self.assertRaises(InvalidJsonStringException, put_user_data, friend_email, "invalid user data")

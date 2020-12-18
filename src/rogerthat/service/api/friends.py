@@ -27,9 +27,8 @@ from rogerthat.rpc import users
 from rogerthat.rpc.service import service_api, service_api_callback
 from rogerthat.settings import get_server_settings
 from rogerthat.to.activity import GeoPointWithTimestampTO
-from rogerthat.to.friends import ServiceFriendStatusTO, FriendListResultTO, ServiceFriendTO, \
-    SubscribedBroadcastUsersTO, SubscribedBroadcastReachTO, RegistrationResultTO
-from rogerthat.to.messaging import BaseMemberTO, BroadcastTargetAudienceTO
+from rogerthat.to.friends import ServiceFriendStatusTO, FriendListResultTO, ServiceFriendTO, RegistrationResultTO
+from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.to.roles import RoleTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import bizz_check
@@ -165,27 +164,6 @@ def list_friends(service_identity=None, cursor=None, app_id=None, batch_count=10
         svc_friend.app_name = app_names[svc_friend.app_id]
         result.friends.append(svc_friend)
     return result
-
-
-@service_api(function=u"friend.get_broadcast_audience")
-@returns(SubscribedBroadcastUsersTO)
-@arguments(broadcast_type=unicode, service_identity=unicode)
-def get_broadcast_audience(broadcast_type, service_identity=None):
-    from rogerthat.bizz.friends import getSubscribedBroadcastUsers
-    from rogerthat.bizz.service import get_and_validate_service_identity_user
-    service_identity_user = get_and_validate_service_identity_user(users.get_current_user(), service_identity)
-    return getSubscribedBroadcastUsers(service_identity_user, broadcast_type)
-
-
-@service_api(function=u"friend.get_broadcast_reach")
-@returns(SubscribedBroadcastReachTO)
-@arguments(broadcast_type=unicode, target_audience=BroadcastTargetAudienceTO, service_identity=unicode)
-def get_broadcast_reach(broadcast_type, target_audience, service_identity=None):
-    from rogerthat.bizz.friends import getSubscribedBroadcastReach
-    from rogerthat.bizz.service import get_and_validate_service_identity_user
-    service_identity_user = get_and_validate_service_identity_user(users.get_current_user(), service_identity)
-    return getSubscribedBroadcastReach(service_identity_user, broadcast_type, target_audience.min_age,
-                                       target_audience.max_age, target_audience.gender)
 
 
 @service_api_callback(function=u"friend.is_in_roles", code=ServiceProfile.CALLBACK_FRIEND_IS_IN_ROLES)

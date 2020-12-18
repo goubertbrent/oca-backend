@@ -5,7 +5,7 @@ import { HoplrTestEffects } from '../app/testing/hoplr.test.effects';
 export const environment = {
   production: false,
   ngrxEffects: [HoplrTestEffects],
-  extraAppImports: [
+  extraImports: [
     StoreDevtoolsModule.instrument({
       name: 'Hoplr embedded app',
       maxAge: 25, // Retains last 25 states

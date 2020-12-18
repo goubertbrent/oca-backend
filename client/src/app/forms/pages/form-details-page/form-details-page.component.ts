@@ -44,10 +44,10 @@ import {
   getTombolaWinners,
   getTransformedStatistics,
 } from '../../forms.state';
+import { FormIntegrationConfiguration } from '../../integrations/integrations';
 import { OptionsMenuOption } from '../../interfaces/consts';
 import { OptionType } from '../../interfaces/enums';
 import { CreateDynamicForm, FormStatisticsView, OcaForm, SaveForm, SingleFormResponse } from '../../interfaces/forms';
-import { FormIntegrationConfiguration } from '../../interfaces/integrations';
 
 @Component({
   selector: 'oca-form-details-page',

@@ -52,11 +52,12 @@ from rogerthat.to.maps import GetMapResponseTO, MapFunctionality, MapBaseUrlsTO,
     GetMapItemsRequestTO, GetMapItemDetailsResponseTO, GetMapItemDetailsRequestTO, ToggleMapItemResponseTO, \
     ToggleMapItemRequestTO, GetSavedMapItemsResponseTO, GetSavedMapItemsRequestTO, ToggleListSectionItemTO, \
     LinkListSectionItemTO, ListSectionTO, ListSectionStyle, MapItemDetailsTO, MapItemTO, MapIconTO, \
-    MapListSectionItemType, OpeningInfoTO, OpeningHoursListSectionItemTO, ExpandableListSectionItemTO, \
-    NewsSectionTO, MediaSectionTO, SearchSuggestionTO, MapItemLineTextTO, \
+    MapListSectionItemType, ExpandableListSectionItemTO, \
+    MediaSectionTO, SearchSuggestionTO, MapItemLineTextTO, \
     MapItemLineTextPartTO, GetMapSearchSuggestionsResponseTO, \
     GetMapSearchSuggestionsRequestTO, MapSearchSuggestionKeywordTO, \
-    MapSearchSuggestionItemTO
+    MapSearchSuggestionItemTO, OpeningHoursSectionItemTO, OpeningHoursTO, NewsGroupSectionTO, NewsSectionTO, \
+    OpeningHoursListSectionItemTO, OpeningInfoTO
 from rogerthat.to.news import GetNewsStreamFilterTO, SizeTO
 from rogerthat.translations import localize
 from rogerthat.utils.app import get_app_id_from_app_user
@@ -200,7 +201,6 @@ def get_map_search_suggestions(app_user, request):
     services = _suggest_services(tags,
                                  request.coords.lat,
                                  request.coords.lon,
-                                 get_clean_language_code(lang),
                                  request.search.query,
                                  community_ids)
     took_time = time.time() - start_time
@@ -335,12 +335,12 @@ def _get_all_translations(service_profile):
     from rogerthat.bizz.i18n import get_all_translations, get_active_translation_set
     s = get_active_translation_set(service_profile)
     if s:
-        translation_types = ServiceTranslation.HOME_TYPES + ServiceTranslation.IDENTITY_TYPES + \
-                            ServiceTranslation.BROADCAST_TYPES
+        translation_types = ServiceTranslation.HOME_TYPES + ServiceTranslation.IDENTITY_TYPES
         translations = get_all_translations(s, translation_types)
         return translations
 
 
+# TODO lucas: use convert_section_template_to_item for this, and define the template here somewhere.
 def save_map_service(service_identity_user):
     from rogerthat.bizz.i18n import DummyTranslator, Translator
 
@@ -373,6 +373,30 @@ def save_map_service(service_identity_user):
     map_service.place_types = service_info.place_types
     map_service.has_news = NewsItem.list_by_sender(service_identity_user).count(1) > 0
     map_service.media_items = service_info.cover_media
+
+    if opening_hours and opening_hours.type in (OpeningHours.TYPE_TEXTUAL, OpeningHours.TYPE_NOT_RELEVANT):
+        if opening_hours.text and opening_hours.text.strip():
+            map_service.vertical_items.append(MapServiceListItem(
+                item=ExpandableListSectionItemTO(icon='fa-clock-o',
+                                                 title=opening_hours.text)
+            ))
+    elif opening_hours and opening_hours.type == OpeningHours.TYPE_STRUCTURED:
+        map_service.opening_hours_links.append(opening_hours.key)
+        map_service.vertical_items.append(MapServiceListItem(
+            item=OpeningHoursSectionItemTO(
+                icon='fa-clock-o',
+                title=opening_hours.title,
+                timezone=service_info.timezone,
+                opening_hours=OpeningHoursTO.from_model(opening_hours)
+            )
+        ))
+        # TODO: Backwards compat - remove when most apps support OpeningHoursSectionTO
+        map_service.vertical_items.append(MapServiceListItem(
+            item=OpeningHoursListSectionItemTO(
+                icon='fa-clock-o',
+                title=opening_hours.title,
+            )
+        ))
 
     if service_info.description:
         description_item = ExpandableListSectionItemTO(icon='fa-info', title=service_info.description)
@@ -408,24 +432,7 @@ def save_map_service(service_identity_user):
                                            url=geo_url)
         map_service.vertical_items.append(MapServiceListItem(item=v_map_item))
 
-    if opening_hours and opening_hours.type in (OpeningHours.TYPE_TEXTUAL, OpeningHours.TYPE_NOT_RELEVANT):
-        if opening_hours.text and opening_hours.text.strip():
-            map_service.vertical_items.append(MapServiceListItem(
-                item=ExpandableListSectionItemTO(icon='fa-clock-o',
-                                                 title=opening_hours.text)
-            ))
-    elif opening_hours and opening_hours.type == OpeningHours.TYPE_STRUCTURED:
-        map_service.opening_hours_links.append(opening_hours.key)
-        item = MapServiceListItem(item=OpeningHoursListSectionItemTO(
-            type=MapListSectionItemType.OPENING_HOURS,
-            icon='fa-clock-o',
-            title=opening_hours.title)
-        )
-        map_service.vertical_items.append(item)
-
     for smd in get_service_menu_items(service_identity_user):
-        if smd.isBroadcastSettings:
-            continue
         if smd.tag in ('when_where',):
             continue
         url_dict = {
@@ -467,6 +474,7 @@ def _item_is_visible(service_identity_user, user_profile, role_ids, existing_rol
 
 
 def _get_map_item_details_to_from_ids(app_user, ids):
+    from rogerthat.bizz.news import get_items_for_filter
     user_profile = get_user_profile(app_user)
     lang = user_profile.language
     map_items = []
@@ -480,10 +488,10 @@ def _get_map_item_details_to_from_ids(app_user, ids):
         service_user, service_identity = get_service_identity_tuple(users.User(map_service.service_identity_email))
         models_to_get.append(MapSavedItem.create_key(SERVICES_TAG, app_user, id_))
         for item in map_service.vertical_items:
-            all_service_role_keys.update({ServiceRole.create_key(service_user, long(role_id)) for role_id in item.role_ids})
             if isinstance(item.item, OpeningHoursListSectionItemTO):
                 models_to_get.extend(map_service.opening_hours_links)
                 models_to_get.append(ServiceInfo.create_key(service_user, service_identity))
+            all_service_role_keys.update({ServiceRole.create_key(service_user, long(role_id)) for role_id in item.role_ids})
         for item in map_service.horizontal_items:
             all_service_role_keys.update({ServiceRole.create_key(service_user, long(role_id)) for role_id in item.role_ids})
         for item in map_service.media_items:
@@ -492,24 +500,24 @@ def _get_map_item_details_to_from_ids(app_user, ids):
     all_opening_hours = {model.key: model for model in models if isinstance(model, OpeningHours)}
     service_infos = {model.key: model for model in models if isinstance(model, ServiceInfo)}
     all_saved_items = {model.id for model in models if isinstance(model, MapSavedItem)}
-    existing_role_ids = {role.role_id for role in db.get(list(all_service_role_keys)) if role} if all_service_role_keys else []
+    role_ids = {role.role_id for role in db.get(list(all_service_role_keys)) if role} if all_service_role_keys else []
 
     for id_, service_identity_user, map_service in zip(ids, service_identity_users, map_services):
+        service_user, service_identity = get_service_identity_tuple(users.User(map_service.service_identity_email))
         if not map_service:
             logging.debug('map_service with id "%s" not found', service_identity_user.email())
             continue
-        service_user, service_identity = get_service_identity_tuple(service_identity_user)
 
         sections = []
 
         media_items = [item.item for item in map_service.media_items
-                       if _item_is_visible(service_identity_user, user_profile, item.role_ids, existing_role_ids)]
+                       if _item_is_visible(service_identity_user, user_profile, item.role_ids, role_ids)]
         if media_items:
             sections.append(MediaSectionTO(ratio=SizeTO(width=16, height=9), items=media_items))
 
         horizontal_list_items = [item.item for item in map_service.horizontal_items
                                  if _item_is_visible(service_identity_user, user_profile, item.role_ids,
-                                                     existing_role_ids)]
+                                                     role_ids)]
         is_saved = id_ in all_saved_items
         save_item = _get_saved_toggle_item(is_saved, None, lang)
         horizontal_list_items.append(save_item)
@@ -518,9 +526,10 @@ def _get_map_item_details_to_from_ids(app_user, ids):
         vertical_list_items = []
 
         for item in map_service.vertical_items:
-            if not _item_is_visible(service_identity_user, user_profile, item.role_ids, existing_role_ids):
+            if not _item_is_visible(service_identity_user, user_profile, item.role_ids, role_ids):
                 continue
 
+            # TODO: remove this after most apps support OpeningHoursSectionItemTO
             if isinstance(item.item, OpeningHoursListSectionItemTO):
                 for opening_hours_key in map_service.opening_hours_links:
                     opening_hours = all_opening_hours.get(opening_hours_key)  # type: OpeningHours
@@ -547,10 +556,21 @@ def _get_map_item_details_to_from_ids(app_user, ids):
                                           items=vertical_list_items))
 
         if map_service.has_news:
-            sections.append(NewsSectionTO(filter=GetNewsStreamFilterTO(service_identity_email=email),
+            community_id = get_service_profile(service_user).community_id
+            stream_filter = GetNewsStreamFilterTO(service_identity_email=service_identity_user.email())
+            result = get_items_for_filter(stream_filter, community_id=community_id, amount=3)
+            news_section = NewsGroupSectionTO()
+            news_section.filter = stream_filter
+            news_section.group_id = result.group_id
+            news_section.items = result.items
+            news_section.placeholder_image = 'https://storage.googleapis.com/oca-files/map/news/billboard_placeholder.png'
+            sections.append(news_section)
+            # TODO: remove after most clients support NewsGroupSectionTO
+            # Then also remove NewsSectionTO model
+            sections.append(NewsSectionTO(filter=stream_filter,
                                           limit=3,
                                           placeholder_image='https://storage.googleapis.com/oca-files/map/news/billboard_placeholder.png'))
-        map_items.append(MapItemDetailsTO(id=email,
+        map_items.append(MapItemDetailsTO(id=id_,
                                           geometry=[],
                                           sections=sections))
     return map_items
@@ -716,8 +736,8 @@ def _create_index():
     return create_index(_get_elasticsearch_index(), request)
 
 
-def _suggest_services(tags, lat, lon, lang, search, community_ids):
-    # type: (List[unicode], float, float, str, str, List[int]) -> List[dict]
+def _suggest_services(tags, lat, lon, search, community_ids):
+    # type: (List[unicode], float, float, str, List[int]) -> List[dict]
     qry = {
         'size': 12,
         'from': 0,
@@ -729,13 +749,11 @@ def _suggest_services(tags, lat, lon, lang, search, community_ids):
                 'must': [
                     {
                         'multi_match': {
+                            # See https://www.elastic.co/guide/en/elasticsearch/reference/7.x/search-as-you-type.html
                             'query': search,
-                            'fields': ['suggestion*',
-                                       'suggestion*.2gram',
-                                       'suggestion*.3gram',
-                                       'suggestion_%s^2' % lang,
-                                       'suggestion_%s.2gram^2' % lang,
-                                       'suggestion_%s.3gram^2' % lang],
+                            'fields': ['suggestion',
+                                       'suggestion._2gram',
+                                       'suggestion._3gram'],
                             'type': 'bool_prefix'
                         }
                     }
@@ -775,8 +793,8 @@ def _suggest_services(tags, lat, lon, lang, search, community_ids):
     return results
 
 
-def search_services_by_tags(tags, cursor, limit):
-    # type: (List[str], Optional[str], int) -> Tuple[List[users.User], Optional[str]]
+def search_services_by_tags(tags, cursor, limit, query):
+    # type: (List[str], Optional[str], int, Optional[str]) -> Tuple[List[users.User], Optional[str]]
     # Search services filtered only by tags, sorted by name
     start_offset = long(cursor) if cursor else 0
     if (start_offset + limit) > 10000:
@@ -792,13 +810,23 @@ def search_services_by_tags(tags, cursor, limit):
         'query': {
             'bool': {
                 'filter': [{'term': {'tags': tag}} for tag in tags],
-                'should': []
+                'must': [],
+                'should': [],
             }
         },
         'sort': [
             {'name': {'order': 'asc'}},
         ]
     }
+    if query:
+        qry['query']['bool']['must'].append({
+            'multi_match': {
+                'query': query,
+                'fields': ['suggestion'],
+                'fuzziness': 'auto',
+            }
+        })
+        qry['sort'].insert(0, {'_score': {'order': 'desc'}})
 
     path = '/%s/_search' % _get_elasticsearch_index()
     result_data = es_request(path, urlfetch.POST, qry)

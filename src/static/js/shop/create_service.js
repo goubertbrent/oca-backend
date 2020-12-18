@@ -130,28 +130,6 @@ var submitModules = function() {
         return $(this).val();
     }).get();
 
-    if (newService.modules.indexOf('broadcast') == -1) {
-        newService.broadcast_types = [];
-    } else {
-        newService.broadcast_types = $('#create_service_form #form_broadcast_types input[type="checkbox"]:checked')
-                .map(function() {
-                    return this.value;
-                }).get();
-
-        $.each($('#create_service_form #service_other_broadcast_types').val().split('\n'), function(i,
-                broadcastType) {
-            broadcastType = broadcastType.trim();
-            if (broadcastType) {
-                newService.broadcast_types.push(broadcastType);
-            }
-        });
-
-        if (!newService.broadcast_types.length) {
-            showServiceError('Please supply at least 1 broadcast type');
-            return;
-        }
-    }
-
     if (newService.modules.indexOf('city_app') == -1) {
     	newService.managed_organization_types = [];
     } else {
@@ -227,7 +205,6 @@ var showServiceTab = function() {
     });
 
     if (currentCustomer.isStatic) {
-        $('#form_broadcast_types').hide();
         $('#form_managed_organization_types').hide();
         $('#static_service_info').show();
     }
@@ -277,15 +254,6 @@ var showServiceTab = function() {
             showTab(elem.attr('section'));
         }
     });
-
-    form.find('#form_modules input[type="checkbox"][value="broadcast"]').change(function() {
-        var broadcastTypes = form.find('#form_broadcast_types');
-        if ($(this).is(':checked')) {
-            broadcastTypes.slideDown();
-        } else {
-            broadcastTypes.slideUp();
-        }
-    }).change();
 
     form.find('#form_modules input[type="checkbox"][value="city_app"]').change(function() {
         var managedOrganizationTypes = form.find('#form_managed_organization_types');
@@ -389,35 +357,17 @@ var customerSelected = function(customer) {
                         $('#service_' + attr, createServiceForm).val(service[attr]);
                     });
                 // set checkBoxes
-                $.each([ 'modules', 'broadcast_types', 'managed_organization_types'], function(i, attr) {
-                    $('#form_' + attr + ' input[type="checkbox"]', createServiceForm).each(function() {
-                    	var v = this.value;
-                    	if (attr === 'managed_organization_types') {
-                    		v = parseInt(v);
-                    	}
+                $.each(['modules', 'managed_organization_types'], function (i, attr) {
+                    $('#form_' + attr + ' input[type="checkbox"]', createServiceForm).each(function () {
+                        var v = this.value;
+                        if (attr === 'managed_organization_types') {
+                            v = parseInt(v);
+                        }
                         $(this).prop('checked', service[attr].indexOf(v) != -1).change();
                     });
                 });
                 currentCustomer.service = service;
                 getServiceCommunities(currentCustomer.country, service.community_id);
-
-                if (service.modules.indexOf('broadcast') == -1) {
-                    $('#form_broadcast_types', createServiceForm).hide();
-                } else {
-                    var otherBroadcastTypes = "";
-                    $.each(service.broadcast_types, function(i, broadcastType) {
-                        // if there is no checkbox with <broadcastType> as
-                        // value, then add it to the 'Other' textarea.
-                        if (!$('#form_broadcast_types input[type="checkbox"][value="' + broadcastType + '"]',
-                                createServiceForm).val()) {
-                            if (otherBroadcastTypes != "") {
-                                otherBroadcastTypes += "\n";
-                            }
-                            otherBroadcastTypes += broadcastType;
-                        }
-                    });
-                    $('#service_other_broadcast_types', createServiceForm).val(otherBroadcastTypes);
-                }
 
                 if (service.modules.indexOf('city_app') == -1) {
                     $('#form_managed_organization_types', createServiceForm).hide();
@@ -432,24 +382,6 @@ var customerSelected = function(customer) {
         });
     } else {
         ShopRequests.getContacts(customer.id).then(contacts => prefillServiceData(customer, contacts[0]));
-
-        if(currentCustomer.prospect_id){
-            // get prospect
-            if(!currentCustomer.prospect){
-                sln.call({
-                    url: '/internal/shop/rest/prospect/findbycustomer',
-                    type: 'GET',
-                    data: {
-                        customer_id: currentCustomer.id
-                    },
-                    success: function (data) {
-                        if (data) {
-                            currentCustomer.prospect = data.prospect;
-                        }
-                    }
-                });
-            }
-        }
         getServiceCommunities(customer.country, null);
     }
 };

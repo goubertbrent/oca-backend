@@ -1,14 +1,13 @@
 import { Location } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, NgZone, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
-import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { Platform } from '@ionic/angular';
 import { Actions, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { RogerthatService } from '@oca/rogerthat';
-import { DEFAULT_LOCALE, getLanguage } from '@oca/shared';
+import { DEFAULT_LANGUAGE, getLanguage } from '@oca/shared';
 import { Observable } from 'rxjs';
 import { take } from 'rxjs/operators';
 import { GetUserInformationAction, GetUserInformationSuccessAction, HoplrActionTypes } from './hoplr.actions';
@@ -25,7 +24,6 @@ export class AppComponent {
   loadingUserInfo$: Observable<boolean>;
 
   constructor(private platform: Platform,
-              private splashScreen: SplashScreen,
               private statusBar: StatusBar,
               private rogerthatService: RogerthatService,
               private translate: TranslateService,
@@ -44,12 +42,11 @@ export class AppComponent {
     //   const { type, ...rest } = action;
     //   return console.log(`${type} - ${JSON.stringify(rest)}`);
     // });
-    this.translate.setDefaultLang(DEFAULT_LOCALE);
+    this.translate.setDefaultLang(DEFAULT_LANGUAGE);
     this.platform.ready().then(() => {
       // @ts-ignore
       const hasCordova = typeof cordova !== 'undefined';
       if (hasCordova) {
-        this.splashScreen.hide();
         this.platform.backButton.subscribe(() => {
           if (this.shouldExitApp()) {
             this.exit();

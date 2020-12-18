@@ -1,0 +1,83 @@
+<mat-form-field>
+  <mat-label>Type</mat-label>
+  <mat-select [formControl]="appActionTypeControl">
+    <mat-option *ngFor="let type of types" [value]="type.value">{{ type.label }}</mat-option>
+  </mat-select>
+</mat-form-field>
+<ng-container [ngSwitch]="appActionTypeControl.value">
+  <mat-form-field *ngSwitchCase="AppActionType.WEBSITE" [formGroup]="websiteFormGroup">
+    <mat-label>Website Url</mat-label>
+    <input formControlName="url"
+           matInput
+           required
+           type="url">
+    <mat-error *ngIf="websiteFormGroup.controls.url.errors?.pattern">Enter a valid URL</mat-error>
+  </mat-form-field>
+  <mat-form-field *ngSwitchCase="AppActionType.PHONE" [formGroup]="phoneFormGroup">
+    <mat-label>Phone number</mat-label>
+    <input formControlName="phone"
+           matInput
+           required
+           type="tel">
+  </mat-form-field>
+  <mat-form-field *ngSwitchCase="AppActionType.EMAIL" [formGroup]="emailFormGroup">
+    <mat-label>Email address</mat-label>
+    <input formControlName="email"
+           matInput
+           required
+           type="email">
+  </mat-form-field>
+  <ng-container *ngSwitchCase="AppActionType.OPEN" [formGroup]="openFormGroup">
+    <mat-form-field>
+      <mat-label>Action type</mat-label>
+      <mat-select formControlName="action_type">
+        <mat-option *ngFor="let option of openActionTypes" [value]="option.actionType">
+          {{ option.label }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+    <ng-container [ngSwitch]="openFormGroup.controls.action_type.value">
+      <mat-form-field *ngSwitchCase="null">
+        <mat-label>Function</mat-label>
+        <mat-select formControlName="action" required>
+          <mat-option *ngFor="let func of appFunctions" [value]="func.action">
+            {{ func.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field *ngSwitchCase="OpenAction.OPEN_SERVICE_FUNCTION">
+        <mat-label>Menu item tag</mat-label>
+        <input formControlName="action" matInput required>
+      </mat-form-field>
+      <mat-form-field *ngSwitchCase="OpenAction.EMBEDDED_APP">
+        <mat-label>Embedded app</mat-label>
+        <!-- TODO use select -->
+        <input formControlName="action" matInput required>
+      </mat-form-field>
+      <mat-form-field *ngSwitchCase="OpenAction.MAP">
+        <mat-label>Map</mat-label>
+        <mat-select formControlName="action" required>
+          <mat-option *ngFor="let map of mapTypes" [value]="map.tag">{{map.label}}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field *ngSwitchCase="OpenAction.JOB">
+        <mat-label>Job id</mat-label>
+        <input #jobIdElement formControlName="action" matInput type="number">
+        <button (click)="openFormGroup.controls.action.reset(null)"
+                *ngIf="jobIdElement.value"
+                aria-label="Clear"
+                mat-icon-button
+                matSuffix>
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+    </ng-container>
+    <div class="parameters">
+      <mat-form-field *ngFor="let param of appFunctionParams$ | async">
+        <mat-label>{{ param.label }}</mat-label>
+        <input [formControlName]="param.key" [required]="param.required" [type]="param.inputType" matInput>
+        <mat-error *ngIf="param.required">This field is required</mat-error>
+      </mat-form-field>
+    </div>
+  </ng-container>
+</ng-container>

@@ -22,10 +22,13 @@ export class NewsService {
               private _translate: TranslateService) {
   }
 
-  getNewsList(cursor: string | null) {
+  getNewsList(cursor: string | null, query: string | null) {
     let params = new HttpParams();
     if (cursor) {
       params = params.set('cursor', cursor);
+    }
+    if (query) {
+      params = params.set('query', encodeURIComponent(query));
     }
     return this._http.get<NewsItemList>('/common/news', { params });
   }

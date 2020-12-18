@@ -19,6 +19,7 @@ import logging
 from collections import defaultdict
 
 from google.appengine.ext import ndb, deferred
+from typing import Optional, List, Tuple
 
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.communities.communities import get_community
@@ -27,7 +28,7 @@ from rogerthat.bizz.service import InvalidGroupTypeException
 from rogerthat.consts import MIGRATION_QUEUE
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.models.news import NewsGroup, NewsSettingsService, NewsStream, \
-    NewsGroupTile, NewsStreamLayout, NewsSettingsUser, NewsStreamCustomLayout
+    NewsGroupTile, NewsStreamLayout, NewsSettingsUser, NewsStreamCustomLayout, NewsItem
 from rogerthat.rpc import users
 from rogerthat.to.news import ServiceNewsGroupTO
 from rogerthat.utils import guid
@@ -65,8 +66,7 @@ def setup_default_groups_community(community_id):
         return
 
     ns.should_create_groups = False
-    to_put = [ns]
-
+    
     community = get_community(community_id)
 
     ng1 = NewsGroup(key=NewsGroup.create_key(guid()))
@@ -141,9 +141,14 @@ def setup_default_groups_community(community_id):
         background_image_url=u'https://storage.googleapis.com/oca-files/news/groups/_default/polls.jpg',
         promo_image_url=u'https://storage.googleapis.com/oca-files/news/groups/_default/polls_promo.png')
 
-    to_put.extend([ng1, ng2, ng3, ng4, ng5, ng6, ng7])
-
-    ndb.put_multi(to_put)
+    ns.group_ids = [ng1.group_id,
+                    ng2.group_id,
+                    ng3.group_id,
+                    ng4.group_id,
+                    ng5.group_id,
+                    ng6.group_id,
+                    ng7.group_id]
+    ndb.put_multi([ns, ng1, ng2, ng3, ng4, ng5, ng6, ng7])
 
 
 def get_group_id_for_type_and_community(group_type, community_id):
@@ -211,11 +216,20 @@ def get_group_info(service_identity_user, group_type=None, community_ids=None, n
     group_ids = []
     for group in news_groups:
         if group.group_type in group_types:
-            if group.group_type in (NewsGroup.TYPE_CITY, NewsGroup.TYPE_PROMOTIONS, NewsGroup.TYPE_PRESS, NewsGroup.TYPE_PUBLIC_SERVICE_ANNOUNCEMENTS):
+            if group.group_type in (NewsGroup.TYPE_CITY,
+                                    NewsGroup.TYPE_PRESS,
+                                    NewsGroup.TYPE_PUBLIC_SERVICE_ANNOUNCEMENTS,
+                                    NewsGroup.TYPE_POLLS):
                 group_ids.append(group.group_id)
-            else:
+
+            elif group.group_type in (NewsGroup.TYPE_PROMOTIONS,):
                 if group.community_id == default_community_id:
+                    if not group.regional:
+                        group_ids.append(group.group_id)
+                elif group.regional:
                     group_ids.append(group.group_id)
+            elif group.community_id == default_community_id:
+                group_ids.append(group.group_id)
     logging.debug('Found group ids: %s', group_ids)
     return group_types, group_ids
 

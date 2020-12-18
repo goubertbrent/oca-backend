@@ -5,6 +5,14 @@
       <ion-back-button defaultHref="/vouchers"></ion-back-button>
     </ion-buttons>
   </ion-toolbar>
+  <ion-toolbar>
+    <ion-searchbar
+      (ionChange)="queryChanged($event.detail.value)"
+      [animated]="false"
+      [autocorrect]="true"
+      [debounce]="500"
+      [placeholder]="'app.cirklo.search' | translate"></ion-searchbar>
+  </ion-toolbar>
 </ion-header>
 <ion-content>
   <ion-progress-bar *ngIf="loading$ | async" type="indeterminate"></ion-progress-bar>

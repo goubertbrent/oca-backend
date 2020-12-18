@@ -123,3 +123,26 @@ fieldset {
 }
 
 /* </editor-fold> */
+
+// For form-field inside toolbar
+.toolbar-form-field {
+  .mat-form-field-flex, .mat-form-field-label-wrapper {
+    padding-top: 0 !important;
+  }
+
+  .mat-form-field-wrapper {
+    padding-bottom: 0 !important;
+  }
+
+  .mat-form-field-underline {
+    bottom: 0 !important;
+  }
+
+  .mat-form-field-infix {
+    border-top: 0 !important;
+  }
+
+  .mat-form-field-prefix, .mat-form-field-suffix {
+    top: .5em !important;
+  }
+}

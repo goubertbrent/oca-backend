@@ -19,6 +19,9 @@ from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.communities.communities import create_community, get_community, get_communities_by_country, \
     update_community, get_all_community_countries, delete_community
+from rogerthat.bizz.communities.homescreen.homescreen import get_temporary_home_screen, save_temporary_home_screen, \
+    publish_home_screen, get_home_screen_translations, test_home_screen
+from rogerthat.bizz.communities.homescreen.to import TestHomeScreenTO
 from rogerthat.bizz.communities.news import get_news_settings, upload_news_background_image, update_news_stream
 from rogerthat.bizz.communities.to import CommunityTO, BaseCommunityTO
 from rogerthat.to.news import NewsSettingsTO, NewsGroupConfigTO, NewsSettingsWithGroupsTO
@@ -88,3 +91,39 @@ def api_upload_news_background_image(community_id, group_id):
     request = GenericRESTRequestHandler.getCurrentRequest()
     uploaded_file = request.POST.get('file')
     return upload_news_background_image(community_id, group_id, uploaded_file)
+
+
+@rest('/console-api/communities/<community_id:\d+>/home-screen/<home_screen_id:[^/]+>', 'get')
+@returns(dict)
+@arguments(community_id=(int, long), home_screen_id=unicode)
+def api_get_home_screen(community_id, home_screen_id):
+    return get_temporary_home_screen(community_id, home_screen_id)
+
+
+@rest('/console-api/communities/<community_id:\d+>/home-screen/<home_screen_id:[^/]+>', 'put')
+@returns(dict)
+@arguments(community_id=(int, long), home_screen_id=unicode, data=dict)
+def api_save_home_screen(community_id, home_screen_id, data):
+    return save_temporary_home_screen(community_id, home_screen_id, data)
+
+
+@rest('/console-api/communities/<community_id:\d+>/home-screen/<home_screen_id:[^/]+>/publish', 'put')
+@returns()
+@arguments(community_id=(int, long), home_screen_id=unicode)
+def api_publish_home_screen(community_id, home_screen_id):
+    return publish_home_screen(community_id, home_screen_id)
+
+
+@rest('/console-api/communities/<community_id:\d+>/home-screen/<home_screen_id:[^/]+>/test', 'post', type=REST_TYPE_TO)
+@returns()
+@arguments(community_id=(int, long), home_screen_id=unicode, data=TestHomeScreenTO)
+def api_test_home_screen(community_id, home_screen_id, data):
+    # type: (int, unicode, TestHomeScreenTO) -> None
+    test_home_screen(community_id, home_screen_id, data.test_user)
+
+
+@rest('/console-api/home-screen-translations', 'get')
+@returns([dict])
+@arguments()
+def api_get_home_screen_translations():
+    return get_home_screen_translations()

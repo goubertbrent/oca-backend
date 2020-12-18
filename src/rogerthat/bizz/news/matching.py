@@ -65,9 +65,18 @@ def create_matches_for_news_item(news_item, old_group_ids, should_create_notific
     streams = {s.community_id: s for s in ndb.get_multi(stream_keys)}  # type: Dict[long, NewsStream]
     for community_id in news_item.community_ids:
         stream = streams[community_id]
+        if not stream.group_ids:
+            logging.debug("create_matches_for_news_item skipped community:%s stream has no group_ids", community_id)
+            continue
         stream_group_ids = [group_id for group_id in news_item.group_ids if group_id in stream.group_ids]
+        if not stream_group_ids:
+            logging.debug("create_matches_for_news_item skipped community:%s stream_group_ids empty", community_id)
+            continue
         groups = ndb.get_multi([NewsGroup.create_key(group_id)
                                 for group_id in stream_group_ids])  # type: List[NewsGroup]
+        if not groups:
+            logging.debug("create_matches_for_news_item skipped community:%s groups empty", community_id)
+            continue
         groups_info = {group.group_id: group.default_notifications_enabled for group in groups}
         run_job(_get_users_by_community, [community_id], _process_news_item_for_user,
                 [news_item.id, should_create_notification, groups_info], worker_queue=NEWS_MATCHING_QUEUE)

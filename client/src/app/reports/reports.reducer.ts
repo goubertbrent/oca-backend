@@ -17,18 +17,6 @@ export function reportsReducer(state: ReportsState = initialState, action: Repor
       };
     case ReportsActionTypes.GET_INCIDENTS_FAILED:
       return { ...state, incidents: stateError(action.error, state.incidents.result) };
-    case ReportsActionTypes.GET_MAP_CONFIG:
-      return { ...state, mapConfig: stateLoading(initialState.mapConfig.result) };
-    case ReportsActionTypes.GET_MAP_CONFIG_COMPLETE:
-      return { ...state, mapConfig: stateSuccess(action.payload) };
-    case ReportsActionTypes.GET_MAP_CONFIG_FAILED:
-      return { ...state, mapConfig: stateError(action.error, state.mapConfig.result) };
-    case ReportsActionTypes.SAVE_MAP_CONFIG:
-      return { ...state, mapConfig: stateLoading(action.payload) };
-    case ReportsActionTypes.SAVE_MAP_CONFIG_COMPLETE:
-      return { ...state, mapConfig: stateSuccess(action.payload) };
-    case ReportsActionTypes.SAVE_MAP_CONFIG_FAILED:
-      return { ...state, mapConfig: stateError(action.error, state.mapConfig.result) };
     case ReportsActionTypes.GET_INCIDENT:
       return { ...state, incident: stateLoading(initialState.incident.result) };
     case ReportsActionTypes.GET_INCIDENT_COMPLETE:

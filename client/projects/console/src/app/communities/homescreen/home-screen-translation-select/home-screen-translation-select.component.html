@@ -1,0 +1,10 @@
+<mat-form-field>
+  <mat-label>{{ label }}</mat-label>
+  <mat-select [formControl]="control" [required]="required">
+    <mat-option [value]="null" *ngIf="!required">None</mat-option>
+    <mat-option *ngFor="let translation of translations" [value]="translation.prefixedKey">
+      {{ translation.value }}
+    </mat-option>
+  </mat-select>
+  <mat-icon matSuffix (click)="addClicked($event)">add</mat-icon>
+</mat-form-field>

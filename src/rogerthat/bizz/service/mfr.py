@@ -20,10 +20,10 @@ import hashlib
 import json
 import logging
 import uuid
+from xml.dom.minidom import parseString, parse
 
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
-from xml.dom.minidom import parseString, parse
 
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
@@ -154,7 +154,7 @@ def _validate_start_flow(service_identity_user, parent_message_key, members, che
         fsics = db.get(fsic_keys)  # db.get returns a list of found and None
         non_friends = []
         for (member, fsic) in zip(members, fsics):
-            if not fsic or fsic.deleted:
+            if not fsic:
                 m = BaseMemberTO()
                 human_user, m.app_id = get_app_user_tuple(member)
                 m.member = human_user.email()
@@ -187,11 +187,9 @@ def _create_message_flow_run(service_user, service_identity_user, message_flow_r
 @arguments(service_identity_user=users.User, message_parent_key=unicode,
            flow=(str, unicode, MessageFlowDesign, CustomMessageFlowDesign),
            members=[users.User], check_friends=bool, result_callback=bool, tag=unicode, context=unicode, key=unicode,
-           force_language=unicode, allow_reserved_tag=bool, broadcast_type=unicode, broadcast_guid=unicode,
-           flow_params=unicode)
+           force_language=unicode, allow_reserved_tag=bool, flow_params=unicode)
 def start_flow(service_identity_user, message_parent_key, flow, members, check_friends, result_callback, tag=None,
-               context=None, key=None, force_language=None, allow_reserved_tag=False, broadcast_type=None,
-               broadcast_guid=None, flow_params=None):
+               context=None, key=None, force_language=None, allow_reserved_tag=False, flow_params=None):
     # key is in fact a force_message_flow_run_id
     svc_user = get_service_user_from_service_identity_user(service_identity_user)
 
@@ -214,8 +212,7 @@ def start_flow(service_identity_user, message_parent_key, flow, members, check_f
     d.update('key for first message in flow!')
 
     try_or_defer(_execute_flow, service_identity_user, mfd, mfr, members, message_parent_key, context, d.hexdigest(),
-                 force_language=force_language, broadcast_type=broadcast_type, broadcast_guid=broadcast_guid, tag=tag,
-                 _transactional=db.is_in_transaction())
+                 force_language=force_language, tag=tag, _transactional=db.is_in_transaction())
 
     return message_flow_run_id
 
@@ -397,7 +394,7 @@ def _create_message_flow_run_xml_doc(service_identity_user, message_flow_design,
 
 
 def _execute_flow(service_identity_user, message_flow_design, message_flow_run_record, members, message_parent_key,
-                  context=None, resultKey=None, force_language=None, broadcast_type=None, broadcast_guid=None, tag=None):
+                  context=None, resultKey=None, force_language=None, tag=None):
     logging.info("Executing message flow for %s with force_language %s" %
                  (service_identity_user.email(), force_language))
 
@@ -420,8 +417,6 @@ def _execute_flow(service_identity_user, message_flow_design, message_flow_run_r
         'Content-type': 'text/xml'
     }
 
-    if broadcast_guid:
-        headers['X-Nuntiuz-BroadcastGuid'] = broadcast_guid
     if tag:
         headers['X-Nuntiuz-Tag'] = tag.encode('utf')
 
@@ -444,15 +439,13 @@ def _execute_flow(service_identity_user, message_flow_design, message_flow_run_r
                             flow_start_result.value.flags, 0, message_parent_key, flow_start_result.value.message,
                             flow_start_result.value.answers, None, flow_start_result.value.branding,
                             flow_start_result.value.tag, flow_start_result.value.dismiss_button_ui_flags, context,
-                            key=resultKey, is_mfr=True, broadcast_type=broadcast_type, broadcast_guid=broadcast_guid,
-                            attachments=flow_start_result.value.attachments,
+                            key=resultKey, is_mfr=True, attachments=flow_start_result.value.attachments,
                             step_id=None if flow_start_result.value.step_id is MISSING else flow_start_result.value.step_id)
             elif isinstance(flow_start_result.value, FormCallbackResultTypeTO):
                 sendForm(service_identity_user, message_parent_key, members[0], flow_start_result.value.message,
                          flow_start_result.value.form, flow_start_result.value.flags, flow_start_result.value.branding,
                          flow_start_result.value.tag, flow_start_result.value.alert_flags, context, key=resultKey,
-                         is_mfr=True, broadcast_type=broadcast_type, attachments=flow_start_result.value.attachments,
-                         broadcast_guid=broadcast_guid,
+                         is_mfr=True, attachments=flow_start_result.value.attachments,
                          step_id=None if flow_start_result.value.step_id is MISSING else flow_start_result.value.step_id)
         except:
             logging.exception("Failed to parse result from message flow runner.")

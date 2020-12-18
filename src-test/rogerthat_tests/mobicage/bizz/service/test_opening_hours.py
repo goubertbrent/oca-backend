@@ -90,7 +90,7 @@ class TestOpeningHours(mc_unittest.TestCase):
         ]
         opening_hours.put()
         return opening_hours
-    
+
     def test_hours_lang(self):
         opening_hours = self._create_hours(self.exception_color)
         now = datetime.datetime(2019, 11, 27, 12, 41, 2)  # Wednesday
@@ -166,8 +166,8 @@ class TestOpeningHours(mc_unittest.TestCase):
                                         day='Saturday'),
                           WeekDayTextTO(lines=[MapItemLineTextPartTO(text='Closed')],
                                         day='Sunday')], weekday_text)
-        
-    
+
+
     def test_hours_3_2(self):
         opening_hours = self._create_hours(self.exception_color)
         now = datetime.datetime(2019, 11, 30, 18, 41, 02)  # Saturday
@@ -358,7 +358,7 @@ class TestOpeningHours(mc_unittest.TestCase):
             WeekDayTextTO(lines=[MapItemLineTextPartTO(color=None, text=u'Closed'),
                                  MapItemLineTextPartTO(color=u'#DB4437', text=u'4 jan gesloten e4')], day=u'Saturday'),
             WeekDayTextTO(lines=[MapItemLineTextPartTO(color=None, text=u'Closed')], day=u'Sunday')], weekday_text)
-        
+
 
     def _create_hours_2(self, exception_color):
         opening_hours = OpeningHours(
@@ -452,8 +452,8 @@ class TestOpeningHours(mc_unittest.TestCase):
         opening_hours.put()
         return opening_hours
 
-        def test_hours_13(self):
-            opening_hours = self._create_hours_3(self.exception_color)
+    def test_hours_13(self):
+        opening_hours = self._create_hours_3(self.exception_color)
 
         now = datetime.datetime(2020, 3, 16, 6, 41, 2)  # Monday
         now_open, open_until, extra_description, weekday_text = get_opening_hours_info(opening_hours, self.timezone,
@@ -482,8 +482,8 @@ class TestOpeningHours(mc_unittest.TestCase):
                                         WeekDayTextTO(lines=[MapItemLineTextPartTO(text='Closed')],
                                                       day='Sunday')])
 
-        def test_hours_14(self):
-            opening_hours = self._create_hours_3(self.exception_color)
+    def test_hours_14(self):
+        opening_hours = self._create_hours_3(self.exception_color)
 
         now = datetime.datetime(2020, 3, 16, 7, 41, 2)  # Monday
         now_open, open_until, extra_description, weekday_text = get_opening_hours_info(opening_hours, self.timezone,
@@ -512,8 +512,8 @@ class TestOpeningHours(mc_unittest.TestCase):
                                         WeekDayTextTO(lines=[MapItemLineTextPartTO(text='Closed')],
                                                       day='Sunday')])
 
-        def test_hours_15(self):
-            opening_hours = self._create_hours_3(self.exception_color)
+    def test_hours_15(self):
+        opening_hours = self._create_hours_3(self.exception_color)
 
         now = datetime.datetime(2020, 3, 16, 12, 41, 2)  # Monday
         now_open, open_until, extra_description, weekday_text = get_opening_hours_info(opening_hours, self.timezone,
@@ -542,8 +542,8 @@ class TestOpeningHours(mc_unittest.TestCase):
                                         WeekDayTextTO(lines=[MapItemLineTextPartTO(text='Closed')],
                                                       day='Sunday')])
 
-        def test_hours_16(self):
-            opening_hours = self._create_hours_3(self.exception_color)
+    def test_hours_16(self):
+        opening_hours = self._create_hours_3(self.exception_color)
 
         now = datetime.datetime(2020, 3, 17, 12, 41, 2)  # Tuesday
         now_open, open_until, extra_description, weekday_text = get_opening_hours_info(opening_hours, self.timezone,
@@ -607,7 +607,6 @@ class TestOpeningHours(mc_unittest.TestCase):
 
         now = datetime.datetime(2020, 3, 16, 18, 0, 0)  # Tuesday
         now_open, open_until, _, weekday_text = get_opening_hours_info(opening_hours, self.timezone, self.lang, now)
-        print weekday_text[1]
         self.assertEqual(WeekDayTextTO(lines=[MapItemLineTextPartTO(color=None, text=u'5:00 PM - 1:00 AM')],
                                        day=u'Monday'), weekday_text[0])
         self.assertEqual(WeekDayTextTO(lines=[MapItemLineTextPartTO(color=None, text=u'9:00 AM - 11:30 AM')],

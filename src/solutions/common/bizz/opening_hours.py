@@ -17,16 +17,17 @@
 
 from __future__ import unicode_literals
 
-
 from babel.dates import format_date, get_day_names, format_time
+from google.appengine.ext.deferred import deferred
 
 from mcfw.exceptions import HttpBadRequestException
+from rogerthat.bizz.communities.homescreen import maybe_publish_home_screens
 from rogerthat.bizz.opening_hours import is_always_open, is_always_closed
 from rogerthat.models import OpeningHours, OpeningPeriod, OpeningHourException
+from rogerthat.to.maps import OpeningHoursTO
 from solutions import translate
 from solutions.common.bizz import broadcast_updates_pending
 from solutions.common.dal import get_solution_settings
-
 
 DAY_MAPPING = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
 
@@ -58,6 +59,7 @@ def put_opening_hours(service_user, service_identity, data):
         sln_settings.updates_pending = True
         sln_settings.put()
     broadcast_updates_pending(sln_settings)
+    deferred.defer(maybe_publish_home_screens, service_user)
     return opening_hours
 
 

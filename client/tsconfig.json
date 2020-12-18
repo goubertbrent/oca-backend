@@ -8,18 +8,20 @@
     "outDir": "./dist/out-tsc",
     "sourceMap": true,
     "declaration": false,
-    "module": "esnext",
+    "module": "es2020",
     "moduleResolution": "node",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "importHelpers": true,
+    // Temporary fix for node_modules/angular-google-charts/lib/components/chart-wrapper/chart-wrapper.component.d.ts:29:9 - error TS2380: 'get' and 'set' accessor must have the same type
+    "skipLibCheck": true,
     "target": "es2015",
     "typeRoots": [
       "node_modules/@types",
       "./src/typings.d.ts"
     ],
     "lib": [
-      "es2018",
+      "es2019",
       "dom"
     ],
     "paths": {

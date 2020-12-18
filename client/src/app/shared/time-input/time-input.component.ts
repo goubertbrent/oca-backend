@@ -81,6 +81,14 @@ const _TimeInputMixinBase:
   typeof TimeInputMixinBase = mixinTabIndex(mixinDisabled(mixinErrorState(TimeInputMixinBase)));
 
 
+function canDecrement(number: number, minNumber: number): boolean {
+  return !Number.isNaN(number) && number > minNumber;
+}
+
+function canIncrement(number: number, maxNumber: number): boolean {
+  return !Number.isNaN(number) && number < maxNumber;
+}
+
 @Component({
   selector: 'oca-time-input',
   templateUrl: './time-input.component.html',
@@ -96,6 +104,7 @@ const _TimeInputMixinBase:
     '[attr.aria-describedby]': '_ariaDescribedby || null',
   },
   providers: [
+
     { provide: MatFormFieldControl, useExisting: TimeInputComponent },
   ],
 })
@@ -116,7 +125,7 @@ export class TimeInputComponent extends _TimeInputMixinBase implements OnInit, O
   /** The aria-describedby attribute on the select for improved a11y. */
   _ariaDescribedby: string;
   /** Unique id for this input. */
-  private _uid = `mat-select-${nextUniqueId++}`;
+  private _uid = `oca-time-input-${nextUniqueId++}`;
 
   constructor(elementRef: ElementRef,
               formBuilder: FormBuilder,
@@ -328,18 +337,18 @@ export class TimeInputComponent extends _TimeInputMixinBase implements OnInit, O
   private incrementValue(element: 'hour' | 'minute') {
     if (element === 'hour') {
       let hour = parseInt(this.partsGroup.value.hour);
-      if (hour === null || hour >= 23) {
-        hour = 0;
-      } else {
+      if (canIncrement(hour, 23)) {
         hour++;
+      } else {
+        hour = 0;
       }
       this.partsGroup.patchValue({ hour: this._getTextValue(hour) });
     } else if (element === 'minute') {
       let minute = parseInt(this.partsGroup.value.minute);
-      if (minute === null || minute >= 59) {
-        minute = 0;
-      } else {
+      if (canIncrement(minute, 59)) {
         minute++;
+      } else {
+        minute = 0;
       }
       this.partsGroup.patchValue({ minute: this._getTextValue(minute) });
     }
@@ -349,7 +358,7 @@ export class TimeInputComponent extends _TimeInputMixinBase implements OnInit, O
   private decrementValue(element: 'hour' | 'minute') {
     if (element === 'hour') {
       let hour = parseInt(this.partsGroup.value.hour);
-      if (hour && hour <= 23) {
+      if (canDecrement(hour, 0)) {
         hour--;
       } else {
         hour = 23;
@@ -357,7 +366,7 @@ export class TimeInputComponent extends _TimeInputMixinBase implements OnInit, O
       this.partsGroup.patchValue({ hour: this._getTextValue(hour) });
     } else if (element === 'minute') {
       let minute = parseInt(this.partsGroup.value.minute);
-      if (minute && minute <= 59) {
+      if (canDecrement(minute, 0)) {
         minute--;
       } else {
         minute = 59;

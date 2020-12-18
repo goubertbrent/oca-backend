@@ -1,14 +1,14 @@
 <mat-menu #sectionSettingsMenu="matMenu">
   <ng-template matMenuContent>
-    <button mat-menu-item (click)="moveSection.emit()" *ngIf="canMove">
+    <button (click)="moveSection.emit()" *ngIf="canMove" mat-menu-item>
       <mat-icon>import_export</mat-icon>
       <span>{{ 'oca.move_section' | translate }}</span>
     </button>
-    <button mat-menu-item (click)="toggleDescription()">
+    <button (click)="toggleDescription()" mat-menu-item>
       <mat-icon>{{ showDescription ? 'check' : 'description'}}</mat-icon>
       <span>{{ 'oca.description' | translate }}</span>
     </button>
-    <button mat-menu-item (click)="deleteSection.emit()" *ngIf="canDelete">
+    <button (click)="deleteSection.emit()" *ngIf="canDelete" mat-menu-item>
       <mat-icon>delete</mat-icon>
       <span>{{ 'oca.delete_section' | translate }}</span>
     </button>
@@ -17,67 +17,87 @@
 <mat-toolbar color="primary">
   <span class="flex-grow">{{ headerTitle }}</span>
   <span class="icons-row">
-  <button type="button" mat-icon-button (click)="openHeaderImageDialog()">
-    <mat-icon>image</mat-icon>
-  </button>
-  <button type="button" mat-icon-button [matMenuTriggerFor]="sectionSettingsMenu">
-    <mat-icon>more_vert</mat-icon>
-  </button>
-</span>
+    <button (click)="openHeaderImageDialog()" mat-icon-button type="button">
+      <mat-icon>image</mat-icon>
+    </button>
+    <button [matMenuTriggerFor]="sectionSettingsMenu" mat-icon-button type="button">
+      <mat-icon>more_vert</mat-icon>
+    </button>
+  </span>
 </mat-toolbar>
 <fieldset *ngIf="section">
-  <mat-card *ngIf="formId && section.branding" class="header-card">
-    <mat-card-header>
-      <mat-card-title>{{ 'oca.header_image' | translate }}</mat-card-title>
-    </mat-card-header>
-    <img mat-card-image [src]="section.branding.logo_url">
-    <mat-card-actions align="end">
-      <button mat-button type="button" color="warn" (click)="removeHeaderImage()">
-        {{ 'oca.delete' | translate }}
-      </button>
-      <button mat-button type="button" (click)="openHeaderImageDialog()">
-        {{ 'oca.modify' | translate }}
-      </button>
-    </mat-card-actions>
-  </mat-card>
-  <mat-form-field class="field">
-    <mat-label>{{ 'oca.page_title' | translate }}</mat-label>
-    <input [name]="name + '_title'" matInput [ngModel]="section.title"
-           (ngModelChange)="changed('title', $event)" maxlength="80">
-  </mat-form-field>
-  <div class="field" *ngIf="showDescription">
-    <p>{{ 'oca.description' | translate }}</p>
-    <div class="description-editor">
-      <td-text-editor (ngModelChange)="changed('description', $event)"
-                      [(ngModel)]="section.description"
-                      [name]="name + '_description'"
-      [options]="EASYMDE_OPTIONS"></td-text-editor>
-    </div>
+  <div (click)="setActiveByComponent(-1)"
+       *ngIf="readonlyMode; else editingModeTemplate"
+       class="readonly-section">
+    <p *ngIf="section.title as title">{{ title }}</p>
+    <mat-list>
+      <mat-list-item (click)="$event.stopPropagation(); setActiveByComponent(i)"
+                     *ngFor="let component of section.components; let i = index">
+        <mat-icon matListIcon>{{ COMPONENT_ICONS[component.type] }}</mat-icon>
+        <p matLine>{{ component.title }}</p>
+      </mat-list-item>
+    </mat-list>
   </div>
-  <div class="component-container" cdkDropList (cdkDropListDropped)="dropped($event)">
-    <div *ngFor="let component of section.components; let i = index; trackBy: trackByIndex"
-         class="component dashboard-app-background mat-elevation-z8" cdkDrag>
-      <div class="drag-handle" cdkDragHandle>
-        <mat-icon [matTooltip]="'oca.drag_to_change_order' | translate">drag_handle</mat-icon>
+  <ng-template #editingModeTemplate>
+    <mat-card *ngIf="formId && section.branding" class="header-card">
+      <mat-card-header>
+        <mat-card-title>{{ 'oca.header_image' | translate }}</mat-card-title>
+      </mat-card-header>
+      <img [src]="section.branding.logo_url" mat-card-image>
+      <mat-card-actions align="end">
+        <button (click)="removeHeaderImage()" color="warn" mat-button type="button">
+          {{ 'oca.delete' | translate }}
+        </button>
+        <button (click)="openHeaderImageDialog()" mat-button type="button">
+          {{ 'oca.modify' | translate }}
+        </button>
+      </mat-card-actions>
+    </mat-card>
+    <mat-form-field class="field">
+      <mat-label>{{ 'oca.page_title' | translate }}</mat-label>
+      <input (ngModelChange)="changed('title', $event)" [name]="name + '_title'" [ngModel]="section.title"
+             matInput maxlength="80">
+    </mat-form-field>
+    <mat-form-field class="field">
+      <mat-label>{{ 'oca.next_page_button_label' | translate }}</mat-label>
+      <input [(ngModel)]="section.next_button_caption" [name]="name + '_next_button_caption'" matInput>
+    </mat-form-field>
+    <div *ngIf="showDescription" class="field">
+      <p>{{ 'oca.description' | translate }}</p>
+      <div class="description-editor">
+        <td-text-editor (ngModelChange)="changed('description', $event)"
+                        [(ngModel)]="section.description"
+                        [name]="name + '_description'"
+                        [options]="EASYMDE_OPTIONS"></td-text-editor>
       </div>
-      <oca-form-field [formId]="formId"
-                      [value]="component"
-                      [name]="section.id + '_component_' + i"
-                      [nextActions]="nextActions"
-                      (componentChange)="componentChanged($event, i)"
-                      (removeComponent)="onRemoveComponent(i)"></oca-form-field>
     </div>
-  </div>
-  <div class="after-section" *ngIf="canAddComponents">
-    <button type="button" mat-raised-button (click)="addComponent()">
+    <div (cdkDropListDropped)="dropped($event)" cdkDropList class="component-container">
+      <div #componentRef
+           *ngFor="let component of section.components; let i = index; trackBy: trackByIndex"
+           cdkDrag
+           class="component dashboard-app-background mat-elevation-z8">
+        <div cdkDragHandle class="drag-handle">
+          <mat-icon [matTooltip]="'oca.drag_to_change_order' | translate">drag_handle</mat-icon>
+        </div>
+        <oca-form-field (componentChange)="componentChanged($event, i)"
+                        (removeComponent)="onRemoveComponent(i)"
+                        [formId]="formId"
+                        [name]="section.id + '_component_' + i"
+                        [nextActions]="nextActions"
+                        [value]="component"></oca-form-field>
+      </div>
+    </div>
+  </ng-template>
+  <div *ngIf="canAddComponents" class="after-section">
+    <button (click)="addComponent()" mat-raised-button type="button">
       {{ 'oca.add_question' | translate }}
     </button>
-    <oca-next-action-editor [name]="name + '_next_action'"
+    <oca-next-action-editor (changed)="changed('next_action', $event)"
+                            *ngIf="showNextAction"
                             [label]="'oca.after_section_x' | translate : {section: sectionNumber}"
+                            [name]="name + '_next_action'"
                             [nextActions]="nextActions"
-                            [value]="section.next_action"
-                            (changed)="changed('next_action', $event)"
-                            *ngIf="showNextAction">
+                            [value]="section.next_action">
     </oca-next-action-editor>
   </div>
 </fieldset>

@@ -18,8 +18,8 @@
 import base64
 import datetime
 import json
-from types import NoneType
 import urllib
+from types import NoneType
 
 from babel.dates import format_datetime
 from google.appengine.ext import deferred
@@ -33,7 +33,6 @@ from rogerthat.bizz.roles import create_service_role, delete_service_role, grant
 from rogerthat.bizz.service import get_and_validate_service_identity_user, create_menu_item, \
     delete_menu_item as bizz_delete_menu_item, set_reserved_item_caption, set_user_data, enable_callback_by_function, \
     validate_app_admin, InvalidAppIdException, get_app_data, set_app_data
-from rogerthat.bizz.service.broadcast import set_broadcast_types
 from rogerthat.bizz.service.i18n import translation_export, translation_import
 from rogerthat.bizz.service.mfd import delete_message_flow, get_message_flow_by_key_or_name, save_message_flow_by_xml
 from rogerthat.bizz.user import delete_account
@@ -234,22 +233,6 @@ def publish_changes(friends=None):
     bizz_publish_changes(users.get_current_user(), friends=friends)
 
 
-@service_api(function=u"system.list_broadcast_types", cache_result=False)
-@returns([unicode])
-@arguments()
-def list_broadcast_types():
-    service = users.get_current_user()
-    profile = get_service_profile(service)
-    return profile.broadcastTypes
-
-
-@service_api(function=u"system.put_broadcast_types")
-@returns(NoneType)
-@arguments(broadcast_types=[unicode], force=bool)
-def put_broadcast_types(broadcast_types, force=False):
-    set_broadcast_types(users.get_current_user(), broadcast_types, force)
-
-
 @service_api(function=u"system.get_menu_item", cache_result=False)
 @returns(WebServiceMenuTO)
 @arguments(service_identity=unicode)
@@ -262,19 +245,18 @@ def get_menu_item(service_identity=None):
 @service_api(function=u"system.put_menu_item")
 @returns(NoneType)
 @arguments(icon_name=unicode, label=unicode, tag=unicode, coords=[int], icon_color=unicode, screen_branding=unicode,
-           static_flow=unicode, requires_wifi=bool, run_in_background=bool, is_broadcast_settings=bool,
-           broadcast_branding=unicode, roles=[(int, long)], action=int, link=ServiceMenuItemLinkTO, fall_through=bool,
-           form_id=(int, long), embedded_app=unicode)
+           static_flow=unicode, requires_wifi=bool, run_in_background=bool, roles=[(int, long)], action=int,
+           link=ServiceMenuItemLinkTO, fall_through=bool, form_id=(int, long), embedded_app=unicode)
 def put_menu_item(icon_name, label, tag, coords, icon_color=None, screen_branding=None, static_flow=None,
-                  requires_wifi=False, run_in_background=True, is_broadcast_settings=False, broadcast_branding=None,
-                  roles=None, action=0, link=None, fall_through=False, form_id=None, embedded_app=None):
+                  requires_wifi=False, run_in_background=True, roles=None, action=0, link=None, fall_through=False,
+                  form_id=None, embedded_app=None):
     service_user = users.get_current_user()
     static_flow_name = get_message_flow_by_key_or_name(service_user, static_flow).name if static_flow else None
     if roles in (None, MISSING):
         roles = []
     create_menu_item(service_user, icon_name.replace(' ', '_'), icon_color, label, tag, coords, screen_branding,
-                     static_flow_name, requires_wifi, run_in_background, roles, is_broadcast_settings,
-                     broadcast_branding, action, link, fall_through, form_id, embedded_app)
+                     static_flow_name, requires_wifi, run_in_background, roles, action, link, fall_through, form_id,
+                     embedded_app)
 
 
 @service_api(function=u"system.delete_menu_item")

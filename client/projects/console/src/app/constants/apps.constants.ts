@@ -1,6 +1,7 @@
 import { NavigationAction } from '../interfaces';
 
 export const enum HomescreenStyle {
+  BOTTOM_NAVIGATION = 'bottom_navigation',
   BRANDING = 'branding',
   NEWS = 'news',
   MESSAGING = 'messaging',
@@ -8,7 +9,7 @@ export const enum HomescreenStyle {
   THREE_BY_THREE = '3x3'
 }
 
-export const HOMESCREEN_STYLES: HomescreenStyle[] = [ HomescreenStyle.BRANDING, HomescreenStyle.NEWS,
+export const HOMESCREEN_STYLES: HomescreenStyle[] = [ HomescreenStyle.BOTTOM_NAVIGATION, HomescreenStyle.BRANDING, HomescreenStyle.NEWS,
   HomescreenStyle.MESSAGING, HomescreenStyle.MESSAGING, HomescreenStyle.TWO_BY_THREE, HomescreenStyle.THREE_BY_THREE ];
 /**
  * Possible actions on a NavigationItem.

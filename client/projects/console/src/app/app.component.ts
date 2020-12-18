@@ -1,5 +1,6 @@
 import { OverlayContainer } from '@angular/cdk/overlay';
-import { ChangeDetectionStrategy, Component, HostBinding, OnInit, ViewEncapsulation } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { ChangeDetectionStrategy, Component, Inject, OnInit, ViewEncapsulation } from '@angular/core';
 import { ActivatedRoute, Event, NavigationEnd, Router } from '@angular/router';
 import { select, Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
@@ -15,18 +16,19 @@ import { ThemingService } from './theming.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppComponent implements OnInit {
-  @HostBinding('class') public cssClass = 'light-theme';
 
   toolbarTitle: string;
   sidebarItems$: Observable<SidebarItem[]>;
   previousBasePath: string;
   private currentParentRoute: string;
+  private currentCssClass = 'light-theme';
 
   constructor(private store: Store,
               private router: Router,
               private route: ActivatedRoute,
               private themingService: ThemingService,
-              private overlayContainer: OverlayContainer) {
+              private overlayContainer: OverlayContainer,
+              @Inject(DOCUMENT) private document: Document) {
   }
 
   ngOnInit() {
@@ -37,9 +39,10 @@ export class AppComponent implements OnInit {
     });
     this.themingService.theme.subscribe(theme => {
       const overlayClassList = this.overlayContainer.getContainerElement().classList;
-      overlayClassList.remove(this.cssClass);
-      this.cssClass = theme;
+      overlayClassList.remove(this.currentCssClass);
+      this.document.body.classList.remove(this.currentCssClass);
       overlayClassList.add(theme);
+      this.document.body.classList.add(theme);
     });
   }
 

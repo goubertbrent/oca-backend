@@ -22,19 +22,16 @@ from test import set_current_user
 
 from google.appengine.ext import db
 
-from dateutil import relativedelta
 import oca_unittest
-from rogerthat.bizz.communities.models import Community
 from rogerthat.bizz.profile import create_user_profile, UNKNOWN_AVATAR
 from rogerthat.rpc import users
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import today, now
 from shop.bizz import create_or_update_customer, create_contact, create_order, sign_order, put_service, \
     _after_service_saved
-from shop.business.expired_subscription import set_expired_subscription_status
 from shop.jobs import recurrentbilling
 from shop.jobs.recurrentbilling import _create_charge
-from shop.models import Product, ShopTask, ExpiredSubscription, RegioManagerTeam, Charge, Order
+from shop.models import Product, RegioManagerTeam
 from shop.to import OrderItemTO, CustomerServiceTO
 from solutions.common.bizz import OrganizationType, SolutionModule
 
@@ -60,7 +57,6 @@ class TestCase(oca_unittest.TestCase):
                                              country=u'BE',
                                              language=DEFAULT_LANGUAGE,
                                              organization_type=OrganizationType.PROFIT,
-                                             prospect_id=None,
                                              team_id=RegioManagerTeam.all().get().id,
                                              community_id=self.communities[0].id)
 
@@ -108,7 +104,6 @@ class TestCase(oca_unittest.TestCase):
 
     def _create_service(self, customer, community_id):
         service = CustomerServiceTO()
-        service.broadcast_types = [u'broadcast']
         service.email = u'test@example.com'
         service.phone_number = u'00248498498494'
         service.language = u'en'
@@ -131,38 +126,19 @@ class TestCase(oca_unittest.TestCase):
         subscription_order.put()
         # execute recurrent billing code
         _create_charge(subscription_order.key(), now(), Product.get_products_dict())
-        # check if a ShopTask was created
-        task = ShopTask.all().get()
-        self.assertEqual(task.type, ShopTask.TYPE_SUPPORT_NEEDED)
-        task.delete()
-        # Check if an expiredsubscription was created
-        expired_subscription = ExpiredSubscription.get_by_customer_id(customer.id)
-        self.assertIsNotNone(expired_subscription)
 
-        # first set the expired subscription as 'customer will link his credit card'
-        set_expired_subscription_status(customer.id, ExpiredSubscription.STATUS_WILL_LINK_CREDIT_CARD)
-        task = ShopTask.all().get()
-        self.assertIsNotNone(task)
-        self.assertEqual(task.type, ShopTask.TYPE_CHECK_CREDIT_CARD)
-        task.delete()
-
+        self.assertLess(subscription_order.next_charge_date, now())
+        
+        
+        # deprecated -> charges never get charged or extended (only city get extended -> manual by sales)
         # extend the customer's (expired) subscription
-        charge = set_expired_subscription_status(customer.id, ExpiredSubscription.STATUS_EXTEND_SUBSCRIPTION)
-        subscription_order, \
-            expired_subscription = db.get((Order.create_key(customer.id, customer.subscription_order_number),
-                                           ExpiredSubscription.create_key(customer.id)))
-        self.assertEqual(expired_subscription, None)
-        product_subscription = Product.get_by_code(u'MSUP')
-        charge_total = product_subscription.price * 12  # subscription extensions should always be 12 months long
-        self.assertIsNotNone(charge)
-        self.assertEqual(Charge.TYPE_SUBSCRIPTION_EXTENSION, charge.type)
-        self.assertEqual(charge_total, charge.amount)
-        one_year_from_now_plus_one_day = datetime.datetime.utcfromtimestamp(now()) + relativedelta.relativedelta(
-            months=12, days=1)
-        one_year_from_now_minus_one_day = datetime.datetime.utcfromtimestamp(now()) + relativedelta.relativedelta(
-            months=12, days=-1)
-        self.assertLess(subscription_order.next_charge_date, int(one_year_from_now_plus_one_day.strftime('%s')))
-        self.assertGreater(subscription_order.next_charge_date, int(one_year_from_now_minus_one_day.strftime('%s')))
+#         subscription_order = db.get(Order.create_key(customer.id, customer.subscription_order_number))
+#         one_year_from_now_plus_one_day = datetime.datetime.utcfromtimestamp(now()) + relativedelta.relativedelta(
+#             months=12, days=1)
+#         one_year_from_now_minus_one_day = datetime.datetime.utcfromtimestamp(now()) + relativedelta.relativedelta(
+#             months=12, days=-1)
+#         self.assertLess(subscription_order.next_charge_date, int(one_year_from_now_plus_one_day.strftime('%s')))
+#         self.assertGreater(subscription_order.next_charge_date, int(one_year_from_now_minus_one_day.strftime('%s')))
 
     def test_change_order_to_free(self):
         self.set_datastore_hr_probability(1)

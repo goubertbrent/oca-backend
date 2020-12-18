@@ -32,3 +32,4 @@ class AppDeepLinksTO(TO):
 
 class AppBuildInfoTO(TO):
     deep_links = typed_property('deep_links', AppDeepLinksTO, True)  # type: List[AppDeepLinksTO]
+    ios_app_id = unicode_property('ios_app_id', default=None)

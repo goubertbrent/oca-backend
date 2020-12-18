@@ -26,10 +26,10 @@ from mcfw.consts import MISSING
 from mcfw.exceptions import HttpNotFoundException
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.communities.communities import get_community
+from rogerthat.bizz.communities.homescreen import maybe_publish_home_screens
 from rogerthat.bizz.service import _validate_service_identity
 from rogerthat.consts import FAST_QUEUE
 from rogerthat.dal import put_and_invalidate_cache
-from rogerthat.dal.app import get_apps_by_id
 from rogerthat.models import ServiceIdentity
 from rogerthat.models.maps import MapServiceMediaItem
 from rogerthat.models.news import MediaType
@@ -52,10 +52,9 @@ from solutions.common.exceptions.settings import InvalidRssLinksException
 from solutions.common.models import SolutionSettings, \
     SolutionBrandingSettings, SolutionRssScraperSettings, SolutionRssLink, SolutionMainBranding, \
     SolutionServiceConsent
-from solutions.common.to import SolutionSettingsTO
+from solutions.common.to import SolutionSettingsTO, SolutionRssSettingsTO
 from solutions.common.to.settings import ServiceInfoTO, PrivacySettingsTO, PrivacySettingsGroupTO
 from solutions.common.utils import is_default_service_identity, send_client_action
-
 
 SLN_LOGO_WIDTH = 640
 SLN_LOGO_HEIGHT = 240
@@ -252,7 +251,6 @@ def save_rss_urls(service_user, service_identity, data):
     if invalid_urls:
         raise InvalidRssLinksException(invalid_urls, _get_lang(service_user))
 
-    rss_settings.notify = data.notify
     scraper_urls = []
     rss_links = []
     for scraper in reversed(data.scrapers):
@@ -260,6 +258,7 @@ def save_rss_urls(service_user, service_identity, data):
             continue
         scraper_urls.append(scraper.url)
         rss_links.append(SolutionRssLink(url=scraper.url,
+                                         notify=scraper.notify,
                                          dry_runned=current_dict.get(scraper.url, False),
                                          group_type=scraper.group_type if scraper.group_type else None,
                                          community_ids=scraper.community_ids))
@@ -307,6 +306,7 @@ def update_service_info(service_user, service_identity, data):
         sln_settings.name = service_info.name
         sln_settings.put()
         deferred.defer(broadcast_updates_pending, sln_settings)
+        deferred.defer(maybe_publish_home_screens, service_user)
     return service_info
 
 

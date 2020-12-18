@@ -23,7 +23,7 @@ from rogerthat.bizz.embedded_applications import get_embedded_application, delet
 from rogerthat.to.app import CreateEmbeddedApplicationTO, UpdateEmbeddedApplicationTO
 
 
-@rest('/console-api/embedded-apps', 'get')
+@rest('/console-api/embedded-apps', 'get', silent_result=True)
 @returns([dict])
 @arguments(tag=unicode)
 def api_get_embedded_applications(tag=None):

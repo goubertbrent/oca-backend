@@ -19,6 +19,7 @@ from google.appengine.ext.deferred.deferred import TaskHandler
 import webapp2
 
 from mcfw.restapi import rest_functions
+from rogerthat.bizz.communities.homescreen.cron import HomeScreenTestUsersHandler
 from rogerthat.bizz.maps import MapNotificationsHandler
 from rogerthat.bizz.rtemail import EmailHandler
 from rogerthat.cron.apn_expiration_check import ApnExpirationCheckHandler
@@ -80,6 +81,7 @@ handlers = [
     ('/cron/maps/notifications', MapNotificationsHandler),
     ('/cron/user/cleanup/context', CleanupUserContextHandler),
     ('/cron/web-cleanup-sessions', CleanupWebSessionsHandler),
+    ('/cron/home-screen-test-users', HomeScreenTestUsersHandler),
     ('/mobiadmin/explorer', ExplorerPage),
     ('/mobiadmin/installation_logs', InstallationLogsHandler),
     ('/mobiadmin/activation_logs', ActivationLogsHandler),

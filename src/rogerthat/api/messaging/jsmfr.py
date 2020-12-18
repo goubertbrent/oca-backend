@@ -30,7 +30,7 @@ from rogerthat.to.messaging.jsmfr import MessageFlowMemberResultRequestTO, \
     MessageFlowMemberResultResponseTO
 from rogerthat.utils import now
 from rogerthat.utils.app import get_app_id_from_app_user, create_app_user
-from rogerthat.utils.service import add_slash_default, get_service_identity_tuple, create_service_identity_user, \
+from rogerthat.utils.service import add_slash_default, get_service_identity_tuple, \
     get_service_user_from_service_identity_user
 
 
@@ -63,11 +63,6 @@ def messageFlowMemberResult(request):
             MessageFlowRunRecord.createKeyName(svc_user, run.message_flow_run_id))
         if message_flow_run:
             tag = message_flow_run.tag
-
-    if request.end_id:
-        from rogerthat.bizz.messaging import check_test_flow_broadcast_ended
-        check_test_flow_broadcast_ended(app_user, create_service_identity_user(svc_user, service_identity),
-                                        run.parent_message_key, tag)
 
     if run.steps and run.steps[-1].acknowledged_timestamp is MISSING:
         logging.warn('Last step is not yet ACKed! Patching...')

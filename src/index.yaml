@@ -40,78 +40,20 @@ indexes:
   - name: user
   - name: friend
 
-- kind: FriendServiceIdentityConnectionArchive
-  properties:
-  - name: deleted
-  - name: service_identity_email
-
 - kind: FriendServiceIdentityConnection
   ancestor: yes
   properties:
-  - name: deleted
   - name: service_identity_email
 
 - kind: FriendServiceIdentityConnection
   properties:
-  - name: deleted
-  - name: service_identity_email
-
-- kind: FriendServiceIdentityConnection
-  properties:
-  - name: deleted
   - name: service_identity_email
   - name: friend_name
 
 - kind: FriendServiceIdentityConnection
   properties:
-  - name: deleted
   - name: service_identity_email
-  - name: friend_name
   - name: app_id
-
-- kind: FriendServiceIdentityConnection
-  properties:
-  - name: broadcast_type
-  - name: service_identity_email
-  - name: disabled_broadcast_types
-
-- kind: FriendServiceIdentityConnection
-  properties:
-  - name: broadcast_type
-  - name: service_identity_email
-  - name: birthdate
-
-- kind: FriendServiceIdentityConnection
-  properties:
-  - name: disabled_broadcast_types
-  - name: service_identity_email
-
-- kind: FriendServiceIdentityConnection
-  properties:
-  - name: deleted
-  - name: service_identity_email
-  - name: birthdate
-
-- kind: FriendServiceIdentityConnection
-  properties:
-  - name: deleted
-  - name: service_identity_email
-  - name: birthdate
-  - name: enabled_broadcast_types
-
-- kind: FriendServiceIdentityConnection
-  properties:
-  - name: deleted
-  - name: service_identity_email
-  - name: birthdate
-  - name: enabled_broadcast_types
-  - name: gender
-
-- kind: FriendServiceIdentityConnection
-  properties:
-  - name: deleted
-  - name: service_identity_email
-  - name: enabled_broadcast_types
   - name: friend_name
 
 - kind: Installation
@@ -292,11 +234,6 @@ indexes:
   ancestor: yes
   properties:
   - name: action
-
-- kind: BroadcastStatistic
-  ancestor: yes
-  properties:
-  - name: timestamp
 
 # ======================================================== NEWS ========================================================
 
@@ -592,88 +529,22 @@ indexes:
   properties:
   - name: number
 
-- kind: Prospect
-  properties:
-  - name: app_id
-  - name: address
-
-- kind: Prospect
-  properties:
-  - name: app_id
-  - name: categories
-  - name: address
-
-- kind: Prospect
-  properties:
-  - name: app_id
-  - name: categories
-  - name: geo_point
-
-- kind: Prospect
-  properties:
-  - name: app_id
-  - name: geo_point
-
 - kind: Question
   properties:
   - name: author
-  - name: timestamp
-    direction: desc
-
-- kind: Question
-  properties:
-  - name: author
-  - name: visible
-  - name: timestamp
-
-- kind: Question
-  properties:
-  - name: author
-  - name: visible
-  - name: timestamp
-    direction: desc
-
-- kind: Question
-  properties:
-  - name: visible
-  - name: timestamp
-
-- kind: Question
-  properties:
-  - name: visible
-  - name: timestamp
-    direction: desc
-
-- kind: Question
-  properties:
-  - name: language
-  - name: visible
-  - name: timestamp
+  - name: last_reply_date
     direction: desc
 
 - kind: Question
   properties:
   - name: team_id
-  - name: timestamp
+  - name: last_reply_date
     direction: desc
 
 - kind: QuestionReply
   ancestor: yes
   properties:
   - name: timestamp
-
-- kind: QuestionReply
-  ancestor: yes
-  properties:
-  - name: visible
-  - name: timestamp
-
-- kind: QuestionReply
-  ancestor: yes
-  properties:
-  - name: visible
-  - name: timestamp
-    direction: desc
 
 - kind: RegioManager
   properties:
@@ -791,53 +662,6 @@ indexes:
   - name: timestamp
     direction: desc
 
-- kind: ShopTask
-  properties:
-  - name: app_id
-  - name: closed_time
-    direction: desc
-
-- kind: ShopTask
-  properties:
-  - name: app_id
-  - name: status
-  - name: execution_time
-
-- kind: ShopTask
-  properties:
-  - name: app_id
-  - name: status
-  - name: type
-  - name: execution_time
-
-- kind: ShopTask
-  properties:
-  - name: assignee
-  - name: status
-  - name: execution_time
-
-- kind: ShopTask
-  properties:
-  - name: status
-  - name: execution_time
-
-- kind: ShopTask
-  properties:
-  - name: status
-  - name: type
-  - name: execution_time
-
-- kind: ShopTask
-  ancestor: yes
-  properties:
-  - name: closed_time
-
-- kind: ShopTask
-  ancestor: yes
-  properties:
-  - name: closed_time
-    direction: desc
-
 - kind: DiscussionGroup
   ancestor: yes
   properties:
@@ -924,6 +748,26 @@ indexes:
   - name: trashed
   - name: last_timestamp
     direction: desc
+
+- kind: SolutionLoyaltyVisitLottery
+  ancestor: yes
+  properties:
+  - name: timestamp
+
+- kind: SolutionLoyaltyVisitRevenueDiscount
+  ancestor: yes
+  properties:
+  - name: timestamp
+
+- kind: SolutionLoyaltyVisitStamps
+  ancestor: yes
+  properties:
+  - name: timestamp
+
+- kind: SolutionCityWideLotteryVisit
+  ancestor: yes
+  properties:
+  - name: timestamp
 
 - kind: SolutionLoyaltyExport
   ancestor: yes
@@ -1091,22 +935,6 @@ indexes:
   - name: timestamp
     direction: desc
 
-- kind: SolutionScheduledBroadcast
-  properties:
-  - name: deleted
-  - name: broadcast_epoch
-
-- kind: SolutionScheduledBroadcast
-  ancestor: yes
-  properties:
-  - name: broadcast_epoch
-
-- kind: SolutionScheduledBroadcast
-  ancestor: yes
-  properties:
-  - name: deleted
-  - name: broadcast_epoch
-
 - kind: SolutionCityWideLottery
   ancestor: yes
   properties:
@@ -1130,11 +958,6 @@ indexes:
   ancestor: yes
   properties:
   - name: timestamp
-
-- kind: Quotation
-  ancestor: yes
-  properties:
-  - name: date
 
 - kind: SolutionRssScraperItem
   ancestor: yes

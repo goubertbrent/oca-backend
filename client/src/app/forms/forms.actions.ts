@@ -1,6 +1,7 @@
 import { Action } from '@ngrx/store';
 import { ApiError } from '@oca/web-shared';
 import { UserDetailsTO } from '../shared/users/users';
+import { FormIntegrationConfiguration } from './integrations/integrations';
 import {
   CreateDynamicForm,
   DownloadResponses,
@@ -12,7 +13,6 @@ import {
   OcaForm,
   SaveForm,
 } from './interfaces/forms';
-import { FormIntegrationConfiguration } from './interfaces/integrations';
 
 export const enum FormsActionTypes {
   GET_FORMS = '[forms] Get forms',

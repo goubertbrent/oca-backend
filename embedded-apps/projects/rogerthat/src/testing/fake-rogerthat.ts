@@ -38,18 +38,24 @@ const rogerthat = {
     },
   },
   user: {
+    account: 'test@example.com',
     language: 'nl_BE',
     firstName: 'FirstName',
     lastName: 'LastName',
+    name: 'FirstName LastName',
     data: {},
   },
   system: {
+    os: 'android',
+    version: '30',
     appId: 'em-be-osa-demo2',
     appVersion: '2.1.5555',
+    appName: 'Testapp',
     debug: true,
     colors: {
       primary: '#FF00FF',
-    }
+      text: '#000000'
+    },
   },
   service: {
     data: {
@@ -60,8 +66,8 @@ const rogerthat = {
     },
   },
   menuItem: {
-    hashedTag: '__sln__.cirklo',
-    label: 'cirklo',
+    hashedTag: 'menuItemHashedTag',
+    label: 'Menu item label',
   },
   util: {
     uuid: () => {

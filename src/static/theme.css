@@ -11,19 +11,43 @@ div.footer a:hover { color:#fff;}
 
 /*-------------------------------------header-----------------------------------------*/
 #header { background:#fff url(/static/images/site/head-bg.png) bottom left repeat-x scroll; float:left; width:100%; border-bottom:4px solid #86c500; height: 82px;}
-.med { width:990px; position:relative; left:50%; margin-left:-495px;}
-#log { float:right; width:auto; margin-top:20px; color:#8ebe2d; margin-right: 14px; }  
-#header span { float:left; color:#444; font-size:35px; margin-top:15px; }
+.med {
+    width: 990px;
+    position: relative;
+    left: 50%;
+    margin-left: -495px;
+}
+
+#log {
+    float: right;
+    width: auto;
+    margin-top: 20px;
+    color: #8ebe2d;
+    margin-right: 14px;
+}
+
+#header span {
+    float: left;
+    color: #444;
+    font-size: 35px;
+    margin-top: 15px;
+}
 #logo { display:block; float:left; }
 #log *, #log  {  font-size:14px; }
 #log a { color:#00a0ff !important; text-decoration:none;}
 #log a:hover { color:#9fe01c !important;}
 
 .buble {    z-index: 70; position: fixed;  width:990px; float:left;  left:50%; margin-left: -509px; margin-top: 55px;}
-.buble div { float:right; cursor:pointer; background: url("/static/images/site/unread-ic.png") no-repeat scroll right 5px #E7004C; color: #FFFFFF;  padding: 0 20px 0 0px;
-                    min-height:20px; min-width:1px; 
-                    -moz-border-radius: 3px !important;
-                    border-radius:3px !important;
+.buble div {
+    float: right;
+    cursor: pointer;
+    background: url("/static/images/site/unread-ic.png") no-repeat scroll right 5px #E7004C;
+    color: #FFFFFF;
+    padding: 0 20px 0 0px;
+    min-height: 20px;
+    min-width: 1px;
+    -moz-border-radius: 3px !important;
+    border-radius: 3px !important;
 
 }
 .buble div span { float:left; color: #FFFFFF; padding:1px 5px; margin-left: 14px; }
@@ -105,41 +129,45 @@ div.footer a:hover { color:#fff;}
 
 
 /*-------------------------------------messging-----------------------------------------*/
-#box { 
-	background:#446000 url(/static/images/site/msg-bg.png) top left repeat-x scroll;
-    border:1px solid #95c631;
+#box {
+    background: #446000 url(/static/images/site/msg-bg.png) top left repeat-x scroll;
+    border: 1px solid #95c631;
 
-	-moz-border-radius-bottomleft: 7px;
-	border-bottom-left-radius:7px;
-	
-	-moz-border-radius-bottomright: 7px;
-	border-bottom-right-radius:7px;
+    -moz-border-radius-bottomleft: 7px;
+    border-bottom-left-radius: 7px;
+
+    -moz-border-radius-bottomright: 7px;
+    border-bottom-right-radius: 7px;
 }
-       
+
 #contentContainer { margin-left: 225px; }
 
 /*------------------------------------- messaging -----------------------------------------*/
 div.mcoutofscreen {
-	z-index: -10 !important;
-	position: absolute !important;
-	right: 10000px !important;
+    z-index: -10 !important;
+    position: absolute !important;
+    right: 10000px !important;
 }
-.mcclickable { 
-	background: -moz-linear-gradient(top, #00A8FF, #06496C) !important;
-	background: -webkit-gradient(linear,
-                left top, left bottom, from(#00A8FF), to(#06496C)) !important;
-	
-	border:1px solid #00A8FF !important; 
-	color:#fff !important;
-	font-weight: bold;
+
+.mcclickable {
+    background: -moz-linear-gradient(top, #00A8FF, #06496C) !important;
+    background: -webkit-gradient(linear,
+    left top, left bottom, from(#00A8FF), to(#06496C)) !important;
+
+    border: 1px solid #00A8FF !important;
+    color: #fff !important;
+    font-weight: bold;
 }
-.mcclickable:hover { border:1px solid #fff !important;}
+
+.mcclickable:hover {
+    border: 1px solid #fff !important;
+}
 .mcrogerthat, .mcclickable[button=positive] {
-	background:#91c22f url(/static/images/site/btn-bg.png) bottom left repeat-x scroll !important; 
-	border:1px solid #91C22F !important; 
-	color:#fff !important;
-	font-weight: bold;
-	cursor: pointer;
+    background: #91c22f url(/static/images/site/btn-bg.png) bottom left repeat-x scroll !important;
+    border: 1px solid #91C22F !important;
+    color: #fff !important;
+    font-weight: bold;
+    cursor: pointer;
 }
 .mcclickable[button=negative] {
 	background: #F92828 url(/static/images/site/btn-bg-red.png) bottom left repeat-x scroll !important;
@@ -151,38 +179,39 @@ div.mcoutofscreen {
 .mcrogerthat:hover { border:1px solid #fff !important;}
 
 button.mcmessagingcontrolbutton {
-	background:#0089db url(/static/images/site/send-bg.png) bottom left repeat-x scroll !important;
+    background: #0089db url(/static/images/site/send-bg.png) bottom left repeat-x scroll !important;
     -moz-border-radius: 7px !important;
-    border-radius:7px !important;
-    font-size:14px; 
-    font-weight:bold;
-    width:140px; 
-    color:#77d5f7 !important; 
+    border-radius: 7px !important;
+    font-size: 14px;
+    font-weight: bold;
+    width: 140px;
+    color: #77d5f7 !important;
     margin-top: 5px;
     margin-bottom: 5px;
     cursor: pointer;
     margin-right: 10px;
-	float: right;
+    float: right;
 }
 button.mcmessagingcontrolbutton:hover { color:#fff !important; }
 
 /*------------------------------------- mainWidget start -----------------------------------------*/
-#mainWidget { 
-	background:#446000 url(/static/images/site/msg-bg.png) top left repeat-x scroll;
-    border:1px solid #95c631;
-	-moz-border-radius-bottomleft: 7px;
-	border-bottom-left-radius:7px;
-	-moz-border-radius-bottomright: 7px;
-	border-bottom-right-radius:7px;
-	margin-bottom: 20px;
-	padding-bottom: 5px;
-	width: 708px;
+#mainWidget {
+    background: #446000 url(/static/images/site/msg-bg.png) top left repeat-x scroll;
+    border: 1px solid #95c631;
+    -moz-border-radius-bottomleft: 7px;
+    border-bottom-left-radius: 7px;
+    -moz-border-radius-bottomright: 7px;
+    border-bottom-right-radius: 7px;
+    margin-bottom: 20px;
+    padding-bottom: 5px;
+    width: 708px;
 }
 
-#mainWidget button.newmessage_send { 
+#mainWidget button.newmessage_send {
     height: 87px;
 }
-#mainWidget button.newmessage_cancel { 
+
+#mainWidget button.newmessage_cancel {
     display: none;
 }
 
@@ -197,23 +226,32 @@ button.mcmessagingcontrolbutton:hover { color:#fff !important; }
 #mainWidget .messagebuttonwidget input { width: 403px; font-size: 12px; margin: 0;}
 #mainWidget .messagebuttonwidget label { margin-right:10px; color:#fff; }
 #mainWidget .newmessage_buttons { margin-left: 10px; width: 540px; margin-bottom: 5px; }
-#mainWidget .messagebutton { font-size: 12px; margin-bottom: 5px; }
-ul.ui-autocomplete { 
-	border:1px solid #999 !important;  
-	background:#eee  !important;   
-	color:#8EBE2D !important;
+
+#mainWidget .messagebutton {
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+ul.ui-autocomplete {
+    border: 1px solid #999 !important;
+    background: #eee !important;
+    color: #8EBE2D !important;
     -moz-border-radius-topleft: 0px !important;
-     border-top-left-radius:0px !important;
-     -moz-border-radius-topright: 0px !important;
-     border-top-right-radius:0px !important;
-     margin-left:-10px !important;
+    border-top-left-radius: 0px !important;
+    -moz-border-radius-topright: 0px !important;
+    border-top-right-radius: 0px !important;
+    margin-left: -10px !important;
 }
-ul.ui-autocomplete li a.ui-state-hover { 
-	background:#8EBE2D !important; 
-	color:#fff !important; 
-	border:none !important; 
+
+ul.ui-autocomplete li a.ui-state-hover {
+    background: #8EBE2D !important;
+    color: #fff !important;
+    border: none !important;
 }
-ul.ui-autocomplete li a { color:#8EBE2D !important; }
+
+ul.ui-autocomplete li a {
+    color: #8EBE2D !important;
+}
 #new_button_area #new_button_widget_tooltip {  bottom: 29px; }
 #mainWidget #errormessage {
 	margin-left: 12px;
@@ -224,14 +262,20 @@ ul.ui-autocomplete li a { color:#8EBE2D !important; }
 
 /*------------------------------------- replyWidget start -----------------------------------------*/
 div.replyPlaceholder {
-	width: 648px;
+    width: 648px;
 }
-div.replyPlaceholder button.newmessage_send { 
+
+div.replyPlaceholder button.newmessage_send {
     height: 64px;
     margin-top: 0px;
     margin-right: 5px;
 }
-div.replyPlaceholder .messagebox { margin-left: 5px; margin-top: 0px; width: 493px; }
+
+div.replyPlaceholder .messagebox {
+    margin-left: 5px;
+    margin-top: 0px;
+    width: 493px;
+}
 div.replyPlaceholder .messagebox textarea { width: 488px; height: 36px; font-size: 12px; padding: 1px; margin: 0px; }
 
 div.replyPlaceholder .new_button_area { margin-left: 5px; width: 493px; height: 28px; }
@@ -250,53 +294,78 @@ div.replyPlaceholder #errormessage {
 
 
 /*-------------------------------------messaging-----------------------------------------*/
-div.topic { width: 710px; }
-div.mcrootmessage { 
-	background-position:top right  !important;
-	background-repeat:repeat-y  !important;
-	background-color:#116895 ;
-	border:1px solid #0e3852;
-	-moz-border-radius: 7px !important;
-	border-radius:7px !important;
-	width: 648px;
-	float: left;
+div.topic {
+    width: 710px;
 }
-div.mcrootmessage hr { background-color: #044A6F; margin-bottom: 5px; height: 1px; }
-div.mcrootmessage .k { display: block; margin-left: -18px; margin-top: 35px; position: absolute;}
-div.mcrootsenderavatar { 
-	-moz-border-radius: 7px !important;
-	border-radius:7px !important;
-	width: 50px;
-	float: left;
-	margin-right: 10px;
+
+div.mcrootmessage {
+    background-position: top right !important;
+    background-repeat: repeat-y !important;
+    background-color: #116895;
+    border: 1px solid #0e3852;
+    -moz-border-radius: 7px !important;
+    border-radius: 7px !important;
+    width: 648px;
+    float: left;
 }
+
+div.mcrootmessage hr {
+    background-color: #044A6F;
+    margin-bottom: 5px;
+    height: 1px;
+}
+
+div.mcrootmessage .k {
+    display: block;
+    margin-left: -18px;
+    margin-top: 35px;
+    position: absolute;
+}
+
+div.mcrootsenderavatar {
+    -moz-border-radius: 7px !important;
+    border-radius: 7px !important;
+    width: 50px;
+    float: left;
+    margin-right: 10px;
+}
+
 div.mcrootsenderavatar img {
     width: 50px;
     height: 50px;
 }
-div.mcmessagemember { 
-	background:#003d5d; 
-	-moz-border-radius: 0px !important; 
-	border-radius:0px !important; 
+
+div.mcmessagemember {
+    background: #003d5d;
+    -moz-border-radius: 0px !important;
+    border-radius: 0px !important;
 }
+
 .messagebutton {
-    background:#1674a5; border:1px solid #09618e; color:#4dc2ff;
-    font-size:11px;
+    background: #1674a5;
+    border: 1px solid #09618e;
+    color: #4dc2ff;
+    font-size: 11px;
 }
 div.mcmessagemembers { float: right; text-align: right; width: 200px; bottom: 5px; }
 div.mcmessagemembers.mcbranded { float: none; position: absolute; right: 0px; z-index: 1; }
-div.mcmessagemembers.mcbranded img { opacity: 0.6; }
-div.mcmessagemembers .messagebutton { 
-	border: 1px solid 0e3852; 
-	margin-right: 5px;
-	width: 100px; 
-	margin-left: 10px;
-	display: block;
-	float: right;
-	margin-top: 5px;
-	-moz-border-radius: 5px;
-	border-radius: 5px;
+
+div.mcmessagemembers.mcbranded img {
+    opacity: 0.6;
 }
+
+div.mcmessagemembers .messagebutton {
+    border: 1px solid 0e3852;
+    margin-right: 5px;
+    width: 100px;
+    margin-left: 10px;
+    display: block;
+    float: right;
+    margin-top: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+}
+
 div.mcmessagemembers .messagebutton p {
 	display: block;
 	margin-bottom: 6px;
@@ -313,13 +382,16 @@ div.mcrootmessage span.mcmessagetimestamp { margin-left: 5px; color:#88bb36;}
 div.mcrootmessage img.mclock { position: absolute; left: 652px; }
 div.mcrootmessage img.lockable { cursor: pointer; }
 
-div.mcmessage { 
-	width: 648px;
-	background: #116895;
-	margin-left: 0px !important; 
-	padding:0px !important;
+div.mcmessage {
+    width: 648px;
+    background: #116895;
+    margin-left: 0px !important;
+    padding: 0px !important;
 }
-div.mcmessage hr { margin-bottom: 0px; }
+
+div.mcmessage hr {
+    margin-bottom: 0px;
+}
 div.mcmessage div.mcsenderavatar { margin-right: 5px; margin-left: 5px; }
 div.mcmessage span.mcmessagetimestamp { margin-left: 0px; }
 div.mcmessage p.msg { margin-left: 40px; width: 593px; margin-bottom: 0px;}
@@ -342,39 +414,69 @@ a.mcdelete { padding-left:17px; background:  url(/static/images/trash_cannetje_g
 span.mcmessagesender { margin-left: 5px; color:#88bb36; font-weight: bold; }
 span.member-summary { margin-left: 0px; }
 .btns { float:left; margin-left:65px; width: 85%; padding-top:5px; border-top:1px solid #2280b1;}
-    
 
- 
-#msg-status * { float:right; }
-#msg-status label { margin:0px 10px;}
-#received, #answered {  color:#8BB92E !important; cursor:pointer; }
-#received_popup, #answered_popup { bottom:20px; min-width:20px; }
-.received_detail, .answered_detail  { color:#fff;}
- 
+
+#msg-status * {
+    float: right;
+}
+
+#msg-status label {
+    margin: 0px 10px;
+}
+
+#received, #answered {
+    color: #8BB92E !important;
+    cursor: pointer;
+}
+
+#received_popup, #answered_popup {
+    bottom: 20px;
+    min-width: 20px;
+}
+
+.received_detail, .answered_detail {
+    color: #fff;
+}
+
 div.mcrootmessage div.msg_widget {
-	margin-left: 5px;
-	margin-top: 0px;
-} 
-div.mcmessage div.msg_widget { 
-	margin-left: 40px; 
-	margin-top: 0px;
+    margin-left: 5px;
+    margin-top: 0px;
 }
-div.msg_widget div.mcform input {
-	margin-left: 0px;
-}
- 
-.avatar_badge {    position: absolute; right: -3px; top: -3px;}
- 
-#lastMessagePlaceholder a {  color:#116895; padding-left:15px;  background:  url(/static/images/site/pluse-blue.png) left  4px no-repeat scroll !important;}
-#lastMessagePlaceholder a:hover {  color:#99CC33;  background:  url(/static/images/site/pluse-blue2.png) left  4px no-repeat scroll !important;}
 
-#messagesToolbar { 
-	width: 648px;
-	text-align: center;
-	clear: both;
+div.mcmessage div.msg_widget {
+    margin-left: 40px;
+    margin-top: 0px;
 }
+
+div.msg_widget div.mcform input {
+    margin-left: 0px;
+}
+
+.avatar_badge {
+    position: absolute;
+    right: -3px;
+    top: -3px;
+}
+
+#lastMessagePlaceholder a {
+    color: #116895;
+    padding-left: 15px;
+    background: url(/static/images/site/pluse-blue.png) left 4px no-repeat scroll !important;
+}
+
+#lastMessagePlaceholder a:hover {
+    color: #99CC33;
+    background: url(/static/images/site/pluse-blue2.png) left 4px no-repeat scroll !important;
+}
+
+#messagesToolbar {
+    width: 648px;
+    text-align: center;
+    clear: both;
+}
+
 #messagesToolbar a {
-	background: url("/static/images/site/pluse.png") no-repeat scroll 5px 5px #06496C !important;
+    background: url("/static/images/site/pluse.png") no-repeat scroll 5px 5px #06496C !important;
     color: #91C12F;
     cursor: pointer;
     padding-left: 20px;
@@ -423,8 +525,8 @@ div.mcmessage div.mcform_single_slider, div.mcmessage div.mcform_range_slider {
 .mcrootmessage iframe body { margin:0px !important;}
 .roger { background-color:#000 !important;}
 .roger .k { display:none;}
-   
-    
+
+
 /*-------------------------------------left bar-----------------------------------------------------------------------------------------------------------*/
 #left { float:left; width:200px;  left:50%; margin-left:-490px; background:#000  url(/static/images/site/left-bg.png) top left repeat-x scroll !important; position:fixed; top: 86px; z-index:70;
 -moz-border-radius-bottomleft: 7px;
@@ -432,17 +534,43 @@ border-bottom-left-radius:7px;
 
 -moz-border-radius-bottomright: 7px;
 border-bottom-right-radius:7px;
-    
+
     padding:10px;
         }
-        
+
         #left * { float:left; width:100%; }
         #friends * { width:auto; }
         #services * { width:auto; }
         #left img { width:auto; border:1px solid #fff; margin-bottom: 10px;}
-        a#addFriend  {    clear: both; float: left;  width: 200px;}
-        #left span { color:#00a8ff; font-size:14px; font-weight:bold;  width:auto; margin-left:10px;  width: 135px; word-wrap: break-word;      margin-top: -4px; line-height: 15px;} 
-        #left  a {  font-size:12px; font-weight:normal; color:#fff; text-decoration:none; padding-left:35px; margin-bottom:10px; height:20px; width:170px;}
+
+a#addFriend {
+    clear: both;
+    float: left;
+    width: 200px;
+}
+
+#left span {
+    color: #00a8ff;
+    font-size: 14px;
+    font-weight: bold;
+    width: auto;
+    margin-left: 10px;
+    width: 135px;
+    word-wrap: break-word;
+    margin-top: -4px;
+    line-height: 15px;
+}
+
+#left a {
+    font-size: 12px;
+    font-weight: normal;
+    color: #fff;
+    text-decoration: none;
+    padding-left: 35px;
+    margin-bottom: 10px;
+    height: 20px;
+    width: 170px;
+}
         #left  a:hover {   color:#00a8ff; }
         #left  a.selected-link { cursor:pointer;  color:#00a8ff; }
         #left  a.selected-link div { cursor:pointer;  color:#00a8ff; }
@@ -462,28 +590,25 @@ border-bottom-right-radius:7px;
                           width: 125px;
                          }
         a.feedback { background: url(/static/images/site/feed.png)  3px top no-repeat scroll !important;  }
-        
+
          a.servcon {  background: url(/static/images/site/service.png)  5px  top no-repeat scroll !important; }
          a.menu {  background: url(/static/images/site/service.png)  5px  top no-repeat scroll !important; }
          a.brand {  background: url(/static/images/site/brand.png)  5px  top no-repeat scroll !important; }
          a.logs {  background: url(/static/images/site/log.png)  7px  top no-repeat scroll !important; }
          a.i18n { background: url(/static/images/site/globe.png) 4px top no-repeat scroll !important; }
-         a.broadcast { background: url(/static/images/site/broadcast.png) 5px top no-repeat scroll !important; }
          a.roles { background: url(/static/images/site/roles.png) 5px top no-repeat scroll !important; }
 
-       
+
        #left  hr { background: #424242; }
-       
+
        #friendAvatarsContainer { height:64px !important;}
-  
+
        .content #friends img {  margin-bottom:0px !important; }
-       
+
        #friendAvatarsContainer .content { margin-top:0px  !important; padding-top:0px  !important; background:none !important; border:none !important;}
-       
-       
-       
-       
-       #left #myProfile { width:auto !important; height:auto !important; padding:0px !important; margin:0px !important; }
+
+
+#left #myProfile { width:auto !important; height:auto !important; padding:0px !important; margin:0px !important; }
 /*-------------------------------------xxxxxxxx---------------------------------------------------------------------------------------------------------*/
 
  #connection_initiated_dialog {  display:none;}
@@ -494,33 +619,43 @@ border-bottom-right-radius:7px;
 #friendsContainer { float:left; }
 .topbar {  background:url("/static/images/site/top-bg.png") repeat-x scroll left top #446000; padding:10px;  border: 1px solid #95C631;
 
-    
+
 -moz-border-radius-bottomleft: 7px;
 border-bottom-left-radius:7px;
 
 -moz-border-radius-bottomright: 7px;
 border-bottom-right-radius:7px;
-           
+
             float:left;
               margin-bottom: 10px;
 
     width: 688px;
            }
-           
+
            .topbar h2 { width:100%; margin:0px; padding:0px; font-size:14px; font-weight:bold; color:#fff;}
 .mcfriendbox { padding:10px; background:#116895; width:688px; border: 1px solid #0E3852; margin-bottom:10px;
-              
+
 -moz-border-radius: 7px !important;
 border-radius:7px !important;
-               
+
                }
        .topgrop h3  {  font-size:14px; color:#fff; font-weight:bold;  }
-               
+
       .topgrop h3.via  {  width:auto !important;  margin-right:20px;   margin-top: 25px; float:left;}
-             .topgrop  .inv { margin-right:10px;}
-                .topgrop a { color:#99cc33 !important; font-weight:normal !important; } 
-                 .topgrop a:hover { color:#003058 !important;  }
-                 
+
+.topgrop .inv {
+    margin-right: 10px;
+}
+
+.topgrop a {
+    color: #99cc33 !important;
+    font-weight: normal !important;
+}
+
+.topgrop a:hover {
+    color: #003058 !important;
+}
+
                  .subgroup { float:left; background:#588200 ; width:97%; padding:10px;}
 
 #friendsContainer  .info .avt, .servicesContainer .info .avt { float:left; width:100%; margin:10px 10px 0px 0px; }
@@ -529,16 +664,36 @@ border-radius:7px !important;
 #friendsContainer .mark, .servicesContainer .mark { background:#002d45; padding:3px; margin-bottom:5px;}
 #friendsContainer .mark div { color:#fff;}
 #friendsContainer .mark a, .servicesContainer .mark a { margin-right:10px; color:#88BB36;}
-#friendsContainer .mark  a:hover, .servicesContainer .mark  a:hover { margin-right:10px; color:#00A8FF;}
-#friendsContainer .ellipsis, .servicesContainer .ellipsis {  margin-left:10px; } 
-#friendsContainer .remove, .servicesContainer .remove { float:right;  margin-top:-15px; text-align: right; }
+
+#friendsContainer .mark a:hover, .servicesContainer .mark a:hover {
+    margin-right: 10px;
+    color: #00A8FF;
+}
+
+#friendsContainer .ellipsis, .servicesContainer .ellipsis {
+    margin-left: 10px;
+}
+
+#friendsContainer .remove, .servicesContainer .remove {
+    float: right;
+    margin-top: -15px;
+    text-align: right;
+}
 
 #friendsContainer .mark div {  width:auto !important; }
 
 
+.mcfriendbox .span-13 {
+    font-size: 11px;
+    font-weight: bold;
+    color: #00A8FF;
+}
 
-.mcfriendbox .span-13 { font-size:11px; font-weight:bold; color:#00A8FF;} 
-.actions { float:right;  width:50% !important;  margin-top:-15px; }
+.actions {
+    float: right;
+    width: 50% !important;
+    margin-top: -15px;
+}
 .actions .sp { color:#fff; font-weight:bold;}
 .actions * { float:right;}
 .actions label { margin:0px 5px; }
@@ -575,14 +730,17 @@ border-radius:7px !important;
 
 
 /*-------------------------------------edit profile-----------------------------------------*/
-.topgrop {   
-   border-top:1px solid #588200;
+.topgrop {
+    border-top: 1px solid #588200;
     margin-top: 10px;
     padding: 10px 0px;
-    float:left;
-    width:100%;
+    float: left;
+    width: 100%;
 }
-.topgrop .span-18   { width:auto !important;}
+
+.topgrop .span-18 {
+    width: auto !important;
+}
 .topgrop label { color:#fff;  margin-right:10px;}
 .topgrop input#name { background:black;  width: 30%; color: #00A8FF; font-size: 1.2em;}
 .topgrop textarea { font-size: 1.2em; }
@@ -592,8 +750,8 @@ border-radius:7px !important;
                   border-radius:0px !important;
                    float:left;
                    padding: 5px 10px;
-                   
-                  }
+
+}
 .topgrop button span { padding:0px !important; line-height:12px  !important; font-size:12px !important;}
 .topgrop .title {
 	background-color: #304600;
@@ -639,25 +797,32 @@ border-radius:7px !important;
 	-moz-border-radius: 3px !important;
 	border-radius: 3px !important;
 	padding: 3px;
-	text-align: center;
+    text-align: center;
 }
+
 /*-------------------------------------Register mobile-----------------------------------------------------------------------------------------------------------*/
-.ui-widget-content { background:#004A76  !important;
-                     -moz-border-radius: 7px !important;
-                     border-radius:7px !important;
-                     border:3px solid #fff !important;
-                      }
-.mccolorschemelight .ui-widget-content { border-color: black !important; }                   
-.ui-widget-content  .ui-widget-content  { border:none !important;}
-                      
-.ui-widget-content * 
-{
+.ui-widget-content {
+    background: #004A76 !important;
+    -moz-border-radius: 7px !important;
+    border-radius: 7px !important;
+    border: 3px solid #fff !important;
+}
+
+.mccolorschemelight .ui-widget-content {
+    border-color: black !important;
+}
+
+.ui-widget-content .ui-widget-content {
+    border: none !important;
+}
+
+.ui-widget-content * {
     -moz-border-radius: 0px !important;
-    border-radius:0px !important;
-    
-    
-    }
-    
+    border-radius: 0px !important;
+
+
+}
+
 .ui-widget-overlay {
     background: none repeat scroll 0 0 #000000 !important;
     opacity: 0.7 !important;
@@ -665,12 +830,12 @@ border-radius:7px !important;
     position: fixed  !important;
     width: 100%  !important;
     z-index: 1001  !important;
-    
-    }
-    
+
+}
+
 .active-title { color:#FFF !important;}
 
-                 
+
 #wizard {   height:auto !important;}
 .ui-widget-content .footer { width:70%;}
 .ui-widget-content .footer .span-6 { display:none;}
@@ -687,22 +852,27 @@ border-radius:7px !important;
     font-size: 12px !important;
     line-height: 12px !important;
     padding: 0 !important; }
-                      
+
 */
 .ui-dialog-titlebar   {   background:url("/static/images/site/top-bg.png") repeat-x scroll left top #446000 !important;   border: 1px solid #95C631 !important;
-                          
-                          -moz-border-radius-topleft: 3px !important;
+
+    -moz-border-radius-topleft: 3px !important;
                       border-top-left-radius:3px !important;
 
                       -moz-border-radius-topright: 3px !important;
                       border-top-right-radius:3px !important;
-                          
-                          }
+
+}
 .ui-dialog-titlebar .ui-state-hover { background:#548e00 !important; border:1px solid #fff  !important;}
 #captcha { background:#fff !important;}
 
-#securityVerification, #install, .ui-widget-content #details, #link, #addFriendsDialog, .ui-draggable .ui-dialog-content, .ui-dialog-content{ color:#fff  !important; } 
-.active-title { margin-bottom:20px;}
+#securityVerification, #install, .ui-widget-content #details, #link, #addFriendsDialog, .ui-draggable .ui-dialog-content, .ui-dialog-content {
+    color: #fff !important;
+}
+
+.active-title {
+    margin-bottom: 20px;
+}
 
 #wizardBody #secret, #wizardBody #detailsErrorMessage, #wizardBody  #captchaErrorMessage { color:#f0ff00 !important;}
 #key {color:#66ff00 !important; }
@@ -715,14 +885,14 @@ border-radius:7px !important;
 
 #installer { background:url("/static/images/site/top-bg.png") repeat-x scroll left top #446000; padding:10px;  border: 1px solid #95C631;
 
-    
--moz-border-radius-bottomleft: 7px;
+
+    -moz-border-radius-bottomleft: 7px;
 border-bottom-left-radius:7px;
 
 -moz-border-radius-bottomright: 7px;
 border-bottom-right-radius:7px;
-           
-            float:left;
+
+    float:left;
               margin-bottom: 10px;
               position:absolute !important;
  top:0px;
@@ -732,49 +902,81 @@ border-bottom-right-radius:7px;
   #install { margin-top:20px;  }
   #install span {color:#fff ;}
   #install span:hover {color:#000 !important ;}
-  
-  
-  /*-------------------------------------Mobile device settings---------------------------------------------------------------------------------------------------------*/
-  #settingsContainer { background:url("/static/images/site/top-bg.png") repeat-x scroll left top #446000 !important; padding:10px !important;  border: 1px solid #95C631 !important;
 
-    
--moz-border-radius-bottomleft: 7px !important; 
-border-bottom-left-radius:7px !important;
 
--moz-border-radius-bottomright: 7px !important;
-border-bottom-right-radius:7px !important;
-           
-            float:left !important;
-              margin-bottom: 10px !important;
+/*-------------------------------------Mobile device settings---------------------------------------------------------------------------------------------------------*/
+  #settingsContainer {
+      background: url("/static/images/site/top-bg.png") repeat-x scroll left top #446000 !important;
+      padding: 10px !important;
+      border: 1px solid #95C631 !important;
 
-    width: 688px;
-     color:#fff !important;
-     }
-       #settingsContainer * { color:#fff !important;} 
-    
-  #tabs { 
+
+      -moz-border-radius-bottomleft: 7px !important;
+      border-bottom-left-radius: 7px !important;
+
+      -moz-border-radius-bottomright: 7px !important;
+      border-bottom-right-radius: 7px !important;
+
+      float: left !important;
+      margin-bottom: 10px !important;
+
+      width: 688px;
+      color: #fff !important;
+  }
+
+#settingsContainer * {
+    color: #fff !important;
+}
+
+#tabs {
     background: none !important;
-    border: none !important;}
-  #settingsContainer   .span-18  {  width:auto !important;}
-  #mobile { width:auto !important;}
-  #tabs-general { background:none !important;}
-  #tabContainer,  #tabs-general .ui-tabs-nav { background:none !important; border:none; border-bottom:1px solid #ACDD4A ; }
-   #tabContainer { border-bottom:1px solid #446000  !important ;}
-  #tabContainer  li a{ border:none !important; background:#446000 !important;}
-  #tabContainer  li { border:none !important; padding-bottom:0px !important;}
-  
-  #tabs-general  #options  { background:none !important; }
+    border: none !important;
+}
+
+#settingsContainer .span-18 {
+    width: auto !important;
+}
+
+#mobile {
+    width: auto !important;
+}
+
+#tabs-general {
+    background: none !important;
+}
+
+#tabContainer, #tabs-general .ui-tabs-nav {
+    background: none !important;
+    border: none;
+    border-bottom: 1px solid #ACDD4A;
+}
+
+#tabContainer {
+    border-bottom: 1px solid #446000 !important;
+}
+
+#tabContainer li a {
+    border: none !important;
+    background: #446000 !important;
+}
+
+#tabContainer li {
+    border: none !important;
+    padding-bottom: 0px !important;
+}
+
+#tabs-general  #options  { background:none !important; }
   #tabs-general  #tabsGeoLocationTracking, #tabsGPS, #tabsDebug { background:#588200  !important ; border:1px solid #ACDD4A !important; min-height: 60px;}
-  
-  #options ul li, #tabContainer ul li { background:none !important; border:none !important; }
+
+#options ul li, #tabContainer ul li { background:none !important; border:none !important; }
   #options ul li a, #tabContainer ul li a{ background:none !important; color:#ACDD4A !important;  font-weight:bold;}
   #options ul li.ui-tabs-selected a,  #tabContainer ul li.ui-tabs-selected a{ background:#ACDD4A  !important; color:#446000 !important;}
-  
-  
-  .ui-slider-horizontal { margin-top:5px;}
+
+
+.ui-slider-horizontal { margin-top:5px;}
   .ui-slider-range { background:#ACDD4A ;}
-  
-  #GeoLocationTrackingTimeSlotLabel, #GeoLocationTrackingSamplingRateBatteryLabel, #GeoLocationTrackingSamplingRateChargingLabel { font-weight:bold; color:#000 !important;}
+
+#GeoLocationTrackingTimeSlotLabel, #GeoLocationTrackingSamplingRateBatteryLabel, #GeoLocationTrackingSamplingRateChargingLabel { font-weight:bold; color:#000 !important;}
   #unregister, #startDebugging {
     background: url("/static/images/site/btn2-bg.png") repeat-x scroll left bottom #1291DD !important;
     border: 1px solid #1291DD;
@@ -802,40 +1004,18 @@ border-bottom-right-radius:7px !important;
     color: #FFFFFF;
     float: left;
     padding: 5px 10px;}
-     
-     
-     
-  /*-------------------------------------service area ---------------------------------------------------------------------------------------------------------*/
-#servicePanelContainer input[type=checkbox], #servicePanelContainer label, 
-#serviceI18nContainer input[type=checkbox], #serviceI18nContainer label, 
-#serviceBroadcastContainer input[type=checkbox], #serviceBroadcastContainer label
+
+
+/*-------------------------------------service area ---------------------------------------------------------------------------------------------------------*/
+#servicePanelContainer input[type=checkbox], #servicePanelContainer label,
+#serviceI18nContainer input[type=checkbox], #serviceI18nContainer label,
 {
   top: 0px;
 }
 
-#serviceBroadcastContainer ul {
-	margin-right: 0px;
-	margin-bottom: 0px;
-	width: 400px;
-}
-
-#serviceBroadcastContainer #row_warnings {
-	color: yellow;
-}
-
-#serviceBroadcastContainer td {
-	padding-top: 0px;
-	padding-bottom: 0px;
-}
-
-#serviceBroadcastContainer input[type=text], #serviceBroadcastContainer select {
-	width: 200px;
-}
-
-#servicePanelContainer .ui-widget, 
-#serviceI18nContainer .ui-widget, 
-#serviceBroadcastContainer .ui-widget, 
-#brandingContainer  .ui-widget, 
+#servicePanelContainer .ui-widget,
+#serviceI18nContainer .ui-widget,
+#brandingContainer .ui-widget,
 #qrTemplatesContainer .ui-widget
 {
 	float:left;
@@ -846,43 +1026,43 @@ border-bottom-right-radius:7px !important;
 	margin-bottom: 10px;
 	-moz-border-radius: 7px !important;
 	border-radius: 7px !important;
-} 
-
-#servicePanelContainer .ui-widget  h3, 
-#serviceI18nContainer .ui-widget h3, 
-#serviceBroadcastContainer .ui-widget h3, 
-#brandingContainer  .ui-widget h3, 
-#qrTemplatesContainer .ui-widget h3
-{
-	background: #002D45;
-	padding: 3px;
-	margin-bottom: 5px;
-	border:none !important;
-	width: 99% !important;
-	-moz-border-radius: 0px !important;
-	border-radius:0px !important;
-}
-     
-#servicePanelContainer .ui-widget  .ui-widget-content, 
-#serviceI18nContainer .ui-widget .ui-widget-content, 
-#serviceBroadcastContainer .ui-widget .ui-widget-content, 
-#brandingContainer  .ui-widget  .ui-widget-content, 
-#qrTemplatesContainer  .ui-widget  .ui-widget-content, 
-#qrTemplatesContainer table 
-{ 
-    background:none !important;
-    border:none !important;
-    color:#fff;
 }
 
-#servicePanelContainer .ui-widget .mcerror  { color:#deff00;}
-#servicePanelContainer .ui-widget  .mcwarning  { color:#88BB36;}
+#servicePanelContainer .ui-widget h3,
+#serviceI18nContainer .ui-widget h3,
+#brandingContainer .ui-widget h3,
+#qrTemplatesContainer .ui-widget h3 {
+    background: #002D45;
+    padding: 3px;
+    margin-bottom: 5px;
+    border: none !important;
+    width: 99% !important;
+    -moz-border-radius: 0px !important;
+    border-radius: 0px !important;
+}
 
-#servicePanelContainer .ui-widget .ui-button, 
-#serviceI18nContainer .ui-widget .ui-button, 
-#serviceBroadcastContainer .ui-widget .ui-button, 
-#brandingContainer  .ui-widget .ui-button, 
-#qrTemplatesContainer  .ui-widget .ui-button
+#servicePanelContainer .ui-widget .ui-widget-content,
+#serviceI18nContainer .ui-widget .ui-widget-content,
+#brandingContainer .ui-widget .ui-widget-content,
+#qrTemplatesContainer .ui-widget .ui-widget-content,
+#qrTemplatesContainer table {
+    background: none !important;
+    border: none !important;
+    color: #fff;
+}
+
+#servicePanelContainer .ui-widget .mcerror {
+    color: #deff00;
+}
+
+#servicePanelContainer .ui-widget .mcwarning {
+    color: #88BB36;
+}
+
+#servicePanelContainer .ui-widget .ui-button,
+#serviceI18nContainer .ui-widget .ui-button,
+#brandingContainer .ui-widget .ui-button,
+#qrTemplatesContainer .ui-widget .ui-button
 {
 	background: url("/static/images/site/btn2-bg.png") repeat-x scroll left bottom #1291DD !important;
 	border: 1px solid #1291DD;
@@ -895,7 +1075,7 @@ border-bottom-right-radius:7px !important;
 	border-radius:0px !important;  margin-right:10px;
 }
 
- #servicePanelContainer #revertToRegularAccount 
+#servicePanelContainer #revertToRegularAccount
       {
             background: url("/static/images/site/btn2-bg.png") repeat-x scroll left bottom #1291DD !important;
     border: 1px solid #1291DD;
@@ -905,21 +1085,29 @@ border-bottom-right-radius:7px !important;
     padding: 5px 10px;
     width: 103% !important;
 
-          }
-    #servicePanelContainer .ui-widget .ui-button span { padding:0px !important; }
-    #servicePanelContainer .ui-widget ul { padding-left:20px;}
-    
-    #brandingContainer  #description, #qrTemplatesContainer  #description { 
-        background:#fff !important ;  width: 225px !important; color: #000 !important;
-    }
-    
-    #branding_designer_form input {
-        width: 200px;
-    }
-    
-    #branding_designer_form #static_content {
-        width: 100%;
-    }
+}
+
+#servicePanelContainer .ui-widget .ui-button span {
+    padding: 0px !important;
+}
+
+#servicePanelContainer .ui-widget ul {
+    padding-left: 20px;
+}
+
+#brandingContainer #description, #qrTemplatesContainer #description {
+    background: #fff !important;
+    width: 225px !important;
+    color: #000 !important;
+}
+
+#branding_designer_form input {
+    width: 200px;
+}
+
+#branding_designer_form #static_content {
+    width: 100%;
+}
 
     #branding_designer_form #logo_div img {
         width: 203px;
@@ -945,7 +1133,7 @@ border-bottom-right-radius:7px !important;
 
     #branding_designer_form #logo_div img { max-width: none; }
     #branding_designer_form #logo_div { overflow: hidden; width: 200px; height: 75px; margin-bottom: 10px; cursor: pointer; border: solid lightgray 1px; }
-    
+
 /*------------------------service identities + doc + logs + users----------------------*/
 
 #addressLookupDialog span, #addressLookupDialog div {
@@ -1031,60 +1219,154 @@ border-bottom-right-radius:7px !important;
 {
     background:url("/static/images/site/top-bg.png") repeat-x scroll left top #446000; padding:10px;  border: 1px solid #95C631;
 
-    
--moz-border-radius-bottomleft: 7px;
+
+    -moz-border-radius-bottomleft: 7px;
 border-bottom-left-radius:7px;
 
 -moz-border-radius-bottomright: 7px;
 border-bottom-right-radius:7px;
-           
-            float:left;
+
+    float:left;
               margin-bottom: 10px;
 
-width: 690px;
-    color:#fff;
-    
-    }
-    #doc table tr td { color:#ACDD4A ;}
-    #doc h1 { font-size:20px; font-weight:bold; color:#446000;}
-    #doc h2 { font-size:16px; color:#ffe400; font-weight:bold; }
-    #doc h3  { font-size:14px;  color:#95d200; font-weight:bold;}
-    #doc a { color:#ffe400;}
-    
-  
-  
-  #detail { padding:0px !important; width:100% !important; margin-top:10px !important;}  
-  #messageFlowDesignContainer table thead tr, #serviceQRCodesContainer table thead tr, .serviceUsersContainer table thead tr, #serviceLogsContainer table thead tr, #detail table thead tr, #serviceIdentitiesContainer table thead tr,  #serviceRolesContainer table thead tr { background:#446000 ; }
-  #messageFlowDesignContainer table thead th, #serviceQRCodesContainer table thead th, .serviceUsersContainer table thead th, #serviceLogsContainer table thead th, #detail table thead th, #serviceIdentitiesContainer table thead th,  #serviceRolesContainer table thead th { background:none !important; color:#93d000 !important;}
-  #messageFlowDesignContainer table tbody tr:nth-child(even), #serviceQRCodesContainer table tbody tr:nth-child(even), .serviceUsersContainer table tbody tr:nth-child(even), #serviceLogsContainer table tbody  tr:nth-child(even), #serviceIdentitiesContainer table tbody  tr:nth-child(even), #serviceRolesContainer table tbody  tr:nth-child(even) { background:#658e00; }
-  #messageFlowDesignContainer table tbody tr, #serviceQRCodesContainer table tbody tr, .serviceUsersContainer table tbody tr, #serviceLogsContainer table tbody tr, #detail table tbody tr, #serviceIdentitiesContainer table tbody tr, #serviceRolesContainer table tbody tr { color:#fff;}
-  #serviceLogsContainer table tbody tr:hover { background:#95c631 !important;  cursor:pointer;}
-  
-  #messageFlowDesignContainer #open_designer, #messageFlowDesignContainer #reload, #serviceQRCodesContainer #create_new, #serviceQRCodesContainer #reload, .serviceUsersContainer .action-link, #serviceLogsContainer #reload, #serviceLogsContainer #more, #serviceIdentitiesContainer #reload, #serviceIdentitiesContainer #more, #serviceIdentitiesContainer #create_new, #serviceRolesContainer #create_new { color:#293a00; padding-left: 10px; }
-  #messageFlowDesignContainer #open_designer:hover, #messageFlowDesignContainer #reload:hover, #serviceQRCodesContainer #create_new:hover, #serviceQRCodesContainer #reload:hover, .serviceUsersContainer .action-link:hover, #serviceLogsContainer #reload:hover, #serviceLogsContainer #more:hover, #serviceIdentitiesContainer #reload:hover, #serviceIdentitiesContainer #create_new:hover, #serviceRolesContainer #create_new:hover, #serviceIdentitiesContainer #more:hover { color:#446000; }
-  #messageFlowDesignContainer #open_designer, #serviceQRCodesContainer #create_new, #serviceQRCodesContainer #more, .serviceUsersContainer #more, #serviceLogsContainer #more, #serviceIdentitiesContainer #more  { background: url("/static/images/site/more.png") no-repeat scroll left 3px  ; }
-  #messageFlowDesignContainer #reload, #serviceQRCodesContainer #reload, .serviceUsersContainer #reload, #serviceLogsContainer #reload, #serviceIdentitiesContainer #reload { background: url("/static/images/site/reload.png") no-repeat scroll left 3px  ; }
+    width: 690px;
+    color: #fff;
 
-  .serviceUsersContainer .breadcrumbs { color: #293a00; font-weight: bold; }
+}
 
-   .scroller-control  { width:20px !important;}
-   #scrollable {  max-height:112px; margin-bottom:10px;}
-   #services_scrollable { max-height: 91px; margin-bottom: 10px; }
-   #services .serviceLabel { 
-   		color: #fff; 
-   		margin-left: 5px; 
-   		height: 32px; 
-   		line-height: 32px; 
-   		width: 133px;
-		overflow: hidden;
-		word-break: break-all;
-	}
+#doc table tr td {
+    color: #ACDD4A;
+}
 
-	.servicePage { background:#116895; -moz-border-bottom-left-radius: 7px; -moz-border-bottom-right-radius: 7px; border-bottom-left-radius:7px; border-bottom-right-radius:7px; }
-	.servicePage iframe { width: 710px; }
-	.serviceActionMenus table { width: 322px; overflow: hidden; padding-bottom: 5px; margin-bottom: 0px; border-bottom-width: 1px; border-bottom-style: dotted; }
-	.serviceActionMenus table.left { float:left; margin-left: 33px; border-right-width: 1px; border-right-style: dotted; }
-	.serviceActionMenus table.right { float: right; margin-right: 33px; }
+#doc h1 {
+    font-size: 20px;
+    font-weight: bold;
+    color: #446000;
+}
+
+#doc h2 {
+    font-size: 16px;
+    color: #ffe400;
+    font-weight: bold;
+}
+
+#doc h3 {
+    font-size: 14px;
+    color: #95d200;
+    font-weight: bold;
+}
+
+#doc a {
+    color: #ffe400;
+}
+
+
+#detail {
+    padding: 0px !important;
+    width: 100% !important;
+    margin-top: 10px !important;
+}
+
+#messageFlowDesignContainer table thead tr, #serviceQRCodesContainer table thead tr, .serviceUsersContainer table thead tr, #serviceLogsContainer table thead tr, #detail table thead tr, #serviceIdentitiesContainer table thead tr, #serviceRolesContainer table thead tr {
+    background: #446000;
+}
+
+#messageFlowDesignContainer table thead th, #serviceQRCodesContainer table thead th, .serviceUsersContainer table thead th, #serviceLogsContainer table thead th, #detail table thead th, #serviceIdentitiesContainer table thead th, #serviceRolesContainer table thead th {
+    background: none !important;
+    color: #93d000 !important;
+}
+
+#messageFlowDesignContainer table tbody tr:nth-child(even), #serviceQRCodesContainer table tbody tr:nth-child(even), .serviceUsersContainer table tbody tr:nth-child(even), #serviceLogsContainer table tbody tr:nth-child(even), #serviceIdentitiesContainer table tbody tr:nth-child(even), #serviceRolesContainer table tbody tr:nth-child(even) {
+    background: #658e00;
+}
+
+#messageFlowDesignContainer table tbody tr, #serviceQRCodesContainer table tbody tr, .serviceUsersContainer table tbody tr, #serviceLogsContainer table tbody tr, #detail table tbody tr, #serviceIdentitiesContainer table tbody tr, #serviceRolesContainer table tbody tr {
+    color: #fff;
+}
+
+#serviceLogsContainer table tbody tr:hover {
+    background: #95c631 !important;
+    cursor: pointer;
+}
+
+#messageFlowDesignContainer #open_designer, #messageFlowDesignContainer #reload, #serviceQRCodesContainer #create_new, #serviceQRCodesContainer #reload, .serviceUsersContainer .action-link, #serviceLogsContainer #reload, #serviceLogsContainer #more, #serviceIdentitiesContainer #reload, #serviceIdentitiesContainer #more, #serviceIdentitiesContainer #create_new, #serviceRolesContainer #create_new {
+    color: #293a00;
+    padding-left: 10px;
+}
+
+#messageFlowDesignContainer #open_designer:hover, #messageFlowDesignContainer #reload:hover, #serviceQRCodesContainer #create_new:hover, #serviceQRCodesContainer #reload:hover, .serviceUsersContainer .action-link:hover, #serviceLogsContainer #reload:hover, #serviceLogsContainer #more:hover, #serviceIdentitiesContainer #reload:hover, #serviceIdentitiesContainer #create_new:hover, #serviceRolesContainer #create_new:hover, #serviceIdentitiesContainer #more:hover {
+    color: #446000;
+}
+
+#messageFlowDesignContainer #open_designer, #serviceQRCodesContainer #create_new, #serviceQRCodesContainer #more, .serviceUsersContainer #more, #serviceLogsContainer #more, #serviceIdentitiesContainer #more {
+    background: url("/static/images/site/more.png") no-repeat scroll left 3px;
+}
+
+#messageFlowDesignContainer #reload, #serviceQRCodesContainer #reload, .serviceUsersContainer #reload, #serviceLogsContainer #reload, #serviceIdentitiesContainer #reload {
+    background: url("/static/images/site/reload.png") no-repeat scroll left 3px;
+}
+
+.serviceUsersContainer .breadcrumbs {
+    color: #293a00;
+    font-weight: bold;
+}
+
+.scroller-control {
+    width: 20px !important;
+}
+
+#scrollable {
+    max-height: 112px;
+    margin-bottom: 10px;
+}
+
+#services_scrollable {
+    max-height: 91px;
+    margin-bottom: 10px;
+}
+
+#services .serviceLabel {
+    color: #fff;
+    margin-left: 5px;
+    height: 32px;
+    line-height: 32px;
+    width: 133px;
+    overflow: hidden;
+    word-break: break-all;
+}
+
+.servicePage {
+    background: #116895;
+    -moz-border-bottom-left-radius: 7px;
+    -moz-border-bottom-right-radius: 7px;
+    border-bottom-left-radius: 7px;
+    border-bottom-right-radius: 7px;
+}
+
+.servicePage iframe {
+    width: 710px;
+}
+
+.serviceActionMenus table {
+    width: 322px;
+    overflow: hidden;
+    padding-bottom: 5px;
+    margin-bottom: 0px;
+    border-bottom-width: 1px;
+    border-bottom-style: dotted;
+}
+
+.serviceActionMenus table.left {
+    float: left;
+    margin-left: 33px;
+    border-right-width: 1px;
+    border-right-style: dotted;
+}
+
+.serviceActionMenus table.right {
+    float: right;
+    margin-right: 33px;
+}
 	.serviceActionMenus table.bottom { border-bottom: none; }
 	.serviceActionMenus td { width: 80px; height: 95px; text-align: center; vertical-align: top; padding: 0px; font-weight: bold; }
 	.serviceActionMenus td.smi_used_dark:active { background-color: rgba(255, 255, 255, 0.3); }
@@ -1102,8 +1384,6 @@ width: 690px;
     color: #99CC33 !important;
     font-weight: bold !important;
 }
-   
-   
 
 
 /*------------------------scroll----------------------*/
@@ -1128,9 +1408,16 @@ width: 690px;
 .note2 .center .sendform span input { width:80%;}
 .note2 .center .sendform span label { width:20%; font-size:12px; font-weight:normal; color:#fff; margin-top:5px; }
 .note2 .center .sendform textarea { width:100%;  height: 115px;}
-.note2 .center .sendform button#submit {       -moz-border-radius: 0px !important;
-            border-radius:0px !important; 
-            width:100% !important;     clear: both; margin-top:20px !important;  background:#91c22f url(/static/images/site/btn-bg.png) bottom left repeat-x scroll !important; border:1px solid #91c22f ; padding:5px 20px !important;}
+.note2 .center .sendform button#submit {
+    -moz-border-radius: 0px !important;
+    border-radius: 0px !important;
+    width: 100% !important;
+    clear: both;
+    margin-top: 20px !important;
+    background: #91c22f url(/static/images/site/btn-bg.png) bottom left repeat-x scroll !important;
+    border: 1px solid #91c22f;
+    padding: 5px 20px !important;
+}
 .note2 .center .sendform button#submit span { font-weight:normal !important; color:#000 !important; padding:0px !important; text-align:center !important;}
 .note2 .center .sendform button#submit:hover span { color:#fff !important;}
 

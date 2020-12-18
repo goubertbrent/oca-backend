@@ -41,8 +41,8 @@ class I18nTest(oca_unittest.TestCase):
     def test_shop_placeholders(self):
         from rogerthat_tests.i18n.test_i18n import Test as RogerthatI18nTest
         RogerthatI18nTest._test_placeholder(self, shop_translations)
-        
-        
+
+
     def get_src_dir(self):
         src_is_ok = False
         for path_ending in VALID_PATH_ENDINGS:
@@ -52,7 +52,7 @@ class I18nTest(oca_unittest.TestCase):
         self.assert_(os.path.isdir(src_dir), "Couldn't find src dir - tried: %s" % src_dir)
 #         print 'get_src_dir: => %s' % src_dir
         return src_dir
-    
+
     def do_test_code(self, translate_function_name, matcher):
         from rogerthat_tests.i18n.test_i18n import Test as RogerthatI18nTest
         if sys.platform == "win32":
@@ -83,7 +83,7 @@ class I18nTest(oca_unittest.TestCase):
                     if f.startswith("."):
                         continue
                     _scan_dir(filename)
-                    
+
         def _should_process(path):
             ignored = [os.path.join('src', 'solutions', '__init__.py'),
                        os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src', 'lib')),
@@ -107,7 +107,7 @@ class I18nTest(oca_unittest.TestCase):
                                      (ast.dump(node), self.current_python_file, node.lineno))
                     key_object = node.args[1]
                     if isinstance(key_object, ast.Name):
-                        allowed = ('k', 'msg', 'key', 'translation_key', 'result', 'label', 'broadcast_type', 'status')
+                        allowed = ('k', 'msg', 'key', 'translation_key', 'result', 'label', 'status')
                         testself.assertIn(key_object.id, allowed,
                                           '%s not in %s in %s:%s' % (key_object.id, allowed,
                                                                      self.current_python_file, node.lineno))
@@ -157,7 +157,7 @@ class I18nTest(oca_unittest.TestCase):
             f.close()
             m.current_python_file = filename
             m.visit(ast.parse(body))
-            
+
         if file_errors:
             self.assert_(False, file_errors)
 
@@ -174,13 +174,13 @@ class I18nTest(oca_unittest.TestCase):
             diff2 = translated_keys.difference(keys_found_in_code)
             self.assert_(not diff1, "%s keys found in code but not translated:\n%s" % (len(diff1), diff1))
             self.assert_(not diff2, "%s keys translated but not found in code:\n%s" % (len(diff2), diff2))
-    
+
 
     def test_code_1(self):
         translate_matcher = re.compile(
             "\\{%\\s*?translate\\s+?(?P<language>[a-zA-Z0-9_]+?)\\s*?,\\s*?(?P<start>[\"\'])(?P<key>.*?)(?P=start).+?\%\}")
         self.do_test_code('translate', translate_matcher)
-        
+
     def test_code_2(self):
         translate_matcher = re.compile(
             "\\{%\\s*?common_translate\\s+?(?P<language>[a-zA-Z0-9_]+?)\\s*?,\\s*?(?P<start>[\"\'])(?P<key>.*?)(?P=start).+?\%\}")

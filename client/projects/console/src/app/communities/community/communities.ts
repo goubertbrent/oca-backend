@@ -9,11 +9,17 @@ export interface AutoConnectedService {
 }
 
 export const enum AppFeature {
+  EVENTS_SHOW_MERCHANTS = 'events_show_merchants',
   JOBS = 'jobs',
   NEWS_VIDEO = 'news_video',
   NEWS_LOCATION_FILTER = 'news_location_filter',
   NEWS_REVIEW = 'news_review',
   NEWS_REGIONAL = 'news_regional',
+  LOYALTY = 'loyalty',
+}
+
+export const enum CustomizationFeature {
+  HOME_ADDRESS_IN_USER_DATA,
 }
 
 export interface CreateCommunity {
@@ -26,6 +32,7 @@ export interface CreateCommunity {
   main_service: string | null;
   signup_enabled: boolean;
   features: AppFeature[];
+  customization_features: CustomizationFeature[];
 }
 
 export interface Community extends CreateCommunity {

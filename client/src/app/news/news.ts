@@ -140,13 +140,17 @@ export const enum NewsSettingsTag {
   FREE_REGIONAL_NEWS = 'free_regional_news'
 }
 
+export interface DashboardNewsGroup extends ServiceNewsGroup {
+  regional_allowed: boolean;
+}
+
 export interface NewsOptions {
   tags: NewsSettingsTag[];
   regional: {
     enabled: boolean;
     map_url?: string | null;
   };
-  groups: ServiceNewsGroup[];
+  groups: DashboardNewsGroup[];
   media_types: MediaType[];
   location_filter_enabled: boolean;
   action_buttons: UINewsActionButton[];
@@ -179,12 +183,12 @@ export interface CityAppLocations {
 }
 
 export interface RssScraper {
+  notify: boolean;
   url: string;
   group_type: NewsGroupType;
   community_ids: number[];
 }
 
 export interface RssSettings {
-  notify: boolean;
   scrapers: RssScraper[];
 }

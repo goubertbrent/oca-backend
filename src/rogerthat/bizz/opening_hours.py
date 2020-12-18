@@ -22,9 +22,9 @@ import pytz
 from babel import localedata
 from babel.dates import format_date, format_time
 from dateutil.relativedelta import relativedelta
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
-from rogerthat.models import OpeningHours, OpeningHour
+from rogerthat.models import OpeningHours, OpeningHour, OpeningPeriod
 from rogerthat.to.maps import WeekDayTextTO, MapItemLineTextPartTO
 from rogerthat.translations import localize
 
@@ -85,7 +85,7 @@ def get_open_until(periods, now, lang):
                     if now_time >= period.open.datetime:
                         if period.close.day != weekday:
                             day_name = _get_weekday_names(lang)[period.close.day]
-                            hour_str = _format_opening_hour(period and period.close, lang)
+                            hour_str = _format_opening_hour(period.close, lang)
                             open_until_str = localize(lang, 'open_until', time='%s %s' % (day_name, hour_str))
                             return True, open_until_str, next_weekday
                         elif now_time < period.close.datetime:
@@ -208,8 +208,10 @@ def get_weekday_text(periods, exceptions, lang, now):
                     for p in data:
                         period = data[p]
                         if not period.get('has_description', False):
-                            period['lines'].append(MapItemLineTextPartTO(text=exception.description,
-                                                                         color=get_openinghours_color(exception.description_color or OPENING_HOURS_ORANGE_COLOR)))
+                            period['lines'].append(MapItemLineTextPartTO(
+                                text=exception.description,
+                                color=get_openinghours_color(exception.description_color or OPENING_HOURS_ORANGE_COLOR))
+                            )
 
                 for day in data:
                     current_data = lines_per_day.get(day) or []
@@ -295,6 +297,7 @@ def get_weekday_text_day(periods, lang, day):
 
 
 def get_weekday_periods_day(periods, day):
+    # type: (List[OpeningPeriod], datetime) -> Dict[int, Dict[str, List[OpeningPeriod]]]
     weekday = _get_weekday(day)
     if not periods:
         return {}

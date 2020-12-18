@@ -1,0 +1,19 @@
+.language-list {
+  display: block;
+  width: 100%;
+}
+
+.language-has-error {
+  margin-right: 8px;
+}
+
+.home-screen-form {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 400px;
+
+  .mat-form-field {
+    display: block;
+  }
+}

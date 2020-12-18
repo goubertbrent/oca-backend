@@ -45,7 +45,3 @@ $app-theme: mat-light-theme($app-primary, $app-accent);
 // Include the theme styles for only specified components to reduce bundle size
 @include mat-core-theme($app-theme);
 @include mat-expansion-panel-theme($app-theme);
-
-ion-toolbar > ion-title {
-  text-transform: uppercase;
-}

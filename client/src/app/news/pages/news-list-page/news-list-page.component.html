@@ -1,5 +1,21 @@
 <mat-toolbar>
-  <h1 class="flex-grow">{{ 'oca.news_items' | translate }}</h1>
+  <h1>{{ 'oca.news_items' | translate }}</h1>
+  <div class="search-field">
+    <mat-form-field class="toolbar-form-field">
+      <mat-icon matPrefix>search</mat-icon>
+      <input [formControl]="searchControl"
+             [placeholder]="'oca.search' | translate"
+             matInput
+             type="search">
+      <button (click)="searchControl.setValue(null);"
+              *ngIf="searchControl.value"
+              mat-icon-button
+              matSuffix
+              type="button">
+        <mat-icon>clear</mat-icon>
+      </button>
+    </mat-form-field>
+  </div>
   <a mat-icon-button routerLink="/news/settings" *ngIf="isShowUser$ | async">
     <mat-icon>settings</mat-icon>
   </a>
@@ -10,4 +26,9 @@
                     [hasMore]="hasMore$ | async"
                     [items]="newsList$ | async"
                     [newsGroups]="newsGroups$ | async"
-                    [listStatus]="listStatus$ | async"></oca-news-item-list>
+                    [loading]="isNewsListLoading$ | async"></oca-news-item-list>
+
+<p *ngIf="hasNoNews$ | async">
+  <ng-container *ngIf="searchControl.value">{{ 'oca.no_results' | translate }}</ng-container>
+  <ng-container *ngIf="!searchControl.value">{{ 'oca.no_previous_news_items' | translate }}</ng-container>
+</p>

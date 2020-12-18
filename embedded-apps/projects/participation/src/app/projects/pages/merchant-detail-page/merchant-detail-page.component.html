@@ -1,0 +1,60 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ (merchant$ | async)?.name }}</ion-title>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref=""></ion-back-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content class="ion-padding" *ngIf="merchant$ | async as merchant">
+  <div class="images-container">
+    <img class="merchant-image" [src]="photo.url" *ngFor="let photo of merchant.photos"
+         (click)="showFullScreen(photo.url)"/>
+  </div>
+  <ion-list>
+    <ion-item [href]="mapsUrl$ | async">
+      <ion-icon name="pin" slot="start"></ion-icon>
+      <ion-label class="ion-text-wrap">{{ merchant.formatted_address }}</ion-label>
+    </ion-item>
+    <ion-item *ngIf="merchant.formatted_phone_number" [href]="'tel://' + merchant.formatted_phone_number">
+      <ion-icon name="call" slot="start"></ion-icon>
+      <ion-label>{{ merchant.formatted_phone_number }}</ion-label>
+    </ion-item>
+    <ion-item *ngIf="merchant.website" [href]="merchant.website" target="_blank">
+      <ion-icon name="globe" slot="start"></ion-icon>
+      <ion-label class="ion-text-wrap">{{ merchant.website}}</ion-label>
+    </ion-item>
+    <ng-container *ngIf="merchant.opening_hours">
+      <ion-item button (click)="toggleOpeningHours()" [detail]="false">
+        <ion-icon name="time" slot="start"></ion-icon>
+        <ion-label>
+          <h2>{{ merchant.opening_hours.open_until }}</h2>
+          <ion-text color="dark" *ngIf="openingHoursExpanded" class="ion-text-wrap">
+            <table class="opening-hours-table">
+              <thead>
+              <tr>
+                <th></th>
+                <th></th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr *ngFor="let period of merchant.opening_hours.weekday_text">
+                <td>{{ period.day }}</td>
+                <td>
+                  <ng-container *ngFor="let hours of period.hours; let last = last;">{{ hours }}<br *ngIf="!last">
+                  </ng-container>
+                </td>
+              </tr>
+              </tbody>
+            </table>
+          </ion-text>
+        </ion-label>
+        <ion-icon [name]="expandIcon" slot="end"></ion-icon>
+      </ion-item>
+    </ng-container>
+  </ion-list>
+  <div class="fullscreen-image-container" [class.fullscreen-active]="fullscreenActive" (click)="closeOverlay()">
+    <img [src]="fullscreenImage" *ngIf="fullscreenImage">
+    <ion-icon name="close" class="close-button"></ion-icon>
+  </div>
+</ion-content>

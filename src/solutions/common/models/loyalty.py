@@ -22,7 +22,6 @@ from google.appengine.ext import db, blobstore
 
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.dal import parent_key, parent_key_unsafe
-from rogerthat.models import ArchivedModel
 from rogerthat.rpc import users
 from rogerthat.utils import now
 from rogerthat.utils.app import create_app_user_by_email
@@ -78,7 +77,7 @@ class SolutionLoyaltySlide(db.Model):
         return get_identity_from_service_identity_user(self.service_identity_user)
 
 
-class SolutionLoyaltyVisitRevenueDiscount(db.Model, ArchivedModel):
+class SolutionLoyaltyVisitRevenueDiscount(db.Model):
     app_user = db.UserProperty()
     app_user_info = SolutionUserProperty()
 
@@ -135,10 +134,7 @@ class SolutionLoyaltyVisitRevenueDiscount(db.Model, ArchivedModel):
             .filter('redeemed_timestamp <', last_day)
 
 
-class SolutionLoyaltyVisitRevenueDiscountArchive(SolutionLoyaltyVisitRevenueDiscount):
-    pass
-
-class SolutionLoyaltyVisitLottery(db.Model, ArchivedModel):
+class SolutionLoyaltyVisitLottery(db.Model):
     app_user = db.UserProperty()
     app_user_info = SolutionUserProperty()
 
@@ -186,10 +182,7 @@ class SolutionLoyaltyVisitLottery(db.Model, ArchivedModel):
         return db.Key.from_path(cls.kind(), "%s|%s" % (timestamp_day, app_user.email()), parent=parent_key_unsafe(service_identity_user, SOLUTION_COMMON))
 
 
-class SolutionLoyaltyVisitLotteryArchive(SolutionLoyaltyVisitLottery):
-    pass
-
-class SolutionLoyaltyVisitStamps(db.Model, ArchivedModel):
+class SolutionLoyaltyVisitStamps(db.Model):
     app_user = db.UserProperty()
     app_user_info = SolutionUserProperty()
 
@@ -239,10 +232,6 @@ class SolutionLoyaltyVisitStamps(db.Model, ArchivedModel):
             .ancestor(parent_key_unsafe(service_identity_user, SOLUTION_COMMON)) \
             .filter('redeemed_timestamp >=', first_day) \
             .filter('redeemed_timestamp <', last_day)
-
-
-class SolutionLoyaltyVisitStampsArchive(SolutionLoyaltyVisitStamps):
-    pass
 
 
 class SolutionLoyaltyIdentitySettings(db.Model):

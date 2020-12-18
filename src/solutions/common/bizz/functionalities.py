@@ -19,10 +19,9 @@ from __future__ import unicode_literals
 
 from typing import Tuple, List, Dict
 
-from rogerthat.bizz.communities.models import Community, AppFeatures
+from rogerthat.bizz.communities.models import Community
 from solutions import translate as common_translate
 from solutions.common.bizz import SolutionModule
-
 
 OTHER_LANGUAGES = ['nl']
 
@@ -30,7 +29,7 @@ OTHER_LANGUAGES = ['nl']
 # modules related media per language (tutorial videos...etc)
 MEDIA = {
     'nl': {
-        SolutionModule.BROADCAST: {
+        SolutionModule.NEWS: {
             'video_id': '1WbWOE4hOj4',
             'tutorial_video_id': '1WbWOE4hOj4',
         },
@@ -41,10 +40,6 @@ MEDIA = {
         SolutionModule.ORDER: {
             'video_id': 'N6lCgEpxIS0',
             'tutorial_video_id': 'N6lCgEpxIS0',
-        },
-        SolutionModule.RESTAURANT_RESERVATION: {
-            'video_id': '7aFdU2wyTkM',
-            'tutorial_video_id': '7aFdU2wyTkM',
         }
     }
 }
@@ -65,7 +60,7 @@ class Functionality(object):
 
     @property
     def title(self):
-        if self.name == SolutionModule.BROADCAST:
+        if self.name == SolutionModule.NEWS:
             return self.translate('News & actions')
         elif self.name == SolutionModule.ORDER:
             return self.translate('e-shop')
@@ -134,25 +129,25 @@ class Functionality(object):
 
 
 def sort_modules(name):
-    if name == SolutionModule.BROADCAST:
+    if name == SolutionModule.NEWS:
         return 0
     return name
 
 
 def get_functionalities(language, my_modules, activated_modules, community):
     # type: (str, List[str], List[str], Community) -> Tuple[List[str], Dict[str, Dict]]
-    # we need the broadcast module to be the first
+    # we need the news module to be the first
     modules = sorted(SolutionModule.FUNCTIONALITY_MODULES, key=sort_modules)
-
-    if not community or AppFeatures.JOBS not in community.features:
-        modules.remove(SolutionModule.JOBS)
-
     if SolutionModule.CITY_APP in my_modules:
         modules.remove(SolutionModule.LOYALTY)
-
     elif SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in modules:
         modules.remove(SolutionModule.HIDDEN_CITY_WIDE_LOTTERY)
-
+    for module in list(modules):  # take copy to not overwrite te current list we're iterating over
+        if module in activated_modules:
+            continue
+        feat = SolutionModule.COMMUNITY_MODULES.get(module)
+        if feat and feat not in community.features:
+            modules.remove(module)
     functionalities = [Functionality(language, activated_modules, module) for module in modules]
     info = {func.name: func.to_dict() for func in functionalities}
     return modules, info

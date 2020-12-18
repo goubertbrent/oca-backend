@@ -1,0 +1,74 @@
+<ng-template #newMappingTemplate>
+  <form (ngSubmit)="updateMapping()" [formGroup]="editingFormGroup" [ngSwitch]="editingFormGroup.controls.type.value">
+    <p>
+      {{ 'oca.value_on_topdesk' | translate }}: {{ MAPPING_LABELS[editingFormGroup.controls.type.value] | translate }}
+    </p>
+    <mat-form-field>
+      <mat-label>{{ 'oca.component' | translate }}</mat-label>
+      <mat-select formControlName="id" required>
+        <mat-option *ngFor="let component of possibleComponents" [value]="component.id">{{component.title}}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <ng-container *ngSwitchCase="TOPDeskPropertyName.CATEGORY">
+      <oca-topdesk-category-mapping [categories]="categories$ | async"
+                                    [choices]="selectedComponent.choices"
+                                    formControlName="categories"></oca-topdesk-category-mapping>
+    </ng-container>
+    <ng-container *ngSwitchCase="TOPDeskPropertyName.SUBCATEGORY">
+      <oca-topdesk-category-mapping [choices]="selectedComponent.choices"
+                                    [subcategories]="subCategories$ | async"
+                                    formControlName="subcategories"></oca-topdesk-category-mapping>
+    </ng-container>
+    <ng-container *ngSwitchCase="TOPDeskPropertyName.OPTIONAL_FIELDS_1">
+      <oca-topdesk-optional-field-mapping [formGroup]="editingFormGroup"></oca-topdesk-optional-field-mapping>
+    </ng-container>
+    <ng-container *ngSwitchCase="TOPDeskPropertyName.OPTIONAL_FIELDS_2">
+      <oca-topdesk-optional-field-mapping [formGroup]="editingFormGroup"></oca-topdesk-optional-field-mapping>
+    </ng-container>
+    <button mat-stroked-button>{{ 'oca.Save' | translate }}</button>
+  </form>
+</ng-template>
+<mat-accordion>
+  <mat-expansion-panel *ngFor="let section of sections; trackBy: trackSections"
+                       [disabled]="editing && editing?.section !== section.id">
+    <mat-expansion-panel-header>{{ section.title }}</mat-expansion-panel-header>
+    <ng-template matExpansionPanelContent>
+      <mat-list *ngFor="let mapping of sectionsMapping.get(section.id); let componentIndex = index"
+                class="mapping-list">
+        <ng-container *ngIf="section.id === editing?.section && editing?.index === componentIndex; else listItem"
+                      [ngTemplateOutlet]="newMappingTemplate"></ng-container>
+        <ng-template #listItem>
+          <mat-list-item [ngSwitch]="mapping.type">
+            <span matLine>{{ MAPPING_LABELS[mapping.type] | translate }}
+              → {{ componentsMapping.get(section.id).get(mapping.id).title }}</span>
+            <button (click)="editMapping(componentIndex, section, mapping)" mat-icon-button type="button">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button (click)="removeMapping(componentIndex, section, mapping)" mat-icon-button type="button">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </mat-list-item>
+        </ng-template>
+      </mat-list>
+      <mat-menu #typeMenu>
+        <ng-template matMenuContent>
+          <button (click)="addMapping(section, mappingType.type)"
+                  *ngFor="let mappingType of MAPPING_TYPES"
+                  mat-menu-item
+                  type="button">{{ mappingType.label | translate }}</button>
+        </ng-template>
+      </mat-menu>
+      <button *ngIf="editing === null" [matMenuTriggerFor]="typeMenu" mat-stroked-button type="button">
+        {{ 'oca.add_mapping' | translate }}
+      </button>
+      <ng-container *ngIf="editing?.index === NEW_ITEM_INDEX" [ngTemplateOutlet]="newMappingTemplate"></ng-container>
+        <mat-list *ngIf="unassignedComponents.get(section.id).length > 0">
+          <h4 matSubheader>{{ 'oca.topdesk_fields_implicitly_included_in_request' | translate }}</h4>
+          <mat-list-item *ngFor="let component of unassignedComponents.get(section.id)">
+            <mat-icon mat-list-icon>{{ COMPONENT_ICONS[component.type]}}</mat-icon>
+            <p matLine>{{ component.title }}</p>
+          </mat-list-item>
+        </mat-list>
+    </ng-template>
+  </mat-expansion-panel>
+</mat-accordion>

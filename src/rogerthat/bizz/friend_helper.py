@@ -20,10 +20,10 @@ import collections
 import logging
 from contextlib import closing
 
+import cloudstorage
 from google.appengine.api import memcache
 from google.appengine.ext import db
 
-import cloudstorage
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.serialization import s_any, ds_any
@@ -246,8 +246,7 @@ class _FriendDatastoreHelper(FriendHelper):
             from rogerthat.bizz.i18n import get_all_translations, get_active_translation_set
             s = get_active_translation_set(self.get_service_profile())
             if s:
-                translation_types = ServiceTranslation.HOME_TYPES + ServiceTranslation.IDENTITY_TYPES + \
-                    ServiceTranslation.BROADCAST_TYPES
+                translation_types = ServiceTranslation.HOME_TYPES + ServiceTranslation.IDENTITY_TYPES
                 translations = get_all_translations(s, translation_types)
                 return translations
 

@@ -17,6 +17,8 @@
  */
 
 $(function () {
+    checkForIE();
+
     var menuPress = function (event) {
         var li = $(this).parent();
         if (li.hasClass('disabled') || li.hasClass('active'))
@@ -45,4 +47,17 @@ $(function () {
     $('#logout_link').click(function (e) {
         $(this).addClass('disabled');
     });
+
+    // Check version and show popup in case of IE
+    function checkForIE() {
+        /* MSIE used to detect old browsers and Trident used to newer ones*/
+        var isIE = navigator.userAgent.indexOf('MSIE ') > -1
+            || navigator.userAgent.indexOf('Trident/') > -1;
+        if (isIE) {
+            var msg = CommonTranslations.please_use_proper_browser
+                .replace('%(url)s', '<a href="https://browsehappy.com/" target="_blank">'
+                    + CommonTranslations.overview_browsers + '</a>');
+            sln.alert(msg);
+        }
+    }
 });

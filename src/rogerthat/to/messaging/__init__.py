@@ -19,7 +19,7 @@ from mcfw.consts import MISSING
 from mcfw.properties import unicode_property, long_property, unicode_list_property, typed_property, object_factory, \
     bool_property
 from rogerthat.dal.app import get_app_by_id
-from rogerthat.models import Message, ServiceTranslation, App
+from rogerthat.models import Message, App
 from rogerthat.models.properties.forms import FormResult
 from rogerthat.models.properties.messaging import MessageEmbeddedApp, Thumbnail
 from rogerthat.rpc import users
@@ -27,7 +27,7 @@ from rogerthat.to import MESSAGE_TYPE_TO_MAPPING, ROOT_MESSAGE_TYPE_TO_MAPPING, 
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils.app import create_app_user, remove_app_id, get_human_user_from_app_user, get_app_user_tuple, \
     create_app_user_by_email
-from rogerthat.utils.service import remove_slash_default, get_service_user_from_service_identity_user
+from rogerthat.utils.service import remove_slash_default
 
 
 class ButtonTO(BaseButtonTO):
@@ -81,10 +81,6 @@ class AnswerTO(ButtonTO):
         a.__dict__ = button.__dict__
         a.type = u'button'
         return a
-
-
-class BroadcastResultTO(object):
-    statistics_key = unicode_property('1')
 
 
 class MemberStatusUpdateRequestTO(object):
@@ -199,7 +195,6 @@ class BaseMessageTO(object):
     message_type = long_property('13')
     context = unicode_property('14')
     thread_size = long_property('15')
-    broadcast_type = unicode_property('16', default=None)
     attachments = typed_property('17', AttachmentTO, True, default=[])
     thread_avatar_hash = unicode_property('18', default=None)
     thread_background_color = unicode_property('19', default=None)
@@ -235,15 +230,6 @@ class BaseMessageTO(object):
         msgTO.branding = branding
         msgTO.alert_flags = message.alert_flags if message.alert_flags is not None else Message.ALERT_FLAG_VIBRATE
         msgTO.message_type = message.TYPE
-        if member and message.broadcast_type:
-            from rogerthat.bizz.i18n import get_translator
-            from rogerthat.dal.profile import get_user_profile
-            lang = get_user_profile(member).language
-            translator = get_translator(get_service_user_from_service_identity_user(message.sender),
-                                        [ServiceTranslation.BROADCAST_TYPE], lang)
-            msgTO.broadcast_type = translator.translate(ServiceTranslation.BROADCAST_TYPE, message.broadcast_type, lang)
-        else:
-            msgTO.broadcast_type = None
         msgTO.attachments = map(AttachmentTO.fromModel, sorted(message.attachments or [], key=lambda a: a.index))
         msgTO.thread_avatar_hash = convert_to_unicode(message.thread_avatar_hash)
         msgTO.thread_background_color = message.thread_background_color
@@ -561,13 +547,6 @@ class TransferCompletedRequestTO(object):
 
 class TransferCompletedResponseTO(object):
     pass
-
-
-class BroadcastTargetAudienceTO(object):
-    min_age = long_property('0')
-    max_age = long_property('1')
-    gender = unicode_property('2')
-    app_id = unicode_property('3')
 
 
 class StartFlowRequestTO(object):

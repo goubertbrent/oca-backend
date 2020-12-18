@@ -33,7 +33,7 @@ def init_env():
     from google.appengine.api.memcache import memcache_stub
     from google.appengine.api.taskqueue import taskqueue_stub
     try:
-        
+
         if not apiproxy_stub_map.apiproxy.GetStub('user'):
             apiproxy_stub_map.apiproxy.RegisterStub('user', user_service_stub.UserServiceStub())
             apiproxy_stub_map.apiproxy.RegisterStub('datastore_v3',
@@ -56,5 +56,6 @@ def init_env():
 
     settings = get_server_settings()
     settings.jabberDomain = "localhost"
-    
+
+
 init_env()

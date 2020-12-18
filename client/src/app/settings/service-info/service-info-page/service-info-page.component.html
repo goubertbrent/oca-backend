@@ -98,7 +98,7 @@
   <mat-form-field class="field wide-field">
     <mat-label>{{ 'oca.search_keywords' | translate }}</mat-label>
     <mat-chip-list #keywordChipList>
-      <mat-chip (removed)="removeKeyword(keyword)" *ngFor="let keyword of formGroup.value.keywords">
+      <mat-chip (removed)="removeKeyword(keyword)" *ngFor="let keyword of formGroup.value!.keywords">
         {{ keyword }}
         <mat-icon matChipRemove>cancel</mat-icon>
       </mat-chip>
@@ -117,7 +117,7 @@
       <mat-expansion-panel-header>
         <mat-panel-title>{{ 'oca.Phone number' | translate }}</mat-panel-title>
         <mat-panel-description class="info-panel-description">
-          <oca-synced-values-preview [values]="formGroup.value.phone_numbers"
+          <oca-synced-values-preview [values]="formGroup.value!.phone_numbers"
                                      class="synced-values-preview"></oca-synced-values-preview>
           <mat-icon>phone</mat-icon>
         </mat-panel-description>
@@ -130,7 +130,7 @@
       <mat-expansion-panel-header>
         <mat-panel-title>{{ 'oca.Email' | translate }}</mat-panel-title>
         <mat-panel-description class="info-panel-description">
-          <oca-synced-values-preview [values]="formGroup.value.email_addresses"
+          <oca-synced-values-preview [values]="formGroup.value!.email_addresses"
                                      class="synced-values-preview"></oca-synced-values-preview>
           <mat-icon>email</mat-icon>
         </mat-panel-description>
@@ -143,7 +143,7 @@
       <mat-expansion-panel-header>
         <mat-panel-title>{{ 'oca.Website' | translate }}</mat-panel-title>
         <mat-panel-description class="info-panel-description">
-          <oca-synced-values-preview [values]="formGroup.value.websites"
+          <oca-synced-values-preview [values]="formGroup.value!.websites"
                                      class="synced-values-preview"></oca-synced-values-preview>
           <mat-icon>website</mat-icon>
         </mat-panel-description>
@@ -158,7 +158,7 @@
         <mat-panel-title>{{ 'oca.address' | translate }}</mat-panel-title>
         <mat-panel-description class="info-panel-description">
           <div class="synced-values-preview">
-            <ng-container *ngFor="let value of formGroup.value.addresses; let last = last">
+            <ng-container *ngFor="let value of formGroup.value!.addresses; let last = last">
               {{ value.street }} {{ value.street_number }}, {{ value.locality }}
               <ng-container *ngIf="!last">|</ng-container>
             </ng-container>

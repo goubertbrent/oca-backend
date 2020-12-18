@@ -3,7 +3,7 @@ import { FormBuilder, Validators } from '@angular/forms';
 import { IFormBuilder, IFormGroup } from '@rxweb/types';
 import { EmbeddedApp } from '../../../interfaces';
 import { COUNTRIES } from '../../countries';
-import { AppFeature, CreateCommunity, SimpleApp } from '../communities';
+import { AppFeature, CreateCommunity, CustomizationFeature, SimpleApp } from '../communities';
 
 @Component({
   selector: 'rcc-community-form',
@@ -18,16 +18,34 @@ export class CommunityFormComponent implements OnInit {
   formGroup: IFormGroup<CreateCommunity>;
   countries = COUNTRIES;
   features = [
+    { label: 'Events: Show merchants in feed from main service', value: AppFeature.EVENTS_SHOW_MERCHANTS },
     { label: 'Jobs', value: AppFeature.JOBS },
+    { label: 'Loyalty', value: AppFeature.LOYALTY },
     { label: 'News: videos in feed', value: AppFeature.NEWS_VIDEO },
     { label: 'News: location filter', value: AppFeature.NEWS_LOCATION_FILTER },
     { label: 'News: city must review all merchant news', value: AppFeature.NEWS_REVIEW },
     { label: 'News: regional news', value: AppFeature.NEWS_REGIONAL },
   ];
+  customizationFeatures = [
+    { label: 'Store home address in user data', value: CustomizationFeature.HOME_ADDRESS_IN_USER_DATA },
+  ];
   private formBuilder: IFormBuilder;
+  private _community: CreateCommunity;
 
   constructor(formBuilder: FormBuilder) {
-    this.formBuilder = formBuilder;
+    const fb = formBuilder as IFormBuilder;
+    this.formGroup = fb.group<CreateCommunity>({
+      auto_connected_services: [[]],
+      country: [''],
+      name: ['', Validators.required],
+      default_app: ['', Validators.required],
+      embedded_apps: [[]],
+      main_service: [''],
+      demo: [false],
+      signup_enabled: [false],
+      features: [[AppFeature.NEWS_VIDEO]],
+      customization_features: [[]],
+    });
   }
 
   @Input() set loading(value: boolean) {
@@ -40,11 +58,9 @@ export class CommunityFormComponent implements OnInit {
     }
   }
 
-  private _community: CreateCommunity;
-
   @Input() set community(community: CreateCommunity) {
     this._community = community;
-    if (this.formGroup) {
+    if (community) {
       this.formGroup.patchValue(community);
     }
   }
@@ -60,6 +76,7 @@ export class CommunityFormComponent implements OnInit {
       demo: [false],
       signup_enabled: [false],
       features: [[AppFeature.NEWS_VIDEO, AppFeature.JOBS]],
+      customization_features: [[]],
     });
     if (this._community) {
       // Since the formGroup might not have been initialized the moment the community was set,
@@ -70,7 +87,6 @@ export class CommunityFormComponent implements OnInit {
 
   save() {
     if (this.formGroup.valid) {
-      // tslint:disable-next-line:no-non-null-assertion
       this.saved.emit(this.formGroup.value!!);
     }
   }

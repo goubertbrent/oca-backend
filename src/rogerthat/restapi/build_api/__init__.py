@@ -24,6 +24,7 @@ from mcfw.rpc import returns, arguments
 from rogerthat.models import AppNameMapping
 from rogerthat.restapi.build_api.to import AppDeepLinksTO, AppBuildInfoTO
 from rogerthat.settings import get_server_settings
+from rogerthat.dal.app import get_app_by_id
 
 
 @rest('/api/build/apps/<app_id:[^/]+>', 'get')
@@ -38,4 +39,9 @@ def rest_get_build_info(app_id):
     links += [AppDeepLinksTO(host=client_url.hostname,
                              path_prefix='/web/%s/news/id' % app_name_mapping.name,
                              scheme=client_url.scheme) for app_name_mapping in AppNameMapping.list_by_app(app_id)]
-    return AppBuildInfoTO(deep_links=links)
+
+    result = AppBuildInfoTO(deep_links=links)
+    app = get_app_by_id(app_id)
+    if app:
+        result.ios_app_id = app.ios_app_id
+    return result

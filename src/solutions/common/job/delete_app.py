@@ -17,7 +17,7 @@
 
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.job import run_job
-from rogerthat.bizz.user import archiveUserDataAfterDisconnect
+from rogerthat.bizz.user import delete_user_data
 from rogerthat.consts import MIGRATION_QUEUE
 from rogerthat.dal.friend import get_friends_map
 from rogerthat.models import UserProfile
@@ -62,4 +62,4 @@ def _delete_account(profile, unregister_reason):
     # type: (UserProfile, unicode) -> None
     app_user = profile.user
     friend_map = get_friends_map(app_user)
-    archiveUserDataAfterDisconnect(app_user, friend_map, profile, hard_delete=True, unregister_reason=unregister_reason)
+    delete_user_data(app_user, friend_map, profile, unregister_reason=unregister_reason)

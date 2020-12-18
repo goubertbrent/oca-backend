@@ -20,6 +20,7 @@ from types import NoneType
 from google.appengine.ext import ndb
 
 from mcfw.consts import MISSING
+from mcfw.exceptions import HttpBadRequestException
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz import news
 from rogerthat.bizz.news import get_news_share_base_url, get_news_share_url
@@ -140,12 +141,13 @@ def disable_news(news_id, members, service_identity=None):
 
 @service_api(function=u'news.list')
 @returns(NewsItemListResultTO)
-@arguments(cursor=unicode, batch_count=(int, long), service_identity=unicode)
-def list_news(cursor=None, batch_count=10, service_identity=None):
-    bizz_check(batch_count <= 100, 'Cannot get more than 100 news items at once.')
+@arguments(cursor=unicode, batch_count=(int, long), service_identity=unicode, query=unicode)
+def list_news(cursor=None, batch_count=10, service_identity=None, query=None):
+    if batch_count > 100:
+        raise HttpBadRequestException('Cannot get more than 100 news items at once.')
     service_user = users.get_current_user()
     service_identity_user = get_and_validate_service_identity_user(service_user, service_identity)
-    return news.get_news_by_service(cursor, batch_count, service_identity_user)
+    return news.get_news_by_service(cursor, batch_count, service_identity_user, query)
 
 
 @service_api(function=u'news.list_groups')

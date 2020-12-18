@@ -72,7 +72,7 @@ export class NewsItemPageComponent implements OnInit, OnDestroy {
       navigator.share({
         title: this.translate.instant('web.our_city_app'),
         text: newsItem.title,
-        url: newsItem.share_url,
+        url,
       }).catch(() => this.copyToClipboard(url));
     } else {
       this.copyToClipboard(url);

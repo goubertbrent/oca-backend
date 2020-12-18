@@ -1,0 +1,86 @@
+<form (ngSubmit)="confirm()" [formGroup]="formGroup">
+  <ion-list>
+    <ion-item>
+      <ion-label>{{ 'app.qm.service' | translate }}</ion-label>
+      <ionic-selectable
+        [canSearch]="true"
+        [clearButtonText]="'app.qm.cancel' | translate"
+        [closeButtonText]="'app.qm.close' | translate"
+        [items]="services"
+        [searchFailText]="'app.qm.no_activities_found' | translate"
+        [searchPlaceholder]="'app.qm.search' | translate"
+        formControlName="service"
+        itemTextField="name"
+        itemValueField="publicId"></ionic-selectable>
+    </ion-item>
+
+    <ion-item *ngIf="formGroup.controls.service.valid">
+      <ion-label>{{ 'app.qm.location' | translate }}</ion-label>
+      <ion-select [cancelText]="'app.qm.cancel' | translate"
+                  [okText]="'app.qm.ok' | translate"
+                  formControlName="branch"
+                  required>
+        <ion-select-option *ngFor="let branch of branches" [value]="branch.publicId">
+          {{ branch.name }}
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    <ion-item *ngIf="formGroup.controls.branch.valid">
+      <ion-label>{{ 'app.qm.date' | translate }}</ion-label>
+      <ion-select [cancelText]="'app.qm.cancel' | translate"
+                  [okText]="'app.qm.ok' | translate"
+                  formControlName="date"
+                  required>
+        <ion-select-option *ngFor="let date of dates" [value]="date.value">
+          {{ date.date | date }}
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    <ng-container *ngIf="formGroup.controls.date.valid">
+      <ion-item>
+        <ion-label>{{ 'app.qm.time' | translate }}</ion-label>
+        <ion-select [cancelText]="'app.qm.cancel' | translate"
+                    [okText]="'app.qm.ok' | translate"
+                    formControlName="time"
+                    required>
+          <ion-select-option *ngFor="let time of times" [value]="time">{{ time }}</ion-select-option>
+        </ion-select>
+      </ion-item>
+      <ng-container formGroupName="customer">
+        <ion-item>
+          <ion-label position="floating">{{ 'app.qm.first_name' | translate }}</ion-label>
+          <ion-input formControlName="firstName" required type="text"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label position="floating">{{ 'app.qm.last_name' | translate }}</ion-label>
+          <ion-input formControlName="lastName" required type="text"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label position="floating">{{ 'app.qm.email' | translate }}</ion-label>
+          <ion-input formControlName="email" required type="email"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label position="floating">{{ 'app.qm.phone' | translate }}</ion-label>
+          <ion-input formControlName="phone" required type="tel"></ion-input>
+        </ion-item>
+      </ng-container>
+        <ion-item>
+          <ion-label position="floating">{{ 'app.qm.notes' | translate }}</ion-label>
+          <ion-input formControlName="notes" required></ion-input>
+        </ion-item>
+    </ng-container>
+    <div *ngIf="showLoading" class="qm-spinner-container">
+      <ion-spinner></ion-spinner>
+    </div>
+    <ion-text color="danger" *ngIf="showValidationError" class="ion-padding" style="display: block;">
+      {{ 'app.qm.validation_error_message' | translate }}
+    </ion-text>
+    <div *ngIf="formGroup.controls.time.valid" class="ion-padding">
+      <ion-button [disabled]="showLoading" expand="block" type="submit">
+        {{ 'app.qm.confirm_appointment' | translate }}
+      </ion-button>
+    </div>
+  </ion-list>
+</form>

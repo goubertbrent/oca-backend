@@ -13,7 +13,7 @@ export const DEFAULT_LOCALE = 'en-GB';
 export const SUPPORTED_LOCALES: string[] = ['en-GB', 'en-US', 'nl'];
 // Must match filenames of the files in assets/i18n for *all* embedded apps
 export const SUPPORTED_LANGUAGES = ['en', 'nl'];
-export const DEFAULT_LANGUAGE = 'nl';
+export const DEFAULT_LANGUAGE = 'en';
 
 export function getLanguage(language: string) {
   language = language.replace('_', '-');

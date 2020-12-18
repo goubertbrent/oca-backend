@@ -288,6 +288,10 @@ export class AppsService {
       .pipe(map(() => null));
   }
 
+  saveAppAPNsIos(appPayload: AppDetailPayload, keyId: string, file: string): Observable<AppSettings> {
+    return this.http.put<AppSettings>(`${ConsoleConfig.appBaseUrlRT(appPayload)}/settings/apns-ios`, { keyId, file });
+  }
+
   updateFacebook(appId: string): Observable<null> {
     return this.http.post(`${ConsoleConfig.appBaseUrl(appId)}/facebook/update`, null)
       .pipe(map(() => null));

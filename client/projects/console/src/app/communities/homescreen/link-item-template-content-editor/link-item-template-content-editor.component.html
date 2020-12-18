@@ -1,0 +1,33 @@
+<ng-container [formGroup]="formGroup" [ngSwitch]="formGroup.controls.source.value">
+  <mat-form-field>
+    <mat-label>Link source</mat-label>
+    <mat-select (valueChange)="sourceTypeChanged($event)" formControlName="source" required>
+      <mat-option *ngFor="let source of sources" [value]="source.value">{{ source.label }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <ng-container *ngSwitchCase="SOURCE_NONE">
+    <mat-slide-toggle formControlName="external">Open in external browser</mat-slide-toggle>
+    <mat-slide-toggle formControlName="request_user_link">Add user id as url parameter</mat-slide-toggle>
+    <rcc-app-action-editor formControlName="url"></rcc-app-action-editor>
+  </ng-container>
+  <ng-container *ngSwitchCase="SOURCE_ADDRESS"></ng-container>
+  <ng-container *ngSwitchCase="SOURCE_MENU_ITEM">
+    <!-- TODO autocomplete -->
+    <mat-form-field>
+      <mat-label>Service (email)</mat-label>
+      <input formControlName="service" matInput required>
+    </mat-form-field>
+    <!-- TODO single select with values based on service -->
+    <mat-form-field>
+      <mat-label>Menu item tag</mat-label>
+      <input formControlName="tag" matInput required>
+    </mat-form-field>
+  </ng-container>
+  <ng-container *ngSwitchDefault>
+    <mat-form-field>
+      <mat-label>Index</mat-label>
+      <input formControlName="index" matInput max="3" min="0" required type="number">
+      <mat-hint>The index of the item that will be used as value.</mat-hint>
+    </mat-form-field>
+  </ng-container>
+</ng-container>

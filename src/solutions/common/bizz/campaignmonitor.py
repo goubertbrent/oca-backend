@@ -62,32 +62,38 @@ def get_auth_parameters():
 @returns()
 @arguments(email_id=unicode, to=[unicode], add_recipients_to_list=bool, data=dict)
 def send_smart_email(email_id, to, add_recipients_to_list=True, data=None):
-    """Send a smart email"""
+    if not to:
+        return
     consent_keys = [SolutionServiceConsent.create_key(email) for email in to]
     consents = ndb.get_multi(consent_keys)  # type: list[SolutionServiceConsent]
-    allowed_to = []
+    emails_with_consent = []
+    emails_without_consent = []
     for email, consent in zip(to, consents):
         if SolutionServiceConsent.consents(consent)[SolutionServiceConsent.TYPE_EMAIL_MARKETING]:
-            allowed_to.append(consent.email)
+            emails_with_consent.append(email)
         else:
-            logging.info('Not sending email to %s because no consent was given to send marketing emails', email)
+            emails_without_consent.append(email)
     if DEBUG:
-        logging.debug('Not sending out smart email %s to %s because DEBUG=True', email_id, allowed_to)
-        return
-    if not allowed_to:
+        logging.debug('Not sending out smart email %s to with_consent:%s without_consent:%s because DEBUG=True', email_id, emails_with_consent, emails_without_consent)
         return
 
     cs = Transactional(get_auth_parameters())
-    results = cs.smart_email_send(email_id, allowed_to, data=data, add_recipients_to_list=add_recipients_to_list)
-    rejected = [res.__dict__ for res in results if res.Status != u'Accepted']
-    if rejected:
-        logging.error('Sending smart email of %s is rejected for %s', email_id, rejected, _suppress=False)
+    if emails_with_consent:
+        results = cs.smart_email_send(email_id, emails_with_consent, data=data, add_recipients_to_list=add_recipients_to_list)
+        rejected = [res.__dict__ for res in results if res.Status != u'Accepted']
+        if rejected:
+            logging.error('Sending smart email of %s is rejected for with_consent:%s', email_id, rejected, _suppress=False)
+
+    if emails_without_consent:
+        results = cs.smart_email_send(email_id, emails_without_consent, data=data)
+        rejected = [res.__dict__ for res in results if res.Status != u'Accepted']
+        if rejected:
+            logging.error('Sending smart email of %s is rejected for without_consent:%s', email_id, rejected, _suppress=False)
 
 
 @returns()
 @arguments(email_id=unicode, to=[unicode])
 def send_smart_email_without_check(email_id, to):
-    """Send a smart email"""
     if DEBUG:
         logging.debug('Not sending out smart email %s to %s because DEBUG=True', email_id, to)
         return

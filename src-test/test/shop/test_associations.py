@@ -36,9 +36,8 @@ class AssociationsTestCase(oca_unittest.TestCase):
                                 phone_number=u"+32 9 324 25 64",
                                 languages=[u"en", u"nl"],
                                 currency=u"EUR",
-                                modules=[SolutionModule.CITY_APP, SolutionModule.BROADCAST, SolutionModule.ASK_QUESTION,
+                                modules=[SolutionModule.CITY_APP, SolutionModule.NEWS, SolutionModule.ASK_QUESTION,
                                          SolutionModule.WHEN_WHERE],
-                                broadcast_types=['News', 'test'],
                                 allow_redeploy=False,
                                 organization_type=OrganizationType.CITY,
                                 community_id=community.id)
@@ -53,10 +52,9 @@ class AssociationsTestCase(oca_unittest.TestCase):
         country = u'BE'
         language = u'nl'
         organization_type = OrganizationType.CITY
-        prospect_id = None
         team_id = RegioManagerTeam.all().get().id
         city_customer = create_or_update_customer(shop_user, None, vat, name, address1, address2, zip_code, city,
-                                                  country, language, organization_type, prospect_id,
+                                                  country, language, organization_type,
                                                   team_id=team_id, community_id=community.id)
         city_customer.service_email = city_customer.user_email = r.login
         city_customer.put()

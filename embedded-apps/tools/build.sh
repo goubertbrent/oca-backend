@@ -6,7 +6,7 @@ current_dir="$(
 
 if [ -z "${project}" ]; then
   echo "Select the project that you want to build"
-  select project in "oca" "hoplr" "cirklo" "trash-calendar"; do
+  select project in "oca" "hoplr" "cirklo" "trash-calendar" "participation" "qmatic"; do
     break
   done
 fi

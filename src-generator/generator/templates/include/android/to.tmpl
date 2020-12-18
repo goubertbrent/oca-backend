@@ -52,12 +52,8 @@ public class {{ to.name }}{% if to.super_class %} extends {{ to.super_class }}{%
                 this.{{ field.name }} = new {{ field.type|java_map_type }}[val_arr.size()];
                 for (int i = 0; i < val_arr.size(); i++) { {%- if field.type|common_is_simple_type %}{% if field.type == "float" %}
                     Object val = val_arr.get(i);
-                    if (val instanceof Float) {
-                        this.{{ field.name }}[i] = ((Float) val).floatValue();
-                    } else if (val instanceof Double) {
-                        this.{{ field.name }}[i] = new Float((Double) val).floatValue();
-                    } else {
-                        this.{{ field.name }}[i] = new Float((Long) val).floatValue();
+                    if (val instanceof Number) {
+                        this.{{ field.name }}[i] = ((Number) val).floatValue();
                     }{% else %}
                     this.{{ field.name }}[i] = {{ field.type|java_cast("val_arr.get(i)") }};{% endif %}{% else %}
                     Map<String, Object> item = (Map<String, Object>) val_arr.get(i);
@@ -77,17 +73,11 @@ public class {{ to.name }}{% if to.super_class %} extends {{ to.super_class }}{%
                 }
             }{% else %}
             {% if field.type|common_is_simple_type %}Object val = json.get("{{ field.name }}");{% if field.type == "float" %}
-            if (val instanceof Float) {
-                this.{{ field.name }} = {{ field.type|java_cast("val") }};
-            } else if (val instanceof Double) {
-                this.{{ field.name }} = new Float((Double) val);
-            } else {
-                this.{{ field.name }} = new Float((Long) val);
+            if (val instanceof Number) {
+                this.{{ field.name }} = ((Number) val).floatValue();
             }{% else %}{% if field.type == "int" or field.type == "long" %}
-            if (val instanceof Integer) {
-                this.{{ field.name }} = ((Integer) val).longValue();
-            } else {
-                this.{{ field.name }} = (Long) val;
+            if (val instanceof Number) {
+                this.{{ field.name }} = ((Number) val).longValue();
             }{% else %}
             this.{{ field.name }} = {{ field.type|java_cast("val") }};{% endif %}{% endif %}{% else %}Map<String, Object> val = (Map<String, Object>) json.get("{{ field.name }}");
             {% if field.subtype %}if (val != null && val.containsKey("{{ field.subtype.type.subtype_attr_name }}")) {
@@ -119,8 +109,8 @@ public class {{ to.name }}{% if to.super_class %} extends {{ to.super_class }}{%
             obj.put("{{ field.name }}", null);
         } else {
             org.json.simple.JSONArray arr = new org.json.simple.JSONArray();
-            for (int i = 0; i < this.{{ field.name }}.length; i++) {
-                arr.add(this.{{ field.name }}[i]{% if not field.type|common_is_simple_type %}.toJSONMap(){% endif %});
+            for ({{ field.type | java_map_type }} value : this.{{ field.name }}) {
+                arr.add(value{% if not field.type|common_is_simple_type %}.toJSONMap(){% endif %});
             }
             obj.put("{{ field.name }}", arr);
         }{% else %}{% if field.type|common_is_simple_type %}

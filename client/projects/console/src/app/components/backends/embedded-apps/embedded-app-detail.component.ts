@@ -1,16 +1,10 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormControl, NgForm } from '@angular/forms';
 import { ApiRequestStatus } from '../../../../../framework/client/rpc';
-import {
-  APP_TYPES,
-  AppTypes,
-  EMBEDDED_APP_TAGS,
-  EMBEDDED_APP_TYPES,
-  EmbeddedApp,
-  SaveEmbeddedApp,
-} from '../../../interfaces';
+import { APP_TYPES, EMBEDDED_APP_TAGS, EMBEDDED_APP_TYPES, EmbeddedApp, SaveEmbeddedApp } from '../../../interfaces';
 import { getFileReaderResult } from '../../../util';
 
+// TODO move all of embedded apps to separate NgModule
 @Component({
   selector: 'rcc-embedded-app-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -39,7 +33,7 @@ export class EmbeddedAppDetailComponent {
   private _embeddedApp: EmbeddedApp | SaveEmbeddedApp;
 
   get servingUrl() {
-    return (<EmbeddedApp>this.embeddedApp).serving_url ? (<EmbeddedApp>this.embeddedApp).serving_url : null;
+    return (this.embeddedApp as EmbeddedApp).serving_url ? (this.embeddedApp as EmbeddedApp).serving_url : null;
   }
 
   removeUrlRegex(regex: string) {
@@ -69,7 +63,7 @@ export class EmbeddedAppDetailComponent {
   }
 
   setFile(input: Event) {
-    const files = (<HTMLInputElement>input.target).files;
+    const files = (input.target as HTMLInputElement).files;
     this.selectedFile = files && files.length ? files[ 0 ] : null;
     if (this.selectedFile) {
       const fileReader = new FileReader();

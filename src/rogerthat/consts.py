@@ -17,14 +17,13 @@
 
 from google.appengine.api import users
 
-from add_1_monkey_patches import APPSCALE, DEBUG
+from add_1_monkey_patches import DEBUG
 
 GOOGLE_MAPS_CLIENT_API_KEY = 'AIzaSyAPesOjDo8VzgaUeAsc4Od-GoBBO11vQZE'
 
 MC_DASHBOARD = users.User(u'dashboard@rogerth.at')
 MC_RESERVED_TAG_PREFIX = u"__rt__"
 
-APPSCALE = APPSCALE
 DEBUG = DEBUG
 
 MICRO_MULTIPLIER = 1000000
@@ -52,7 +51,6 @@ ALL_MIGRATION_QUEUES = [MIGRATION_QUEUE2,
 STATS_QUEUE = "stats"
 HIGH_LOAD_CONTROLLER_QUEUE = "highload-controller-queue"
 HIGH_LOAD_WORKER_QUEUE = "highload-worker-queue"
-BROADCAST_QUEUE = "broadcast-queue"
 SCHEDULED_QUEUE = "scheduled-queue"
 OFFLOAD_QUEUE = "offload-queue"
 FAST_QUEUE = "fast"

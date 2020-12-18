@@ -1,0 +1,30 @@
+{
+  "back": "Back",
+  "cancel": "Cancel",
+  "choose_project_for_scan": "Choose the project you want to add a scan for",
+  "click_for_general_information": "Click here for more information about the participation moneybox",
+  "closed": "Closed",
+  "details": "Details",
+  "error": "Error",
+  "info": "Info",
+  "loading": "Loading",
+  "me_x": "Me: {{ amount }}",
+  "merchants": "Merchants",
+  "no_active_projects": "There aren't currently any active projects, come back later!",
+  "now_x_from_y_scans": "Now: {{ current }} of {{ total }} scans",
+  "ok": "Ok",
+  "open_now": "Open now",
+  "overview": "Overview",
+  "participation_moneybox": "Participation moneybox",
+  "psp.errors": {
+    "already_scanned_recently": "You can only scan once every 2 hours at the same merchant, try again later! Your last scan was on {{ date }}.",
+    "invalid_qr_code": "Invalid QR code",
+    "project_not_active": "This project is no longer active, you currently cannot add any new scans.",
+    "qr_code_not_found": "QR code not found",
+    "qr_code_not_linked": "This QR code has not been linked to a merchant yet"
+  },
+  "retry": "Retry",
+  "scan": "Scan",
+  "scan_added": "Scan added!",
+  "unknown_error": "An error has occurred, please try again later."
+}

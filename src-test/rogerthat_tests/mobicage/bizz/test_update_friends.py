@@ -26,7 +26,6 @@ from rogerthat.bizz.i18n import DummyTranslator
 from rogerthat.bizz.job.update_friends import convert_friend
 from rogerthat.bizz.profile import create_service_profile, create_user_profile
 from rogerthat.bizz.service import create_menu_item, set_app_data
-from rogerthat.bizz.service.broadcast import set_broadcast_types
 from rogerthat.consts import FRIEND_HELPER_BUCKET
 from rogerthat.dal.friend import get_friends_map
 from rogerthat.models import ServiceProfile, ServiceIdentity, ServiceInteractionDef, UserProfile
@@ -93,14 +92,12 @@ class TestUpdateService(FriendHelperTestCase):
         self.assertListEqual(list(helper.list_service_menu_items()), [])
 
     def _extend_service(self):
-        set_broadcast_types(self.service_user, ['Info', 'Events'])
-
         link = ServiceMenuItemLinkTO()
         link.url = u'https://www.google.com'
         link.external = False
         link.request_user_link = False
         create_menu_item(self.service_user, 'fa-help', '#ffffff', 'label', 'tag', [0, 1, 0], link=link)
-        create_menu_item(self.service_user, 'fa-help', '#ffffff', 'label', 'tag', [0, 2, 0], is_broadcast_settings=True)
+        create_menu_item(self.service_user, 'fa-help', '#ffffff', 'label', 'tag', [0, 2, 0])
 
         self.data = dict(a=True, b='2', c=3, d=[1, 2, 3, 4])
         set_app_data(add_slash_default(self.service_user), json.dumps(self.data))
@@ -109,7 +106,6 @@ class TestUpdateService(FriendHelperTestCase):
         menu_items = list(helper.list_service_menu_items())
         self.assertEqual(2, len(menu_items))
         self.assertEqual(1, len(filter(lambda i: i.link, menu_items)))
-        self.assertEqual(1, len(filter(lambda i: i.isBroadcastSettings, menu_items)))
 
         service_data = helper.get_service_data()
         self.assertDictEqual(self.data, service_data)

@@ -21,7 +21,6 @@ from mcfw.rpc import serialize_complex_value
 from rogerthat.models import App
 from rogerthat.to import ReturnStatusTO, TO
 from rogerthat.to.app import AppInfoTO
-from shop.model_properties import ProspectComment
 from shop.models import Order
 
 
@@ -56,7 +55,6 @@ class CustomerTO(CompanyTO):
     auto_login_url = unicode_property('54')
     migration_job = unicode_property('56')
     manager = unicode_property('57')
-    prospect_id = unicode_property('60')
     language = unicode_property('61')
     subscription_type = unicode_property('62')
     has_loyalty = bool_property('63')
@@ -88,7 +86,6 @@ class CustomerTO(CompanyTO):
         c.auto_login_url = customer.auto_login_url if customer.service_email else None
         c.migration_job = customer.migration_job
         c.manager = customer.manager.email().decode('utf-8') if customer.manager else None
-        c.prospect_id = customer.prospect_id
         c.language = customer.language
         c.subscription_type = customer.SUBSCRIPTION_TYPES[customer.subscription_type]
         c.has_loyalty = customer.has_loyalty
@@ -258,7 +255,6 @@ class CustomerServiceTO(TO):
     phone_number = unicode_property('4', default=None)
     language = unicode_property('5')
     modules = unicode_list_property('7')
-    broadcast_types = unicode_list_property('8')
     organization_type = long_property('10')
     managed_organization_types = long_list_property('13')
     community_id = long_property('community_id')
@@ -295,25 +291,6 @@ class OrderTO(TO):
         i.next_charge_date = obj.next_charge_date or 0
         i.can_cancel = not obj.is_subscription_order and obj.is_subscription_extension_order and obj.status == Order.STATUS_SIGNED
         return i
-
-
-class QuotationTO(TO):
-    id = long_property('id')
-    date = long_property('date')
-    total_amount = long_property('total_amount')
-    download_url = unicode_property('download_url')
-
-    @classmethod
-    def from_model(cls, model, customer_id, base_url):
-        return cls(id=model.id,
-                   date=model.date,
-                   total_amount=model.total_amount,
-                   download_url=u'%s/internal/shop/customers/%s/quotations/%s' % (base_url, customer_id, model.id))
-
-
-class CreateQuotationTO(TO):
-    contact_id = long_property('contact_id')
-    order_items = typed_property('order_items', OrderItemTO, True)
 
 
 class OrderReturnStatusTO(ReturnStatusTO):
@@ -416,93 +393,6 @@ class PointTO(object):
         to.lat = lat
         to.lon = lon
         return to
-
-
-class BoundsTO(object):
-    south_west = typed_property('1', PointTO)
-    north_east = typed_property('2', PointTO)
-
-    @classmethod
-    def create(cls, sw_lat, sw_lon, ne_lat, ne_lon):
-        to = cls()
-        to.south_west = PointTO.create(sw_lat, sw_lon)
-        to.north_east = PointTO.create(ne_lat, ne_lon)
-        return to
-
-
-class CityBoundsReturnStatusTO(ReturnStatusTO):
-    bounds = typed_property('51', BoundsTO, False)
-
-    @classmethod
-    def create(cls, success=True, errormsg=None, bounds=None):
-        to = super(CityBoundsReturnStatusTO, cls).create(success=success, errormsg=errormsg)
-        to.bounds = bounds
-        return to
-
-
-class ProspectTO(object):
-    id = unicode_property('0')
-    app_id = unicode_property('1')
-    name = unicode_property('2')
-    lat = float_property('3')
-    lon = float_property('4')
-    address = unicode_property('5')
-    phone = unicode_property('6')
-    website = unicode_property('7')
-    types = unicode_list_property('8')
-    status = long_property('9')
-    reason = unicode_property('10')
-    action_timestamp = long_property('11')
-    assignee = unicode_property('12')
-    email = unicode_property('13')
-    comments = typed_property('14', ProspectComment, True)
-    has_customer = bool_property('15')
-    customer_id = long_property('16')
-    certainty = long_property('17')
-    subscription = long_property('18')
-    categories = unicode_list_property('19')
-
-    @classmethod
-    def from_model(cls, model):
-        if not model:
-            return None
-        to = cls()
-        to.id = model.id
-        to.app_id = model.app_id
-        to.name = model.name
-        if model.geo_point:
-            to.lat = model.geo_point.lat
-            to.lon = model.geo_point.lon
-        else:
-            to.lat = 0
-            to.lon = 0
-        to.address = model.address
-        to.phone = model.phone
-        to.website = model.website
-        to.types = model.type
-        to.status = model.status
-        to.reason = model.reason
-        to.action_timestamp = model.action_timestamp
-        to.assignee = model.assignee
-        to.email = model.email
-        to.comments = list() if model.comments is None else model.comments.values()
-        if model.customer_id is None:
-            to.has_customer = False
-            to.customer_id = -1
-        else:
-            to.has_customer = True
-            to.customer_id = model.customer_id
-        if model.certainty is None:
-            to.certainty = 0
-        else:
-            to.certainty = model.certainty
-        if model.subscription is None:
-            to.subscription = 0
-        else:
-            to.subscription = model.subscription
-        to.categories = map(unicode, model.categories)
-        return to
-
 
 class RegioManagerBaseTO(object):
     email = unicode_property('1')
@@ -611,123 +501,6 @@ class RegioManagerTeamsTO(object):
         return to
 
 
-class ProspectReturnStatusTO(ReturnStatusTO):
-    prospect = typed_property('51', ProspectTO, False)
-    calendar_error = unicode_property('52')
-
-    @classmethod
-    def create(cls, success=True, errormsg=None, prospect=None, calendar_error=None):
-        to = super(ProspectReturnStatusTO, cls).create(success=success, errormsg=errormsg)
-        to.prospect = ProspectTO.from_model(prospect)
-        to.calendar_error = calendar_error
-        return to
-
-
-class ProspectDetailsTO(object):
-    prospect = typed_property('1', ProspectTO, False)
-    regio_managers = typed_property('2', RegioManagerBaseTO, True)
-
-    @classmethod
-    def from_model(cls, prospect, regio_managers):
-        to = cls()
-        to.prospect = ProspectTO.from_model(prospect)
-        to.regio_managers = map(RegioManagerBaseTO.from_model, regio_managers)
-        return to
-
-
-class ProspectsMapTO(object):
-    cursor = unicode_property('1')
-    prospects = typed_property('2', ProspectTO, True)
-    regio_managers = typed_property('3', RegioManagerBaseTO, True)
-
-    @classmethod
-    def from_model(cls, cursor, prospects, regio_managers):
-        to = cls()
-        to.cursor = cursor
-        to.prospects = [ProspectTO.from_model(p) for p in prospects if p.geo_point]
-        to.regio_managers = map(RegioManagerBaseTO.from_model, regio_managers)
-        return to
-
-
-class ShopAppTO(object):
-    name = unicode_property('1')
-    bounds = typed_property('2', BoundsTO, False)
-    searched_bounds = typed_property('3', BoundsTO, True)
-    postal_codes = unicode_list_property('4')
-
-    @classmethod
-    def from_model(cls, model):
-        to = cls()
-        to.name = model.name
-        most_sw, most_ne = model.south_west(), model.north_east()
-        to.bounds = BoundsTO.create(most_sw.lat, most_sw.lon, most_ne.lat, most_ne.lon) if most_sw and most_ne else None
-        to.searched_bounds = [BoundsTO.create(sw.lat, sw.lon, ne.lat, ne.lon)
-                              for sw, ne in zip(model.searched_south_west_bounds, model.searched_north_east_bounds)]
-        to.postal_codes = model.postal_codes
-        return to
-
-
-class TaskTO(object):
-    id = long_property('0')
-    execution_time = long_property('1')
-    type = long_property('2')
-    type_str = unicode_property('3')
-    prospect_id = unicode_property('4')
-    prospect_name = unicode_property('5')
-    address = unicode_property('6')
-    comments = unicode_list_property('7')
-    closed_time = long_property('8')
-    certainty = long_property('9')
-    subscription = long_property('10')
-    creation_time = long_property('11')
-    assignee = unicode_property('12')
-
-    @classmethod
-    def from_model(cls, model, prospect):
-        to = cls()
-        to.id = model.id
-        to.execution_time = model.execution_time
-        to.type = model.type
-        to.type_str = model.type_str
-        to.prospect_id = unicode(prospect.id)
-        to.prospect_name = prospect.name
-        to.address = model.address
-        to.comments = list()
-        if model.comment:
-            to.comments.append(model.comment)
-        if prospect.comments:
-            to.comments.extend([comment.text for comment in prospect.comments])
-        to.closed_time = model.closed_time
-        if model.certainty is None:
-            to.certainty = 0
-        else:
-            to.certainty = model.certainty
-        if model.subscription is None:
-            to.subscription = 0
-        else:
-            to.subscription = model.subscription
-        to.creation_time = model.creation_time
-        to.assignee = model.assignee
-        return to
-
-
-class TaskListTO(object):
-    assignee = unicode_property('0')
-    assignee_name = unicode_property('1')
-    tasks = typed_property('2', TaskTO, True)
-
-    @classmethod
-    def create(cls, email, regio_manager, tasks, prospects):
-        to = cls()
-        to.assignee = email.decode('utf-8')
-        to.assignee_name = (regio_manager.name if regio_manager else email).decode('utf-8')
-        to.tasks = list()
-        for task in tasks:
-            prospect = prospects[task.parent_key().name()]
-            to.tasks.append(TaskTO.from_model(task, prospect))
-        return to
-
-
 class RegioManagerStatisticTO(object):
     month_revenue = long_list_property('0')
     manager = unicode_property('1')
@@ -821,26 +594,6 @@ class BoolReturnStatusTO(ReturnStatusTO):
         r = super(BoolReturnStatusTO, cls).create(success, errormsg)
         r.bool = bool_value
         return r
-
-
-class ProspectHistoryTO(object):
-    created_time = long_property('0')
-    executed_by = unicode_property('1')
-    status = long_property('2')
-    type = unicode_property('3')
-    comment = unicode_property('4')
-    reason = unicode_property('5')
-
-    @classmethod
-    def create(cls, model):
-        to = cls()
-        to.created_time = model.created_time
-        to.executed_by = model.executed_by
-        to.status = model.status
-        to.type = model.type_str
-        to.comment = model.comment
-        to.reason = model.reason
-        return to
 
 
 class SimpleAppTO(object):

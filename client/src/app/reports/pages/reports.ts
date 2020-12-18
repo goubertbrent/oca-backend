@@ -1,10 +1,3 @@
-export const enum ReportsMapFilter {
-  ALL = 'all',
-  NEW = 'new',
-  IN_PROGRESS = 'in_progress',
-  RESOLVED = 'resolved',
-}
-
 export const enum IncidentStatus {
   NEW = 'new',
   IN_PROGRESS = 'in_progress',

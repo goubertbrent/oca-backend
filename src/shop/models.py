@@ -28,7 +28,6 @@ from babel.dates import format_date, get_timezone
 from babel.numbers import get_currency_symbol, format_currency
 from dateutil.relativedelta import relativedelta
 from google.appengine.api import users as gusers, images
-from google.appengine.api.app_identity import app_identity
 from google.appengine.ext import db, blobstore, ndb
 from oauth2client.contrib.appengine import CredentialsProperty
 
@@ -43,9 +42,7 @@ from rogerthat.models.common import NdbModel
 from rogerthat.rpc import users
 from rogerthat.utils import bizz_check, get_epoch_from_datetime, now
 from shop.business.i18n import SHOP_DEFAULT_LANGUAGE, shop_translate
-from shop.constants import PROSPECT_CATEGORIES
 from shop.exceptions import CustomerNotFoundException, NoSupportManagerException
-from shop.model_properties import ProspectCommentsProperty, ProspectComments, ProspectComment
 from solutions.common.bizz import OrganizationType, SolutionModule
 
 
@@ -334,10 +331,8 @@ class Customer(db.Model):
     organization_type = db.IntegerProperty(default=ServiceProfile.ORGANIZATION_TYPE_PROFIT)
     managed_organization_types = db.ListProperty(int, indexed=False)
     migration_job = db.StringProperty(indexed=False)
-    prospect_id = db.StringProperty()
     default_app_id = db.StringProperty()  # TODO communities: remove after migration
-    app_ids = db.StringListProperty()  # TODO communities: remove after migration
-    community_id = db.IntegerProperty() # todo communities
+    community_id = db.IntegerProperty()
     subscription_type = db.IntegerProperty(indexed=False, default=-1)
     has_loyalty = db.BooleanProperty(indexed=False, default=False)
     team_id = db.IntegerProperty(indexed=False)
@@ -363,8 +358,8 @@ class Customer(db.Model):
         SUBSCRIPTION_TYPE_DYNAMIC: u'Dynamic'
     }
 
-    DISABLED_SUBSCRIPTION_EXPIRED = 1
-    DISABLED_BAD_PAYER = 2
+    DISABLED_SUBSCRIPTION_EXPIRED = 1  # deprecated
+    DISABLED_BAD_PAYER = 2  # deprecated
     DISABLED_OTHER = 3
     DISABLED_BY_CITY = 4
 
@@ -416,7 +411,8 @@ class Customer(db.Model):
     @classmethod
     def starting_with(cls, name):
         name = cls.normalize_name(name)
-        return cls.all().filter('normalized_name >=', name).filter('normalized_name <', name + u'\ufffd').order('normalized_name').fetch(20)
+        return cls.all().filter('normalized_name >=', name).filter('normalized_name <', name + u'\ufffd').order(
+            'normalized_name').fetch(20)
 
     @staticmethod
     def normalize_name(name):
@@ -504,14 +500,15 @@ class Customer(db.Model):
 
         """
         if self.managed_organization_types:
-            return self.managed_organization_types
+            allowed_types = list(self.managed_organization_types)
+            if ServiceProfile.ORGANIZATION_TYPE_CITY in allowed_types:
+                allowed_types.remove(ServiceProfile.ORGANIZATION_TYPE_CITY)
+            if allowed_types:
+                return allowed_types
 
-        org_types = [ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT]
-        if self.country == 'BE':
-            org_types.extend([ServiceProfile.ORGANIZATION_TYPE_PROFIT,
-                              ServiceProfile.ORGANIZATION_TYPE_CITY,
-                              ServiceProfile.ORGANIZATION_TYPE_EMERGENCY])
-        return org_types
+        return [ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT,
+                ServiceProfile.ORGANIZATION_TYPE_PROFIT,
+                ServiceProfile.ORGANIZATION_TYPE_EMERGENCY]
 
     def can_only_edit_organization_type(self, organization_type):
         return len(self.editable_organization_types) == 1 and self.editable_organization_types[0] == organization_type
@@ -536,7 +533,7 @@ class CustomerSignupStatus(Enum):
 class CustomerSignup(db.Model):
     EXPIRE_TIME = DAY * 3
     DEFAULT_MODULES = [
-        SolutionModule.BROADCAST,
+        SolutionModule.NEWS,
         SolutionModule.QR_CODES,
         SolutionModule.STATIC_CONTENT,
         SolutionModule.WHEN_WHERE,
@@ -687,7 +684,13 @@ class ChargeNumber(OsaSequenceBaseModel):
         return number.last_number
 
 
-class Quotation(db.Model):
+class Order(db.Model):
+    STATUS_UNSIGNED = 0
+    STATUS_SIGNED = 1
+    STATUS_CANCELED = 2
+
+    CUSTOMER_STORE_ORDER_NUMBER = '-1'
+
     date = db.IntegerProperty()
     amount = db.IntegerProperty()  # In euro cents
     vat_pct = db.IntegerProperty()
@@ -695,6 +698,17 @@ class Quotation(db.Model):
     total_amount = db.IntegerProperty()  # In euro cents
     contact_id = db.IntegerProperty()
     manager = db.UserProperty()
+
+    signature = db.BlobProperty()
+    pdf = db.BlobProperty()
+    status = db.IntegerProperty(default=STATUS_UNSIGNED)
+    is_subscription_order = db.BooleanProperty()
+    is_subscription_extension_order = db.BooleanProperty(default=False)
+    date_signed = db.IntegerProperty()
+    next_charge_date = db.IntegerProperty()
+    date_canceled = db.IntegerProperty()
+    team_id = db.IntegerProperty()
+    charge_interval = db.IntegerProperty(default=1)
 
     @property
     def id(self):
@@ -733,61 +747,8 @@ class Quotation(db.Model):
         return self.parent_key().id()
 
     @classmethod
-    def create_key(cls, quotation_id, customer_id):
-        return db.Key.from_path(cls.kind(), quotation_id, parent=Customer.create_key(customer_id))
-
-    @classmethod
-    def download_url(cls, filename):
-        # Temporary download url
-        expires = now() + 3600
-        to_sign = """%(http_verb)s
-%(content_md5)s
-%(content_type)s
-%(expiration)s
-%(canonicalized_resource)s""" % {
-            'http_verb': 'GET',
-            'content_md5': '',
-            'content_type': '',
-            'expiration': expires,
-            'canonicalized_resource': filename,
-        }
-        signature = app_identity.sign_blob(to_sign.encode('ascii'))[1]
-        encoded_signature = base64.b64encode(signature)
-        service_email = app_identity.get_service_account_name()
-        url = get_serving_url(filename)
-        params = {
-            'GoogleAccessId': service_email,
-            'Expires': expires,
-            'Signature': encoded_signature
-        }
-        return '%s?%s' % (url, urllib.urlencode(params))
-
-    @classmethod
     def list(cls, customer_key):
         return list(cls.all().ancestor(customer_key).order('date'))
-
-    @classmethod
-    def filename(cls, bucket, customer_id, quotation_id):
-        return u'/%s/quotations/%d/%d.pdf' % (bucket, customer_id, quotation_id)
-
-
-class Order(Quotation):
-    STATUS_UNSIGNED = 0
-    STATUS_SIGNED = 1
-    STATUS_CANCELED = 2
-
-    CUSTOMER_STORE_ORDER_NUMBER = '-1'
-
-    signature = db.BlobProperty()
-    pdf = db.BlobProperty()
-    status = db.IntegerProperty(default=STATUS_UNSIGNED)
-    is_subscription_order = db.BooleanProperty()
-    is_subscription_extension_order = db.BooleanProperty(default=False)
-    date_signed = db.IntegerProperty()
-    next_charge_date = db.IntegerProperty()
-    date_canceled = db.IntegerProperty()
-    team_id = db.IntegerProperty()
-    charge_interval = db.IntegerProperty(default=1)
 
     @property
     def full_date_canceled_str(self):
@@ -849,6 +810,7 @@ class OrderItem(db.Expando):
     count = db.IntegerProperty()
     comment = db.TextProperty()
     price = db.IntegerProperty()  # In euro cents
+
     # app_id : only for orderItems with product code NEWS
     # news_item_id: for orderItems with product code NEWS
 
@@ -920,10 +882,6 @@ class StripePayment(NdbModel):
     @classmethod
     def create_key(cls, session_id):
         return ndb.Key(cls, session_id)
-
-
-class QuotationItem(OrderItem):
-    pass
 
 
 class CreditCard(db.Model):  # todo remove deprecated
@@ -1167,407 +1125,16 @@ class Invoice(db.Model):
 
     @classmethod
     def create_key(cls, customer_id, order_number, charge_id, invoice_number):
-        return db.Key.from_path(cls.kind(), invoice_number, parent=Charge.create_key(charge_id, order_number, customer_id))
-
-
-class ExpiredSubscription(db.Model):
-    STATUS_EXPIRED = 0
-    STATUS_WILL_LINK_CREDIT_CARD = 1
-    STATUS_EXTEND_SUBSCRIPTION = 2
-    STATUSES = {
-        STATUS_EXPIRED: 'Expired',
-        STATUS_WILL_LINK_CREDIT_CARD: 'Will link credit card',
-        STATUS_EXTEND_SUBSCRIPTION: 'Extend subscription'
-    }
-    expiration_timestamp = db.IntegerProperty()
-    status = db.IntegerProperty(default=0)
-    status_updated_timestamp = db.IntegerProperty()
-
-    @classmethod
-    def get_by_customer_id(cls, customer_id):
-        return cls.get(cls.create_key(customer_id))
-
-    @property
-    def customer_id(self):
-        return self.parent_key().id()
-
-    @classmethod
-    def create_key(cls, customer_id):
-        return db.Key.from_path(cls.kind(), customer_id, parent=Customer.create_key(customer_id))
-
-    @property
-    def expiration_timestamp_str(self):
-        if not self.expiration_timestamp:
-            return u''
-        return datetime.datetime.utcfromtimestamp(self.expiration_timestamp).strftime(u'%A %d %b %Y')
-
-    @property
-    def status_updated_timestamp_str(self):
-        return datetime.datetime.utcfromtimestamp(self.status_updated_timestamp).strftime('%A %d %b %Y')
-
-    @property
-    def status_str(self):
-        return self.STATUSES[self.status]
-
-    @classmethod
-    def list_all(cls):
-        return cls.all().order('status_updated_timestamp')
+        return db.Key.from_path(cls.kind(), invoice_number,
+                                parent=Charge.create_key(charge_id, order_number, customer_id))
 
 
 class AuditLog(db.Model):
     date = db.IntegerProperty()
     customer_id = db.IntegerProperty()
-    prospect_id = db.StringProperty()
     user = db.UserProperty()
     message = db.StringProperty(indexed=False)
     variables = db.TextProperty()
-
-
-class ShopApp(NdbModel):
-    name = ndb.StringProperty(indexed=False)
-    searched_south_west_bounds = ndb.GeoPtProperty(repeated=True)  # [south_west1, south_west2, ...]
-    searched_north_east_bounds = ndb.GeoPtProperty(repeated=True)  # [north_east1, north_east2, ...]
-    postal_codes = ndb.StringProperty(repeated=True)
-    # TODO communities: remove 3 properties after migration
-    signup_enabled = ndb.BooleanProperty(default=False)
-    # When true, enables paid features like news based on location, youtube videos in news item, ...
-    paid_features_enabled = ndb.BooleanProperty(default=False)
-    paid_features = ndb.StringProperty(repeated=True)
-
-    def south_west(self):
-        if not self.searched_south_west_bounds:
-            return None
-        return ndb.GeoPt(min((sw.lat for sw in self.searched_south_west_bounds)),
-                         min((sw.lon for sw in self.searched_south_west_bounds)))
-
-    def north_east(self):
-        if not self.searched_north_east_bounds:
-            return None
-        return ndb.GeoPt(max((ne.lat for ne in self.searched_north_east_bounds)),
-                         max((ne.lon for ne in self.searched_north_east_bounds)))
-
-    @property
-    def app_id(self):
-        return self.key.id()
-
-    @classmethod
-    def create_key(cls, app_id):
-        return ndb.Key(cls, app_id)
-
-    @classmethod
-    def find_by_postal_code(cls, postal_code):
-        return cls.query().filter(cls.postal_codes == postal_code).get()
-
-
-class ShopAppGridPoints(NdbModel):
-    points = ndb.GeoPtProperty(repeated=True, indexed=False)
-
-    @property
-    def shop_app_key(self):
-        return self.key.parent()
-
-    @property
-    def app_id(self):
-        return self.shop_app_key.name()
-
-    @classmethod
-    def list_by_app(cls, app_id):
-        return cls.query().ancestor(ShopApp.create_key(app_id))
-
-
-class Prospect(db.Model):
-    INVITE_CODE_IN_CALL = -1
-    INVITE_CODE_NOT_ATTEMPTED = 0
-    INVITE_CODE_HANG_UP = 1
-    INVITE_CODE_NO_ANSWER = 2
-    INVITE_CODE_ANSWERED = 3
-    INVITE_CODE_CALL_FAILURE = 4
-    INVITE_CODE_TO_BE_CALLED = 5
-
-    INVITE_RESULT_YES = 1
-    INVITE_RESULT_MAYBE = 2
-    INVITE_RESULT_NO = 3
-
-    INVITE_RESULT_STRING_YES = 'YES'
-    INVITE_RESULT_STRING_NO = 'NO'
-    INVITE_RESULT_STRING_MAYBE = 'MAYBE'
-    INVITE_RESULT_STRING_NO_ANSWER = 'NO_ANSWER'
-    INVITE_RESULT_STRING_CALL_FAILURE = 'CALL_FAILURE'
-
-    INVITE_RESULT_STRINGS = (INVITE_RESULT_STRING_YES, INVITE_RESULT_STRING_NO,
-                             INVITE_RESULT_STRING_MAYBE, INVITE_RESULT_STRING_NO_ANSWER, INVITE_RESULT_STRING_CALL_FAILURE)
-
-    STATUS_TODO = 0
-    STATUS_APPOINTMENT_MADE = 1
-    STATUS_CALL_BACK = 2
-    STATUS_NOT_INTERESTED = 3
-    STATUS_IRRELEVANT = 4
-    STATUS_CUSTOMER = 5
-    STATUS_NOT_ANSWERED = 6
-    STATUS_NOT_EXISTING = 7
-    STATUS_CONTACT_LATER = 8
-    STATUS_NOT_INTERESTED_AFTER_APPOINTMENT = 9
-    STATUS_INVITED_TO_INTRODUCTION = 10
-    STATUS_ADDED_BY_DISCOVERY = 11
-
-    STATUS_TYPES = {
-        STATUS_TODO: 'Not contacted',
-        STATUS_APPOINTMENT_MADE: 'Appointment scheduled',
-        STATUS_CALL_BACK: 'Need to call back',
-        STATUS_NOT_INTERESTED: 'Not interested',
-        STATUS_IRRELEVANT: 'Not relevant',
-        STATUS_CUSTOMER: 'Customer',
-        STATUS_NOT_ANSWERED: 'Not answered',
-        STATUS_NOT_EXISTING: 'Not existing',
-        STATUS_CONTACT_LATER: 'On hold',
-        STATUS_NOT_INTERESTED_AFTER_APPOINTMENT: 'Not interested after appointment',
-        STATUS_INVITED_TO_INTRODUCTION: 'Invited to introduction',
-        STATUS_ADDED_BY_DISCOVERY: 'Added via prospect discovery app'
-    }
-    app_id = db.StringProperty()
-    name = db.StringProperty()
-    type = db.StringListProperty()  # google types like [cafe, food, establishment...]
-    # Simplified/summarised version of google place types. See PROSPECT_CATEGORIES dict.
-    categories = db.StringListProperty()
-    address = db.StringProperty()
-    geo_point = db.GeoPtProperty()
-    phone = db.StringProperty()
-    website = db.StringProperty()
-    invite_code = db.IntegerProperty()
-    invite_result = db.IntegerProperty()
-    status = db.IntegerProperty(indexed=True, default=STATUS_TODO)
-    reason = db.StringProperty(indexed=False, multiline=True)  # reason why prospect does not want to buy
-    action_timestamp = db.IntegerProperty(indexed=False)  # time on which prospect needs to be called / visited / ...
-    assignee = db.StringProperty()
-    customer_id = db.IntegerProperty()
-    email = db.StringProperty()
-    comments = ProspectCommentsProperty()
-    certainty = db.IntegerProperty(indexed=False)
-    subscription = db.IntegerProperty(indexed=False)
-
-    @property
-    def id(self):
-        return unicode(self.key().id_or_name())
-
-    @property
-    def type_html_str(self):
-        if self.type:
-            return "<br>".join(self.type)
-        return ""
-
-    def add_comment(self, comment_text, assignee_user):
-        if self.comments is None:
-            self.comments = ProspectComments()
-        comment = ProspectComment()
-        comment.index = max((c.index for c in self.comments)) + 1 if len(self.comments) else 0
-        comment.text = comment_text
-        comment.creator = assignee_user.email().decode('utf-8')
-        comment.timestamp = now()
-        self.comments.add(comment)
-
-    @classmethod
-    def create_key(cls, prospect_id):
-        try:
-            # prospect_id can be a numeric string (when added while using TROPO) that we need to cast to a long
-            prospect_id = long(prospect_id)
-        except ValueError:
-            pass
-
-        return db.Key.from_path(cls.kind(), prospect_id)
-
-    @classmethod
-    def find_by_assignee(cls, assignee):
-        return cls.all().filter('assignee', assignee)
-
-    @staticmethod
-    def convert_place_types(prospect_google_place_types):
-        """
-        Converts list of Google place types to our own categories. See PROSPECT_CATEGORIES dict.
-        Args:
-            prospect_google_place_types: List of Google place types
-
-        Returns:
-            categories(list): List of place categories
-        """
-        categories = set()
-        for prospect_google_place_type in prospect_google_place_types:
-            for place_type, google_place_types in PROSPECT_CATEGORIES.iteritems():
-                if prospect_google_place_type in google_place_types:
-                    categories.add(place_type)
-        if len(categories) == 0:
-            categories.add('other')
-        return list(categories)
-
-
-class ProspectRejectionReason(db.Model):
-    reason = db.StringProperty(indexed=True)
-
-
-class ShopTask(db.Model):
-    VISIT_DURATION = 60  # minutes
-    TYPE_VISIT = 1
-    TYPE_CALL = 2
-    TYPE_SUPPORT_NEEDED = 3
-    TYPE_CHECK_CREDIT_CARD = 4
-
-    TYPE_STRINGS = {
-        TYPE_VISIT: u'Visit',
-        TYPE_CALL: u'Call',
-        TYPE_SUPPORT_NEEDED: u'Support',
-        TYPE_CHECK_CREDIT_CARD: u'Check creditcard'
-    }
-
-    SUB_SILVER = 1
-    SUB_GOLD = 2
-    SUB_PLATINUM = 3
-
-    SUB_STRINGS = {
-        SUB_SILVER: u'Silver',
-        SUB_GOLD: u'Gold',
-        SUB_PLATINUM: u'Platinum'
-    }
-
-    STATUS_NEW = 1
-    STATUS_PROCESSED = 2
-    STATUS_CLOSED = 3
-
-    STATUS_STRINGS = {STATUS_NEW: u'New',
-                      STATUS_PROCESSED: u'Processed',
-                      STATUS_CLOSED: u'Closed'}
-    APPOINTMENT_TYPE_FIRST_APPOINTMENT = 1
-    APPOINTMENT_TYPE_LOYALTY_EXPLANATION = 2
-    APPOINTMENT_TYPE_SIGN = 3
-    APPOINTMENT_TYPE_LOYALTY_INSTALATION = 4
-    APPOINTMENT_TYPE_TECHNICAL_SUPPORT = 5
-    APPOINTMENT_TYPES = {
-        APPOINTMENT_TYPE_FIRST_APPOINTMENT: 'First appointment',
-        APPOINTMENT_TYPE_LOYALTY_EXPLANATION: 'Loyalty system demo',
-        APPOINTMENT_TYPE_SIGN: 'Sign order',
-        APPOINTMENT_TYPE_LOYALTY_INSTALATION: 'Loyalty system installation',
-        APPOINTMENT_TYPE_TECHNICAL_SUPPORT: 'Technical support'
-    }
-
-    assignee = db.StringProperty(indexed=True)  # e-mail address of regio_manager
-    created_by = db.StringProperty(indexed=True)
-    closed_by = db.StringProperty(indexed=True)
-
-    creation_time = db.IntegerProperty(indexed=False)
-    closed_time = db.IntegerProperty(indexed=True)
-    execution_time = db.IntegerProperty(indexed=True)
-    status = db.IntegerProperty(indexed=True)
-    type = db.IntegerProperty(indexed=True)
-    address = db.StringProperty(indexed=False)
-    certainty = db.IntegerProperty(indexed=False)  # goes from 0 to 100
-    subscription = db.IntegerProperty(indexed=False)
-    comment = db.TextProperty()
-    app_id = db.StringProperty()
-
-    @property
-    def id(self):
-        return self.key().id()
-
-    @property
-    def type_str(self):
-        return self.TYPE_STRINGS[self.type]
-
-    @property
-    def status_str(self):
-        return self.STATUS_STRINGS[self.status]
-
-    @classmethod
-    def type_from_prospect_status(cls, prospect_status):
-        if prospect_status == Prospect.STATUS_APPOINTMENT_MADE:
-            return cls.TYPE_VISIT
-        if prospect_status == Prospect.STATUS_CALL_BACK:
-            return cls.TYPE_CALL
-
-        raise ValueError('Unsupported prospect_status %s' % prospect_status)
-
-    @classmethod
-    def group_by_assignees(cls, filter_assignees=None, app_id=None, task_type=None):
-        result = dict()
-        qry = cls.all().filter('status', cls.STATUS_NEW).order('execution_time')
-        if filter_assignees:
-            result.update({assignee: list() for assignee in filter_assignees})
-            if len(filter_assignees) == 1:
-                qry.filter('assignee', filter_assignees[0])
-            else:
-                qry.filter('assignee IN', [assignee for assignee in filter_assignees])
-        if app_id:
-            qry.filter('app_id =', app_id)
-        if task_type:
-            qry.filter('type', task_type)
-        for t in qry:
-            result.setdefault(t.assignee, list()).append(t)
-        return result
-
-    @classmethod
-    def list_by_prospect(cls, prospect_or_key, task_types=None, statuses=None):
-        qry = cls.all().ancestor(prospect_or_key)
-        if task_types is not None:
-            qry.filter('type IN', task_types)
-        if statuses is not None:
-            qry.filter('status IN', statuses)
-        return qry
-
-    @classmethod
-    def history(cls, dateFrom, dateTo):
-        result = dict()
-        qry = cls.all().filter('closed_time >', dateFrom).filter('closed_time <', dateTo).order('-closed_time')
-
-        for t in qry:
-            result.setdefault(t.assignee, list()).append(t)
-        return result
-
-    @classmethod
-    def get_all_history(cls, prospect_id):
-        return cls.all().ancestor(Prospect.create_key(prospect_id)).order('-closed_time')
-
-
-class ProspectHistory(db.Model):
-    TYPE_VISIT = 1
-    TYPE_CALL = 2
-    TYPE_SUPPORT_NEEDED = 3
-    TYPE_CHECK_CREDIT_CARD = 4
-    TYPE_ADDED_COMMENT = 10
-
-    TYPE_STRINGS = {
-        TYPE_VISIT: u'Visit',
-        TYPE_CALL: u'Call',
-        TYPE_SUPPORT_NEEDED: u'Support',
-        TYPE_CHECK_CREDIT_CARD: u'Check creditcard',
-        TYPE_ADDED_COMMENT: u'Added comment'
-    }
-
-    STATUS_TODO = 0
-    STATUS_APPOINTMENT_MADE = 1
-    STATUS_CALL_BACK = 2
-    STATUS_NOT_INTERESTED = 3
-    STATUS_IRRELEVANT = 4
-    STATUS_CUSTOMER = 5
-    STATUS_NOT_ANSWERED = 6
-    STATUS_NOT_EXISTING = 7
-    STATUS_CONTACT_LATER = 8
-    STATUS_NOT_INTERESTED_AFTER_APPOINTMENT = 9
-    STATUS_INVITED_TO_INTRODUCTION = 10
-    STATUS_ADDED_BY_DISCOVERY = 11
-
-    executed_by = db.StringProperty(indexed=False)  # e-mail address of regio_manager
-    created_time = db.IntegerProperty(indexed=False)
-    type = db.IntegerProperty(indexed=False)  # Same types as ShopTask, can be None (call back, visit, ...)
-    comment = db.TextProperty(indexed=False)  # Comment added by regiomanager.
-    # from Prospect-> status (contact later, not existing, irrelevant, customer, ...)
-    status = db.IntegerProperty(indexed=False)
-    # from Prospect -> reason (too expensive, asked to contact later, ...)
-    reason = db.StringProperty(indexed=False, multiline=True)
-
-    @property
-    def id(self):
-        return self.key().id()
-
-    @property
-    def type_str(self):
-        return self.TYPE_STRINGS[self.type] if self.type else None
 
 
 class ShopLoyaltySlide(db.Model):
@@ -1603,7 +1170,8 @@ class ShopLoyaltySlide(db.Model):
         server_settings = get_server_settings()
         if self.gcs_filename:
             return get_serving_url(self.gcs_filename)
-        return unicode("%s/unauthenticated/loyalty/slide?%s" % (server_settings.baseUrl, urllib.urlencode(dict(slide_key=self.item.key()))))
+        return unicode("%s/unauthenticated/loyalty/slide?%s" % (
+        server_settings.baseUrl, urllib.urlencode(dict(slide_key=self.item.key()))))
 
 
 class ShopLoyaltySlideNewOrder(db.Model):
@@ -1629,7 +1197,8 @@ class ShopLoyaltySlideNewOrder(db.Model):
         server_settings = get_server_settings()
         if self.gcs_filename:
             return get_serving_url(self.gcs_filename)
-        return unicode("%s/unauthenticated/loyalty/slide?%s" % (server_settings.baseUrl, urllib.urlencode(dict(slide_key=self.item.key()))))
+        return unicode("%s/unauthenticated/loyalty/slide?%s" % (
+        server_settings.baseUrl, urllib.urlencode(dict(slide_key=self.item.key()))))
 
     @classmethod
     def create_key(cls, app):

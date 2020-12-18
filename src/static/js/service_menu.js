@@ -34,10 +34,7 @@ var serviceMenuScript = function () {
     var SMI_WEB_CALLBACK = 'radio_web_callback';
     var SMI_FORM = 'radio_form';
     var SMI_EMBEDDED_APP = 'radio_embedded_app';
-    var SMI_BROADCAST_SETTINGS = 'radio_broadcast_settings';
     var SMI_WEB_PAGE = 'radio_web_page';
-
-    var TAG_BROADCAST_SETTINGS_SMI = '__rt__.broadcast_settings';
 
 	var container = "#serviceMenuContainer";
 	var lj = mctracker.getLocaljQuery(container);
@@ -65,11 +62,9 @@ var serviceMenuScript = function () {
 	var title_height = null;
 	var pages_height = null;
 	var menu_height = null;
-	var iphone_navbar_height = 64;
 	var visible_rows = 0;
 	var branding = null;
 	var screen_branding_select = null;
-	var broadcast_branding_select = null;
 	var static_flow_select = null;
 	var share = null;
     var about_item_label = null;
@@ -88,7 +83,6 @@ var serviceMenuScript = function () {
 
     var menu_loaded = false;
     var service_identities_loaded = false;
-    var actions_is_broadcast_settings = false;
 
 	var details_templ = "{{each items}}<tr class=\"row${$value.row}\"><td>${$value.display_coords}</td><td>${$value.label}</td><td>${$value.tag}</td></tr>{{/each}}";
 
@@ -144,7 +138,6 @@ var serviceMenuScript = function () {
 		edit_menu_icon_fall_through = lj("#fall_through");
 		branding = lj("#branding");
         screen_branding_select = lj("#default_screen");
-        broadcast_branding_select = lj("#broadcast_branding");
 		static_flow_select = lj("#static_flow");
         share = lj("#share");
         about_item_label = lj("#about_label");
@@ -179,12 +172,8 @@ var serviceMenuScript = function () {
 		});
 
 		lj("#editDialog #edit_icon").click(function() {
-            if (actions_is_broadcast_settings) {
-                mctracker.alert("You can't change the icon of 'Broadcast settings'.");
-            } else {
-                showCreateIconLibrary(function() {
-                });
-            }
+            showCreateIconLibrary(function () {
+            });
         });
 
 		lj("#editDialog #set_roles").click(function() {
@@ -225,7 +214,6 @@ var serviceMenuScript = function () {
         var SHOW_CONTENT_HEIGHT = 640;
         var START_FLOW_HEIGHT = 545;
         var OPEN_WEB_PAGE_HEIGHT = 560;
-        var BROADCAST_SETTINGS_HEIGHT = 545;
         var WEBCALLBACK_HEIGHT = 500;
 
 		edit_menu_dialog = lj("#editDialog").dialog({
@@ -245,13 +233,10 @@ var serviceMenuScript = function () {
 		});
 
 		smi_click_radio = $("input[name='behavior']", edit_menu_dialog).change(function () {
-            actions_is_broadcast_settings = false;
-
             var selection = {
                 start_flow: edit_menu_dialog.find('#' + SMI_START_FLOW).prop('checked'),
                 default_screen: edit_menu_dialog.find('#' + SMI_DEFAULT_SCREEN).prop('checked'),
                 web_page: edit_menu_dialog.find('#' + SMI_WEB_PAGE).prop('checked'),
-                broadcast_settings: edit_menu_dialog.find('#' + SMI_BROADCAST_SETTINGS).prop('checked'),
                 web_callback: edit_menu_dialog.find('#' + SMI_WEB_CALLBACK).prop('checked'),
                 form: edit_menu_dialog.find('#' + SMI_FORM).prop('checked'),
                 embedded_app: edit_menu_dialog.find('#' + SMI_EMBEDDED_APP).prop('checked')
@@ -270,18 +255,6 @@ var serviceMenuScript = function () {
             } else if (selection.web_page) {
                 edit_menu_icon_tag.attr('disabled', false).val(edit_menu_icon_current_tag);
                 edit_menu_dialog.dialog("option", "height", OPEN_WEB_PAGE_HEIGHT);
-            } else if (selection.broadcast_settings) {
-                actions_is_broadcast_settings = true;
-                edit_menu_icon_tag.attr('disabled', true).val(TAG_BROADCAST_SETTINGS_SMI);
-                edit_menu_dialog.dialog("option", "height", BROADCAST_SETTINGS_HEIGHT);
-
-                var color = edit_menu_icon_color.val();
-                if (!color || !color_test.test(color)) {
-                    color = default_menu_item_color;
-                }
-                var name = "fa-bell";
-                edit_menu_icon.attr('name', name);
-                edit_menu_icon.hide().parent().find('i').show().attr('class', 'fa ' + name).css('color', '#' + color);
             } else if (selection.form) {
                 edit_menu_icon_tag.attr('disabled', false).val(edit_menu_icon_current_tag);
                 edit_menu_dialog.dialog("option", "height", OPEN_WEB_PAGE_HEIGHT);
@@ -376,7 +349,6 @@ var serviceMenuScript = function () {
 
     var loadBrandings = function () {
         screen_branding_select.empty();
-        broadcast_branding_select.empty();
         mctracker.call({
             url: "/mobi/rest/branding/list",
             data: {
@@ -384,13 +356,9 @@ var serviceMenuScript = function () {
             },
             success: function (data) {
                 screen_branding_select.append($("<option></option>").attr('value', '').text('no screen'));
-                broadcast_branding_select.append($("<option></option>").attr('value', '').text('no branding'));
 
                 $.each(data.sort(descriptionSort), function (i, brand) {
                     screen_branding_select.append($("<option></option>").attr('value', brand.id).text(brand.description+" ["+mctracker.formatDate(brand.timestamp)+"]"));
-                    if (brand.type == BRANDING_TYPE_NORMAL) {
-                        broadcast_branding_select.append($("<option></option>").attr('value', brand.id).text(brand.description+" ["+mctracker.formatDate(brand.timestamp)+"]"));
-                    }
                 });
             }
        });
@@ -547,7 +515,7 @@ var serviceMenuScript = function () {
             edit_menu_icon_requires_wifi.prop('checked', item.requiresWifi);
             edit_menu_icon_run_in_background.prop('checked', item.runInBackground);
             edit_menu_icon_fall_through.prop('checked', item.fallThrough);
-            edit_menu_icon_current_tag = item.isBroadcastSettings ? null : item.tag;
+            edit_menu_icon_current_tag = item.tag;
             edit_menu_icon_current_roles = item.roles;
             screen_branding_select.val(item.screenBranding || '');
             static_flow_select.val(item.staticFlowName || '');
@@ -560,8 +528,6 @@ var serviceMenuScript = function () {
                 edit_menu_dialog.find('#' + SMI_DEFAULT_SCREEN).prop('checked', true).change();
             } else if (item.staticFlowName) {
                 edit_menu_dialog.find('#' + SMI_START_FLOW).prop('checked', true).change();
-            } else if (item.isBroadcastSettings) {
-                edit_menu_dialog.find('#' + SMI_BROADCAST_SETTINGS).prop('checked', true).change();
             } else if (item.form) {
                 edit_menu_dialog.find('#' + SMI_FORM).prop('checked', true).change();
                 edit_menu_dialog.find('#input_form_id').val(item.form.id);
@@ -589,7 +555,6 @@ var serviceMenuScript = function () {
 			static_flow_select.val('');
 			$('#' + SMI_WEB_CALLBACK, edit_menu_dialog).prop('checked', true).change();
 		}
-        broadcast_branding_select.val(menu.broadcastBranding || '');
         setSelectedRolesString();
 		edit_menu_dialog.dialog('open');
 	};
@@ -875,9 +840,6 @@ var serviceMenuScript = function () {
         var sb = ($('#' + SMI_DEFAULT_SCREEN, edit_menu_dialog).prop('checked')) ? (screen_branding_select.val() || null) : null;
 		var sf = ($('#' + SMI_START_FLOW, edit_menu_dialog).prop('checked')) ? (static_flow_select.val() || null) : null;
 
-        var isBroadcastSettings = $('#' + SMI_BROADCAST_SETTINGS, edit_menu_dialog).prop('checked');
-		var bb = isBroadcastSettings ? (broadcast_branding_select.val() || null) : null;
-
 		var link = null;
 		if (edit_menu_dialog.find('#' + SMI_WEB_PAGE).prop('checked')) {
 		    link = {
@@ -920,8 +882,6 @@ var serviceMenuScript = function () {
 					static_flow: sf,
 					requires_wifi: icon_requires_wifi,
 					run_in_background: icon_run_in_background,
-					broadcast_branding: bb,
-					is_broadcast_settings: isBroadcastSettings,
 					link: link,
                     fall_through: icon_fall_through,
                     form_id: formId,

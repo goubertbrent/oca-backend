@@ -276,8 +276,6 @@ class Test(mc_unittest.TestCase):
         user_data_string = FriendTO.fromDBFriendMap(helper, myFriendMap, si.user, True, True, invitor).userData
         self.assertIsNone(user_data_string)
         ud_dict = ud.userData.to_json_dict()
-        ud_dict['__rt__disabledBroadcastTypes'] = ud_dict.get('__rt__disabledBroadcastTypes', [])
-        user_data['__rt__disabledBroadcastTypes'] = list()
         self.assertDictEqual(user_data, ud_dict)
 
         # test cleanup of UserData

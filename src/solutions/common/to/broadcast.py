@@ -19,37 +19,7 @@ from mcfw.properties import unicode_property, typed_property, bool_property, lon
     object_factory
 from mcfw.utils import Enum
 from rogerthat.to import TO
-from rogerthat.to.messaging import AttachmentTO
 from rogerthat.to.news import ServiceNewsGroupTO, NewsActionButtonTO
-from solutions.common.to import TimestampTO, UrlTO
-
-
-class SolutionScheduledBroadcastTO(object):
-    key = unicode_property('1')
-    scheduled = typed_property('2', TimestampTO, False)
-    broadcast_type = unicode_property('3')
-    message = unicode_property('4')
-    target_audience_enabled = bool_property('5')
-    target_audience_min_age = long_property('6')
-    target_audience_max_age = long_property('7')
-    target_audience_gender = unicode_property('8')
-    attachments = typed_property('9', AttachmentTO, True)
-    urls = typed_property('10', UrlTO, True)
-
-    @staticmethod
-    def fromModel(model):
-        ssb = SolutionScheduledBroadcastTO()
-        ssb.key = unicode(model.key_str)
-        ssb.scheduled = TimestampTO.fromEpoch(model.broadcast_epoch)
-        ssb.broadcast_type = model.broadcast_type
-        ssb.message = model.message
-        ssb.target_audience_enabled = model.target_audience_enabled
-        ssb.target_audience_min_age = model.target_audience_min_age
-        ssb.target_audience_max_age = model.target_audience_max_age
-        ssb.target_audience_gender = model.target_audience_gender
-        ssb.attachments = model.attachments
-        ssb.urls = model.urls or list()
-        return ssb
 
 
 class RegionalNewsSettingsTO(TO):
@@ -108,6 +78,10 @@ NEWS_ACTION_BUTTONS = {
 }
 
 
+class DashboardNewsGroupTO(ServiceNewsGroupTO):
+    regional_allowed = bool_property('regional_allowed')
+
+
 class NewsActionButtonFactory(object_factory):
     type = long_property('type')
 
@@ -118,7 +92,7 @@ class NewsActionButtonFactory(object_factory):
 class NewsOptionsTO(TO):
     tags = unicode_list_property('tags')
     regional = typed_property('regional', RegionalNewsSettingsTO)
-    groups = typed_property('groups', ServiceNewsGroupTO, True)
+    groups = typed_property('groups', DashboardNewsGroupTO, True)
     media_types = unicode_list_property('media_types')
     location_filter_enabled = bool_property('location_filter_enabled')
     action_buttons = typed_property('action_buttons', NewsActionButtonFactory(), True)

@@ -21,26 +21,20 @@ import logging
 import os
 
 import jinja2
-
 from google.appengine.ext import webapp, db
 from google.appengine.ext.webapp import template
+
 from mcfw.properties import azzert
-from rogerthat.bizz.job.update_friends import schedule_update_a_friend_of_a_service_identity_user
-from rogerthat.bizz.service import create_send_user_data_requests
 from rogerthat.bizz.user import calculate_secure_url_digest
-from rogerthat.dal.app import get_app_by_user, get_app_name_by_id
-from rogerthat.dal.mobile import get_user_active_mobiles, get_mobile_key_by_account
-from rogerthat.models import ActivationLog, App, ServiceIdentity, UserProfile, FriendServiceIdentityConnection, UserData
+from rogerthat.dal.app import get_app_by_user
+from rogerthat.dal.mobile import get_user_active_mobiles
+from rogerthat.models import ActivationLog, App, UserProfile
 from rogerthat.rpc import users
 from rogerthat.rpc.models import Mobile
-from rogerthat.templates import get_languages_from_request
 from rogerthat.templates.jinja_extensions import TranslateExtension
-from rogerthat.translations import localize
-from rogerthat.utils import now, xml_escape
-from rogerthat.utils.app import get_human_user_from_app_user, get_app_id_from_app_user, get_app_user_tuple
+from rogerthat.utils import now
+from rogerthat.utils.app import get_human_user_from_app_user, get_app_id_from_app_user
 from rogerthat.utils.crypto import decrypt
-from rogerthat.utils.service import add_slash_default
-from rogerthat.utils.transactions import run_in_xg_transaction
 
 
 class UnsubscribeReminderHandler(webapp.RequestHandler):
@@ -137,77 +131,6 @@ class UnsubscribeReminderHandler(webapp.RequestHandler):
         }
 
         self.response.out.write(jinja_template.render(params))
-
-
-class UnsubscribeBroadcastHandler(UnsubscribeReminderHandler):
-
-    def _un_subscribe(self, app_user, si_user, broadcast_type):
-        user_profile, si, fsic = db.get([UserProfile.createKey(app_user),
-                                         ServiceIdentity.keyFromUser(add_slash_default(si_user)),
-                                         FriendServiceIdentityConnection.createKey(app_user, si_user)])
-
-        logging.info('%s is unsubscribing from notifications of "%s" with type "%s".',
-                     user_profile.name if user_profile else app_user.email(),
-                     si.name if si else si_user.email(),
-                     broadcast_type)
-
-        updated = False
-        if fsic:
-            if broadcast_type in fsic.enabled_broadcast_types:
-                fsic.enabled_broadcast_types.remove(broadcast_type)
-                updated = True
-            if broadcast_type not in fsic.disabled_broadcast_types:
-                fsic.disabled_broadcast_types.append(broadcast_type)
-                updated = True
-
-        if updated:
-            fsic.put()
-            models = db.get([UserData.createKey(fsic.friend, fsic.service_identity_user)] +
-                            [get_mobile_key_by_account(mobile.account) for mobile in user_profile.mobiles])
-            user_data_model, mobiles = models[0], models[1:]
-            create_send_user_data_requests(mobiles, user_data_model, fsic, fsic.friend, fsic.service_identity_user)
-            schedule_update_a_friend_of_a_service_identity_user(fsic.service_identity_user, fsic.friend, force=True,
-                                                                clear_broadcast_settings_cache=True)
-        else:
-            logging.info('%s was already unsubscribed from notifications of "%s" with type "%s".',
-                         user_profile.name if user_profile else app_user.email(),
-                         si.name if si else si_user.email(),
-                         broadcast_type)
-
-        return updated, user_profile, si, fsic
-
-    def get(self):
-        data_dict, app_user = self.get_user_info()
-        if not data_dict or not app_user:
-            return
-        azzert(data_dict['a'] == "unsubscribe broadcast")
-
-        broadcast_type = data_dict['bt']
-        si_user = users.User(data_dict['e'])
-
-        _, user_profile, si, fsic = run_in_xg_transaction(self._un_subscribe, app_user, si_user, broadcast_type)
-
-        if fsic or not si:
-            message = '%s,<br><br>%s' % (xml_escape(localize(user_profile.language, u'dear_name',
-                                                             name=user_profile.name)),
-                                         xml_escape(localize(user_profile.language,
-                                                             u'successfully_unsubscribed_broadcast_type',
-                                                             notification_type=broadcast_type,
-                                                             service=si.name if si else data_dict['n'])))
-        else:
-            language = get_languages_from_request(self.request)[0]
-            if not user_profile:
-                # User already deactivated his account
-                human_user, app_id = get_app_user_tuple(app_user)
-                message = localize(language, u'account_already_deactivated',
-                                   account=human_user.email(), app_name=get_app_name_by_id(app_id))
-            else:
-                # User is not connected anymore to this service identity
-                message = localize(language, u'account_already_disconnected_from_service',
-                                   service_name=si.name)
-
-        jinja_template = self.get_jinja_environment().get_template('unsubscribe_broadcast_type.html')
-        self.response.out.write(jinja_template.render(dict(message=message)))
 
 
 class UnsubscribeDeactivateHandler(UnsubscribeReminderHandler):

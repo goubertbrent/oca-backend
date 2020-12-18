@@ -252,7 +252,7 @@ class GenericRESTRequestHandler(webapp2.RequestHandler):
                 self.abort(httplib.UNAUTHORIZED)
                 return
             service_email = self.request.headers.get('X-Logged-In-As')
-            if service_email:
+            if service_email and session:
                 if session.service_identity_user:
                     current_user_email = session.service_identity_user.email()
                 else:

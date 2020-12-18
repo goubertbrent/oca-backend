@@ -19,6 +19,12 @@
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
             "aot": true,
+             "allowedCommonJsDependencies": [
+                "easymde",
+                "jquery",
+                "jquery-mapael",
+                "jquery-mousewheel"
+             ],
             "outputPath": "../src/static/client",
             "index": "src/index.html",
             "main": "src/main.ts",
@@ -30,8 +36,7 @@
             ],
             "styles": [
               "src/styles.scss"
-            ],
-            "es5BrowserSupport": true
+            ]
           },
           "configurations": {
             "production": {
@@ -45,7 +50,6 @@
               "optimization": true,
               "outputHashing": "all",
               "sourceMap": false,
-              "extractCss": true,
               "namedChunks": false,
               "aot": true,
               "extractLicenses": true,
@@ -62,20 +66,6 @@
                   "maximumWarning": "6kb"
                 }
               ]
-            },
-            "hmr": {
-              "budgets": [
-                {
-                  "type": "anyComponentStyle",
-                  "maximumWarning": "6kb"
-                }
-              ],
-              "fileReplacements": [
-                {
-                  "replace": "src/environments/environment.ts",
-                  "with": "src/environments/environment.hmr.ts"
-                }
-              ]
             }
           }
         },
@@ -89,11 +79,6 @@
           "configurations": {
             "production": {
               "browserTarget": "oca-dashboard:build:production"
-            },
-            "hmr": {
-              "browserTarget": "oca-dashboard:build:hmr",
-              "hmr": true,
-              "hmrWarning": false
             }
           }
         },
@@ -203,7 +188,6 @@
               "optimization": true,
               "outputHashing": "all",
               "sourceMap": false,
-              "extractCss": true,
               "namedChunks": false,
               "extractLicenses": true,
               "vendorChunk": false,
@@ -293,7 +277,7 @@
       "prefix": "lib",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-ng-packagr:build",
+          "builder": "@angular-devkit/build-angular:ng-packagr",
           "options": {
             "tsConfig": "projects/web-shared/tsconfig.lib.json",
             "project": "projects/web-shared/ng-package.json"
@@ -340,6 +324,9 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
+             "allowedCommonJsDependencies": [
+                "easymde"
+             ],
             "outputPath": "../src/static/console",
             "index": "projects/console/src/index.html",
             "main": "projects/console/src/main.ts",
@@ -372,7 +359,6 @@
               "optimization": true,
               "outputHashing": "all",
               "sourceMap": false,
-              "extractCss": true,
               "namedChunks": false,
               "extractLicenses": true,
               "vendorChunk": false,

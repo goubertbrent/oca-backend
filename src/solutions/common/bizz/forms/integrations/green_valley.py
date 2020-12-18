@@ -20,6 +20,7 @@ from google.appengine.api import urlfetch
 from rogerthat.bizz.maps.reports import _do_request
 from rogerthat.to import TO
 from solutions.common.bizz.forms.integrations.base import BaseFormIntegration
+from solutions.common.models.forms import FormIntegrationProvider
 from solutions.common.to.forms import FormSubmissionTO
 
 
@@ -34,7 +35,7 @@ class GreenValleyFormIntegration(BaseFormIntegration):
         super(GreenValleyFormIntegration, self).__init__(self.configuration)
 
     def update_configuration(self, form_id, configuration, service_profile):
-        configuration['provider'] = 'green_valley'
+        configuration['provider'] = FormIntegrationProvider.GREEN_VALLEY
         payload = {'form_id': form_id, 'config': configuration}
         return _do_request('/incidents/integrations/form', urlfetch.PUT, payload, authorization=service_profile.sik)
 

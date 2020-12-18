@@ -1,0 +1,37 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <app-back-button></app-back-button>
+    </ion-buttons>
+    <ion-title>
+      {{ title || ('app.qm.appointments' | translate) }}
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ng-container *ngIf="appointments$ | async as appointments">
+    <qm-appointment-card (addToCalendarClicked)="addToCalendar($event)"
+                          (cancelClicked)="cancelAppointment($event)"
+                          *ngFor="let appointment of appointments.upcoming"
+                          [appointment]="appointment">
+    </qm-appointment-card>
+    <p *ngIf="showNoResults$ | async" class="ion-padding">
+      {{ 'app.qm.no_upcoming_appointments_yet' | translate }}
+    </p>
+    <ng-container *ngIf="appointments.past.length > 0">
+      <h2 class="ion-padding">{{ 'app.qm.former_appointments' | translate }}</h2>
+      <qm-appointment-card *ngFor="let appointment of appointments.past"
+                            [appointment]="appointment">
+      </qm-appointment-card>
+    </ng-container>
+  </ng-container>
+  <div *ngIf="isLoading$ | async" class="qm-spinner-container">
+    <ion-spinner></ion-spinner>
+  </div>
+  <ion-fab horizontal="end" slot="fixed" vertical="bottom">
+    <ion-fab-button routerLink="/new-appointment">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

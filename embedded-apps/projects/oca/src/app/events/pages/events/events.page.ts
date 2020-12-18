@@ -36,6 +36,7 @@ export class EventsPage implements OnInit, OnDestroy {
   eventsFilter$: Observable<GetEventsParams>;
   events$: Observable<EventListItem[]>;
   delayedSearch$ = new Subject<GetEventsParams>();
+  title = rogerthat.menuItem?.label;
 
   private readonly destroyed$ = new Subject();
   private readonly service: string | null = null;

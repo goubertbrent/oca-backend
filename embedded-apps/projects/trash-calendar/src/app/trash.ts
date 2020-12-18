@@ -59,5 +59,6 @@ export interface UITrashCollection {
 }
 
 // From assets/images/*.png
-export const supportedIcons = ['gft', 'grofvuil', 'huisvuil', 'kerstboom', 'metaal', 'mixed_plastics', 'papier', 'pmd', 'textiel', 'tuin'];
+export const supportedIcons = ['gft', 'glass', 'grofvuil', 'huisvuil', 'kerstboom', 'metaal', 'mixed_plastics', 'papier', 'pmd', 'textiel',
+  'tuin'];
 export const unknownIcon = 'unknown';

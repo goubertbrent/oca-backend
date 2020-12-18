@@ -1,55 +1,69 @@
+import { createReducer, on } from '@ngrx/store';
 import { initialStateResult, ResultState, stateError, stateLoading, stateSuccess } from '@oca/web-shared';
 import { updateItem } from '../shared/util';
-import { CirkloSettings, VouchersServiceList } from './vouchers';
-import { VouchersActions, VouchersActionTypes } from './vouchers.actions';
+import { CirkloCity, CirkloSettings, VouchersServiceList } from './vouchers';
+import {
+  ExportMerchants,
+  ExportMerchantsComplete,
+  ExportMerchantsFailed,
+  GetCirkloCities,
+  GetCirkloCitiesComplete,
+  GetCirkloCitiesFailed,
+  GetCirkloSettingsAction,
+  GetCirkloSettingsCompleteAction,
+  GetCirkloSettingsFailedAction,
+  GetServicesAction,
+  GetServicesFailedAction,
+  GetServicesSuccessAction,
+  SaveCirkloSettingsAction,
+  SaveCirkloSettingsCompleteAction,
+  SaveCirkloSettingsFailedAction,
+  WhitelistVoucherServiceFailedAction,
+  WhitelistVoucherServiceSuccessAction,
+} from './vouchers.actions';
 
 export const vouchersFeatureKey = 'vouchers';
 
 export interface VouchersState {
   services: ResultState<VouchersServiceList>;
   cirkloSettings: ResultState<CirkloSettings>;
+  cirkloCities: ResultState<CirkloCity[]>;
+  merchantsExport: ResultState<string>;
 }
 
 export const initialState: VouchersState = {
   services: initialStateResult,
   cirkloSettings: initialStateResult,
+  cirkloCities: initialStateResult,
+  merchantsExport: initialStateResult,
 };
 
-export function vouchersReducer(state = initialState, action: VouchersActions): VouchersState {
-  switch (action.type) {
-    case VouchersActionTypes.GET_SERVICES:
-      return { ...state, services: stateLoading(initialState.services.result) };
-    case VouchersActionTypes.GET_SERVICES_SUCCESS:
-      return {
-        ...state,
-        services: stateSuccess({ ...action.payload, results: [...(state.services.result?.results ?? []), ...action.payload.results] }),
-      };
-    case VouchersActionTypes.GET_SERVICES_FAILED:
-      return { ...state, services: stateError(action.error, state.services.result) };
-    case VouchersActionTypes.WHITELIST_VOUCHER_SERVICE:
-      break;
-    case VouchersActionTypes.WHITELIST_VOUCHER_SERVICE_SUCCESS:
-      return {
-        ...state,
-        services: stateSuccess({
-          ...(state.services.result as Readonly<VouchersServiceList>),
-          results: updateItem((state.services.result as VouchersServiceList).results, action.payload.service, 'id'),
-        }),
-      };
-    case VouchersActionTypes.WHITELIST_VOUCHER_SERVICE_FAILED:
-      return { ...state, services: stateError(action.error, state.services.result) };
-    case VouchersActionTypes.GET_CIRKLO_SETTINGS:
-      return { ...state, cirkloSettings: stateLoading(initialState.cirkloSettings.result) };
-    case VouchersActionTypes.GET_CIRKLO_SETTINGS_SUCCESS:
-      return { ...state, cirkloSettings: stateSuccess(action.payload) };
-    case VouchersActionTypes.GET_CIRKLO_SETTINGS_FAILED:
-      return { ...state, cirkloSettings: stateError(action.error, state.cirkloSettings.result) };
-    case VouchersActionTypes.SAVE_CIRKLO_SETTINGS:
-      return { ...state, cirkloSettings: stateLoading(action.payload) };
-    case VouchersActionTypes.SAVE_CIRKLO_SETTINGS_SUCCESS:
-      return { ...state, cirkloSettings: stateSuccess(action.payload) };
-    case VouchersActionTypes.SAVE_CIRKLO_SETTINGS_FAILED:
-      return { ...state, cirkloSettings: stateError(action.error, state.cirkloSettings.result) };
-  }
-  return state;
-}
+export const vouchersReducer = createReducer(
+  initialState,
+  on(GetServicesAction, (state) => ({ ...state, services: stateLoading(initialState.services.result) })),
+  on(GetServicesSuccessAction, (state, { payload }) => ({
+    ...state,
+    services: stateSuccess({ ...payload, results: [...(state.services.result?.results ?? []), ...payload.results] }),
+  })),
+  on(GetServicesFailedAction, (state, { error }) => ({ ...state, services: stateError(error, state.services.result) })),
+  on(WhitelistVoucherServiceSuccessAction, (state, { service }) => ({
+    ...state,
+    services: stateSuccess({
+      ...(state.services.result as Readonly<VouchersServiceList>),
+      results: updateItem((state.services.result as VouchersServiceList).results, service, 'id'),
+    }),
+  })),
+  on(WhitelistVoucherServiceFailedAction, (state, { error }) => ({ ...state, services: stateError(error, state.services.result) })),
+  on(GetCirkloSettingsAction, (state) => ({ ...state, cirkloSettings: stateLoading(initialState.cirkloSettings.result) })),
+  on(GetCirkloSettingsCompleteAction, (state, { payload }) => ({ ...state, cirkloSettings: stateSuccess(payload) })),
+  on(GetCirkloSettingsFailedAction, (state, { error }) => ({ ...state, cirkloSettings: stateError(error, state.cirkloSettings.result) })),
+  on(SaveCirkloSettingsAction, (state, { payload }) => ({ ...state, cirkloSettings: stateLoading(payload) })),
+  on(SaveCirkloSettingsCompleteAction, (state, { payload }) => ({ ...state, cirkloSettings: stateSuccess(payload) })),
+  on(SaveCirkloSettingsFailedAction, (state, { error }) => ({ ...state, cirkloSettings: stateError(error, state.cirkloSettings.result) })),
+  on(GetCirkloCities, (state) => ({ ...state, cirkloCities: stateLoading(state.cirkloCities.result) })),
+  on(GetCirkloCitiesComplete, (state, { cities }) => ({ ...state, cirkloCities: stateSuccess(cities) })),
+  on(GetCirkloCitiesFailed, (state, { error }) => ({ ...state, cirkloCities: stateError(error, state.cirkloCities.result) })),
+  on(ExportMerchants, (state) => ({ ...state, merchantsExport: stateLoading(state.merchantsExport.result) })),
+  on(ExportMerchantsComplete, (state, { url }) => ({ ...state, merchantsExport: stateSuccess(url) })),
+  on(ExportMerchantsFailed, (state, { error }) => ({ ...state, merchantsExport: stateError(error, state.merchantsExport.result) })),
+);

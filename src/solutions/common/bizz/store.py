@@ -21,18 +21,15 @@ import logging
 from google.appengine.ext import deferred, db, ndb
 
 from mcfw.properties import azzert
-from rogerthat.utils import now, channel, today, send_mail
+from rogerthat.utils import now, channel, send_mail
 from rogerthat.utils.transactions import run_in_xg_transaction
-from shop.bizz import create_task, broadcast_task_updates, \
-    generate_order_or_invoice_pdf, send_order_email, \
-    update_regiomanager_statistic
+from shop.bizz import generate_order_or_invoice_pdf, send_order_email, update_regiomanager_statistic
 from shop.business.i18n import shop_translate
 from shop.business.legal_entities import get_vat_pct
-from shop.business.prospect import create_prospect_from_customer
 from shop.constants import STORE_MANAGER
 from shop.dal import get_customer
 from shop.models import StripePayment, RegioManagerTeam, Contact, Order, \
-    OrderNumber, Customer, Prospect, ShopTask, Product, OrderItem
+    OrderNumber, Product, OrderItem
 from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz.budget import update_budget
 from solutions.common.dal import get_solution_settings
@@ -41,9 +38,6 @@ try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
-
-CREATE_SHOPTASK_FOR_ITEMS = [Product.PRODUCT_ROLLUP_BANNER, Product.PRODUCT_CARDS]
-
 
 @ndb.transactional()
 def stripe_order_completed(session_id):
@@ -101,7 +95,6 @@ def _stripe_order_completed(session_id):
         number = 0
         added_budget = 0
         budget_description = None
-        should_create_shoptask = False
         for item in payment.items:
             product = all_products[item.product_code]
             number += 1
@@ -114,9 +107,6 @@ def _stripe_order_completed(session_id):
             to_put.append(order_item)
 
             new_order.amount += order_item.price * order_item.count
-            
-            if item.product_code in CREATE_SHOPTASK_FOR_ITEMS:
-                should_create_shoptask = True
 
             if item.product_code == Product.PRODUCT_BUDGET:
                 added_budget += order_item.price * order_item.count
@@ -145,9 +135,6 @@ def _stripe_order_completed(session_id):
 
         channel.send_message(service_user, 'solutions.common.orders.update')
         channel.send_message(service_user, 'solutions.common.shop.reload')
-        if should_create_shoptask:
-            deferred.defer(create_task_for_order, customer.id, new_order.order_number, _countdown=5,
-                           _transactional=True)
 
     xg_on = db.create_transaction_options(xg=True)
     db.run_in_transaction_options(xg_on, trans)
@@ -193,29 +180,3 @@ def contact_support_new_invoice_to_be_created(customer, order_number, contact):
 
     subject = '%s %s' % (shop_translate(customer.language, 'order_number'), order_number)
     send_mail(sln_server_settings.shop_billing_email, to, subject, body)
-
-
-def create_task_for_order(customer_id, order_number):
-    customer = Customer.get_by_id(customer_id)
-    prospect_id = customer.prospect_id
-    if prospect_id is None:
-        prospect = create_prospect_from_customer(customer)
-        prospect_id = prospect.id
-    team, prospect = db.get(
-        [RegioManagerTeam.create_key(customer.team_id), Prospect.create_key(prospect_id)])
-    azzert(team.support_manager, u'No support manager found for team %s' % team.name)
-    comment = u'Customer placed a new order: %s' % order_number
-    task = create_task(
-        created_by=STORE_MANAGER.email(),
-        prospect_or_key=prospect,
-        app_id=prospect.app_id,
-        status=ShopTask.STATUS_NEW,
-        task_type=ShopTask.TYPE_SUPPORT_NEEDED,
-        address=None,
-        assignee=team.support_manager,
-        comment=comment,
-        execution_time=today() + 86400 + 11 * 3600,  # tomorrow at 11:00
-        notify_by_email=True
-    )
-    task.put()
-    broadcast_task_updates([team.support_manager])

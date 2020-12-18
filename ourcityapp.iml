@@ -20,11 +20,11 @@
       <sourceFolder url="file://$MODULE_DIR$/services/workers/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/services/statistics/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/client/dist" />
-      <excludeFolder url="file://$MODULE_DIR$/client/tmp" />
       <excludeFolder url="file://$MODULE_DIR$/embedded-apps/dist" />
       <excludeFolder url="file://$MODULE_DIR$/src/lib" />
       <excludeFolder url="file://$MODULE_DIR$/src/static/client" />
       <excludeFolder url="file://$MODULE_DIR$/src/static/console" />
+      <excludeFolder url="file://$MODULE_DIR$/embedded-apps/tmp" />
     </content>
     <orderEntry type="jdk" jdkName="Python 2.7 (oca-backend)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

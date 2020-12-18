@@ -33,6 +33,9 @@ from google.appengine.api.apiproxy_stub_map import UserRPC
 from google.appengine.api.app_identity.app_identity import get_application_id
 from google.appengine.api.taskqueue import TaskRetryOptions
 from google.appengine.ext import db, deferred
+from hyper import HTTP20Connection
+from jose import jwt
+from jose.constants import Algorithms
 
 from mcfw.cache import set_cache_key
 from mcfw.consts import MISSING
@@ -200,6 +203,28 @@ class DirectRpcCaller(threading.local):
         del self.items[:]
 
 
+class APNSCache(object):
+
+    def __init__(self):
+        self.jwts = {}
+
+    def get_jwt(self, app):
+        now_ = time.time()
+        if app.ios_dev_team not in self.jwts or self.jwts[app.ios_dev_team]['expires'] < now_:
+            self.jwts[app.ios_dev_team] = {'data': self._create_jwt(app, now_),
+                                           'expires': now_ + 40 * 60}
+        return self.jwts[app.ios_dev_team]['data']
+
+    def _create_jwt(self, app, now_):
+        logging.info("APNSConnections._create_jwt start app:%s", app.app_id)
+        token = jwt.encode({'iss': app.ios_dev_team, 'iat': now_},
+                           app.apns_key,
+                           algorithm=Algorithms.ES256,
+                           headers={ 'alg': Algorithms.ES256, 'kid': app.apns_key_id})
+        logging.info("APNSConnections._create_jwt end")
+        return token
+
+
 class JabberRpcCaller(threading.local):
 
     def __init__(self, endpoint):
@@ -225,38 +250,97 @@ class JabberRpcCaller(threading.local):
                 if not app.apple_push_cert or not app.apple_push_key:
                     logging.error('Not sending apns to "%s" cert or key was empty', app_id)
                     return
+            else:
+                app = None
         except:
             logging.exception("Failed to process JabberRpcCaller.append")
+            return
+        if app and app.apns_key_id:
+            self.do_kick(app, payload_dict)
+        else:
+            jabberEndpoint = choice(settings.jabberEndPoints)
+            rpc_item = urlfetch.create_rpc(5, None)
+            challenge, data = encrypt_for_jabber_cloud(settings.jabberSecret.encode('utf8'), payload)
+            url = "http://%s/%s" % (jabberEndpoint, self.endpoint)
+            urlfetch.make_fetch_call(rpc=rpc_item, url=url, payload=data, method="POST",
+                                     allow_truncated=False, follow_redirects=False, validate_certificate=False)
+            self.items.append((1, rpc_item, payload, challenge, time.time(), url))
 
-        jabberEndpoint = choice(settings.jabberEndPoints)
-        rpc_item = urlfetch.create_rpc(5, None)
-        challenge, data = encrypt_for_jabber_cloud(settings.jabberSecret.encode('utf8'), payload)
-        url = "http://%s/%s" % (jabberEndpoint, self.endpoint)
-        urlfetch.make_fetch_call(rpc=rpc_item, url=url, payload=data, method="POST",
-                                 allow_truncated=False, follow_redirects=False, validate_certificate=False)
-        self.items.append((rpc_item, payload, challenge, time.time(), url))
 
     def finalize(self):
         # Don't fetch server settings when not needed
         settings = None
-        for rpc_item, payload, challenge, start_time, url in self.items:
-            if not settings:
-                settings = get_server_settings()
-            try:
-                check_time = time.time()
-                response = rpc_item.get_result()
-                response_time = time.time()
-                logging.info("JabberRpc - Called %s. Elapsed: %sms, checked after %sms\npayload: %s", url,
-                             int((response_time - start_time) * 1000), int((check_time - start_time) * 1000), payload)
-                if response.status_code != 200:
-                    logging.error("Failed to call jabber cloud with the following info:\nendpoint: %s\npayload: %s",
-                                  self.endpoint, payload)
-                    raise Exception(response.content)
-                decrypt_from_jabber_cloud(settings.jabberSecret.encode('utf8'), challenge, response.content)
-            except:
-                logging.warn("Failed to reach jabber endpoint on %s, deferring ..." % url)
-                deferred.defer(_call_rpc, self.endpoint, payload)
+        for item_tuple in self.items:
+            version = item_tuple[0]
+            if version == 1:
+                _, rpc_item, payload, challenge, start_time, url = item_tuple
+                if not settings:
+                    settings = get_server_settings()
+                try:
+                    check_time = time.time()
+                    response = rpc_item.get_result()
+                    response_time = time.time()
+                    logging.info("JabberRpc - Called %s. Elapsed: %sms, checked after %sms\npayload: %s", url,
+                                 int((response_time - start_time) * 1000), int((check_time - start_time) * 1000), payload)
+                    if response.status_code != 200:
+                        logging.error("Failed to call jabber cloud with the following info:\nendpoint: %s\npayload: %s",
+                                      self.endpoint, payload)
+                        raise Exception(response.content)
+                    decrypt_from_jabber_cloud(settings.jabberSecret.encode('utf8'), challenge, response.content)
+                except:
+                    logging.warn("Failed to reach jabber endpoint on %s, deferring ..." % url)
+                    deferred.defer(_call_rpc, self.endpoint, payload)
+            elif version == 2:
+                _, conn, stream_id = item_tuple
+                try:
+                    resp = conn.get_response(stream_id)
+                    if resp.status != 200:
+                        logging.error("Failed to send apple push %s", resp.read())
+                except:
+                    logging.info("failed to get response", exc_info=True)
+                try:
+                    stream = conn.streams[stream_id]
+                    stream.close()
+                except:
+                    logging.info("failed to close stream", exc_info=True)
+                try:
+                    conn.reset_streams.discard(stream_id)
+                except:
+                    logging.info("failed to discard reset_streams", exc_info=True)
         del self.items[:]
+
+    def do_kick(self, app, payload_dict):
+        # todo improve how connections work
+        # 1 connection for every ios_dev_team
+        # 1 jwt for every connection
+        # renew jwt every 40 minutes
+        # APNs does not support authentication tokens from multiple developer accounts over a single connection.
+        # Refresh your token no more than once every 20 minutes and no less than once every 60 minutes.
+        # https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/establishing_a_token-based_connection_to_apns
+        if 'd' not in payload_dict:
+            return
+        if not app.ios_dev_team or not app.apns_key_id or not app.apns_key:
+            logging.error('Not sending apns to "%s" ios_dev_team or apns_key_id or apns_key was empty', app.app_id)
+            return
+        token = apns_cache.get_jwt(app)
+        path = '/3/device/{0}'.format(payload_dict['d'])
+        request_headers = {
+            'apns-expiration': '0',
+            'apns-priority': str(payload_dict['p']),
+            'apns-topic': 'com.mobicage.rogerthat.{0}'.format(app.app_id),
+            'authorization': 'bearer {0}'.format(token.decode('ascii'))
+        }
+        # todo don't base64 and json encode
+        payload_data = json.loads(base64.decodestring(payload_dict['m']))
+        payload = json.dumps(payload_data).encode('utf-8')
+        conn = HTTP20Connection('api.push.apple.com:443', force_proto='h2')
+        stream_id = conn.request(
+            'POST',
+            path,
+            payload,
+            headers=request_headers
+        )
+        self.items.append((2, conn, stream_id))
 
 
 def create_firebase_request(data, is_gcm=False):
@@ -411,6 +495,7 @@ class ContextFinisher(threading.local):
         logging.info("Finalized futures")
 
 
+apns_cache = APNSCache()
 kicks = JabberRpcCaller("kick")
 firebase = FirebaseKicker()
 api_callbacks = DirectRpcCaller()

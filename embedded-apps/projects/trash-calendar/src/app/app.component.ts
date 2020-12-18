@@ -1,13 +1,12 @@
 import { Location } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, NgZone, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
-import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { Platform } from '@ionic/angular';
 import { Actions } from '@ngrx/effects';
 import { TranslateService } from '@ngx-translate/core';
 import { RogerthatService } from '@oca/rogerthat';
-import { DEFAULT_LOCALE, getLanguage, setColor } from '@oca/shared';
+import { DEFAULT_LANGUAGE, getLanguage, setColor } from '@oca/shared';
 
 
 @Component({
@@ -17,9 +16,9 @@ import { DEFAULT_LOCALE, getLanguage, setColor } from '@oca/shared';
   encapsulation: ViewEncapsulation.None,
 })
 export class AppComponent {
+  loaded = false;
 
   constructor(private platform: Platform,
-              private splashScreen: SplashScreen,
               private statusBar: StatusBar,
               private rogerthatService: RogerthatService,
               private translate: TranslateService,
@@ -32,8 +31,7 @@ export class AppComponent {
   }
 
   async initializeApp() {
-    this.translate.setDefaultLang(DEFAULT_LOCALE);
-    this.splashScreen.hide();
+    this.translate.setDefaultLang(DEFAULT_LANGUAGE);
     this.platform.backButton.subscribe(async () => {
       if (this.shouldExitApp()) {
         this.exit();
@@ -42,8 +40,9 @@ export class AppComponent {
     await this.platform.ready();
     rogerthat.callbacks.ready(() => {
       this.ngZone.run(() => {
+        this.loaded = true;
         this.rogerthatService.initialize();
-          this.translate.use(getLanguage(rogerthat.user.language));
+        this.translate.use(getLanguage(rogerthat.user.language));
         if (rogerthat.system.colors) {
           setColor('primary', rogerthat.system.colors.primary);
           if (rogerthat.system.os === 'ios') {
@@ -54,6 +53,7 @@ export class AppComponent {
         } else {
           this.statusBar.styleDefault();
         }
+        this.cdRef.markForCheck();
       });
       if (rogerthat.system.debug) {
         this.actions$.subscribe(action => {

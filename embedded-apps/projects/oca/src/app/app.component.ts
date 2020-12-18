@@ -1,14 +1,13 @@
 import { Location } from '@angular/common';
-import { ChangeDetectionStrategy, Component, NgZone, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, NgZone, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
-import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { AlertController, Platform } from '@ionic/angular';
 import { AlertOptions } from '@ionic/core';
 import { Actions } from '@ngrx/effects';
 import { TranslateService } from '@ngx-translate/core';
 import { RogerthatService } from '@oca/rogerthat';
-import { DEFAULT_LOCALE, getLanguage, setColor } from '@oca/shared';
+import { DEFAULT_LANGUAGE, getLanguage, setColor } from '@oca/shared';
 
 
 @Component({
@@ -18,13 +17,15 @@ import { DEFAULT_LOCALE, getLanguage, setColor } from '@oca/shared';
   encapsulation: ViewEncapsulation.None,
 })
 export class AppComponent {
+  loaded = false;
+
   constructor(private platform: Platform,
-              private splashScreen: SplashScreen,
               private statusBar: StatusBar,
               private rogerthatService: RogerthatService,
               private translate: TranslateService,
               private actions$: Actions,
               private router: Router,
+              private cdRef: ChangeDetectorRef,
               private location: Location,
               private ngZone: NgZone,
               private alertController: AlertController) {
@@ -32,9 +33,8 @@ export class AppComponent {
   }
 
   async initializeApp() {
-    this.translate.setDefaultLang(DEFAULT_LOCALE);
+    this.translate.setDefaultLang(DEFAULT_LANGUAGE);
     await this.platform.ready();
-    this.splashScreen.hide();
     this.platform.backButton.subscribe(async () => {
       if (this.shouldExitApp()) {
         this.exit();
@@ -42,6 +42,7 @@ export class AppComponent {
     });
     rogerthat.callbacks.ready(() => {
       this.ngZone.run(() => {
+        this.loaded = true;
         this.rogerthatService.initialize();
         this.translate.use(getLanguage(rogerthat.user.language));
         if (rogerthat.system.colors) {
@@ -57,6 +58,7 @@ export class AppComponent {
         if (this.isCompatible() && ['', '/'].includes(this.location.path())) {
           this.router.navigate(this.getRootPage());
         }
+        this.cdRef.markForCheck();
       });
     });
     // this.actions$.subscribe(action => {
@@ -76,12 +78,10 @@ export class AppComponent {
 
   private getRootPage(): string[] {
     const TAGS = {
-      Q_MATIC: sha256('__sln__.q_matic'),
       EVENTS: sha256('agenda'),
       JCC_APPOINTMENTS: sha256('__sln__.jcc_appointments'),
     };
     const PAGE_MAPPING = {
-      [ TAGS.Q_MATIC ]: ['q-matic'],
       [ TAGS.EVENTS ]: ['events'],
       [ TAGS.JCC_APPOINTMENTS ]: ['jcc-appointments'],
     };

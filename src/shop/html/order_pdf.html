@@ -136,18 +136,10 @@
     <table border="0" style="padding: 0.5em;">
         <tr>
             <td style="width:50%" align="left" class="clearfix">
-            {% if is_quotation %}
-                <h1>{% shop_translate language, "quotation_number" %}: {{ order.order_number }}</h1>
-            {% else %}
-                <h1>{% shop_translate language, "order_number"%}: {{ order.order_number }}</h1>
-            {% endif %}
+            <h1>{% shop_translate language, "order_number"%}: {{ order.order_number }}</h1>
             </td>
             <td style="width:50%" align="right" class="clearfix">
                 <b>{% shop_translate language, "date" %}: {{ order.date_str }}</b>
-                {% if is_quotation %}
-                <br/><br/>
-                {% shop_translate language, "quotation_note" %}
-                {% endif %}
             </td>
         </tr>
     </table>

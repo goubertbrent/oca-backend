@@ -61,6 +61,16 @@ D = { }
 # ###########################################################################################
 
 D["en"] = {
+"""website""": u"""Website""",
+"""email_verb""": u"""Email""",
+"""directions""": u"""Directions""",
+"""home""": u"""Home""",
+"""messages""": u"""Messages""",
+"""scan""": u"""Scan""",
+"""more""": u"""More""",
+"""settings""": u"""Settings""",
+"""other_city_services""": u"""Other city services""",
+"""other_municipality_services""": u"""Other municipality services""",
 """starting_this_week""": u"""Starting this week""",
 """app_jobs_title""": u"""Welcome to JOBS!""",
 """app_jobs_description""": u"""Looking for a new job challenge? From now on you will find all vacancies of local entrepreneurs, starting with those from your direct environment. Simply swipe through our local & regional job offers, supplemented with all vacancies from all over Flanders via the integration with VDAB. Set your preferences & get started. - Good luck!""",
@@ -243,12 +253,6 @@ Request your own application as a local business, association or health care pro
 """Accept invitation""": u"""Accept invitation""",
 
 
-"""account_already_deactivated""": u"""You are not subscribed (anymore) to the %(app_name)s app with this account (%(account)s).""",
-
-
-"""account_already_disconnected_from_service""": u"""You are not subscribed (anymore) to %(service_name)s.""",
-
-
 """Add to my services""": u"""Add to my services""",
 
 
@@ -286,9 +290,6 @@ Request your own application as a local business, association or health care pro
 
 
 """Associations""": u"""Associations""",
-
-
-"""broadcast_reminder_explanation""": u"""You receive this notification because you are subscribed to: %(broadcast_type)s""",
 
 
 """button""": u"""Button""",
@@ -339,7 +340,7 @@ Request your own application as a local business, association or health care pro
 """Could not download attachment %(url)s""": u"""Could not download attachment %(url)s""",
 
 
-"""Current polls""": u"""Current polls""",
+"""Current polls""": u"""Current surveys""",
 
 
 """current-version""": u"""Current version""",
@@ -505,7 +506,7 @@ Also make sure you have the latest version of the \"MYDIGIPASS Authenticator for
 """No news""": u"""No news""",
 
 
-"""No polls""": u"""No polls""",
+"""No polls""": u"""No surveys""",
 
 
 """No press""": u"""No press""",
@@ -598,7 +599,7 @@ Also make sure you have the latest version of the \"MYDIGIPASS Authenticator for
 """please_review_updated_tac""": u"""Please review our updated Terms and Conditions before continuing""",
 
 
-"""Polls""": u"""Polls""",
+"""Polls""": u"""Surveys""",
 
 
 """Press""": u"""Press""",
@@ -671,9 +672,6 @@ Accuracy: %(accuracy)sm""",
 """Submit""": u"""Submit""",
 
 
-"""successfully_unsubscribed_broadcast_type""": u"""You have been successfully unsubscribed from notifications with type \"%(notification_type)s\" of %(service)s.""",
-
-
 """tag""": u"""Tag""",
 
 
@@ -716,7 +714,7 @@ Accuracy: %(accuracy)sm""",
 """There are no local press articles at this time""": u"""There are no local press articles at this time""",
 
 
-"""There are no polls at this time""": u"""There are no polls at this time""",
+"""There are no polls at this time""": u"""There are no surveys at this time""",
 
 
 """There are no promotions at this time""": u"""There are no promotions at this time""",
@@ -769,9 +767,6 @@ For security reasons, your file will be available to download for only a few day
 
 
 """We could not determine the location of %(name)s.""": u"""We could not determine the location of %(name)s.""",
-
-
-"""Which type of broadcasts do you wish to receive?""": u"""Which type of broadcasts do you wish to receive?""",
 
 
 """Why do you wish to deactivate your account?""": u"""Why do you wish to deactivate your account?""",
@@ -950,12 +945,6 @@ Solicita tu propia aplicación como un proveedor de negocio, asociación o atenc
 """Accept invitation""": u"""Aceptar invitación""",
 
 
-"""account_already_deactivated""": u"""(Ya) No estas suscrito a la app %(app_name)s con esta cuenta (%(account)s).""",
-
-
-"""account_already_disconnected_from_service""": u"""(Ya) No estas suscrito a %(service_name)s.""",
-
-
 """Add to my services""": u"""Añadir a isso app""",
 
 
@@ -975,9 +964,6 @@ Solicita tu propia aplicación como un proveedor de negocio, asociación o atenc
 
 
 """Associations""": u"""Asociaciones""",
-
-
-"""broadcast_reminder_explanation""": u"""Estas recibiendo esta notificación porque estas suscrito a: %(broadcast_type)s'""",
 
 
 """Can not connect to server""": u"""No es posible conectar con el servidor""",
@@ -1171,9 +1157,6 @@ Precisión: %(accuracy)sm""",
 """Submit""": u"""Enviar""",
 
 
-"""successfully_unsubscribed_broadcast_type""": u"""Has sido dado de baja exitosamente de las notificaciones del tipo \"%(notification_type)s\" de %(service)s.""",
-
-
 """The scanned QR code is not supported by the %(app_name)s app""": u"""El código QR ​​escaneado no está soportado por el %(app_name)s app""",
 
 
@@ -1214,9 +1197,6 @@ Precisión: %(accuracy)sm""",
 
 
 """We could not determine the location of %(name)s.""": u"""No se puede establecer la ubicación de %(name)s.""",
-
-
-"""Which type of broadcasts do you wish to receive?""": u"""¿Qué tipo de notificaciones deseas recibir?""",
 
 
 """Why do you wish to deactivate your account?""": u"""¿Deseas desactivar tu cuenta?""",
@@ -1371,12 +1351,6 @@ Sont supportés les formats pdf, jpeg et png""",
 """Accept invitation""": u"""Accepter l'invitation""",
 
 
-"""account_already_deactivated""": u"""Vous n'êtes pas abonné (plus) à l'application de %(app_name)s avec ce compte (%(account)s).""",
-
-
-"""account_already_disconnected_from_service""": u"""Vous n'êtes pas abonné (plus) pour %(service_name)s.""",
-
-
 """Add to my services""": u"""Ajouter cette application""",
 
 
@@ -1405,9 +1379,6 @@ Sont supportés les formats pdf, jpeg et png""",
 
 
 """Associations""": u"""Associations""",
-
-
-"""broadcast_reminder_explanation""": u"""Vous recevez cette notification, car vous êtes abonné à: %(broadcast_type)s""",
 
 
 """Can not connect to server""": u"""Impossible de se connecter au serveur""",
@@ -1677,9 +1648,6 @@ Exactitude: %(accuracy)sm""",
 """Submit""": u"""Envoyer""",
 
 
-"""successfully_unsubscribed_broadcast_type""": u"""Vous avez été désabonné des notifications de type «%(notification_type)s» de %(service)s.""",
-
-
 """The latest news of your city""": u"""Les dernières nouvelles de votre ville""",
 
 
@@ -1746,9 +1714,6 @@ Exactitude: %(accuracy)sm""",
 """We could not determine the location of %(name)s.""": u"""Nous n'avons pas pu déterminer la position de %(name)s.""",
 
 
-"""Which type of broadcasts do you wish to receive?""": u"""Quel type de médias souhaitez-vous recevoir?""",
-
-
 """Why do you wish to deactivate your account?""": u"""Pourquoi souhaitez-vous désactiver votre compte ?""",
 
 
@@ -1773,6 +1738,16 @@ Exactitude: %(accuracy)sm""",
 # ###########################################################################################
 
 D["nl"] = {
+"""website""": u"""Website""",
+"""email_verb""": u"""Mailen""",
+"""directions""": u"""Route""",
+"""home""": u"""Home""",
+"""messages""": u"""Berichten""",
+"""scan""": u"""Scan""",
+"""more""": u"""Meer""",
+"""settings""": u"""Instellingen""",
+"""other_city_services""": u"""Andere stadsdiensten""",
+"""other_municipality_services""": u"""Andere gemeentediensten""",
 """starting_this_week""": u"""Startende deze week""",
 """app_jobs_title""": u"""Welkom bij JOBS!""",
 """app_jobs_description""": u"""Op zoek naar een nieuwe job-uitdaging? Voortaan vind je hier alle vacatures van lokale ondernemers, beginnende met die uit jouw rechtsreekse omgeving. Swipe heel eenvoudig door onze lokale & regionale jobaanbiedingen, aangevuld met alle vacatures van over heel Vlaanderen via de integratie met VDAB. Stel je voorkeuren in & ga aan de slag. - Succes!""",
@@ -1964,12 +1939,6 @@ Vraag als lokale ondernemer, vereniging of zorgverstrekker uw eigen applicatie i
 """Accept invitation""": u"""Verzoek aanvaarden""",
 
 
-"""account_already_deactivated""": u"""U bent niet (meer) ingeschreven op de %(app_name)s met dit account (%(account)s).""",
-
-
-"""account_already_disconnected_from_service""": u"""U bent niet (meer) ingeschreven op %(service_name)s.""",
-
-
 """Add to my services""": u"""Voeg toe aan deze app""",
 
 
@@ -2007,9 +1976,6 @@ Vraag als lokale ondernemer, vereniging of zorgverstrekker uw eigen applicatie i
 
 
 """Associations""": u"""Verenigingen""",
-
-
-"""broadcast_reminder_explanation""": u"""U ontvangt deze notificatie omdat u bent ingeschreven op: %(broadcast_type)s""",
 
 
 """button""": u"""Knop""",
@@ -2392,9 +2358,6 @@ Nauwkeurigheid: %(accuracy)sm""",
 """Submit""": u"""Versturen""",
 
 
-"""successfully_unsubscribed_broadcast_type""": u"""U bent met succes uitgeschreven op meldingen met type \"%(notification_type)s\" van %(service)s""",
-
-
 """tag""": u"""Label""",
 
 
@@ -2490,9 +2453,6 @@ Om veiligheidsredenen zal uw bestand slechts enkele dagen nadat u een e-mail van
 
 
 """We could not determine the location of %(name)s.""": u"""De locatie van %(name)s kon niet bepaald worden.""",
-
-
-"""Which type of broadcasts do you wish to receive?""": u"""Welke types van notificaties wenst u te ontvangen?""",
 
 
 """Why do you wish to deactivate your account?""": u"""Waarom wenst u uw account te deactiveren?""",
@@ -2806,9 +2766,6 @@ Precisão: %(accuracy)sm""",
 """We could not determine the location of %(name)s.""": u"""Não conseguimos determinar a localização de %(name)s.""",
 
 
-"""Which type of broadcasts do you wish to receive?""": u"""Que tipo de programação deseja receber?""",
-
-
 """You are already connected with %(name)s.""": u"""Você já está conectado com %(name)s.""",
 
 
@@ -2943,12 +2900,6 @@ Suntem acceptă numai fişiere pdf, jpeg şi png""",
 """Accept invitation""": u"""Accepta invitatia""",
 
 
-"""account_already_deactivated""": u"""Nu sunteți abonat (mai) la aplicația %(app_name)s cu acest cont (%(account)s).""",
-
-
-"""account_already_disconnected_from_service""": u"""Nu sunteți abonat (mai) la %(service_name)s.""",
-
-
 """Add to my services""": u"""Adauga la această aplicație""",
 
 
@@ -2968,9 +2919,6 @@ Suntem acceptă numai fişiere pdf, jpeg şi png""",
 
 
 """Associations""": u"""Asociatii""",
-
-
-"""broadcast_reminder_explanation""": u"""Ați primit această notificare deoarece sunteți abonat la: %(broadcast_type)s""",
 
 
 """Can not connect to server""": u"""Nu se poate conecta la server""",
@@ -3142,9 +3090,6 @@ Acuratete: %(accuracy)sm""",
 """Submit""": u"""Trimite""",
 
 
-"""successfully_unsubscribed_broadcast_type""": u"""Ați fost dezabonat cu succes de la notificările cu tipul de \"%(notification_type)s\" de %(service)s.""",
-
-
 """The scanned QR code is not supported by the %(app_name)s app""": u"""Codul QR scanat nu este suportat de %(app_name)s app""",
 
 
@@ -3182,9 +3127,6 @@ Acuratete: %(accuracy)sm""",
 
 
 """We could not determine the location of %(name)s.""": u"""Nu am putut identifica locatia %(name)s.""",
-
-
-"""Which type of broadcasts do you wish to receive?""": u"""Ce tip de notificari doriti sa primiti?""",
 
 
 """Why do you wish to unsubscribe to this e-mail?""": u"""De ce va doriti sa va dezabonati la acest e-mail?""",

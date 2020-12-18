@@ -77,5 +77,5 @@ if __name__ == '__main__':
     if len(argv) == 2:
         filename = argv[1]
     else:
-        filename = join(dirname(__file__), 'Plaats types.xlsx')
+        filename = join(dirname(__file__), 'Plaats types.xls')
     import_place_types(filename)

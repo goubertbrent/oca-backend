@@ -1,0 +1,30 @@
+{
+  "back": "Terug",
+  "cancel": "Annuleren",
+  "choose_project_for_scan": "Kies het project waarvoor u een scan wilt toevoegen",
+  "click_for_general_information": "Klik hier voor meer informatie over de participatiespaarpot",
+  "closed": "Gesloten",
+  "details": "Details",
+  "error": "Fout",
+  "info": "Info",
+  "loading": "Laden",
+  "me_x": "Ik: {{ amount }}",
+  "merchants": "Handelaars",
+  "no_active_projects": "Er zijn momenteel geen actieve projecten, kom later terug!",
+  "now_x_from_y_scans": "Nu: {{ current }} van de {{ total }} scans",
+  "ok": "Ok",
+  "open_now": "Nu open",
+  "overview": "Overzicht",
+  "participation_moneybox": "Participatie spaarpot",
+  "psp.errors": {
+    "already_scanned_recently": "U kunt maar 1 keer per 2 uur scannen bij dezelfde handelaar, probeer het later opnieuw! Uw laatste scan was op {{ date }}.",
+    "invalid_qr_code": "Ongeldige QR code",
+    "project_not_active": "Dit project is niet langer actief, je kunt momenteel geen nieuwe scans ervoor toevoegen.",
+    "qr_code_not_found": "QR code niet gevonden",
+    "qr_code_not_linked": "Deze QR code is nog niet niet gekoppeld aan een handelaar"
+  },
+  "retry": "Opnieuw proberen",
+  "scan": "Scan",
+  "scan_added": "Scan toegevoegd!",
+  "unknown_error": "Er is een fout opgetreden, probeer later opnieuw."
+}

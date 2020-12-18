@@ -8,8 +8,9 @@ import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { isShopUser } from '../../shared/shared.state';
 import { VoucherService, VouchersServiceList } from '../vouchers';
-import { GetServicesAction, WhitelistVoucherServiceAction } from '../vouchers.actions';
-import { getVoucherList, getVoucherServices, voucherServicesLoading } from '../vouchers.selectors';
+import { ExportMerchants, GetServicesAction, WhitelistVoucherServiceAction } from '../vouchers.actions';
+import { getVoucherList, getVoucherServices, isExporting, voucherServicesLoading } from '../vouchers.selectors';
+import { VouchersService } from '../vouchers.service';
 import { WhitelistDialogComponent, WhitelistDialogData, WhitelistDialogResult } from './whitelist-dialog.component';
 
 @Component({
@@ -27,11 +28,13 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
   voucherList$: Observable<VouchersServiceList>;
   dataSource = new MatTableDataSource<VoucherService>();
   allServices: VoucherService[];
+  isExporting$: Observable<boolean>;
 
   private destroyed$ = new Subject();
 
   constructor(private translate: TranslateService,
               private matDialog: MatDialog,
+              private vouchersService: VouchersService,
               private store: Store<any>) {
   }
 
@@ -48,6 +51,7 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
     this.voucherList$ = this.store.pipe(select(getVoucherList));
     this.loading$ = this.store.pipe(select(voucherServicesLoading));
     this.isShopUser$ = this.store.pipe(select(isShopUser));
+    this.isExporting$ = this.store.pipe(select(isExporting));
   }
 
   ngOnDestroy() {
@@ -61,6 +65,10 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
 
   refresh() {
     this.getServices();
+  }
+
+  exportMerchants() {
+    this.store.dispatch(ExportMerchants());
   }
 
   sortData(sort: Sort) {
@@ -102,13 +110,13 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
         return;
       }
       if (result.action === 'yes') {
-        this.store.dispatch(new WhitelistVoucherServiceAction({
+        this.store.dispatch(WhitelistVoucherServiceAction({
           id: row.id,
           email: row.email,
           accepted: true,
         }));
       } else if (result.action === 'no') {
-        this.store.dispatch(new WhitelistVoucherServiceAction({
+        this.store.dispatch(WhitelistVoucherServiceAction({
           id: row.id,
           email: row.email,
           accepted: false,
@@ -119,7 +127,7 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
   }
 
   private getServices() {
-    this.store.dispatch(new GetServicesAction());
+    this.store.dispatch(GetServicesAction());
   }
 }
 

@@ -43,7 +43,7 @@ def _format_date(timestamp):
 def get_app_tags(app):
     # type: (App) -> List[Tuple[str, str]]
     tags = [('google-play-app', 'app-id=' + app.android_app_id)]
-    if app.ios_app_id != '-1':
+    if app.ios_app_id and app.ios_app_id != '-1':
         tags.append(('apple-itunes-app', 'app-id=' + app.ios_app_id))
     return tags
 

@@ -32,7 +32,6 @@ from solutions.common.cron.jobs import JobsNotificationsHandler
 from solutions.common.cron.loyalty import LootLotteryCronHandler, SolutionLoyaltyExportHandler
 from solutions.common.cron.news.rss import SolutionRssScraper
 from solutions.common.cron.paddle import SyncPaddleInfoHandler
-from solutions.common.cron.sandwich import SandwichAutoBroadcastCronHandler
 from solutions.common.cron.statistics import DailyStatisticsHandler
 from solutions.common.handlers.admin.gmb import gmbOauthDecorator, \
     GoogleMyBusinessHandler
@@ -44,7 +43,6 @@ handlers = [
     ('/admin/cron/rpc/solution_sync_google_calendar_events', SolutionSyncGoogleCalendarEvents),
     ('/admin/cron/rpc/solution_cityapp_events_uitdatabank', CityAppSolutionEventsUitdatabank),
     ('/admin/cron/rpc/shop_export_reseller_invoices', ExportResellerInvoicesHandler),
-    ('/admin/cron/rpc/solution_module_sandwich_auto_broadcast', SandwichAutoBroadcastCronHandler),
     ('/admin/cron/rpc/solution_loyalty_lottery_loot', LootLotteryCronHandler),
     ('/admin/cron/rpc/solution_loyalty_export', SolutionLoyaltyExportHandler),
     ('/admin/cron/rpc/solution_rss_scraper', SolutionRssScraper),

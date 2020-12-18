@@ -61,10 +61,7 @@ class LotteryTest(oca_unittest.TestCase):
                                       phone_number="",
                                       languages=["en", "nl"],
                                       currency=u"EUR",
-                                      modules=list(SolutionModule.STATIC_MODULES) + [
-                                      loyalty_module],
-                                      broadcast_types=[
-                                      'test1', 'test2', 'test3'],
+                                      modules=list(SolutionModule.STATIC_MODULES) + [loyalty_module],
                                       allow_redeploy=False,
                                       organization_type=org_type,
                                       community_id=community.id)

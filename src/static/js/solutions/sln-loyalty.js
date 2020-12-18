@@ -38,55 +38,8 @@ $(function() {
     var customers = [];
     var lotteryDict = {};
     var _loyaltySettings = null;
-    init();
 
-    function init() {
-        modules.loyalty = {
-            requestLoyaltyDevice: requestLoyaltyDevice
-        };
-    }
-
-    // Do not bother initializing all the following functions if the customer does not have a loyalty device
-    if (!(HAS_LOYALTY || HAS_CITY_WIDE_LOTTERY)) {
-        $('#loyalty_request_device').click(requestLoyaltyDeviceClicked);
-        return;
-    }
-
-    function requestLoyaltyDevice(source, callback) {
-        sln.call({
-            url: '/common/loyalty/request_device',
-            data: {
-                source: source
-            },
-            success: function () {
-                if (callback) {
-                    callback(true);
-                }
-            },
-            error: function () {
-                if (callback) {
-                    callback(false);
-                }
-            }
-        });
-    }
-
-    function requestLoyaltyDeviceClicked() {
-        var btn = $('#loyalty_request_device');
-        if (btn.attr('disabled')) {
-            return;
-        }
-        btn.attr('disabled', true);
-        requestLoyaltyDevice('Loyalty tab (dashboard)', function (success) {
-            if (success) {
-                sln.alert(CommonTranslations.loyalty_device_requested, null, CommonTranslations.SUCCESS);
-            } else {
-                btn.attr('disabled', false);
-            }
-        });
-    }
-
-    var loadCustomerPoints = function(loyalty_type) {
+    function loadCustomerPoints(loyalty_type) {
         if (isLoyaltyTablet)
             return;
         loading = true;
@@ -96,7 +49,7 @@ $(function() {
             url = "/common/city_wide_lottery/customer_points/load";
         }
         sln.call({
-            url : url,
+            url: url,
             type : "GET",
             data : params,
             success : function(data) {
@@ -196,41 +149,49 @@ $(function() {
             },
             error : sln.showAjaxError
         });
-    };
+    }
 
-    var channelUpdates = function(data) {
-        if (data.type == 'solutions.common.loyalty.slides.update') {
-            loadLoyaltySlides();
-        } else if (data.type == 'solutions.common.loyalty.settings.update') {
-            loadLoyaltySettings();
-        } else if (data.type == "solutions.common.loyalty.slide.post_result") {
-            sln.hideProcessing();
-            if (data.error != null) {
-                sln.alert(data.error);
-            } else {
-                if (loyaltySlideAddModal != null) {
-                    loyaltySlideAddModal.modal("hide");
-                }
+    function channelUpdates(data) {
+        switch (data.type) {
+            case 'solutions.common.loyalty.slides.update':
                 loadLoyaltySlides();
-            }
-        } else if (data.type == "solutions.common.loyalty.scan.update") {
-            loadLoyaltyScans();
-        } else if (data.type == "solutions.common.loyalty.lottery.update") {
-            loadLotteryInfo();
-        } else if(data.type == "solutions.common.postal_code.update") {
-            if(data.deleted) {
-                removePostalCodeRow(data.code);
-            } else {
-                addPostalCodeRow(data.code);
-            }
-        } else if (data.type == "solutions.common.loyalty.points.update") {
-            if (currentLoyaltyType > 0) {
-                cursor = null;
-                loadCustomerPoints(currentLoyaltyType);
+                break;
+            case 'solutions.common.loyalty.settings.update':
+                loadLoyaltySettings();
+                break;
+            case "solutions.common.loyalty.slide.post_result":
+                sln.hideProcessing();
+                if (data.error) {
+                    sln.alert(data.error);
+                } else {
+                    if (loyaltySlideAddModal != null) {
+                        loyaltySlideAddModal.modal("hide");
+                    }
+                    loadLoyaltySlides();
+                }
+                break;
+            case "solutions.common.loyalty.scan.update":
                 loadLoyaltyScans();
-            }
+                break;
+            case "solutions.common.loyalty.lottery.update":
+                loadLotteryInfo();
+                break;
+            case "solutions.common.postal_code.update":
+                if (data.deleted) {
+                    removePostalCodeRow(data.code);
+                } else {
+                    addPostalCodeRow(data.code);
+                }
+                break;
+            case "solutions.common.loyalty.points.update":
+                if (currentLoyaltyType > 0) {
+                    cursor = null;
+                    loadCustomerPoints(currentLoyaltyType);
+                    loadLoyaltyScans();
+                }
+                break;
         }
-    };
+    }
 
     var loadLoyaltySlides = function() {
         if (isLoyaltyTablet)

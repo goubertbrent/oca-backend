@@ -39,7 +39,6 @@ from rogerthat.dal import put_and_invalidate_cache, app
 from rogerthat.models import App
 from rogerthat.utils import now, guid
 
-from shop.bizz import put_shop_app
 from shop.models import RegioManagerTeam, RegioManager, LegalEntity
 from shop.products import add_all_products
 from solution_server_settings import get_solution_server_settings
@@ -143,6 +142,7 @@ class TestCase(unittest.TestCase):
                 community_to.demo = False
                 community_to.embedded_apps = []
                 community_to.features = default_app_features
+                community_to.customization_features = []
                 community_to.main_service = None
                 community_to.name = app_name
                 community_to.signup_enabled = False
@@ -202,10 +202,6 @@ class TestCase(unittest.TestCase):
         users.get_current_mobile = lambda: m
 
         add_all_products(mobicage_entity)
-
-        for app_id, new_app in apps.iteritems():
-            if new_app.type == App.APP_TYPE_CITY_APP and app_id.startswith('be-'):
-                put_shop_app(new_app.app_id)
 
     def setup_qr_templates(self):
         qrtemplate_keys = []

@@ -72,10 +72,6 @@ handlers:
     script: main_unauthenticated.app
     secure: always
 
-  - url: /shop/prospects/discover/callback
-    script: main_unauthenticated.app
-    secure: always
-
   - url: /shop/oauth2callback
     script: main_google_authenticated.app
     secure: always
@@ -144,6 +140,10 @@ handlers:
     static_files: static/images/favicon.png
     upload: static/images/favicon\.png
 
+  - url: /static/client
+    static_files: static/client/index.html
+    upload: static/client/index.html
+
   - url: /static
     static_dir: static
 
@@ -165,7 +165,7 @@ handlers:
     script: rogerthat_authenticated.app
     secure: always
 
-  - url: /(unsubscribe_reminder|unsubscribe_broadcast|unsubscribe_deactivate)
+  - url: /(unsubscribe_reminder|unsubscribe_deactivate)
     script: rogerthat_unauthenticated.app
     secure: always
 

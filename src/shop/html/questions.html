@@ -18,6 +18,7 @@
             <th>Date</th>
             <th>Author</th>
             <th>Title</th>
+            <th>Status</th>
             {% if admin %}<th>Team</th>{% endif %}
             <th>Actions</th>
         </tr>
@@ -28,6 +29,7 @@
             <td>{{ question.full_date_str }}</td>
             <td>{{ question.author.email }}</td>
             <td>{{ question.title }}</td>
+            <td>{{ question.status_str }}</td>
             {% if admin %}
                 <td>{{ question.team.name }}</td>{% endif %}
             <td>

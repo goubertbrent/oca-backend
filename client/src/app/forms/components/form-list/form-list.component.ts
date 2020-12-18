@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { Loadable, NonNullLoadable } from '../../../shared/loadable/loadable';
+import { FormIntegrationConfiguration } from '../../integrations/integrations';
 import { FormSettings } from '../../interfaces/forms';
-import { FormIntegrationConfiguration } from '../../interfaces/integrations';
 
 interface Tab {
   label: string;
@@ -11,7 +11,7 @@ interface Tab {
 @Component({
   selector: 'oca-forms-list',
   templateUrl: './form-list.component.html',
-  styleUrls: [ './form-list.component.scss' ],
+  styleUrls: ['./form-list.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FormListComponent implements OnChanges {
@@ -20,7 +20,6 @@ export class FormListComponent implements OnChanges {
   @Output() createForm = new EventEmitter();
   @Output() deleteForm = new EventEmitter<FormSettings>();
   now = new Date();
-  hasVisibleIntegrations = true;
   tabs: Tab[] = [
     { label: 'oca.current', list: [] },
     { label: 'oca.finished', list: [] },
@@ -33,9 +32,6 @@ export class FormListComponent implements OnChanges {
         this.tabs[ 0 ].list = forms.data.filter(f => !f.visible_until || f.visible_until > this.now);
         this.tabs[ 1 ].list = forms.data.filter(f => f.visible_until && f.visible_until <= this.now);
       }
-    }
-    if (changes.integrations && changes.integrations.currentValue) {
-      this.hasVisibleIntegrations = this.integrations.data.some(i => i.visible);
     }
   }
 

@@ -2,7 +2,7 @@ import { Location } from '@angular/common';
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { AlertController } from '@ionic/angular';
-import { Actions, Effect, ofType } from '@ngrx/effects';
+import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { RogerthatService } from '@oca/rogerthat';
@@ -113,7 +113,7 @@ const enum ApiCalls {
 
 @Injectable()
 export class JccAppointmentsEffects {
-  @Effect() getAppointments$ = this.actions$.pipe(
+   getAppointments$ = createEffect(() => this.actions$.pipe(
     ofType<GetAppointmentsAction>(JccAppointmentsActionTypes.GET_APPOINTMENTS),
     switchMap(action => this.rogerthatService.apiCall<AppointmentsList>(ApiCalls.GET_APPOINTMENTS).pipe(
       map(result => new GetAppointmentsSuccessAction({ ...result, products: fixProductsDetailsMapping(result.products) })),
@@ -121,9 +121,9 @@ export class JccAppointmentsEffects {
         this.errorService.showErrorDialog(action, err);
         return of(new GetAppointmentsFailedAction(err));
       })),
-    ));
+    )));
 
-  @Effect() deleteAppointment$ = this.actions$.pipe(
+   deleteAppointment$ = createEffect(() => this.actions$.pipe(
     ofType<CancelAppointmentAction>(JccAppointmentsActionTypes.CANCEL_APPOINTMENT),
     switchMap(action => this.rogerthatService.apiCall<DeleteGovAppointmentResponse>(ApiCalls.deleteGovAppointment, action.payload).pipe(
       map(result => {
@@ -139,9 +139,9 @@ export class JccAppointmentsEffects {
         this.errorService.showErrorDialog(action, err);
         return of(new CancelAppointmentFailedAction(err));
       })),
-    ));
+    )));
 
-  @Effect() getAllProductDetails$ = this.actions$.pipe(
+   getAllProductDetails$ = createEffect(() => this.actions$.pipe(
     ofType<GetProductsAction>(JccAppointmentsActionTypes.GET_PRODUCTS),
     switchMap(action => this.rogerthatService.apiCall<Product[]>(ApiCalls.getGovAvailableProducts).pipe(
       map(result => new GetProductsSuccessAction(result)),
@@ -149,9 +149,9 @@ export class JccAppointmentsEffects {
         this.errorService.showErrorDialog(action, err);
         return of(new GetProductsFailedAction(err));
       })),
-    ));
+    )));
 
-  @Effect() getAvailableProductsByProduct$ = this.actions$.pipe(
+   getAvailableProductsByProduct$ = createEffect(() => this.actions$.pipe(
     ofType<GetProductsByProductsAction>(JccAppointmentsActionTypes.GET_PRODUCTS_BY_PRODUCTS),
     switchMap(action => this.rogerthatService.apiCall<Product[]>(ApiCalls.getGovAvailableProductsByProduct, action.payload).pipe(
       map(result => new GetProductsByProductsSuccessAction(result)),
@@ -159,9 +159,9 @@ export class JccAppointmentsEffects {
         this.errorService.showErrorDialog(action, err);
         return of(new GetProductsByProductsFailedAction(err));
       })),
-    ));
+    )));
 
-  @Effect() addOrDeleteProductSideEffect$ = this.actions$.pipe(
+   addOrDeleteProductSideEffect$ = createEffect(() => this.actions$.pipe(
     ofType<AddProductAction | DeleteProductAction>(JccAppointmentsActionTypes.ADD_PRODUCT, JccAppointmentsActionTypes.DELETE_PRODUCT),
     withLatestFrom(
       this.store.pipe(select(getSelectedProductsIds)),
@@ -174,9 +174,9 @@ export class JccAppointmentsEffects {
         ProductNr: productIds.join(','),
         LocatieID: locations.map(loc => loc.locationID).join(','),
       })),
-    )));
+    ))));
 
-  @Effect({ dispatch: false }) addOrDeleteProductSecondSideEffect$ = this.actions$.pipe(
+   addOrDeleteProductSecondSideEffect$ = createEffect(() => this.actions$.pipe(
     ofType<AddProductAction | DeleteProductAction>(JccAppointmentsActionTypes.ADD_PRODUCT, JccAppointmentsActionTypes.DELETE_PRODUCT),
     withLatestFrom(this.store.pipe(select(getSelectedProductsIds)), this.store.pipe(select(getLocations))),
     map(([, productIds, locations]) => {
@@ -185,9 +185,9 @@ export class JccAppointmentsEffects {
         this.store.dispatch(new GetLocationsForProductAction({ productID: productIds.join(',') }));
       }
     }),
-  );
+  ), { dispatch: false });
 
-  @Effect({ dispatch: false }) getProductDetails$ = this.actions$.pipe(
+   getProductDetails$ = createEffect(() => this.actions$.pipe(
     ofType<GetProductDetailsAction>(JccAppointmentsActionTypes.GET_PRODUCT_DETAILS),
     withLatestFrom(this.store.pipe(select(getProductDetails))),
     switchMap(([action, productDetails]) => {
@@ -203,9 +203,9 @@ export class JccAppointmentsEffects {
         }
         return of();
       },
-    ));
+    )), { dispatch: false });
 
-  @Effect() getLocationsForProducts$ = this.actions$.pipe(
+   getLocationsForProducts$ = createEffect(() => this.actions$.pipe(
     ofType<GetLocationsForProductAction>(JccAppointmentsActionTypes.GET_LOCATIONS_FOR_PRODUCTS),
     switchMap(action => this.rogerthatService.apiCall<JccLocation[]>(ApiCalls.getGovLocationsForProduct, action.payload).pipe(
       map(result => new GetLocationsForProductSuccessAction(result)),
@@ -213,9 +213,9 @@ export class JccAppointmentsEffects {
         this.errorService.showErrorDialog(action, err);
         return of(new GetLocationsForProductFailedAction(err));
       })),
-    ));
+    )));
 
-  @Effect() getAvailableDays$ = this.actions$.pipe(
+   getAvailableDays$ = createEffect(() => this.actions$.pipe(
     ofType<GetAvailableDaysAction>(JccAppointmentsActionTypes.GET_AVAILABLE_DAYS),
     switchMap(action => this.rogerthatService.apiCall<AvailableDays>(ApiCalls.getGovAvailableDays, action.payload).pipe(
       map(result => new GetAvailableDaysSuccessAction(result)),
@@ -223,9 +223,9 @@ export class JccAppointmentsEffects {
         this.errorService.showErrorDialog(action, err);
         return of(new GetAvailableDaysFailedAction(err));
       })),
-    ));
+    )));
 
-  @Effect() getAvailableTimes$ = this.actions$.pipe(
+   getAvailableTimes$ = createEffect(() => this.actions$.pipe(
     ofType<GetAvailableTimesAction>(JccAppointmentsActionTypes.GET_TIMES_FOR_DAY),
     switchMap(action => this.rogerthatService.apiCall<AvailableTimes>(ApiCalls.getGovAvailableTimesPerDay, action.payload).pipe(
       map(result => new GetAvailableTimesSuccessAction(result)),
@@ -233,9 +233,9 @@ export class JccAppointmentsEffects {
         this.errorService.showErrorDialog(action, err);
         return of(new GetAvailableTimesFailedAction(err));
       })),
-    ));
+    )));
 
-  @Effect() getRequiredFields$ = this.actions$.pipe(
+   getRequiredFields$ = createEffect(() => this.actions$.pipe(
     ofType<GetRequiredFieldsAction>(JccAppointmentsActionTypes.GET_REQUIRED_FIELDS),
     switchMap(action => this.rogerthatService.apiCall<GetRequiredClientFieldsResponse>(ApiCalls.GetRequiredClientFields, action.payload).pipe(
       map(result => new GetRequiredFieldsCompleteAction(result)),
@@ -243,9 +243,9 @@ export class JccAppointmentsEffects {
         this.errorService.showErrorDialog(action, err);
         return of(new GetRequiredFieldsFailedAction(err));
       })),
-    ));
+    )));
 
-  @Effect() createAppointment$ = this.actions$.pipe(
+   createAppointment$ = createEffect(() => this.actions$.pipe(
     ofType<CreateAppointmentAction | CreateExtendedAppointmentAction>(JccAppointmentsActionTypes.CREATE_APPOINTMENT,
       JccAppointmentsActionTypes.CREATE_EXTENDED_APPOINTMENT),
     switchMap(action => {
@@ -267,9 +267,9 @@ export class JccAppointmentsEffects {
             return of(new CreateAppointmentFailedAction(err));
           }));
       },
-    ));
+    )));
 
-  @Effect() addToCalendar$ = this.actions$.pipe(
+   addToCalendar$ = createEffect(() => this.actions$.pipe(
     ofType<AddToCalendarAction>(JccAppointmentsActionTypes.ADD_TO_CALENDAR),
     switchMap(action => this.rogerthatService.apiCall<{ message: string }>(ApiCalls.ADD_TO_CALENDAR, action.payload).pipe(
       map(result => new AddToCalendarCompleteAction(result)),
@@ -278,16 +278,16 @@ export class JccAppointmentsEffects {
         this.errorService.showErrorDialog(action, err);
         return of(new AddToCalendarCompleteAction(err));
       })),
-    ));
+    )));
 
-  @Effect() afterCreateAppointment$ = this.actions$.pipe(
+   afterCreateAppointment$ = createEffect(() => this.actions$.pipe(
     ofType<CreateAppointmentCompleteAction>(JccAppointmentsActionTypes.CREATE_APPOINTMENT_SUCCESS),
     delay(500),
     tap(() => {
       this.showDialog(this.translate.instant('app.oca.your_appointment_was_booked'));
     }),
     map(() => new GetAppointmentsAction()),
-  );
+  ));
 
   constructor(private actions$: Actions<JccAppointmentsActions>,
               private store: Store<AppState>,

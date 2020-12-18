@@ -22,16 +22,16 @@ import json
 import logging
 from types import NoneType
 
+from babel.dates import format_datetime, get_timezone
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
 
-from babel.dates import format_datetime, get_timezone
 from mcfw.consts import MISSING
 from mcfw.exceptions import HttpForbiddenException
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.communities.communities import get_community, get_communities_by_id
-from rogerthat.bizz.communities.models import AppFeatures
+from rogerthat.bizz.communities.models import Community, AppFeatures
 from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_ndb_key
 from rogerthat.dal.profile import get_service_profile
@@ -43,7 +43,7 @@ from rogerthat.rpc.service import BusinessException
 from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import app, news
 from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, BaseMediaTO, NewsLocationsTO, \
-    NewsItemListResultTO, NewsItemTO
+    NewsItemTO
 from rogerthat.utils.service import get_service_identity_tuple
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
@@ -51,7 +51,7 @@ from solutions.common.bizz import SolutionModule, OrganizationType
 from solutions.common.bizz.service import get_inbox_message_sender_details, new_inbox_message, \
     send_inbox_message_update, send_message_updates
 from solutions.common.dal import get_solution_settings
-from solutions.common.models import SolutionInboxMessage
+from solutions.common.models import SolutionInboxMessage, SolutionSettings
 from solutions.common.models.budget import Budget
 from solutions.common.models.news import NewsCoupon, SolutionNewsItem, NewsSettings, NewsSettingsTags, NewsReview, \
     CityAppLocations
@@ -60,12 +60,6 @@ from solutions.common.to.news import NewsStatsTO
 
 class AllNewsSentToReviewWarning(BusinessException):
     pass
-
-
-@returns(NewsItemListResultTO)
-@arguments(cursor=unicode, service_identity=unicode)
-def get_news(cursor=None, service_identity=None):
-    return news.list_news(cursor, 10, service_identity)
 
 
 @returns(NewsStatsTO)
@@ -323,7 +317,11 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
     """
     service_user, identity = get_service_identity_tuple(service_identity_user)
     sln_settings = get_solution_settings(service_user)
-    service_info = ServiceInfo.create_key(service_user, identity).get()
+    news_settings_key = NewsSettings.create_key(service_user, identity)
+    keys = [news_settings_key, ServiceInfo.create_key(service_user, identity)]
+    news_settings, service_info = ndb.get_multi(keys)  # type: NewsSettings, ServiceInfo
+    if not news_settings:
+        news_settings = NewsSettings(key=news_settings_key)
     check_can_send_news(sln_settings, service_info)
     if news_type == NewsItem.TYPE_QR_CODE:
         azzert(SolutionModule.LOYALTY in sln_settings.modules)
@@ -339,6 +337,11 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
     if not is_regional_news_enabled(service_community) or service_community.demo:
         # Demo apps can't send regional news
         community_ids = [service_profile.community_id]
+    else:
+        if len(community_ids) > 1 or community_ids[0] != service_profile.community_id:
+            if group_type not in news_settings.get_regional_enabled_group_types():
+                raise BusinessException('You do not have permission to send regional news items in the "%s" category' %
+                                        group_type)
     sticky = False
     sticky_until = None
     kwargs = {

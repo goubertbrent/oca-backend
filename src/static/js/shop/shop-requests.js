@@ -114,12 +114,6 @@ RequestsService.prototype = {
     deleteContact: function (customerId, contactId, options) {
         return this.delete(`/internal/shop/rest/customers/${customerId}/contacts/${contactId}`, options);
     },
-    getQuotations: function(customerId, options){
-        return this.get(`/internal/shop/rest/customers/${customerId}/quotations`, options);
-    },
-    createQuotation: function(customerId, quotation, options){
-        return this.post(`/internal/shop/rest/customers/${customerId}/quotations`, quotation, options);
-    },
     getProducts: function(language, options){
         return this.get(`/internal/shop/rest/products?language=${language}`, options);
     }

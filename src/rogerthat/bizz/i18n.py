@@ -74,16 +74,12 @@ def assemble_homescreen_strings(service_user):
     home_branding_set = set()
     identity_text_set = set()
     identity_branding_set = set()
-    broadcast_type_set = set()
-    broadcast_branding_set = set()
 
     service_profile = get_service_profile(service_user)
     home_text_set.update([service_profile.aboutMenuItemLabel,
                           service_profile.messagesMenuItemLabel,
                           service_profile.shareMenuItemLabel,
                           service_profile.callMenuItemLabel])
-    broadcast_type_set.update(service_profile.broadcastTypes)
-    broadcast_branding_set.add(service_profile.broadcastBranding)
     qry = ServiceMenuDef.gql("WHERE ANCESTOR IS :ancestor")
     qry.bind(ancestor=parent_key(service_user))
     items = qry.fetch(None)
@@ -103,9 +99,7 @@ def assemble_homescreen_strings(service_user):
     strings = {ServiceTranslation.HOME_TEXT: home_text_set,
                ServiceTranslation.HOME_BRANDING: home_branding_set,
                ServiceTranslation.IDENTITY_TEXT: identity_text_set,
-               ServiceTranslation.IDENTITY_BRANDING: identity_branding_set,
-               ServiceTranslation.BROADCAST_TYPE: broadcast_type_set,
-               ServiceTranslation.BROADCAST_BRANDING: broadcast_branding_set}
+               ServiceTranslation.IDENTITY_BRANDING: identity_branding_set}
 
     for set_ in strings.values():
         set_.discard(None)
@@ -391,8 +385,7 @@ def _translate_all_message_flows(service_user):
 
     if not changed_languages:
         from rogerthat.bizz.job.update_friends import schedule_update_all_friends_of_service_user
-        schedule_update_all_friends_of_service_user(
-            service_user, bump_service_version=True, clear_broadcast_settings_cache=True)
+        schedule_update_all_friends_of_service_user(service_user, bump_service_version=True)
 
 
 def check_i18n_status_of_message_flows(service_user):

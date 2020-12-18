@@ -162,10 +162,12 @@ class IdentityTO(TO):
     hasBirthdate = bool_property('hasBirthdate', default=False)
     hasGender = bool_property('hasGender', default=False)
     profileData = unicode_property('profileData', default=None, doc="a JSON string containing extra profile fields")
-    owncloudUri = unicode_property('owncloudUri')
-    owncloudUsername = unicode_property('owncloudUsername')
-    owncloudPassword = unicode_property('owncloudPassword')
+    # TODO: owncloud stuff can be removed once most clients have default set to null
+    owncloudUri = unicode_property('owncloudUri', default=None)
+    owncloudUsername = unicode_property('owncloudUsername', default=None)
+    owncloudPassword = unicode_property('owncloudPassword', default=None)
     communityId = long_property('communityId', default=0)
+    homeScreenId = unicode_property('homeScreenId', default='default')
 
 
 class LogErrorRequestTO(object):

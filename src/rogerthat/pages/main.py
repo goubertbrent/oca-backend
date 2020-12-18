@@ -25,7 +25,7 @@ from google.appengine.ext.webapp import template
 from mcfw.utils import chunks
 from rogerthat.bizz import channel
 from rogerthat.bizz.profile import create_user_profile
-from rogerthat.consts import DEBUG, APPSCALE
+from rogerthat.consts import DEBUG
 from rogerthat.dal.mobile import get_user_active_mobiles_count
 from rogerthat.dal.profile import get_profile_info, get_service_or_user_profile
 from rogerthat.dal.service import get_service_identities_by_service_identity_users
@@ -101,7 +101,7 @@ class MainPage(webapp.RequestHandler):
             mobile_count = get_user_active_mobiles_count(user)
             my_profile_info = get_profile_info(user, skip_warning=True)
             if not my_profile_info:
-                my_profile_info = create_user_profile(user, user.email()) # todo communities set community_id
+                my_profile_info = create_user_profile(user, user.email()[:40]) # todo communities set community_id
 
             myavatarid = my_profile_info.avatarId
             if my_profile_info.isServiceIdentity:
@@ -140,7 +140,6 @@ class MainPage(webapp.RequestHandler):
             owning_user_services = None
 
         template_params = {
-            'appscale': APPSCALE,
             'continue': "/",
             'debug': DEBUG,
             'user': user,

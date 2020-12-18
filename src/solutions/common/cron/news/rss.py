@@ -41,12 +41,6 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionRssScraperSettings, SolutionRssScraperItem
 from solutions.common.utils import html_to_markdown
 
-BROADCAST_TYPE_NEWS = u"News"
-BROADCAST_TYPE_EVENTS = u"Events"
-BROADCAST_TYPE_TRAFIC = u"Trafic"
-BROADCAST_TYPE_TRAFFIC = u"Traffic"
-BROADCAST_TYPE_PRESS = u"Press"
-
 
 class SolutionRssScraper(webapp.RequestHandler):
 
@@ -123,7 +117,7 @@ def _worker(rss_settings_key):
             if scraped_item.id in new_news_item_ids:
                 continue
             if item:
-                if not item.dry_run and item.news_id and scraped_item.hash != item.hash:
+                if not item.dry_run and item.news_id and item.rss_url == scraped_item.rss_url and scraped_item.hash != item.hash:
                     logging.debug('update_news_item guid:%s url:%s', scraped_item.guid, scraped_item.url)
                     new_news_item_ids.append(scraped_item.id)
                     tasks.append(create_task(update_news_item, item.news_id, sln_settings, rss_link.group_type,
@@ -166,7 +160,7 @@ def _worker(rss_settings_key):
 
                         tasks.append(
                             create_task(create_news_item, sln_settings, rss_link.group_type, scraped_item.message,
-                                        scraped_item.title, scraped_item.url, False if dry_run else rss_settings.notify,
+                                        scraped_item.title, scraped_item.url, False if dry_run else rss_link.notify,
                                         scraped_item.image_url, new_key, community_ids=rss_link.community_ids,
                                         timestamp=timestamp))
                 to_put.append(new_item)

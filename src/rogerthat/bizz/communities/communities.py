@@ -133,6 +133,7 @@ def _populate_community(community, data):
     community.demo = data.demo
     community.embedded_apps = data.embedded_apps
     community.features = data.features
+    community.customization_features = data.customization_features
     community.main_service = data.main_service
     community.name = data.name
     community.signup_enabled = data.signup_enabled
@@ -160,7 +161,8 @@ def get_community_countries():
 
 
 def get_all_community_countries():
-    return [{'code': c.country, 'name': Locale('en', 'GB').territories[c.country]}
+    locale = Locale('en', 'GB')
+    return [{'code': c.country, 'name': locale.territories[c.country]}
             for c in Community.list_countries() if c.country]
 
 

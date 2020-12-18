@@ -22,9 +22,9 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from google.appengine.ext import ndb
 from google.appengine.ext.ndb.query import QueryOptions
+from typing import List, Optional
 
 from mcfw.utils import Enum
-from rogerthat.bizz.communities.models import Community
 from rogerthat.dal import parent_ndb_key
 from rogerthat.models.common import NdbModel
 from rogerthat.models.properties.news import NewsButtonsProperty
@@ -79,7 +79,7 @@ class NewsItem(NdbModel):
     MAX_BUTTON_CAPTION_LENGTH = 15
 
     # todo news
-    # delete properties? -> sticky/sticky_until/tags (already removed) statistics/statistics_type/rogered/reach/action_count/feeds/follow_count/image_id/users_that_rogered/broadcast_type
+    # delete properties? -> sticky/sticky_until/tags (already removed) statistics/statistics_type/rogered/reach/action_count/feeds/follow_count/image_id/users_that_rogered
     # unindex -> has_locations/location_match_required/locations/media
 
     # add status to qry -> scheduled/published/deleted
@@ -394,6 +394,7 @@ class NewsStreamCustomLayout(NdbModel):
 
     @classmethod
     def create_key(cls, uid, community_id):
+        from rogerthat.bizz.communities.models import Community
         return ndb.Key(cls, uid, parent=Community.create_key(community_id))
 
 
@@ -468,7 +469,6 @@ class NewsSettingsServiceGroup(NdbModel):
 class NewsSettingsService(NdbModel):
     # setup_needed_id
     # 1 to 10 need group_types
-    # 11 to 20 need broadcast type mapping
     # 999 skipped
 
     default_app_id = ndb.StringProperty()  # TODO communities: remove after migration

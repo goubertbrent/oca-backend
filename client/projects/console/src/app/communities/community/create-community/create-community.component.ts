@@ -4,10 +4,10 @@ import { Observable } from 'rxjs';
 import { ListEmbeddedAppsAction } from '../../../actions';
 import { getEmbeddedApps } from '../../../console.state';
 import { EmbeddedApp } from '../../../interfaces';
-import { Community, CreateCommunity, SimpleApp } from '../communities';
 import { isCommunityLoading } from '../../communities.selectors';
 import { createCommunity } from '../../community.actions';
 import { CommunityService } from '../../community.service';
+import { CreateCommunity, SimpleApp } from '../communities';
 
 @Component({
   selector: 'rcc-create-community',

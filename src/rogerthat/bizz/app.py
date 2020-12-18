@@ -222,6 +222,22 @@ def save_firebase_settings_ios(app_id, base64_str):
     return db.run_in_transaction(trans)
 
 
+def save_apns_ios(app_id, key_id, base64_str):
+    apns_key = base64.b64decode(base64_str)
+    if not apns_key.startswith("-----BEGIN PRIVATE KEY-----"):
+        raise HttpBadRequestException('bad_file', data={'message': 'Bad file upload'})
+    if not apns_key.endswith("-----END PRIVATE KEY-----"):
+        raise HttpBadRequestException('bad_file', data={'message': 'Bad file upload'})
+    
+    def trans():
+        app = get_app(app_id)
+        app.apns_key_id = key_id
+        app.apns_key = apns_key
+        app.put()
+        return app.apns_key_id
+
+    return run_in_xg_transaction(trans)
+
 @returns()
 @arguments(app_id=unicode)
 def _app_settings_updated(app_id):
@@ -304,7 +320,8 @@ def create_app(data):
                                    background_fetch_timestamps=[21600] if app.type == App.APP_TYPE_CITY_APP else [])
         db.put((app, app_settings))
 
-        deferred.defer(register_app, create_app_to.app_id, create_app_to.ios_developer_account, _transactional=True)
+        if create_app_to.ios_developer_account:
+            deferred.defer(register_app, create_app_to.app_id, create_app_to.ios_developer_account, _transactional=True)
         deferred.defer(create_app_group, create_app_to.app_id)
         if create_app_to.official_id:
             deferred.defer(import_location_data, app.app_id, app.country, create_app_to.official_id, _transactional=True)

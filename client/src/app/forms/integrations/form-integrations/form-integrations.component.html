@@ -1,0 +1,43 @@
+<div *ngIf="providerMapping[FormIntegrationProvider.GREEN_VALLEY].visible">
+  <mat-slide-toggle name="gv_enabled"
+                    [(ngModel)]="providerMapping[FormIntegrationProvider.GREEN_VALLEY].enabled"
+                    (ngModelChange)="toggleIntegration(FormIntegrationProvider.GREEN_VALLEY)">
+    Green Valley
+  </mat-slide-toggle>
+
+  <div *ngIf="providerMapping[FormIntegrationProvider.GREEN_VALLEY].enabled">
+    <oca-form-integration-gv
+      [configuration]="providerMapping[FormIntegrationProvider.GREEN_VALLEY].integration.configuration"
+      [sections]="sections"
+      (configurationChanged)="updateIntegration(providerMapping[FormIntegrationProvider.GREEN_VALLEY].integration, $event)"></oca-form-integration-gv>
+  </div>
+
+</div>
+<div *ngIf="providerMapping[FormIntegrationProvider.EMAIL].visible">
+  <mat-slide-toggle name="email_enabled"
+                    [(ngModel)]="providerMapping[FormIntegrationProvider.EMAIL].enabled"
+                    (ngModelChange)="toggleIntegration(FormIntegrationProvider.EMAIL)">
+    {{ 'oca.Email' | translate }}
+  </mat-slide-toggle>
+  <p>{{ 'oca.form_email_integration_info' | translate }}</p>
+  <div *ngIf="providerMapping[FormIntegrationProvider.EMAIL].enabled">
+    <oca-form-integration-email
+      [configuration]="providerMapping[FormIntegrationProvider.EMAIL].integration.configuration"
+      [sections]="sections"
+      (configurationChanged)="updateIntegration(providerMapping[FormIntegrationProvider.EMAIL].integration, $event)"></oca-form-integration-email>
+  </div>
+</div>
+<div *ngIf="providerMapping[FormIntegrationProvider.TOPDESK].visible">
+  <mat-slide-toggle (ngModelChange)="toggleIntegration(FormIntegrationProvider.TOPDESK)"
+                    [(ngModel)]="providerMapping[FormIntegrationProvider.TOPDESK].enabled"
+                    name="topdesk_enabled">
+    TOPDesk
+  </mat-slide-toggle>
+  <p>{{ 'oca.form_topdesk_integration_info' | translate }}</p>
+  <div *ngIf="providerMapping[FormIntegrationProvider.TOPDESK].enabled">
+    <oca-form-integration-topdesk
+      (configurationChanged)="updateIntegration(providerMapping[FormIntegrationProvider.TOPDESK].integration, $event)"
+      [configuration]="providerMapping[FormIntegrationProvider.TOPDESK].integration.configuration"
+      [sections]="sections"></oca-form-integration-topdesk>
+  </div>
+</div>

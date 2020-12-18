@@ -26,14 +26,11 @@ from rogerthat.bizz.job import run_job
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.utils import now
 from rogerthat.utils.transactions import run_in_xg_transaction
-from shop.bizz import create_task
 from shop.business.audit import audit_log
 from shop.business.order import cancel_order
-from shop.business.prospect import create_prospect_from_customer
 from shop.business.service import set_service_disabled
 from shop.exceptions import OrderAlreadyCanceledException
-from shop.models import Order, Charge, OrderItem, Customer, Product, ExpiredSubscription, ShopTask, RegioManagerTeam, \
-    Prospect
+from shop.models import Order, Charge, OrderItem, Customer, Product
 
 
 def schedule_recurrent_billing():
@@ -55,12 +52,6 @@ def _qry(today):
 
 
 def _create_charge(order_key, today, products):
-    def cleanup_expired_subscription(customer):
-        expired_subscription = ExpiredSubscription.get_by_customer_id(customer.id)
-        if expired_subscription:
-            logging.info('Cleaning up ExpiredSubscription from customer %s because he has linked his credit card',
-                         customer.name)
-            expired_subscription.delete()
 
     def trans():
         customer_id = order_key.parent().id()
@@ -83,7 +74,6 @@ def _create_charge(order_key, today, products):
                 logging.info('Order %s already canceled, continuing...', exception.order.order_number)
 
             set_service_disabled(customer, Customer.DISABLED_OTHER)
-            cleanup_expired_subscription(customer)
             return None
 
         logging.info("Creating recurrent charge for order %s (%s: %s)", order.order_number, customer_id, customer.name)
@@ -145,39 +135,7 @@ def _create_charge(order_key, today, products):
         if subscription_length != 1:
             logging.debug('Tried to bill customer, but no credit card info was found')
             audit_log(customer.id, 'Tried to bill customer, but no credit card info was found')
-            # Log the customer as expired. If this has not been done before.
-            expired_subscription_key = ExpiredSubscription.create_key(customer_id)
-            if not ExpiredSubscription.get(expired_subscription_key):
-                to_put.append(ExpiredSubscription(key=expired_subscription_key,
-                                                  expiration_timestamp=order.next_charge_date))
-                # Create a task for the support manager
-                assignee = customer.manager and customer.manager.email()
-                if customer.team_id is not None:
-                    team = RegioManagerTeam.get_by_id(customer.team_id)
-                    if team.support_manager:
-                        assignee = team.support_manager
-                if assignee:
-                    if customer.prospect_id:
-                        prospect = Prospect.get(Prospect.create_key(customer.prospect_id))
-                    else:
-                        # We can only create tasks for prospects. So we must create a prospect if there was none.
-                        prospect = create_prospect_from_customer(customer)
-                        customer.prospect_id = prospect.id
-                        to_put.append(customer)
-                        to_put.append(prospect)
-                    to_put.append(create_task(created_by=None,
-                                              prospect_or_key=prospect,
-                                              assignee=assignee,
-                                              execution_time=today + 11 * 3600,
-                                              task_type=ShopTask.TYPE_SUPPORT_NEEDED,
-                                              app_id=prospect.app_id,
-                                              status=ShopTask.STATUS_NEW,
-                                              comment=u"Customer needs to be contacted for subscription renewal",
-                                              notify_by_email=True))
-                put_and_invalidate_cache(*to_put)
             return None
-        else:
-            cleanup_expired_subscription(customer)
 
         @db.non_transactional  # prevent contention on entity group RegioManagerTeam
         def get_currency_code():

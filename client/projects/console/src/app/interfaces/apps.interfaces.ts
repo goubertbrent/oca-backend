@@ -382,6 +382,7 @@ export interface AppSettings {
   birthday_message_enabled: boolean;
   birthday_message: string;
   ios_firebase_project_id: string;
+  ios_apns_key_id: string;
 }
 
 export interface NavigationAction {

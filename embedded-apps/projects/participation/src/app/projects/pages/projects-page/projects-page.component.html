@@ -1,0 +1,33 @@
+<ion-content>
+  <ng-container *ngIf="hasNoProjects$ | async else tmpl">
+    <p class="ion-padding">{{ 'no_active_projects' | translate }}</p>
+  </ng-container>
+  <ng-template #tmpl>
+    <div class="container">
+      <ion-spinner *ngIf="projectsLoading$ | async"></ion-spinner>
+      <div>
+        <ion-slides #slider (ionSlideDidChange)="loadProject()"
+                    [options]="{zoom:{enabled: false}}"
+                    pager="false">
+          <ion-slide *ngFor="let project of projectList$ | async; let isFirst = first; let isLast = last;">
+            <div (click)="slider.slidePrev()" *ngIf="!isFirst" class="swiper-button-prev"></div>
+            <div (click)="slider.slideNext()" *ngIf="!isLast" class="swiper-button-next"></div>
+            <pp-project-card [detailsLoading]="isDetailsLoading$ | async"
+                             [projectDetails]="(project$ | async)?.result?.id === project.id ? (project$ | async)?.result : null"
+                             [project]="project"
+                             [routerLink]="[ '/psp', 'overview', project.id ]"></pp-project-card>
+          </ion-slide>
+        </ion-slides>
+      </div>
+      <div *ngIf="scannedQr" class="choose-project-text">
+        <b>{{ 'choose_project_for_scan' | translate }}</b>
+        <ion-button (click)="chooseCurrentProject()">
+          {{ 'choose' | translate }}
+        </ion-button>
+      </div>
+      <ion-button (click)="startScanning()" *ngIf="!scannedQr" class="scan-button">
+        <span>{{ 'scan' | translate }}</span>
+      </ion-button>
+    </div>
+  </ng-template>
+</ion-content>

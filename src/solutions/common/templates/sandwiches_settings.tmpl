@@ -38,26 +38,6 @@
         </fieldset>
         <br>
         <fieldset>
-            <legend>{% translate language, "sandwiches-send-reminder" %}</legend>
-            <div id="sandwiches_broadcast_days">
-                {% for day_num, day_name in day_flags %}
-                    <label class="checkbox inline">
-                        <input type="checkbox" value="{{ day_num }}"> {{ day_name }}
-                    </label>
-                {% endfor %}
-            </div>
-            <div class="input-prepend input-append bootstrap-timepicker">
-                <span class="add-on">{% translate language, "when" %}</span>
-                <input id="sandwich_broadcast_at" type="text" class="input-small" readonly/>
-                <span class="add-on">
-	                <i class="icon-time"></i>
-	            </span>
-            </div>
-            <label>{% translate language, "sandwiches-reminder-text" %}</label>
-            <textarea id="sandwich_order_reminder_broadcast_message"></textarea>
-        </fieldset>
-
-        <fieldset>
             <legend>{% translate language, 'Leaptime' %}</legend>
 
             <p>{% translate language, 'leap_time_info' %}</p>

@@ -83,35 +83,10 @@
 {% endfor %}
                         </fieldset>
                     </form>
-                    <form id="form_broadcast_types" class="form-horizontal span8">
+                    <form id="form_managed_organization_types" class="form-horizontal">
                         <fieldset>
-                            <legend>Broadcast types</legend>
-
-                            <div>
-{% for broadcast_type_str in broadcast_types %}
-
-    {% if forloop.first or forloop.counter == 5 or forloop.counter == 9 or forloop.counter == 13%}
-                                <div class="span2">
-    {% endif %}
-                                <label class="checkbox">
-                                    <input type="checkbox" value="{{ broadcast_type_str }}"/> {{ broadcast_type_str }}
-                                </label>
-    {% if forloop.last or forloop.counter|divisibleby:4 %}
-                                </div>
-    {% endif %}
-{% endfor %}
-                            </div>
-                            <div class="span3">
-                            <label class="control-label" for="service_other_broadcast_types"
-                                    style="width: 250px;">Other (Optional)</label>
-                                <textarea id="service_other_broadcast_types" rows="3"
-                                          placeholder="1 broadcast type per line"></textarea>
-                            </div>
-                        </fieldset>
-                    </form>
-                    <form id="form_managed_organization_types" class="form-horizontal span3">
-                        <fieldset>
-                            <legend>Organization types</legend>
+                            <legend>Signup organization types</legend>
+                            <p>Organization types that can be chosen on the signup page</p>
                             <div>
                                 <div class="span2">
 	                                <label class="checkbox">
@@ -119,9 +94,6 @@
 	                                </label>
 	                                <label class="checkbox">
                                         <input type="checkbox" value="2"/> Merchant
-                                    </label>
-                                    <label class="checkbox">
-                                        <input type="checkbox" value="3"/> Community service
                                     </label>
                                     <label class="checkbox">
                                         <input type="checkbox" value="4"/> Care

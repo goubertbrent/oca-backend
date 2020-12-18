@@ -22,13 +22,10 @@ from mcfw.properties import azzert, long_property, unicode_property, typed_prope
     unicode_list_property, long_list_property
 from mcfw.rpc import arguments
 from mcfw.utils import Enum
-from rogerthat.dal.app import get_apps_by_id
-from rogerthat.dal.profile import get_search_config, get_profile_infos
-from rogerthat.dal.service import get_broadcast_settings_items
-from rogerthat.models import ServiceIdentity, ServiceTranslation, MessageFlowDesign, UserProfile, Broadcast
-from rogerthat.models.properties.profiles import PublicKeyTO
+from rogerthat.dal.profile import get_search_config
+from rogerthat.models import ServiceIdentity, ServiceTranslation, MessageFlowDesign
 from rogerthat.settings import get_server_settings
-from rogerthat.to import ReturnStatusTO, TO
+from rogerthat.to import TO
 from rogerthat.to.activity import GeoPointWithTimestampTO
 from rogerthat.to.friends import GetUserInfoRequestTO, GetUserInfoResponseTO
 from rogerthat.to.profile import SearchConfigTO
@@ -176,7 +173,6 @@ class ServiceIdentityDetailsTO(ServiceIdentitySummaryTO):
     email_statistics = bool_property('117')
     app_ids_use_default = bool_property('119')
     app_ids = unicode_list_property('120')
-    can_edit_supported_apps = bool_property('122')
     content_branding_hash = unicode_property('124')
     home_branding_hash = unicode_property('125')
     home_branding_use_default = bool_property('126')
@@ -234,7 +230,6 @@ class ServiceIdentityDetailsTO(ServiceIdentitySummaryTO):
         details.app_ids_use_default = is_flag_set(ServiceIdentity.FLAG_INHERIT_APP_IDS,
                                                   service_identity.inheritanceFlags)
         details.app_ids = service_identity.appIds
-        details.can_edit_supported_apps = service_profile.canEditSupportedApps
         details.content_branding_hash = service_identity.contentBrandingHash
 
         details.home_branding_use_default = is_flag_set(ServiceIdentity.FLAG_INHERIT_HOME_BRANDING,
@@ -650,77 +645,3 @@ class ServiceStatusTO(object):
     test_callback_needed = bool_property('2')
     auto_updating = bool_property('3')
     updates_pending = bool_property('4')
-
-
-class BroadcastTO(object):
-    STATUS_ALL_PENDING = 1
-    STATUS_PENDING = 2
-    STATUS_APPROVED = 3
-    STATUS_DECLINED = 4
-
-    key = unicode_property('1')
-    name = unicode_property('2')
-    broadcast_type = unicode_property('3')
-    creation_time = long_property('4')
-    sent = bool_property('5')
-    status_string = unicode_property('6')
-    status = long_property('7')
-    sent_time = long_property('8')
-    scheduled_at = long_property('9')
-
-    @staticmethod
-    def fromBroadcast(broadcast):
-        to = BroadcastTO()
-        to.key = unicode(broadcast.key())
-        to.name = broadcast.name
-        to.broadcast_type = broadcast.type_
-        to.creation_time = broadcast.creation_time
-        to.sent = broadcast.sent
-        to.sent_time = broadcast.sent_time
-        if broadcast.declined:
-            to.status_string = u"Declined"
-            to.status = BroadcastTO.STATUS_DECLINED
-        elif broadcast.approved:
-            to.status_string = u"Approved by all"
-            to.status = BroadcastTO.STATUS_APPROVED
-        else:
-            all_count = len(broadcast.test_persons)
-            approved_count = broadcast.get_status_count(Broadcast.TEST_PERSON_STATUS_ACCEPTED)
-            pending_count = broadcast.get_status_count(Broadcast.TEST_PERSON_STATUS_UNDECIDED)
-            to.status_string = u"Pending approval (%s/%s)" % (approved_count, all_count)
-            to.status = BroadcastTO.STATUS_ALL_PENDING if pending_count == all_count else BroadcastTO.STATUS_PENDING
-        to.scheduled_at = broadcast.scheduled_at
-        return to
-
-
-class ServiceBroadCastConfigurationTO(object):
-    broadcast_types = unicode_list_property('1')
-    test_persons = typed_property('2', UserDetailsTO, True)
-    broadcasts = typed_property('3', BroadcastTO, True)
-    warnings = unicode_list_property('4')
-
-    @staticmethod
-    def fromServiceProfile(service_profile, broadcasts):
-        to = ServiceBroadCastConfigurationTO()
-        to.broadcast_types = service_profile.broadcastTypes
-        user_profiles = get_profile_infos(service_profile.broadcastTestPersons,
-                                          expected_types=len(service_profile.broadcastTestPersons) * [UserProfile],
-                                          allow_none_in_results=True)
-        to.test_persons = [UserDetailsTO.fromUserProfile(user_profile) for user_profile in filter(None, user_profiles)]
-        to.broadcasts = map(BroadcastTO.fromBroadcast, broadcasts)
-        to.warnings = list()
-        if not get_broadcast_settings_items(service_profile.user, 1):
-            to.warnings.append(u"There is no 'Broadcast settings' service menu item.")
-        return to
-
-
-class DeleteBroadcastTypeReturnStatusTO(ReturnStatusTO):
-    confirmation = unicode_property('51')
-
-
-class BroadcastTestPersonReturnStatusTO(ReturnStatusTO):
-    user_details = typed_property('51', UserDetailsTO, False)
-
-
-class TestBroadcastReturnStatusTO(ReturnStatusTO):
-    broadcast = typed_property('51', BroadcastTO, False)

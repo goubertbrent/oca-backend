@@ -87,6 +87,21 @@ def _cirklo_api_call(settings, url, method, payload=None, staging=False):
     return urlfetch.make_fetch_call(rpc, url, payload, method, headers, follow_redirects=False)
 
 
+def list_cirklo_cities(staging):
+    # type: (bool) -> List[dict]
+    rpc = _cirklo_api_call(get_solution_server_settings(), '/cities', urlfetch.GET, staging=staging)
+    result = rpc.get_result()  # type: urlfetch._URLFetchResult
+    if result.status_code == 200:
+        parsed = json.loads(result.content)
+        if staging:
+            for city in parsed:
+                city['id'] = 'staging-' + city['id']
+        return parsed
+    else:
+        logging.debug('%s\n%s', result.status_code, result.content)
+        raise Exception('Unexpected result from cirklo api')
+
+
 def list_whitelisted_merchants(city_id):
     staging = city_id.startswith('staging-')
     payload = {'cityId': city_id.replace('staging-', ''),
@@ -131,7 +146,11 @@ def add_voucher(service_user, app_user, qr_content):
         parsed = json.loads(qr_content)
         voucher_id = parsed.get('voucher')
     except ValueError:
-        voucher_id = None
+        if len(qr_content) == 36:
+            # Some qrs for Dilbeek made in december 2020 contained just the qr id and no json
+            voucher_id = qr_content
+        else:
+            voucher_id = None
     voucher_details = None
     if voucher_id:
         rpc = _cirklo_api_call(get_solution_server_settings(), '/vouchers/' + voucher_id, urlfetch.GET)
@@ -242,8 +261,8 @@ def get_vouchers(service_user, app_user):
     return voucher_list
 
 
-def get_merchants_by_community(community_id, language, cursor, page_size):
-    # type: (int, str, Optional[str], int) -> dict
+def get_merchants_by_community(community_id, language, cursor, page_size, query):
+    # type: (int, str, Optional[str], int, str) -> dict
     community = get_community(community_id)
     # Always filter by community id
     tags = [
@@ -251,7 +270,7 @@ def get_merchants_by_community(community_id, language, cursor, page_size):
         SearchTag.environment(community.demo),
         SearchTag.vouchers(VoucherProviderId.CIRKLO)
     ]
-    service_identity_users, new_cursor = search_services_by_tags(tags, cursor, page_size)
+    service_identity_users, new_cursor = search_services_by_tags(tags, cursor, page_size, query)
     service_users = [get_service_user_from_service_identity_user(service_user)
                      for service_user in service_identity_users]
     info_keys = [ServiceInfo.create_key(service_user, ServiceIdentity.DEFAULT) for service_user in service_users]
@@ -309,8 +328,9 @@ def handle_method(service_user, email, method, params, tag, service_identity, us
             language = get_user_profile(app_user).language
             cursor = json_data.get('cursor')
             page_size = json_data.get('page_size', 20)
+            query = (json_data.get('query') or '').strip()
             user_profile = get_user_profile(app_user)
-            result = get_merchants_by_community(user_profile.community_id, language, cursor, page_size)
+            result = get_merchants_by_community(user_profile.community_id, language, cursor, page_size, query)
         else:
             raise UnknownMethodException(method)
         response.result = convert_to_unicode(json.dumps(result.to_dict() if isinstance(result, TO) else result))

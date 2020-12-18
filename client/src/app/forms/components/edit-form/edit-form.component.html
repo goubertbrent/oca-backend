@@ -17,8 +17,10 @@
                              [canMove]="form.form.sections.length > 1"
                              [canDelete]="form.form.sections.length > 1"
                              [headerTitle]="'oca.section_x_of_y' | translate : {current: i + 1, total: form.form.sections.length}"
+                             [readonlyMode]="activeSection !== section.id"
                              [(ngModel)]="form.form.sections[i]"
                              (moveSection)="moveSection()"
+                             (setActive)="setActiveSection(section)"
                              (deleteSection)="deleteSection(i, section)"
                              (ngModelChange)="markChanged()"
                              *ngFor="let section of form.form.sections; let i = index; trackBy: trackBySection"></oca-edit-form-section>

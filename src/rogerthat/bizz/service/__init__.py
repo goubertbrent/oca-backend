@@ -29,11 +29,11 @@ from zipfile import ZipFile
 
 from google.appengine.api import images, search
 from google.appengine.ext import db, deferred, ndb
+from mcfw.imaging import recolor_png
 from typing import Optional, Tuple, List
 
 from mcfw.cache import cached
 from mcfw.consts import MISSING
-from mcfw.imaging import recolor_png
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns, serialize_complex_value
 from mcfw.utils import normalize_search_string, chunks
@@ -63,7 +63,7 @@ from rogerthat.capi.services import receiveApiCallResult, updateUserData
 from rogerthat.consts import MC_DASHBOARD, OFFICIALLY_SUPPORTED_LANGUAGES, MC_RESERVED_TAG_PREFIX, FA_ICONS
 from rogerthat.dal import parent_key, put_and_invalidate_cache, app
 from rogerthat.dal.app import get_app_by_user, get_app_by_id, get_apps_by_keys
-from rogerthat.dal.friend import get_friends_map, get_friends_map_key_by_user, get_friend_category_by_id
+from rogerthat.dal.friend import get_friends_map, get_friends_map_key_by_user
 from rogerthat.dal.messaging import get_message, get_branding
 from rogerthat.dal.mfd import get_service_message_flow_design_key_by_name
 from rogerthat.dal.mobile import get_user_active_mobiles, get_mobile_key_by_account
@@ -80,7 +80,7 @@ from rogerthat.models import Profile, APIKey, SIKKey, ServiceInteractionDef, Sho
     QRTemplate, Message, MFRSIKey, ServiceMenuDef, Branding, PokeTagMap, ServiceProfile, UserProfile, ServiceIdentity, \
     SearchConfigLocation, ProfilePointer, FacebookProfilePointer, MessageFlowDesign, ServiceTranslation, \
     ServiceMenuDefTagMap, UserData, FacebookUserProfile, App, MessageFlowRunRecord, \
-    FriendServiceIdentityConnection, FriendMap, UserContext, UserContextLink, \
+    FriendServiceIdentityConnection, UserContext, UserContextLink, \
     ServiceCallBackSettings, ServiceCallBackConfig
 from rogerthat.models.properties.friend import FriendDetail, FriendDetails
 from rogerthat.models.properties.keyvalue import KVStore, InvalidKeyError
@@ -143,9 +143,6 @@ QR_TEMPLATE_BROWN_BAG = u"Brown Bag"
 QR_TEMPLATE_PINK_PANTHER = u"Pink Panther"
 QR_TEMPLATE_BLACK_HAND = u"Black Hand"
 
-DISABLED_BROADCAST_TYPES_USER_DATA_KEY = '%sdisabledBroadcastTypes' % MC_RESERVED_TAG_PREFIX
-BROADCAST_TYPES_SERVICE_DATA_KEY = '%sbroadcastTypes' % MC_RESERVED_TAG_PREFIX
-
 
 class TestCallbackFailedException(ServiceApiException):
 
@@ -179,27 +176,6 @@ class ReservedMenuItemException(ServiceApiException):
     def __init__(self):
         ServiceApiException.__init__(self, ServiceApiException.BASE_CODE_SERVICE + 3,
                                      u"This menu item is reserved")
-
-
-class CanNotDeleteBroadcastTypesException(ServiceApiException):
-
-    def __init__(self):
-        ServiceApiException.__init__(self, ServiceApiException.BASE_CODE_SERVICE + 4,
-                                     u"There are still broadcast settings menu items.")
-
-
-class InvalidBroadcastTypeException(ServiceApiException):
-
-    def __init__(self, broadcast_type):
-        ServiceApiException.__init__(self, ServiceApiException.BASE_CODE_SERVICE + 5,
-                                     u"Invalid broadcast type", broadcast_type=broadcast_type)
-
-
-class DuplicateBroadcastTypeException(ServiceApiException):
-
-    def __init__(self, broadcast_type):
-        ServiceApiException.__init__(self, ServiceApiException.BASE_CODE_SERVICE + 6,
-                                     u"Duplicate broadcast type", broadcast_type=broadcast_type)
 
 
 class InvalidNameException(ServiceApiException):
@@ -1596,15 +1572,6 @@ def press_menu_item(user, service_identity_user, coords, context, menuGeneration
                                  check_friends=False, tag=smd.tag, context=context)
                 # To see if this still occurs, log an error so we can search on it
                 logging.error('Starting flow from staticFlowKey: %s - %s', smd.staticFlowKey, service_identity_user)
-            elif not smd.staticFlowKey and not message_flow_run_id and smd.isBroadcastSettings:
-                from rogerthat.bizz.service.broadcast import generate_broadcast_settings_flow_def
-                from rogerthat.bizz.service.mfd import to_xml_unicode
-                helper = FriendHelper.from_data_store(service_identity_user, FRIEND_TYPE_SERVICE)
-                mfds = generate_broadcast_settings_flow_def(helper, get_user_profile(user))
-                azzert(mfds, "Expected broadcast settings.")
-                xml = to_xml_unicode(mfds, 'messageFlowDefinitionSet', True)
-                start_local_flow(service_identity_user, None, xml, [user], check_friends=False, tag=smd.tag,
-                                 context=context)
 
             if (smd.form_id and not mobile_supports_feature(users.get_current_mobile(), Features.FORMS)) or \
                     (smd.embeddedApp and not mobile_supports_feature(users.get_current_mobile(), Features.EMBEDDED_APPS_IN_SMI)):
@@ -1884,12 +1851,11 @@ def _validate_roles(service_user, role_ids):
 @returns(NoneType)
 @arguments(service_user=users.User, icon_name=unicode, icon_color=unicode, label=unicode, tag=unicode, coords=[int],
            screen_branding=unicode, static_flow_name=unicode, requires_wifi=bool, run_in_background=bool,
-           roles=[(int, long)], is_broadcast_settings=bool, broadcast_branding=unicode, action=int,
+           roles=[(int, long)], action=int,
            link=ServiceMenuItemLinkTO, fall_through=bool, form_id=(int, long, NoneType), embedded_app=unicode)
 def create_menu_item(service_user, icon_name, icon_color, label, tag, coords, screen_branding=None,
                      static_flow_name=None, requires_wifi=False, run_in_background=False, roles=None,
-                     is_broadcast_settings=False, broadcast_branding=None, action=0, link=None, fall_through=False,
-                     form_id=None, embedded_app=None):
+                     action=0, link=None, fall_through=False, form_id=None, embedded_app=None):
     _validate_coordinates(coords)
     if roles is None:
         roles = []
@@ -1901,10 +1867,7 @@ def create_menu_item(service_user, icon_name, icon_color, label, tag, coords, sc
         raise InvalidValueException("label", u"Label required")
     azzert(service_user)
 
-    if is_broadcast_settings:
-        tag = ServiceMenuDef.TAG_MC_BROADCAST_SETTINGS
-        channel.send_message(service_user, u'rogerthat.broadcast.changes')
-    elif not tag:
+    if not tag:
         raise InvalidValueException("tag", u"Tag required")
     elif tag.startswith(MC_RESERVED_TAG_PREFIX):
         raise ReservedTagException()
@@ -1962,7 +1925,7 @@ def create_menu_item(service_user, icon_name, icon_color, label, tag, coords, sc
         smd = ServiceMenuDef(key=ServiceMenuDef.createKey(coords, service_user), label=label,
                              tag=tag, timestamp=now(), icon=icon_blob, iconHash=icon_hash,
                              iconName=icon_name, iconColor=icon_color, screenBranding=screen_branding,
-                             staticFlowKey=static_flow_key, isBroadcastSettings=is_broadcast_settings,
+                             staticFlowKey=static_flow_key,
                              requiresWifi=requires_wifi, runInBackground=run_in_background, roles=roles, action=action,
                              link=web_page, isExternalLink=external_web_page, requestUserLink=request_user_link,
                              fallThrough=fall_through, embeddedApp=embedded_app)
@@ -1972,18 +1935,7 @@ def create_menu_item(service_user, icon_name, icon_color, label, tag, coords, sc
 
         mapped_tag = ServiceMenuDefTagMap(key_name=smd.hashed_tag, parent=parent_key(service_user),
                                           timestamp=smd.timestamp, tag=smd.tag)
-        to_put = [smd, mapped_tag]
-
-        if is_broadcast_settings:
-            service_profile = get_service_profile(service_user)
-            bizz_check(service_profile.broadcastTypes,
-                       u"You can not create a broadcast settings menu item if there are no broadcast types. You can add new broadcast types at Broadcast center.")
-            if broadcast_branding != service_profile.broadcastBranding:
-                service_profile.broadcastBranding = broadcast_branding
-                service_profile.addFlag(ServiceProfile.FLAG_CLEAR_BROADCAST_SETTINGS_CACHE)
-                to_put.append(service_profile)
-
-        put_and_invalidate_cache(*to_put)
+        put_and_invalidate_cache(smd, mapped_tag)
 
         bump_menuGeneration_of_all_identities_and_update_friends(service_user)
 
@@ -2065,9 +2017,6 @@ def delete_menu_item(service_user, coords):
         return smi
 
     smi = run_in_transaction(trans)
-    if smi and smi.isBroadcastSettings:
-        channel.send_message(service_user, u'rogerthat.broadcast.changes')
-
     return bool(smi)
 
 
@@ -2093,6 +2042,7 @@ def bump_menuGeneration_of_all_identities_and_update_friends(service_user):
 @returns(ServiceMenuDetailTO)
 @arguments(service_user=users.User)
 def get_menu(service_user):
+    # type: (users.User) -> ServiceMenuDetailTO
     service_identity_user = create_service_identity_user(service_user)
     helper = FriendHelper.from_data_store(service_identity_user, FRIEND_TYPE_SERVICE)
     return ServiceMenuDetailTO.from_model(helper, False)
@@ -2692,7 +2642,7 @@ def update_user_data_response_handler(context, result):
 @returns([RpcCAPICall])
 @arguments(mobiles=[Mobile], target_user=users.User, helper=FriendHelper)
 def create_send_app_data_requests(mobiles, target_user, helper):
-    # type: (list[Mobile], users.User, FriendHelper) -> list[RpcCAPICall]
+    # type: (List[Mobile], users.User, FriendHelper) -> List[RpcCAPICall]
     service_identity = helper.get_profile_info()
     service_profile = helper.get_service_profile()
     service_data = helper.get_service_data()
@@ -2702,16 +2652,15 @@ def create_send_app_data_requests(mobiles, target_user, helper):
         app_data = json.loads(service_identity.appData)
     else:
         app_data = {}
-    app_data[BROADCAST_TYPES_SERVICE_DATA_KEY] = service_profile.broadcastTypes or []
 
     return _send_set_user_data(mobiles, target_user, helper.service_identity_user,
                                UpdateUserDataRequestTO.DATA_TYPE_APP, app_data, app_data.keys())
 
 
 @returns([RpcCAPICall])
-@arguments(mobiles=[Mobile], user_data_model=UserData, fsic=FriendServiceIdentityConnection, target_user=users.User,
-           service_identity_user=users.User)
-def create_send_user_data_requests(mobiles, user_data_model, fsic, target_user, service_identity_user):
+@arguments(mobiles=[Mobile], user_data_model=UserData, target_user=users.User, service_identity_user=users.User)
+def create_send_user_data_requests(mobiles, user_data_model, target_user, service_identity_user):
+    # type: (List[Mobile], UserData, users.User, users.User) -> List[RpcCAPICall]
     if user_data_model:
         if user_data_model.userData:
             user_data = user_data_model.userData.to_json_dict()
@@ -2719,8 +2668,6 @@ def create_send_user_data_requests(mobiles, user_data_model, fsic, target_user, 
             user_data = json.loads(user_data_model.data)
     else:
         user_data = {}
-    disabled_broadcast_types = fsic.disabled_broadcast_types if fsic else []
-    user_data[DISABLED_BROADCAST_TYPES_USER_DATA_KEY] = disabled_broadcast_types
     return _send_set_user_data(mobiles, target_user, service_identity_user,
                                UpdateUserDataRequestTO.DATA_TYPE_USER, user_data, user_data.keys())
 
@@ -2729,7 +2676,7 @@ def create_send_user_data_requests(mobiles, user_data_model, fsic, target_user, 
 @arguments(mobiles=[Mobile], target_user=users.User, service_identity_user=users.User, full_json_dict=dict,
            updated_keys=[unicode])
 def get_update_userdata_requests(mobiles, target_user, service_identity_user, full_json_dict, updated_keys):
-    # type: (list[Mobile], users.User, users.User, dict, list[unicode], list[unicode]) -> list[RpcCAPICall]
+    # type: (List[Mobile], users.User, users.User, dict, List[unicode]) -> List[RpcCAPICall]
     return _send_set_user_data(mobiles, target_user, service_identity_user, UpdateUserDataRequestTO.DATA_TYPE_USER,
                                full_json_dict, updated_keys)
 
@@ -2784,11 +2731,7 @@ def set_user_data_object(service_identity_user, friend_user, data_dict, replace=
         current_mobile = users.get_current_mobile()
 
         if not friend_map:
-            if len(updated_json_dict) == 1 and DISABLED_BROADCAST_TYPES_USER_DATA_KEY in updated_json_dict:
-                # User is disabling a news item
-                friend_map = FriendMap.create(friend_user)
-            else:
-                raise FriendNotFoundException()
+            raise FriendNotFoundException()
 
         friend_detail_user = remove_slash_default(service_identity_user)
         friend_exists = friend_detail_user in friend_map.friends
@@ -2825,30 +2768,6 @@ def set_user_data_object(service_identity_user, friend_user, data_dict, replace=
                                  userData=KVStore(user_data_key))
 
         puts = []
-        if DISABLED_BROADCAST_TYPES_USER_DATA_KEY in full_json_dict:
-            service_user = get_service_user_from_service_identity_user(service_identity_user)
-            if friend_exists:
-                service_profile, fsic = db.get([get_profile_key(service_user),
-                                                FriendServiceIdentityConnection.createKey(friend_user,
-                                                                                          service_identity_user)])
-            else:
-                service_profile, si = db.get([get_profile_key(service_user),
-                                              ServiceIdentity.keyFromUser(service_identity_user)])
-                # Create FSIC and FriendDetail with existence=DELETED
-                fsic = FriendServiceIdentityConnection.create(friend_user, user_profile.name, user_profile.avatarId,
-                                                              service_identity_user, service_profile.broadcastTypes,
-                                                              user_profile.birthdate, user_profile.gender,
-                                                              user_profile.app_id, deleted=True)
-                friend_map.friendDetails.addNew(friend_detail_user, si.name, service_profile.avatarId,
-                                                type_=FriendDetail.TYPE_SERVICE, hasUserData=False,
-                                                existence=FriendDetail.FRIEND_EXISTENCE_DELETED)
-                friend_map.friends.append(friend_detail_user)
-
-            fsic.disabled_broadcast_types = full_json_dict[DISABLED_BROADCAST_TYPES_USER_DATA_KEY]
-            fsic.enabled_broadcast_types = list(
-                set(service_profile.broadcastTypes) - set(fsic.disabled_broadcast_types))
-            puts.append(fsic)
-            full_json_dict.pop(DISABLED_BROADCAST_TYPES_USER_DATA_KEY)
 
         try:
             user_data.userData.from_json_dict(full_json_dict, remove_none_values=True)
@@ -3110,17 +3029,6 @@ def publish_changes(service_user, friends=None):
     if not friends:
         channel.send_message(service_user, 'rogerthat.service.updatesPendingChanged',
                              updatesPending=service_profile.updatesPending)
-
-
-@ndb.non_transactional()
-@returns(NoneType)
-@arguments(service_user=users.User, broadcast_type=unicode)
-def validate_broadcast_type(service_user, broadcast_type):
-    service_profile = get_service_profile(service_user, False)
-    if broadcast_type not in service_profile.broadcastTypes:
-        logging.debug('Unknown broadcast type: %s\nKnown broadcast types are: %s',
-                      broadcast_type, service_profile.broadcastTypes)
-        raise InvalidBroadcastTypeException(broadcast_type)
 
 
 @returns(NoneType)

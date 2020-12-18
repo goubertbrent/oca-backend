@@ -1,0 +1,16 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ (project$ | async)?.result?.title }}</ion-title>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref=""></ion-back-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content *ngIf="(project$ | async)?.result as project">
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>{{ project.title }}</ion-card-title>
+    </ion-card-header>
+    <ion-card-content [innerHTML]="project.description | markdown"></ion-card-content>
+  </ion-card>
+</ion-content>

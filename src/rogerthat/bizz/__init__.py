@@ -24,7 +24,6 @@ def configure():
     from rogerthat.bizz.messaging import process_mfr_email_reply_rogerthat_reply, REPLY_ON_FOLLOW_UP_MESSAGE
     from rogerthat.bizz.profile import ack_facebook_invite
     from rogerthat.bizz.service import ack_service_in_trouble, SERVICE_IN_TROUBLE_TAG
-    from rogerthat.bizz.service.broadcast import BROADCAST_TEST_MESSAGE_ID, ack_test_broadcast
 
     ackListeners[FRIEND_INVITATION_REQUEST] = ackInvitation
     ackListeners[REQUEST_LOCATION_SHARING] = ackRequestLocationSharing
@@ -32,7 +31,6 @@ def configure():
     ackListeners[INVITE_FACEBOOK_FRIEND] = ack_facebook_invite
     ackListeners[FRIEND_SHARE_SERVICE_REQUEST] = ack_share_service
     ackListeners[SERVICE_IN_TROUBLE_TAG] = ack_service_in_trouble
-    ackListeners[BROADCAST_TEST_MESSAGE_ID] = ack_test_broadcast
     ackListeners[REPLY_ON_FOLLOW_UP_MESSAGE] = process_mfr_email_reply_rogerthat_reply
 
 
