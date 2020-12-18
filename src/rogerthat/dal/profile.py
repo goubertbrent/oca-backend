@@ -66,7 +66,7 @@ def get_profile_info(user, cached=True, skip_warning=False):
 
 
 @returns([Profile])
-@arguments(users=[users.User])
+@arguments(users=[(users.User)])
 def get_profiles(users):
     return db.get([get_profile_key(u) for u in users])
 

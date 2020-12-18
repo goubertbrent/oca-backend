@@ -18,6 +18,7 @@
 import logging
 
 from google.appengine.ext.webapp import template
+from typing import Union
 
 from rogerthat.translations import DEFAULT_LANGUAGE
 from solutions.common import SOLUTION_COMMON
@@ -33,7 +34,7 @@ def get_supported_languages():
 
 
 def translate(language, key, suppress_warning=False, _duplicate_backslashes=False, **kwargs):
-    # type: (basestring, basestring, bool, bool, dict) -> str
+    # type: (basestring, basestring, bool, bool, **Union[unicode, int, long]) -> str
     language = (language or DEFAULT_LANGUAGE).replace('-', '_')
     if language not in translations:
         if '_' in language:

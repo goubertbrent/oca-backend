@@ -30,7 +30,7 @@ import solutions.common.restapi.participation
 import solutions.common.restapi.payments
 import solutions.common.restapi.pharmacy.order
 import solutions.common.restapi.reports
-import solutions.common.restapi.reservation
+import solutions.common.reservations.restapi
 import solutions.common.restapi.services
 import solutions.common.restapi.settings
 import solutions.common.restapi.store
@@ -82,7 +82,7 @@ modules = [
     solutions.common.restapi.participation,
     solutions.common.restapi.payments,
     solutions.common.restapi.pharmacy.order,
-    solutions.common.restapi.reservation,
+    solutions.common.reservations.restapi,
     solutions.common.q_and_a.restapi,
     solutions.common.restapi.reports,
     solutions.common.restapi.store,

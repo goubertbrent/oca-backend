@@ -122,9 +122,7 @@ $(function() {
                 url : '/common/restaurant/reservations/send_cancel_via_app',
                 type : 'POST',
                 data : {
-                    data : JSON.stringify({
-                        reservation_keys : reservations_to_cancel
-                    })
+                    reservation_keys: reservations_to_cancel
                 },
                 success : function() {
                     var loads = 0;

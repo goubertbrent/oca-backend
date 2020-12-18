@@ -99,7 +99,7 @@ from solutions.common.models.loyalty import SolutionLoyaltySettings, SolutionLoy
 from solutions.common.models.order import SolutionOrderWeekdayTimeframe
 from solutions.common.models.properties import MenuItem, ActivatedModules, \
     ActivatedModule
-from solutions.common.models.reservation import RestaurantProfile
+from solutions.common.reservations.models import RestaurantProfile
 from solutions.common.models.sandwich import SandwichType, SandwichTopping, SandwichSettings, SandwichOption
 from solutions.common.models.static_content import SolutionStaticContent
 from solutions.common.to import MenuTO, SolutionGroupPurchaseTO, TimestampTO
@@ -701,7 +701,7 @@ def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang
 @arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
 def put_agenda(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
-    # type: (SolutionSettings, List[int], SolutionMainBranding, str, str) -> List[SolutionServiceMenuItem]
+    # type: (SolutionSettings, List[int], str, SolutionMainBranding, str, str) -> List[SolutionServiceMenuItem]
     ssmis = []
 
     if not sln_settings.default_calendar:
@@ -712,7 +712,6 @@ def put_agenda(sln_settings, current_coords, current_label, main_branding, defau
         sln_settings.default_calendar = sc_id
         sln_settings.put()
         sc.put()
-
     if sln_settings.events_visible:
         icon = u"fa-calendar"
         label = current_label or common_translate(default_lang, 'Events')
@@ -1458,10 +1457,7 @@ def put_restaurant_reservation(sln_settings, current_coords, current_label, main
         identities.extend(sln_settings.identities)
     for service_identity in identities:
         if not get_restaurant_settings(service_user, service_identity):
-            put_default_restaurant_settings(service_user,
-                                            service_identity,
-                                            lambda k: common_translate(default_lang, k),
-                                            default_lang)
+            put_default_restaurant_settings(service_user, service_identity, default_lang)
 
     restaurant_profile = get_restaurant_profile(service_user)
     if restaurant_profile:

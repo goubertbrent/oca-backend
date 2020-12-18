@@ -18,20 +18,26 @@
 from datetime import datetime
 from types import NoneType
 
-from rogerthat.rpc import users
-from rogerthat.rpc.service import BusinessException
-from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
-from rogerthat.utils import get_epoch_from_datetime
+from typing import List, Optional, Union, Dict
+
 from mcfw.consts import MISSING
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
+from rogerthat.dal.profile import get_user_profile, get_profiles
+from rogerthat.models import UserProfile
+from rogerthat.rpc import users
+from rogerthat.rpc.service import BusinessException
+from rogerthat.settings import get_server_settings
+from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
+from rogerthat.utils import get_epoch_from_datetime
 from solutions.common.dal.reservations import get_restaurant_settings, get_restaurant_reservation
-from solutions.common.to.reservation import RestaurantShiftTO, RestaurantSettingsTO, RestaurantShiftDetailsTO, \
-    TimestampTO, RestaurantReservationTO, RestaurantReservationStatisticsTO, RestaurantBrokenReservationTO, TableTO, \
-    DeleteTableStatusTO, DeleteTableReservationTO
+from solutions.common.reservations.models import RestaurantReservation, RestaurantShift
+from solutions.common.reservations.to import Shift, TableTO, RestaurantSettingsTO, RestaurantReservationTO, \
+    RestaurantBrokenReservationTO, RestaurantShiftDetailsTO, RestaurantReservationStatisticsTO, \
+    DeleteTableReservationTO, DeleteTableStatusTO, TimestampTO, RestaurantReservationSenderTO
 
 
-@rest("/common/restaurant/settings/load", "get", read_only_access=True)
+@rest('/common/restaurant/settings/load', 'get', read_only_access=True)
 @returns(RestaurantSettingsTO)
 @arguments()
 def load_shifts():
@@ -42,9 +48,9 @@ def load_shifts():
     return RestaurantSettingsTO.fromRestaurantSettingsObject(settings)
 
 
-@rest("/common/restaurant/settings/shifts/save", "post")
+@rest('/common/restaurant/settings/shifts/save', 'post')
 @returns(ReturnStatusTO)
-@arguments(shifts=[RestaurantShiftTO])
+@arguments(shifts=[Shift])
 def save_shifts(shifts):
     from solutions.common.bizz.reservation import save_shifts as save_shifts_bizz
     try:
@@ -53,11 +59,11 @@ def save_shifts(shifts):
         service_identity = session_.service_identity
         save_shifts_bizz(service_user, service_identity, shifts)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
-@rest("/common/restaurant/reservations", "get", read_only_access=True)
+@rest('/common/restaurant/reservations', 'get', read_only_access=True)
 @returns([RestaurantShiftDetailsTO])
 @arguments(year=int, month=int, day=int, hour=int, minute=int)
 def get_reservations(year, month, day, hour, minute):
@@ -66,28 +72,17 @@ def get_reservations(year, month, day, hour, minute):
     service_user = users.get_current_user()
     session_ = users.get_current_session()
     service_identity = session_.service_identity
-    result = list()
+    result = []
     shift, start_time = get_shift_by_datetime(service_user, service_identity, datetime(year, month, day, hour, minute))
     if shift:
-        details = RestaurantShiftDetailsTO()
-        details.shift = RestaurantShiftTO.fromShift(shift)
-        details.start_time = TimestampTO.fromDatetime(start_time)
-        details.reservations = list()
-        for reservation in get_restaurant_reservation(service_user, service_identity, start_time):
-            details.reservations.append(RestaurantReservationTO.fromReservation(reservation))
-        result.append(details)
+        result.append(_get_shift_details(shift, start_time, service_user, service_identity))
         shift, start_time = get_next_shift(service_user, service_identity, shift, start_time)
         if shift:
-            details = RestaurantShiftDetailsTO()
-            details.shift = RestaurantShiftTO.fromShift(shift)
-            details.start_time = TimestampTO.fromDatetime(start_time)
-            details.reservations = list()
-            for reservation in get_restaurant_reservation(service_user, service_identity, start_time):
-                details.reservations.append(RestaurantReservationTO.fromReservation(reservation))
-            result.append(details)
+            result.append(_get_shift_details(shift, start_time, service_user, service_identity))
     return result
 
-@rest("/common/restaurant/reservations/broken", "get", read_only_access=True)
+
+@rest('/common/restaurant/reservations/broken', 'get', read_only_access=True)
 @returns([RestaurantBrokenReservationTO])
 @arguments()
 def get_broken_reservations():
@@ -97,12 +92,15 @@ def get_broken_reservations():
     service_identity = session_.service_identity
     settings = get_restaurant_settings(service_user, service_identity)
     result = []
-    for reservation in dal_get_broken_reservations(service_user, service_identity):
+    reservations = list(dal_get_broken_reservations(service_user, service_identity))
+    senders = _get_senders_for_reservations(reservations)
+    for reservation, sender in zip(reservations, senders):
         alternative_shifts = [shift.name for shift in settings.shifts if reservation.date.isoweekday() in shift.days]
-        result.append(RestaurantBrokenReservationTO.fromReservation(reservation, alternative_shifts))
+        result.append(RestaurantBrokenReservationTO.fromReservation(reservation, alternative_shifts, sender))
     return result
 
-@rest("/common/restaurant/reservations/move_shift", "post")
+
+@rest('/common/restaurant/reservations/move_shift', 'post')
 @returns(NoneType)
 @arguments(reservation_key=unicode, shift_name=unicode)
 def move_reservation_to_shift(reservation_key, shift_name):
@@ -112,7 +110,8 @@ def move_reservation_to_shift(reservation_key, shift_name):
     service_identity = session_.service_identity
     move_reservation(service_user, service_identity, reservation_key, shift_name)
 
-@rest("/common/restaurant/reservations/notified", "post")
+
+@rest('/common/restaurant/reservations/notified', 'post')
 @returns(NoneType)
 @arguments(reservation_key=unicode)
 def reservation_cancelled_notified(reservation_key):
@@ -120,7 +119,8 @@ def reservation_cancelled_notified(reservation_key):
     service_user = users.get_current_user()
     cancel_reservation(service_user, reservation_key, True)
 
-@rest("/common/restaurant/reservations/send_cancel_via_app", "post")
+
+@rest('/common/restaurant/reservations/send_cancel_via_app', 'post')
 @returns(NoneType)
 @arguments(reservation_keys=[unicode])
 def reservation_send_cancel_via_app(reservation_keys):
@@ -128,17 +128,21 @@ def reservation_send_cancel_via_app(reservation_keys):
     service_user = users.get_current_user()
     cancel_reservations(service_user, reservation_keys)
 
-@rest("/common/restaurant/reservations", "post")
+
+@rest('/common/restaurant/reservations', 'post')
 @returns(unicode)
-@arguments(year=int, month=int, day=int, hour=int, minute=int, name=unicode, people=int, comment=unicode, phone=unicode, force=bool)
+@arguments(year=int, month=int, day=int, hour=int, minute=int, name=unicode, people=int, comment=unicode, phone=unicode,
+           force=bool)
 def submit_reservation(year, month, day, hour, minute, name, people, comment, phone, force):
     from solutions.common.bizz.reservation import reserve_table
     service_user = users.get_current_user()
     session_ = users.get_current_session()
     service_identity = session_.service_identity
-    return reserve_table(service_user, service_identity, None, get_epoch_from_datetime(datetime(year, month, day, hour, minute)), people, name, phone, comment, force)
+    timestamp = get_epoch_from_datetime(datetime(year, month, day, hour, minute))
+    return reserve_table(service_user, service_identity, None, timestamp, people, name, phone, comment, force)
 
-@rest("/common/restaurant/reservation-stats", "get", read_only_access=True)
+
+@rest('/common/restaurant/reservation-stats', 'get', read_only_access=True)
 @returns(RestaurantReservationStatisticsTO)
 @arguments(year=int, month=int, day=int)
 def get_statistics(year, month, day):
@@ -149,33 +153,39 @@ def get_statistics(year, month, day):
     date = datetime(year, month, day)
     return get_statistics_bizz(service_user, service_identity, date)
 
-@rest("/common/restaurant/reservation/arrived", "post")
+
+@rest('/common/restaurant/reservation/arrived', 'post')
 @returns(RestaurantReservationTO)
 @arguments(reservation_key=unicode)
 def toggle_reservation_arrived(reservation_key):
     from solutions.common.bizz.reservation import toggle_reservation_arrived as toggle_reservation_arrived_bizz
     reservation = toggle_reservation_arrived_bizz(users.get_current_user(), reservation_key)
-    return RestaurantReservationTO.fromReservation(reservation)
+    return RestaurantReservationTO.fromReservation(reservation, _get_senders_for_reservations([reservation])[0])
 
-@rest("/common/restaurant/reservation/cancelled", "post")
+
+@rest('/common/restaurant/reservation/cancelled', 'post')
 @returns(RestaurantReservationTO)
 @arguments(reservation_key=unicode)
 def toggle_reservation_cancelled(reservation_key):
     from solutions.common.bizz.reservation import toggle_reservation_cancelled as toggle_reservation_cancelled_bizz
     reservation = toggle_reservation_cancelled_bizz(users.get_current_user(), reservation_key)
-    return RestaurantReservationTO.fromReservation(reservation)
+    return RestaurantReservationTO.fromReservation(reservation, _get_senders_for_reservations([reservation])[0])
 
-@rest("/common/restaurant/reservation/edit", "post")
+
+@rest('/common/restaurant/reservation/edit', 'post')
 @returns(unicode)
 @arguments(reservation_key=unicode, people=int, comment=unicode, force=bool, new_date=TimestampTO)
 def edit_reservation(reservation_key, people, comment, force=True, new_date=None):
     from solutions.common.bizz.reservation import edit_reservation as edit_reservation_bizz
     new_epoch = 0
     if new_date:
-        new_epoch = get_epoch_from_datetime(datetime(new_date.year, new_date.month, new_date.day, new_date.hour, new_date.minute))
-    return edit_reservation_bizz(users.get_current_user(), reservation_key, people, comment, force, True if new_date else False, new_epoch)
+        new_epoch = get_epoch_from_datetime(
+            datetime(new_date.year, new_date.month, new_date.day, new_date.hour, new_date.minute))
+    return edit_reservation_bizz(users.get_current_user(), reservation_key, people, comment, force,
+                                 True if new_date else False, new_epoch)
 
-@rest("/common/restaurant/reservation/edit_tables", "post")
+
+@rest('/common/restaurant/reservation/edit_tables', 'post')
 @returns(ReturnStatusTO)
 @arguments(reservation_key=unicode, tables=[(int, long)])
 def edit_reservation_tables(reservation_key, tables):
@@ -183,10 +193,11 @@ def edit_reservation_tables(reservation_key, tables):
     try:
         edit_reservation_tables_bizz(users.get_current_user(), reservation_key, tables)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
-@rest("/common/restaurant/reservation/reply", "post")
+
+@rest('/common/restaurant/reservation/reply', 'post')
 @returns(ReturnStatusTO)
 @arguments(email=unicode, app_id=unicode, message=unicode, reservation_key=unicode)
 def reply_reservation(email, app_id, message, reservation_key=None):
@@ -196,11 +207,11 @@ def reply_reservation(email, app_id, message, reservation_key=None):
             reservation_key = None
         reply_reservation_bizz(users.get_current_user(), email, app_id, message, reservation_key)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
-@rest("/common/restaurant/settings/tables/add", "post")
+@rest('/common/restaurant/settings/tables/add', 'post')
 @returns(ReturnStatusTO)
 @arguments(table=TableTO)
 def add_table(table):
@@ -211,10 +222,11 @@ def add_table(table):
         service_identity = session_.service_identity
         add_table_bizz(service_user, service_identity, table)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
-@rest("/common/restaurant/settings/tables/update", "post")
+
+@rest('/common/restaurant/settings/tables/update', 'post')
 @returns(ReturnStatusTO)
 @arguments(table=TableTO)
 def update_table(table):
@@ -225,10 +237,11 @@ def update_table(table):
         service_identity = session_.service_identity
         update_table_bizz(service_user, service_identity, table)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
-@rest("/common/restaurant/settings/tables/delete", "post")
+
+@rest('/common/restaurant/settings/tables/delete', 'post')
 @returns(DeleteTableStatusTO)
 @arguments(table_id=(int, long), force=bool)
 def delete_table(table_id, force):
@@ -236,27 +249,42 @@ def delete_table(table_id, force):
     service_user = users.get_current_user()
     session_ = users.get_current_session()
     service_identity = session_.service_identity
-    dtsTO = DeleteTableStatusTO()
+    result = DeleteTableStatusTO()
     status, reservations = delete_table_bizz(service_user, service_identity, table_id, force)
-    dtsTO.success = status
-    dtsTO.reservations = list()
+    result.success = status
+    result.reservations = []
+    senders = _get_senders_for_reservations(reservations)
     if not status:
-        for r in reservations:
-            dtrTO = DeleteTableReservationTO()
-            dtrTO.reservation = RestaurantReservationTO.fromReservation(r)
+        for r, sender in zip(reservations, senders):
+            deleted_table = DeleteTableReservationTO()
+            get_user_profile(r.user)
+            deleted_table.reservation = RestaurantReservationTO.fromReservation(r, sender)
 
             shift, start_time = get_shift_by_datetime(service_user, service_identity, r.date)
-            if shift:
-                details = RestaurantShiftDetailsTO()
-                details.shift = RestaurantShiftTO.fromShift(shift)
-                details.start_time = TimestampTO.fromDatetime(start_time)
-                details.reservations = list()
-                for reservation in get_restaurant_reservation(service_user, service_identity, start_time):
-                    details.reservations.append(RestaurantReservationTO.fromReservation(reservation))
+            deleted_table.shift = _get_shift_details(shift, start_time, service_user, service_identity)
+            result.reservations.append(deleted_table)
+    return result
 
-                dtrTO.shift = details
-            else:
-                dtrTO.shift = None
 
-            dtsTO.reservations.append(dtrTO)
-    return dtsTO
+def _get_shift_details(shift, start_time, service_user, service_identity):
+    # type: (Union[Shift, RestaurantShift], datetime, users.User, Optional[unicode]) -> Optional[RestaurantShiftDetailsTO]
+    if not shift:
+        return None
+    details = RestaurantShiftDetailsTO()
+    details.shift = Shift.from_model(shift) if isinstance(shift, RestaurantShift) else shift
+    details.start_time = TimestampTO.fromDatetime(start_time)
+    shift_reservations = list(get_restaurant_reservation(service_user, service_identity, start_time))
+    shift_senders = _get_senders_for_reservations(shift_reservations)
+    details.reservations = [RestaurantReservationTO.fromReservation(reservation, sender)
+                            for reservation, sender in zip(shift_reservations, shift_senders)]
+    return details
+
+
+def _get_senders_for_reservations(reservations):
+    # type: (List[RestaurantReservation]) -> List[Optional[RestaurantReservationSenderTO]]
+    base_url = get_server_settings().baseUrl
+    all_users = [r.user for r in reservations if r.user]
+    profiles = {p.user: p for p in get_profiles(all_users)}  # type: Dict[users.User, UserProfile]
+    return [RestaurantReservationSenderTO.from_user_profile(profiles[r.user], base_url)
+            if profiles.get(r.user) else None
+            for r in reservations]

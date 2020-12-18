@@ -18,15 +18,15 @@
 import json
 import logging
 from datetime import datetime, timedelta, time
-from types import NoneType, FunctionType
+from types import NoneType
 
 import pytz
 from babel.dates import format_date, format_time
-from google.appengine.ext import db, deferred
+from google.appengine.ext import deferred, ndb
+from typing import List, Optional, Tuple, Union
 
 from mcfw.properties import azzert, object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
-from rogerthat.dal import put_and_invalidate_cache, parent_key_unsafe
 from rogerthat.models import Message
 from rogerthat.models.properties.forms import Form, FormResult
 from rogerthat.rpc import users
@@ -44,10 +44,8 @@ from rogerthat.utils import bizz_check, unset_flag, set_flag, is_flag_set, now, 
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.service import get_service_user_from_service_identity_user
 from solutions import translate as common_translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import _get_value
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message
-from solutions.common.bizz.reservation.job import handle_shift_updates
 from solutions.common.bizz.settings import get_service_info
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, \
     get_solution_settings_or_identity_settings
@@ -55,12 +53,12 @@ from solutions.common.dal.reservations import get_restaurant_profile, get_planne
     get_restaurant_settings, get_restaurant_reservation, get_reservations, get_upcoming_planned_reservations_by_table, \
     clear_table_id_in_reservations
 from solutions.common.models import SolutionInboxMessage
-from solutions.common.models.properties import SolutionUser
-from solutions.common.models.reservation import RestaurantReservation, RestaurantSettings, RestaurantTable
-from solutions.common.models.reservation.properties import Shift, Shifts
+from solutions.common.reservations.job import handle_shift_updates
+from solutions.common.reservations.models import RestaurantShift, RestaurantConfiguration, RestaurantTable, \
+    RestaurantReservation
+from solutions.common.reservations.to import Shift, TableTO, RestaurantReservationStatisticTO, \
+    RestaurantReservationStatisticsTO
 from solutions.common.to import TimestampTO, SolutionInboxMessageTO
-from solutions.common.to.reservation import RestaurantReservationStatisticsTO, RestaurantReservationStatisticTO, \
-    RestaurantShiftTO, TableTO
 from solutions.common.utils import create_service_identity_user_wo_default
 
 STATUS_AVAILABLE = u'available'
@@ -72,28 +70,31 @@ STATUS_TOO_MANY_PEOPLE = u'too-many-people'
 STATUS_NO_TABLES = u'no-tables'
 
 
+# TODO: move file contents to solutions.common.reservations.reservations
+
+
 class ShiftOverlapException(BusinessException):
     pass
+
 
 class ShiftConfigurationException(BusinessException):
     pass
 
+
 class ReservationConflictException(BusinessException):
     pass
+
 
 class InvalidTableException(BusinessException):
     pass
 
 
-@returns(RestaurantSettings)
-@arguments(service_user=users.User, service_identity=unicode, translate_f=FunctionType, default_lang=unicode)
-def put_default_restaurant_settings(service_user, service_identity, translate_f, default_lang):
-    service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
-    settings = RestaurantSettings(key=RestaurantSettings.create_key(service_identity_user))
-    settings.shifts = Shifts()
+def put_default_restaurant_settings(service_user, service_identity, default_lang):
+    # type: (users.User, Optional[unicode], unicode) -> RestaurantConfiguration
+    settings = RestaurantConfiguration(key=RestaurantConfiguration.create_key(service_user, service_identity))
 
-    shift = Shift()
-    shift.name = translate_f('shift-lunch')
+    shift = RestaurantShift()
+    shift.name = common_translate(default_lang, 'shift-lunch')
     shift.capacity = 50
     shift.max_group_size = 6
     shift.leap_time = 30
@@ -101,11 +102,11 @@ def put_default_restaurant_settings(service_user, service_identity, translate_f,
     shift.start = 12 * 60 * 60
     shift.end = 14 * 60 * 60
     shift.days = [1, 2, 3, 4, 5]
-    shift.comment = translate_f('shift-comment0')
-    settings.shifts.add(shift)
+    shift.comment = common_translate(default_lang, 'shift-comment0')
+    settings.shifts.append(shift)
 
-    shift = Shift()
-    shift.name = translate_f('shift-dinner')
+    shift = RestaurantShift()
+    shift.name = common_translate(default_lang, 'shift-dinner')
     shift.capacity = 50
     shift.max_group_size = 6
     shift.leap_time = 30
@@ -113,26 +114,22 @@ def put_default_restaurant_settings(service_user, service_identity, translate_f,
     shift.start = 18 * 60 * 60
     shift.end = 21 * 60 * 60
     shift.days = [1, 2, 3, 4, 5]
-    shift.comment = translate_f('shift-comment1')
-    settings.shifts.add(shift)
+    shift.comment = common_translate(default_lang, 'shift-comment1')
+    settings.shifts.append(shift)
     settings.put()
     return settings
 
 
-@returns(FlowMemberResultCallbackResultTO)
-@arguments(service_user=users.User, message_flow_run_id=unicode, member=unicode,
-           steps=[object_factory('step_type', FLOW_STEP_MAPPING)], end_id=unicode, end_message_flow_id=unicode,
-           parent_message_key=unicode, tag=unicode, result_key=unicode, flush_id=unicode, flush_message_flow_id=unicode,
-           service_identity=unicode, user_details=[UserDetailsTO])
 def reservation_part1(service_user, message_flow_run_id, member, steps, end_id, end_message_flow_id, parent_message_key,
-                   tag, result_key, flush_id, flush_message_flow_id, service_identity, user_details):
+                      tag, result_key, flush_id, flush_message_flow_id, service_identity, user_details):
+    # type: (users.User, unicode, unicode, List[object_factory('step_type', FLOW_STEP_MAPPING)], unicode, unicode, unicode, unicode, unicode, unicode, unicode, unicode, List[UserDetailsTO]) -> FlowMemberResultCallbackResultTO
     from solutions.common.bizz.messaging import POKE_TAG_RESERVE_PART2
     date = _get_value(steps[0], u'message_date')
     people = int(_get_value(steps[1], u'message_people'))
     data = {'date': date, 'people': people}
 
     real_result = FlowMemberResultCallbackResultTO()
-    status = availability_and_shift(service_user, service_identity, user_details, date, people)[0]
+    status = availability_and_shift(service_user, service_identity, date, people)[0]
     if status == STATUS_AVAILABLE:
         real_result.type = u'flow'
         result = FlowCallbackResultTypeTO()
@@ -146,13 +143,9 @@ def reservation_part1(service_user, message_flow_run_id, member, steps, end_id, 
     return real_result
 
 
-@returns(FlowMemberResultCallbackResultTO)
-@arguments(service_user=users.User, message_flow_run_id=unicode, member=unicode,
-           steps=[object_factory('step_type', FLOW_STEP_MAPPING)], end_id=unicode, end_message_flow_id=unicode,
-           parent_message_key=unicode, tag=unicode, result_key=unicode, flush_id=unicode, flush_message_flow_id=unicode,
-           service_identity=unicode, user_details=[UserDetailsTO])
 def reservation_part2(service_user, message_flow_run_id, member, steps, end_id, end_message_flow_id, parent_message_key,
-                   tag, result_key, flush_id, flush_message_flow_id, service_identity, user_details):
+                      tag, result_key, flush_id, flush_message_flow_id, service_identity, user_details):
+    # type: (users.User, unicode, unicode, List[object_factory('step_type', FLOW_STEP_MAPPING)], unicode, unicode, unicode, unicode, unicode, unicode, unicode, unicode, List[UserDetailsTO]) -> FlowMemberResultCallbackResultTO
     from solutions.common.bizz.messaging import POKE_TAG_RESERVE_PART2, MESSAGE_TAG_RESERVE_SUCCESS
     name = _get_value(steps[0], u'message_name')
     phone = _get_value(steps[1], u'message_phone')
@@ -183,35 +176,30 @@ def reservation_part2(service_user, message_flow_run_id, member, steps, end_id, 
     real_result.value = result
     return real_result
 
-@returns(PokeCallbackResultTO)
-@arguments(service_user=users.User, email=unicode, tag=unicode, result_key=unicode, context=unicode,
-           service_identity=unicode, user_details=[UserDetailsTO])
+
 def my_reservations_poke(service_user, email, tag, result_key, context, service_identity, user_details):
+    # type: (users.User, unicode, unicode, unicode, unicode, unicode, List[UserDetailsTO]) -> PokeCallbackResultTO
     result = PokeCallbackResultTO()
     result.type = u'message'
     result.value = _create_reservations_overview_message(service_user, service_identity, user_details)
     return result
 
-@returns(MessageAcknowledgedCallbackResultTO)
-@arguments(service_user=users.User, status=int, answer_id=unicode, received_timestamp=int, member=unicode,
-           message_key=unicode, tag=unicode, acked_timestamp=int, parent_message_key=unicode, result_key=unicode,
-           service_identity=unicode, user_details=[UserDetailsTO])
+
 def my_reservations_overview_updated(service_user, status, answer_id, received_timestamp, member, message_key, tag,
                                      acked_timestamp, parent_message_key, result_key, service_identity, user_details):
+    # type: (users.User, int, unicode, int, unicode, unicode, unicode, int, unicode, unicode, unicode, List[UserDetailsTO]) -> Optional[MessageAcknowledgedCallbackResultTO]
     if not answer_id:
         return None  # status is STATUS_RECEIVED or user dismissed
 
     result = MessageAcknowledgedCallbackResultTO()
     result.type = u'message'
-    result.value = _create_reservation_details_message(answer_id, user_details)
+    result.value = _create_reservation_details_message(answer_id)
     return result
 
-@returns(MessageAcknowledgedCallbackResultTO)
-@arguments(service_user=users.User, status=int, answer_id=unicode, received_timestamp=int, member=unicode,
-           message_key=unicode, tag=unicode, acked_timestamp=int, parent_message_key=unicode, result_key=unicode,
-           service_identity=unicode, user_details=[UserDetailsTO])
+
 def my_reservations_detail_updated(service_user, status, answer_id, received_timestamp, member, message_key, tag,
                                    acked_timestamp, parent_message_key, result_key, service_identity, user_details):
+    # type: (users.User, int, unicode, int, unicode, unicode, unicode, int, unicode, unicode, unicode, List[UserDetailsTO]) -> Optional[MessageAcknowledgedCallbackResultTO]
     if not answer_id:
         return None  # status is STATUS_RECEIVED or user dismissed
 
@@ -238,8 +226,7 @@ def my_reservations_detail_updated(service_user, status, answer_id, received_tim
         result.value.attachments = []
         result.value.step_id = u'message_reservation_canceled'
 
-        reservation = db.get(info['reservation'])
-
+        reservation = ndb.Key(urlsafe=info['reservation']).get()  # type: RestaurantReservation
 
         now_ = now()
         if reservation.solution_inbox_message_key:
@@ -256,7 +243,8 @@ def my_reservations_detail_updated(service_user, status, answer_id, received_tim
                                    time=_format_time_service_user(service_user, reservation.date))
             message = create_solution_inbox_message(service_user, service_identity,
                                                     SolutionInboxMessage.CATEGORY_RESTAURANT_RESERVATION,
-                                                    unicode(reservation.key()), False, user_details, now_, msg, True)
+                                                    unicode(reservation.key.urlsafe()), False, user_details, now_,
+                                                    msg, True)
         sln_settings = get_solution_settings(service_user)
         service_info = get_service_info(service_user, service_identity)
         send_message(service_user, u"solutions.common.messaging.update", service_identity=service_identity,
@@ -271,7 +259,7 @@ def my_reservations_detail_updated(service_user, status, answer_id, received_tim
         return result
 
     elif action == 'edit-people':
-        reservation = RestaurantReservation.get(info['reservation'])
+        reservation = ndb.Key(urlsafe=info['reservation']).get()  # type: RestaurantReservation
 
         result = MessageAcknowledgedCallbackResultTO()
         result.type = u'form'
@@ -300,7 +288,7 @@ def my_reservations_detail_updated(service_user, status, answer_id, received_tim
         return result
 
     elif action == 'edit-comment':
-        reservation = RestaurantReservation.get(info['reservation'])
+        reservation = ndb.Key(urlsafe=info['reservation']).get()  # type: RestaurantReservation
 
         result = MessageAcknowledgedCallbackResultTO()
         result.type = u'form'
@@ -323,7 +311,7 @@ def my_reservations_detail_updated(service_user, status, answer_id, received_tim
         result.value.form.widget.value = reservation.comment
         result.value.message = common_translate(lang, u'reservation-message-comments')
         result.value.tag = MESSAGE_TAG_MY_RESERVATIONS_EDIT_COMMENT + json.dumps(
-            dict(reservation=info['reservation'])).decode('utf8')
+            {'reservation': info['reservation']}).decode('utf8')
         result.value.attachments = []
         result.value.step_id = u'message_edit_comment'
         return result
@@ -333,13 +321,10 @@ def my_reservations_detail_updated(service_user, status, answer_id, received_tim
         return None
 
 
-@returns(FormAcknowledgedCallbackResultTO)
-@arguments(service_user=users.User, status=int, form_result=FormResult, answer_id=unicode, member=unicode,
-           message_key=unicode, tag=unicode, received_timestamp=int, acked_timestamp=int, parent_message_key=unicode,
-           result_key=unicode, service_identity=unicode, user_details=[UserDetailsTO])
 def my_reservations_edit_comment_updated(service_user, status, form_result, answer_id, member, message_key, tag,
                                          received_timestamp, acked_timestamp, parent_message_key, result_key,
                                          service_identity, user_details):
+    # type: (users.User, int, unicode, int, unicode, unicode, unicode, int, unicode, unicode, unicode, List[UserDetailsTO]) -> Optional[FormAcknowledgedCallbackResultTO]
     if answer_id != Form.POSITIVE:
         return None
 
@@ -351,9 +336,9 @@ def my_reservations_edit_comment_updated(service_user, status, form_result, answ
     result = FormAcknowledgedCallbackResultTO()
     result.type = u'message'
     if status == STATUS_AVAILABLE:
-        result.value = _create_reservation_edited_message(service_user, user_details)
+        result.value = _create_reservation_edited_message(service_user)
 
-        reservation = db.get(info['reservation'])
+        reservation = ndb.Key(urlsafe=info['reservation']).get()  # type: RestaurantReservation
         sln_settings = get_solution_settings(service_user)
         lang = sln_settings.main_language
 
@@ -373,7 +358,8 @@ def my_reservations_edit_comment_updated(service_user, status, form_result, answ
                                    comment=comment_new)
             message = create_solution_inbox_message(service_user, service_identity,
                                                     SolutionInboxMessage.CATEGORY_RESTAURANT_RESERVATION,
-                                                    unicode(reservation.key()), False, user_details, now_, msg, True)
+                                                    unicode(reservation.key.urlsafe()), False, user_details, now_, msg,
+                                                    True)
         service_info = get_service_info(service_user, service_identity)
         send_message(service_user, u"solutions.common.messaging.update", service_identity=service_identity,
                      message=SolutionInboxMessageTO.fromModel(message_parent if message_parent else message,
@@ -391,19 +377,16 @@ def my_reservations_edit_comment_updated(service_user, status, form_result, answ
     return result
 
 
-@returns(FormAcknowledgedCallbackResultTO)
-@arguments(service_user=users.User, status=int, form_result=FormResult, answer_id=unicode, member=unicode,
-           message_key=unicode, tag=unicode, received_timestamp=int, acked_timestamp=int, parent_message_key=unicode,
-           result_key=unicode, service_identity=unicode, user_details=[UserDetailsTO])
 def my_reservations_edit_people_updated(service_user, status, form_result, answer_id, member, message_key, tag,
-                                         received_timestamp, acked_timestamp, parent_message_key, result_key,
-                                         service_identity, user_details):
+                                        received_timestamp, acked_timestamp, parent_message_key, result_key,
+                                        service_identity, user_details):
+    # type: (users.User, int, FormResult, unicode, unicode, unicode, unicode, int, int, unicode, unicode, unicod, List[UserDetailsTO]) -> Optional[FormAcknowledgedCallbackResultTO]
     if answer_id != Form.POSITIVE:
         return None
 
     from solutions.common.bizz.messaging import MESSAGE_TAG_MY_RESERVATIONS_EDIT_PEOPLE, send_inbox_forwarders_message
     info = json.loads(tag[len(MESSAGE_TAG_MY_RESERVATIONS_EDIT_PEOPLE):])
-    reservation = db.get(info['reservation'])
+    reservation = ndb.Key(urlsafe=info['reservation']).get()  # type: RestaurantReservation
     people_old = reservation.people
     people_new = int(form_result.result.value)
 
@@ -414,13 +397,14 @@ def my_reservations_edit_people_updated(service_user, status, form_result, answe
     result = FormAcknowledgedCallbackResultTO()
     result.type = u'message'
     if status == STATUS_AVAILABLE:
-        result.value = _create_reservation_edited_message(service_user, user_details)
+        result.value = _create_reservation_edited_message(service_user)
 
         msg = common_translate(lang, 'if-update-reservation-people', people_old=people_old, people_new=people_new)
 
         now_ = now()
         if reservation.solution_inbox_message_key:
-            message, _ = add_solution_inbox_message(service_user, reservation.solution_inbox_message_key, False, user_details, now_, msg)
+            message, _ = add_solution_inbox_message(service_user, reservation.solution_inbox_message_key, False,
+                                                    user_details, now_, msg)
         else:
             msg = common_translate(lang, 'update-reservation-people',
                                    user_name=user_details[0].name,
@@ -433,7 +417,8 @@ def my_reservations_edit_people_updated(service_user, status, form_result, answe
                                    )
             message = create_solution_inbox_message(service_user, service_identity,
                                                     SolutionInboxMessage.CATEGORY_RESTAURANT_RESERVATION,
-                                                    unicode(reservation.key()), False, user_details, now_, msg, True)
+                                                    unicode(reservation.key.urlsafe()), False, user_details, now_, msg,
+                                                    True)
         service_info = get_service_info(service_user, service_identity)
         send_message(service_user, u"solutions.common.messaging.update", service_identity=service_identity,
                      message=SolutionInboxMessageTO.fromModel(message, sln_settings, service_info, True).to_dict())
@@ -448,9 +433,8 @@ def my_reservations_edit_people_updated(service_user, status, form_result, answe
     return result
 
 
-@returns(MessageCallbackResultTypeTO)
-@arguments(service_user=users.User, service_identity=unicode, user_details=[UserDetailsTO])
 def _create_reservations_overview_message(service_user, service_identity, user_details):
+    # type: (users.User, unicode, List[UserDetailsTO]) -> MessageCallbackResultTypeTO
     from solutions.common.bizz.messaging import MESSAGE_TAG_MY_RESERVATIONS_OVERVIEW
     reservations = get_planned_reservations_by_user(service_user,
                                                     service_identity,
@@ -461,7 +445,7 @@ def _create_reservations_overview_message(service_user, service_identity, user_d
         btn = AnswerTO()
         btn.action = None
         btn.caption = _format_date_service_user(service_user, reservation.date)
-        btn.id = unicode(reservation.key())
+        btn.id = unicode(reservation.key.urlsafe())
         btn.type = u'button'
         btn.ui_flags = Message.UI_FLAG_EXPECT_NEXT_WAIT_5
         return btn
@@ -486,42 +470,43 @@ def _create_reservations_overview_message(service_user, service_identity, user_d
     return result
 
 
-@returns(MessageCallbackResultTypeTO)
-@arguments(reservation_key=unicode, user_details=[UserDetailsTO])
-def _create_reservation_details_message(reservation_key, user_details):
+def _create_reservation_details_message(reservation_key):
+    # type: (unicode) -> MessageCallbackResultTypeTO
     from solutions.common.bizz.messaging import MESSAGE_TAG_MY_RESERVATIONS_DETAIL
-    reservation = RestaurantReservation.get(reservation_key)
+    reservation = ndb.Key(urlsafe=reservation_key).get()  # type: RestaurantReservation
     service_user = get_service_user_from_service_identity_user(reservation.service_identity_user)
     date = _format_date_service_user(service_user, reservation.date)
     time_ = _format_time_service_user(service_user, reservation.date)
-    reservation_details = {'arrival_date' : date,
-                           'arrival_time' : time_,
-                           'comment' : reservation.comment or '-',
-                           'number' : reservation.people,
-                           'date_reservation_done' : _format_date_service_user(service_user, reservation.creation_date),
-                           'arrival_date_time' : '%s %s' % (date, time_)
-                           }
+    reservation_details = {
+        'arrival_date': date,
+        'arrival_time': time_,
+        'comment': reservation.comment or '-',
+        'number': reservation.people,
+        'date_reservation_done': _format_date_service_user(service_user, reservation.creation_date),
+        'arrival_date_time': '%s %s' % (date, time_)
+    }
 
     sln_settings = get_solution_settings(service_user)
     btn_people = AnswerTO()
     btn_people.action = None
     btn_people.caption = common_translate(sln_settings.main_language, u'my-reservations-btn-edit-people')
-    btn_people.id = json.dumps(dict(reservation=reservation_key, action='edit-people')).decode('utf8')
+    btn_people.id = json.dumps({'reservation': reservation_key, 'action': 'edit-people'}).decode('utf8')
     btn_people.type = u"button"
     btn_people.ui_flags = Message.UI_FLAG_EXPECT_NEXT_WAIT_5
 
     btn_comment = AnswerTO()
     btn_comment.action = None
     btn_comment.caption = common_translate(sln_settings.main_language, u'my-reservations-btn-edit-comment')
-    btn_comment.id = json.dumps(dict(reservation=reservation_key, action='edit-comment')).decode('utf8')
+    btn_comment.id = json.dumps({'reservation': reservation_key, 'action': 'edit-comment'}).decode('utf8')
     btn_comment.type = u"button"
     btn_comment.ui_flags = Message.UI_FLAG_EXPECT_NEXT_WAIT_5
 
     btn_cancel = AnswerTO()
     btn_cancel.action = "confirm://" + (
-        common_translate(sln_settings.main_language, u'my-reservations-btn-cancel-confirm', arrival_date_time=reservation_details['arrival_date_time']))
+        common_translate(sln_settings.main_language, u'my-reservations-btn-cancel-confirm',
+                         arrival_date_time=reservation_details['arrival_date_time']))
     btn_cancel.caption = common_translate(sln_settings.main_language, u'my-reservations-btn-cancel')
-    btn_cancel.id = json.dumps(dict(reservation=reservation_key, action='cancel')).decode('utf8')
+    btn_cancel.id = json.dumps({'reservation': reservation_key, 'action': 'cancel'}).decode('utf8')
     btn_cancel.type = u"button"
     btn_cancel.ui_flags = Message.UI_FLAG_EXPECT_NEXT_WAIT_5
 
@@ -532,17 +517,20 @@ def _create_reservation_details_message(reservation_key, user_details):
     result.branding = get_solution_main_branding(reservation_service_user).branding_key
     result.dismiss_button_ui_flags = 0
     result.flags = Message.FLAG_ALLOW_DISMISS | Message.FLAG_AUTO_LOCK
-    result.message = common_translate(sln_settings.main_language, u'my-reservations-detail', arrival_time=reservation_details['arrival_time'],
-                                      arrival_date=reservation_details['arrival_date'], number=reservation_details['number'],
-                                      comment=reservation_details['comment'], date_reservation_done=reservation_details['date_reservation_done'])
+    result.message = common_translate(sln_settings.main_language, u'my-reservations-detail',
+                                      arrival_time=reservation_details['arrival_time'],
+                                      arrival_date=reservation_details['arrival_date'],
+                                      number=reservation_details['number'],
+                                      comment=reservation_details['comment'],
+                                      date_reservation_done=reservation_details['date_reservation_done'])
     result.tag = MESSAGE_TAG_MY_RESERVATIONS_DETAIL
     result.attachments = []
     result.step_id = u'message_reservation_detail'
     return result
 
-@returns(MessageCallbackResultTypeTO)
-@arguments(service_user=users.User, user_details=[UserDetailsTO])
-def _create_reservation_edited_message(service_user, user_details):
+
+def _create_reservation_edited_message(service_user):
+    # type: (users.User) -> MessageCallbackResultTypeTO
     from solutions.common.bizz.messaging import MESSAGE_TAG_MY_RESERVATIONS_DETAIL
     result = MessageCallbackResultTypeTO()
     result.alert_flags = 0
@@ -557,9 +545,9 @@ def _create_reservation_edited_message(service_user, user_details):
     result.step_id = u'message_reservation_edited'
     return result
 
-@returns(MessageCallbackResultTypeTO)
-@arguments(service_user=users.User, service_identity=unicode, user_details=[UserDetailsTO], status=unicode, date=(int, long))
+
 def _fail_message(service_user, service_identity, user_details, status, date=0):
+    # type: (users.User, unicode, List[UserDetailsTO], unicode, long) -> MessageCallbackResultTypeTO
     from solutions.common.bizz.messaging import MESSAGE_TAG_RESERVE_FAIL
     lang = get_solution_settings(service_user).main_language
     result = MessageCallbackResultTypeTO()
@@ -577,7 +565,8 @@ def _fail_message(service_user, service_identity, user_details, status, date=0):
     elif status == STATUS_KITCHEN_CLOSED and date:
         date = datetime.utcfromtimestamp(date)
         shifts = _get_shifts_on_date(service_user, service_identity, date)
-        extra_line = common_translate(lang, u'kitchen-closed-extra-line', week_day=_format_weekday_service_user(service_user, date))
+        extra_line = common_translate(lang, u'kitchen-closed-extra-line',
+                                      week_day=_format_weekday_service_user(service_user, date))
         for shift in shifts:
             start_hour = shift.start / 3600
             start_minutes = (shift.start % 3600) / 60
@@ -599,19 +588,18 @@ def _fail_message(service_user, service_identity, user_details, status, date=0):
     result.attachments = []
     return result
 
-@returns(datetime)
-@arguments(service_user=users.User)
+
 def now_in_resto_timezone(service_user):
+    # type: (users.User) -> datetime
     sln_settings = get_solution_settings(service_user)
     timezone = pytz.timezone(sln_settings.timezone)
     now_in_resto_timezone = datetime.now(timezone)
     return datetime(now_in_resto_timezone.year, now_in_resto_timezone.month, now_in_resto_timezone.day,
-                                     now_in_resto_timezone.hour, now_in_resto_timezone.minute)
+                    now_in_resto_timezone.hour, now_in_resto_timezone.minute)
 
 
-@returns(tuple)
-@arguments(service_user=users.User, service_identity=unicode, user_details=[UserDetailsTO], epoch=long, people=int, force=bool, total_people=int)
-def availability_and_shift(service_user, service_identity, user_details, epoch, people, force=False, total_people=0):
+def availability_and_shift(service_user, service_identity, epoch, people, force=False, total_people=0):
+    # type: (users.User, Optional[unicode], long, int, bool, int) -> Tuple[unicode, Optional[datetime]]
     """Returns a pair, consisting of:
     (a) status code
     (c) The corresponding shift (datetime) if there is a table available"""
@@ -625,48 +613,47 @@ def availability_and_shift(service_user, service_identity, user_details, epoch, 
     logging.info("reservation date:" + str(date))
 
     if date <= now_:
-        return (STATUS_PAST_RESERVATION, None)
+        return STATUS_PAST_RESERVATION, None
 
     shift = _get_matching_shift(service_user, service_identity, epoch)
     if shift is None:
         shifts_on_reservation_day = _get_shifts_on_date(service_user, service_identity, date)
         if not shifts_on_reservation_day:
-            return (STATUS_RESTAURANT_CLOSED , None)
+            return STATUS_RESTAURANT_CLOSED, None
         else:
-            return (STATUS_KITCHEN_CLOSED, None)
+            return STATUS_KITCHEN_CLOSED, None
 
     shift_start_time = time(shift.start / 3600, shift.start / 60 % 60)
     shift_start = datetime.combine(date.date(), shift_start_time)
     if shift.leap_time >= 0:
         leap_time = timedelta(minutes=shift.leap_time)
         if (now_.date() == date.date() and now_ >= shift_start - leap_time) and not force:
-            return (STATUS_SHORT_NOTICE, None)
+            return STATUS_SHORT_NOTICE, None
 
     if total_people:
         if total_people > shift.max_group_size and not force:
-            return (STATUS_TOO_MANY_PEOPLE, None)
+            return STATUS_TOO_MANY_PEOPLE, None
     else:
         if people > shift.max_group_size and not force:
-            return (STATUS_TOO_MANY_PEOPLE, None)
+            return STATUS_TOO_MANY_PEOPLE, None
 
     already_reserved = 0
     for reservation in get_restaurant_reservation(service_user, service_identity, shift_start):
-        if is_flag_set(RestaurantReservation.STATUS_CANCELED, reservation.status) or is_flag_set(RestaurantReservation.STATUS_DELETED, reservation.status):
+        if is_flag_set(RestaurantReservation.STATUS_CANCELED, reservation.status) \
+                or is_flag_set(RestaurantReservation.STATUS_DELETED, reservation.status):
             continue
         already_reserved += reservation.people
     if already_reserved >= shift.capacity * shift.threshold / 100 and not force:
-        return (STATUS_NO_TABLES, None)
+        return STATUS_NO_TABLES, None
 
-    return (STATUS_AVAILABLE, shift_start)
+    return STATUS_AVAILABLE, shift_start
 
 
-@returns(unicode)
-@arguments(service_user=users.User, service_identity=unicode, user_details=[UserDetailsTO], date=long,
-           people=int, name=unicode, phone=unicode, comment=unicode, force=bool)
 def reserve_table(service_user, service_identity, user_details, date, people, name, phone, comment, force=False):
+    # type: (users.User, unicode, List[UserDetailsTO], long, int, unicode, unicode, unicode, bool) -> unicode
     from solutions.common.bizz.messaging import send_inbox_forwarders_message
     # TODO: race conditions?
-    status, shift_start = availability_and_shift(service_user, service_identity, user_details, date, people, force)
+    status, shift_start = availability_and_shift(service_user, service_identity, date, people, force)
     if status != STATUS_AVAILABLE:
         return status
 
@@ -688,25 +675,22 @@ def reserve_table(service_user, service_identity, user_details, date, people, na
         msg = None
 
     service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
-    def trans():
-        reservation = RestaurantReservation(service_user=service_identity_user,
-                                            user=rogerthat_user, name=name or "John Doe", phone=phone, date=date,
-                                            people=people, comment=comment, shift_start=shift_start,
-                                            creation_date=datetime.now())
-        if user_details:
-            now_ = now()
-            message = create_solution_inbox_message(service_user, service_identity, SolutionInboxMessage.CATEGORY_RESTAURANT_RESERVATION, None, False, user_details, now_, msg, True)
-            reservation.solution_inbox_message_key = message.solution_inbox_message_key
-            reservation.sender = SolutionUser.fromTO(user_details[0])
-        else:
-            message = None
-        reservation.put()
-        if message:
-            message.category_key = unicode(reservation.key())
-            message.put()
-        return message
-    xg_on = db.create_transaction_options(xg=True)
-    message = db.run_in_transaction_options(xg_on, trans)
+
+    reservation = RestaurantReservation(service_user=service_identity_user,
+                                        user=rogerthat_user, name=name or 'John Doe', phone=phone, date=date,
+                                        people=people, comment=comment, shift_start=shift_start)
+    if user_details:
+        now_ = now()
+        message = create_solution_inbox_message(service_user, service_identity,
+                                                SolutionInboxMessage.CATEGORY_RESTAURANT_RESERVATION, None, False,
+                                                user_details, now_, msg, True)
+        reservation.solution_inbox_message_key = message.solution_inbox_message_key
+    else:
+        message = None
+    reservation.put()
+    if message:
+        message.category_key = unicode(reservation.key.urlsafe())
+        message.put()
 
     if user_details:
         app_user = user_details[0].toAppUser()
@@ -730,22 +714,27 @@ def reserve_table(service_user, service_identity, user_details, date, people, na
     send_message(service_user, sm_data, service_identity=service_identity)
     return STATUS_AVAILABLE
 
-@returns(NoneType)
-@arguments(service_user=users.User, service_identity=unicode, reservation_key=unicode, shift_name=unicode)
+
 def move_reservation(service_user, service_identity, reservation_key, shift_name):
+    # type: (users.User, Optional[unicode], unicode, unicode) -> None
     settings = get_restaurant_settings(service_user, service_identity)
-    bizz_check(shift_name in settings.shifts, "Cannot move reservation into unknown shift '%s'." % shift_name)
+
     def trans():
-        reservation = db.get(reservation_key)
-        bizz_check(reservation and isinstance(reservation, RestaurantReservation), "Reservation not found.")
-        shift = settings.shifts[shift_name]
+        reservation = ndb.Key(urlsafe=reservation_key).get()  # type: RestaurantReservation
+        bizz_check(reservation and isinstance(reservation, RestaurantReservation), 'Reservation not found.')
+        shift = settings.get_shift_by_name(shift_name)
         bizz_check(reservation.date.isoweekday() in shift.days)
-        shift_start = datetime(reservation.date.year, reservation.date.month, reservation.date.day, shift.start / 3600, shift.start % 3600 / 60)
+        shift_start = datetime(reservation.date.year,
+                               reservation.date.month,
+                               reservation.date.day,
+                               shift.start / 3600,
+                               shift.start % 3600 / 60)
         reservation.shift_start = shift_start
         reservation.status = unset_flag(RestaurantReservation.STATUS_SHIFT_REMOVED, reservation.status)
         reservation.put()
         return shift_start
-    shift_start = db.run_in_transaction(trans)
+
+    shift_start = ndb.transaction(trans)
 
     start_time = TimestampTO.fromDatetime(shift_start)
 
@@ -754,13 +743,13 @@ def move_reservation(service_user, service_identity, reservation_key, shift_name
                  shift=serialize_complex_value(start_time, TimestampTO, False))
 
 
-@returns(NoneType)
-@arguments(service_user=users.User, reservation_key=(unicode, db.Key), notified=bool)
 def cancel_reservation(service_user, reservation_key, notified=False):
+    # type: (users.User, unicode, bool) -> None
     def trans():
         reservation = _cancel_reservation(service_user, reservation_key, notified)
         return reservation
-    reservation = db.run_in_transaction(trans)
+
+    reservation = ndb.transaction(trans)
 
     start_time = TimestampTO.fromDatetime(reservation.shift_start)
     reservation_service_user = get_service_user_from_service_identity_user(reservation.service_identity_user)
@@ -769,28 +758,26 @@ def cancel_reservation(service_user, reservation_key, notified=False):
                  shift=serialize_complex_value(start_time, TimestampTO, False))
 
 
-@returns(NoneType)
-@arguments(service_user=users.User, reservation_keys=[unicode])
 def cancel_reservations(service_user, reservation_keys):
-
+    # type: (users.User, List[unicode]) -> None
     def trans(reservation_key):
         reservation = _cancel_reservation(service_user, reservation_key, True)
-        bizz_check(not reservation.user is None, "This is only for reservations made by the app.")
+        bizz_check(reservation.user is not None, "This is only for reservations made by the app.")
         deferred.defer(_send_cancellation_message, reservation_key, _transactional=True)
 
     for reservation_key in reservation_keys:
-        db.run_in_transaction(trans, reservation_key)
+        ndb.transaction(trans, reservation_key)
 
 
 def _send_cancellation_message(reservation_key):
     from solutions.common.bizz.messaging import send_inbox_forwarders_message
 
     try:
-        reservation = RestaurantReservation.get(reservation_key)
+        reservation = ndb.Key(urlsafe=reservation_key).get()  # type: RestaurantReservation
         reservation_service_user = get_service_user_from_service_identity_user(reservation.service_identity_user)
         sln_settings = get_solution_settings(reservation_service_user)
-        bizz_check(not reservation.user is None, "This is only for reservations made by the app.")
-        date = "%s %s" % (_format_date_service_user(reservation_service_user, reservation.date),
+        bizz_check(reservation.user is not None, 'This is only for reservations made by the app.')
+        date = '%s %s' % (_format_date_service_user(reservation_service_user, reservation.date),
                           _format_time_service_user(reservation_service_user, reservation.date))
         resto = sln_settings.name
         message = common_translate(sln_settings.main_language, u'cancellation-message', date=date, resto=resto)
@@ -825,10 +812,11 @@ def _send_cancellation_message(reservation_key):
     except:
         logging.exception("Failed to send cancellation message.")
 
+
 def _cancel_reservation(service_user, reservation_key, notified):
-    reservation = RestaurantReservation.get(reservation_key)
+    reservation = ndb.Key(urlsafe=reservation_key).get()  # type: RestaurantReservation
     reservation_service_user = get_service_user_from_service_identity_user(reservation.service_identity_user)
-    bizz_check(reservation_service_user == service_user, "Reservation not found.")
+    bizz_check(reservation_service_user == service_user, 'Reservation not found.')
     reservation.status = set_flag(RestaurantReservation.STATUS_CANCELED, reservation.status)
     if notified:
         reservation.status = set_flag(RestaurantReservation.STATUS_NOTIFIED, reservation.status)
@@ -837,9 +825,8 @@ def _cancel_reservation(service_user, reservation_key, notified):
     return reservation
 
 
-@returns(tuple)
-@arguments(service_user=users.User, service_identity=unicode, now=datetime)
 def get_shift_by_datetime(service_user, service_identity, now):
+    # type: (users.User, Optional[unicode], datetime) -> Union[Tuple[RestaurantShift, datetime], Tuple[None, None]]
     seconds_from_midnight = now.hour * 3600 + now.minute * 60 + now.second
     weekday = now.isoweekday()
     shift = _get_matching_shift2(service_user, service_identity, seconds_from_midnight, weekday)
@@ -857,13 +844,13 @@ def get_shift_by_datetime(service_user, service_identity, now):
             days_added += 1
             weekday = (weekday + 1) % 7
             for shift in ([x[1] for x in shifts if x[0] == weekday]):
-                return shift, datetime.combine(timedelta(days=days_added) + now.date(), time(shift.start / 3600, shift.start / 60 % 60))
+                return shift, datetime.combine(timedelta(days=days_added) + now.date(),
+                                               time(shift.start / 3600, shift.start / 60 % 60))
     return None, None
 
 
-@returns(tuple)
-@arguments(service_user=users.User, service_identity=unicode, current_shift=Shift, current_start_time=datetime)
 def get_next_shift(service_user, service_identity, current_shift, current_start_time):
+    # type: (users.User, Optional[unicode], RestaurantShift, datetime) -> Tuple[RestaurantShift, datetime]
     current_day = current_start_time.isoweekday()
     shifts = _get_sorted_shifts(service_user, service_identity)
     shifts_length = len(shifts)
@@ -874,20 +861,20 @@ def get_next_shift(service_user, service_identity, current_shift, current_start_
             shift = shifts[next_index][1]
             day = shifts[next_index][0]
             days_added = (day - current_day) if day >= current_day else (day + 7 - current_day)
-            return shift, datetime.combine(timedelta(days=days_added) + current_start_time.date(), time(shift.start / 3600, shift.start / 60 % 60))
+            return shift, datetime.combine(timedelta(days=days_added) + current_start_time.date(),
+                                           time(shift.start / 3600, shift.start / 60 % 60))
     raise ValueError("Unknown shift")  # Actually cannot happen
 
 
-@returns(RestaurantReservationStatisticsTO)
-@arguments(service_user=users.User, service_identity=unicode, date=datetime)
 def get_statistics(service_user, service_identity, date):
+    # type: (users.User, Optional[unicode], datetime) -> RestaurantReservationStatisticsTO
     # Get date without time portion
-    today = datetime(date.year, date.month, date.day);
+    today = datetime(date.year, date.month, date.day)
     tomorrow = today + timedelta(days=1)
     end_of_tomorrow = today + timedelta(days=2)
     date_until = today + timedelta(days=10)  # today, tomorrow, nextweek
     # Get shifts
-    shifts = list()
+    shifts = []
     shift, start_time = get_shift_by_datetime(service_user, service_identity, date)
     if shift:
         shifts.append((shift, start_time))
@@ -925,29 +912,27 @@ def get_statistics(service_user, service_identity, date):
     return result
 
 
-@returns(RestaurantReservation)
-@arguments(service_user=users.User, reservation_key=unicode)
+@ndb.transactional()
 def toggle_reservation_arrived(service_user, reservation_key):
-    def trans():
-        reservation = db.get(reservation_key)
-        reservation_service_user = get_service_user_from_service_identity_user(reservation.service_identity_user)
-        azzert(service_user == reservation_service_user)
+    # type: (users.User, unicode) -> RestaurantReservation
+    reservation = ndb.Key(urlsafe=reservation_key).get()  # type: RestaurantReservation
+    reservation_service_user = get_service_user_from_service_identity_user(reservation.service_identity_user)
+    azzert(service_user == reservation_service_user)
 
-        if reservation.status & RestaurantReservation.STATUS_ARRIVED == RestaurantReservation.STATUS_ARRIVED:
-            reservation.status = reservation.status & ~RestaurantReservation.STATUS_ARRIVED
-        else:
-            reservation.status = reservation.status | RestaurantReservation.STATUS_ARRIVED
+    if reservation.status & RestaurantReservation.STATUS_ARRIVED == RestaurantReservation.STATUS_ARRIVED:
+        reservation.status = reservation.status & ~RestaurantReservation.STATUS_ARRIVED
+    else:
+        reservation.status = reservation.status | RestaurantReservation.STATUS_ARRIVED
 
-        reservation.put();
-        return reservation
-    return db.run_in_transaction(trans)
+    reservation.put()
+    return reservation
 
 
-@returns(RestaurantReservation)
-@arguments(service_user=users.User, reservation_key=unicode)
 def toggle_reservation_cancelled(service_user, reservation_key):
+    # type: (users.User, unicode) -> RestaurantReservation
+
     def trans():
-        reservation = db.get(reservation_key)
+        reservation = ndb.Key(urlsafe=reservation_key).get()  # type: RestaurantReservation
         reservation_service_user = get_service_user_from_service_identity_user(reservation.service_identity_user)
         azzert(service_user == reservation_service_user)
 
@@ -956,9 +941,10 @@ def toggle_reservation_cancelled(service_user, reservation_key):
         else:
             reservation.status = reservation.status | RestaurantReservation.STATUS_CANCELED
 
-        reservation.put();
+        reservation.put()
         return reservation
-    reservation = db.run_in_transaction(trans)
+
+    reservation = ndb.transaction(trans)
     start_time = TimestampTO.fromDatetime(reservation.shift_start)
     send_message(service_user, u"solutions.restaurant.reservations.update",
                  service_identity=reservation.service_identity,
@@ -966,15 +952,15 @@ def toggle_reservation_cancelled(service_user, reservation_key):
     return reservation
 
 
-@returns(unicode)
-@arguments(service_user=users.User, reservation_key=unicode, people=(NoneType, int), comment=unicode, force=bool, new_date=bool, new_epoch=long)
-def edit_reservation(service_user, reservation_key, people=None, comment=None, force=False, new_date=False, new_epoch=0):
+def edit_reservation(service_user, reservation_key, people=None, comment=None, force=False, new_date=False,
+                     new_epoch=0):
+    # type: (users.User, unicode, Optional[int], unicode, bool, bool, long) -> unicode
     azzert(people is not None or comment is not None)
 
     def trans():
         check = True
         date_updated = False
-        reservation = db.get(reservation_key)
+        reservation = ndb.Key(urlsafe=reservation_key).get()  # type: RestaurantReservation
         if force:
             check = False
         elif people is None or people <= reservation.people:
@@ -988,9 +974,10 @@ def edit_reservation(service_user, reservation_key, people=None, comment=None, f
             date = new_epoch
 
         if check:
-            @db.non_transactional()
+            @ndb.non_transactional()
             def get_status_and_shift_start():
-                status, shift_start = availability_and_shift(service_user, reservation.service_identity, None, date, people - reservation.people, force, people)
+                status, shift_start = availability_and_shift(service_user, reservation.service_identity, date,
+                                                             people - reservation.people, force, people)
                 return status, shift_start
 
             status, shift_start = get_status_and_shift_start()
@@ -1008,8 +995,7 @@ def edit_reservation(service_user, reservation_key, people=None, comment=None, f
         reservation.put()
         return STATUS_AVAILABLE, reservation.shift_start, reservation.service_identity
 
-    xg_on = db.create_transaction_options(xg=True)
-    status, shift_start, service_identity = db.run_in_transaction_options(xg_on, trans)
+    status, shift_start, service_identity = ndb.transaction(trans)
     if status == STATUS_AVAILABLE:
         start_time = TimestampTO.fromDatetime(shift_start)
         send_message(service_user, u"solutions.restaurant.reservations.update",
@@ -1019,28 +1005,28 @@ def edit_reservation(service_user, reservation_key, people=None, comment=None, f
     return status
 
 
-@returns(NoneType)
-@arguments(service_user=users.User, reservation_key=unicode, tables=[(int, long)])
 def edit_reservation_tables(service_user, reservation_key, tables):
+    # type: (users.User, unicode, List[long]) -> None
     def trans():
-        reservation = db.get(reservation_key)
+        reservation = ndb.Key(urlsafe=reservation_key).get()  # type: RestaurantReservation
         reservation.tables = tables
         reservation.put()
         return reservation.shift_start, reservation.service_identity
 
-    shift_start, service_identity = db.run_in_transaction(trans)
+    shift_start, service_identity = ndb.transaction(trans)
     start_time = TimestampTO.fromDatetime(shift_start)
     send_message(service_user, u"solutions.restaurant.reservations.update",
                  service_identity=service_identity,
                  shift=serialize_complex_value(start_time, TimestampTO, False))
 
 
-@returns(NoneType)
-@arguments(service_user=users.User, email=unicode, app_id=unicode, message=unicode, reservation_key=unicode)
 def reply_reservation(service_user, email, app_id, message, reservation_key=None):
+    # type: (users.User, unicode, unicode, unicode, object) -> None
     from solutions.common.bizz.messaging import send_inbox_forwarders_message
-
-    reservation = db.run_in_transaction(db.get, reservation_key) if reservation_key else None
+    if reservation_key:
+        reservation = ndb.Key(urlsafe=reservation_key)  # type: RestaurantReservation
+    else:
+        reservation = None
     if reservation and reservation.solution_inbox_message_key:
         sln_settings = get_solution_settings(service_user)
         sim_parent, _ = add_solution_inbox_message(service_user, reservation.solution_inbox_message_key, True, None,
@@ -1076,21 +1062,21 @@ def reply_reservation(service_user, email, app_id, message, reservation_key=None
                        tag=None,
                        service_identity=service_identity)
 
-@returns([Shift])
-@arguments(service_user=users.User, service_identity=unicode, date=datetime)
+
 def _get_shifts_on_date(service_user, service_identity, date):
+    # type: (users.User, Optional[unicode], datetime) -> List[RestaurantShift]
     date_day = date.isoweekday()
     return [shift for day, shift in _get_sorted_shifts(service_user, service_identity) if day == date_day]
 
 
-@returns(list)
-@arguments(service_user=users.User, service_identity=unicode)
 def _get_sorted_shifts(service_user, service_identity):
+    # type: (users.User, Optional[unicode]) -> List[Tuple[int, RestaurantShift]]
     settings = get_restaurant_settings(service_user, service_identity)
-    shifts = list()
+    shifts = []
     for shift in settings.shifts:
         for day in shift.days:
             shifts.append((day, shift))
+
     def shift_cmp(left, right):
         if left[0] < right[0]:
             return -1
@@ -1098,20 +1084,19 @@ def _get_sorted_shifts(service_user, service_identity):
             return 1
         else:
             return cmp(left[1].start, right[1].start)
+
     return sorted(shifts, cmp=shift_cmp)
 
 
-@returns(Shift)
-@arguments(service_user=users.User, service_identity=unicode, date=long)
 def _get_matching_shift(service_user, service_identity, date):
+    # type: (users.User, Optional[unicode], long) -> Optional[RestaurantShift]
     seconds_from_midnight = date % 86400
     weekday = datetime.utcfromtimestamp(date).isoweekday()
     return _get_matching_shift2(service_user, service_identity, seconds_from_midnight, weekday)
 
 
-@returns(Shift)
-@arguments(service_user=users.User, service_identity=unicode, seconds_from_midnight=(int, long), weekday=int)
 def _get_matching_shift2(service_user, service_identity, seconds_from_midnight, weekday):
+    # type: (users.User, Optional[unicode], int, int) -> Optional[RestaurantShift]
     settings = get_restaurant_settings(service_user, service_identity)
     for shift in settings.shifts:
         if weekday in shift.days and shift.start <= seconds_from_midnight < shift.end:
@@ -1119,36 +1104,33 @@ def _get_matching_shift2(service_user, service_identity, seconds_from_midnight, 
     return None
 
 
-@returns(unicode)
-@arguments(service_user=users.User, dt=datetime)
 def _format_date_service_user(service_user, dt):
+    # type: (users.User, datetime) -> unicode
     sln_settings = get_solution_settings(service_user)
     return format_date(dt, format='long', locale=sln_settings.main_language or DEFAULT_LANGUAGE)
 
 
-@returns(unicode)
-@arguments(service_user=users.User, dt=datetime)
 def _format_weekday_service_user(service_user, dt):
+    # type: (users.User, datetime) -> unicode
     sln_settings = get_solution_settings(service_user)
     return format_date(dt, format='EEEE', locale=sln_settings.main_language or DEFAULT_LANGUAGE)
 
 
-@returns(unicode)
-@arguments(service_user=users.User, dt=datetime)
 def _format_time_service_user(service_user, dt):
+    # type: (users.User, datetime) -> unicode
     sln_settings = get_solution_settings(service_user)
     return format_time(dt, format='short', locale=sln_settings.main_language or DEFAULT_LANGUAGE)
 
 
-@returns(NoneType)
-@arguments(service_user=users.User, service_identity=unicode, shifts=[RestaurantShiftTO])
 def save_shifts(service_user, service_identity, shifts):
+    # type: (users.User, Optional[unicode], List[Shift]) -> None
     # Some checks
     for s in shifts:
         if s.start >= s.end:
             raise ShiftConfigurationException("Shift %s has an invalid end time" % s.name)
         if s.max_group_size > s.capacity:
-            raise ShiftConfigurationException("Shift %s has an invalid maximum group size. It is bigger than the capacity." % s.name)
+            raise ShiftConfigurationException(
+                "Shift %s has an invalid maximum group size. It is bigger than the capacity." % s.name)
         for ss in shifts:
             if s == ss:
                 continue
@@ -1158,36 +1140,24 @@ def save_shifts(service_user, service_identity, shifts):
     now_ = now_in_resto_timezone(service_user)
     today = datetime(now_.year, now_.month, now_.day)
 
-    def trans():
-        # Save settings
-        settings = get_restaurant_settings(service_user, service_identity)
-        azzert(settings)
-        settings.shifts = Shifts()
-        for shift in shifts:
-            settings.shifts.add(shift)
-        put_and_invalidate_cache(settings)
-        handle_shift_updates(service_user, service_identity, today, shifts)
-
-    xg_on = db.create_transaction_options(xg=True)
-    db.run_in_transaction_options(xg_on, trans)
+    settings = get_restaurant_settings(service_user, service_identity)
+    settings.shifts = [RestaurantShift(**shift.to_dict()) for shift in shifts]
+    settings.put()
+    handle_shift_updates(service_user, service_identity, today, shifts)
     send_message(service_user, u"solutions.restaurant.reservations.update", service_identity=service_identity)
 
 
 @returns(NoneType)
 @arguments(service_user=users.User, service_identity=unicode, table=TableTO)
 def add_table(service_user, service_identity, table):
-    if not table.capacity > 0:
+    if table.capacity <= 0:
         raise InvalidTableException('The specified table must fit at least 1 person.')
 
-    service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
-    def trans():
-        rt = RestaurantTable(parent=parent_key_unsafe(service_identity_user, SOLUTION_COMMON))
-        rt.name = table.name
-        rt.capacity = table.capacity
-        rt.deleted = False
-        rt.put()
-
-    db.run_in_transaction(trans)
+    new_table = RestaurantTable(parent=RestaurantTable.create_parent_key(service_user, service_identity))
+    new_table.name = table.name
+    new_table.capacity = table.capacity
+    new_table.deleted = False
+    new_table.put()
     send_message(service_user, u"solutions.restaurant.tables.update", service_identity=service_identity)
 
 
@@ -1197,34 +1167,28 @@ def update_table(service_user, service_identity, table):
     if not table.capacity > 0:
         raise InvalidTableException('The specified table must fit at least 1 person.')
 
-    service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
-    def trans():
-        rt = RestaurantTable.get_by_id(table.key, parent_key_unsafe(service_identity_user, SOLUTION_COMMON))
-        rt.name = table.name
-        rt.capacity = table.capacity
-        rt.put()
-
-    db.run_in_transaction(trans)
+    updated_table = RestaurantTable.create_key(table.key, service_user, service_identity).get()  # type RestaurantTable
+    updated_table.name = table.name
+    updated_table.capacity = table.capacity
+    updated_table.put()
     send_message(service_user, u"solutions.restaurant.tables.update", service_identity=service_identity)
+
 
 @returns(tuple)
 @arguments(service_user=users.User, service_identity=unicode, table_id=(int, long), force=bool)
 def delete_table(service_user, service_identity, table_id, force):
-
+    # type: (users.User, Optional[unicode], long, bool) -> Tuple[bool, Optional[List[RestaurantReservation]]]
     if not force:
-        upcoming_planned_reservation = list(get_upcoming_planned_reservations_by_table(service_user, service_identity, table_id, datetime.now()))
+        upcoming_planned_reservation = list(
+            get_upcoming_planned_reservations_by_table(service_user, service_identity, table_id, datetime.now()))
 
         if upcoming_planned_reservation:
             return False, upcoming_planned_reservation
 
     clear_table_id_in_reservations(service_user, service_identity, table_id)
 
-    service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
-    def trans():
-        rt = RestaurantTable.get_by_id(table_id, parent_key_unsafe(service_identity_user, SOLUTION_COMMON))
-        rt.deleted = True
-        rt.put()
-
-    db.run_in_transaction(trans)
+    rt = RestaurantTable.create_key(table_id, service_user, service_identity).get()  # type RestaurantTable
+    rt.deleted = True
+    rt.put()
     send_message(service_user, u"solutions.restaurant.tables.update", service_identity=service_identity)
     return True, None

@@ -24,7 +24,7 @@ import oca_unittest
 from rogerthat.bizz.service import create_service
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.profile import get_user_profile
-from rogerthat.models import ServiceProfile
+from rogerthat.models import ServiceProfile, ServiceIdentity
 from rogerthat.rpc import users
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
@@ -32,8 +32,8 @@ from rogerthat.utils import get_epoch_from_datetime
 from solutions.common.bizz.reservation import availability_and_shift, STATUS_AVAILABLE, STATUS_TOO_MANY_PEOPLE, \
     cancel_reservation, move_reservation, edit_reservation
 from solutions.common.models import SolutionSettings, SolutionMainBranding
-from solutions.common.models.reservation import RestaurantReservation, RestaurantSettings
-from solutions.common.models.reservation.properties import Shifts, Shift
+from solutions.common.reservations.models import RestaurantConfiguration, RestaurantReservation
+from solutions.common.reservations.to import Shift
 from solutions.flex import SOLUTION_FLEX
 
 try:
@@ -46,10 +46,7 @@ class Test(oca_unittest.TestCase):
 
     def _test_reserve_table(self, service_user, service_identity, user_details, date, people, name, phone, comment, force=False):
         # TODO: race conditions?
-        status, shift_start = availability_and_shift(service_user, None, user_details, date, people, force)
-        if status != STATUS_AVAILABLE:
-            return status
-
+        status, shift_start = availability_and_shift(service_user, None, date, people, force)
         date = datetime.datetime.utcfromtimestamp(date)
         rogerthat_user = users.User(user_details[0].email) if user_details else None
         reservation = RestaurantReservation(service_user=service_user,
@@ -57,8 +54,7 @@ class Test(oca_unittest.TestCase):
                                             people=people, comment=comment, shift_start=shift_start,
                                             creation_date=datetime.datetime.now())
         reservation.put()
-        key_ = reservation.key()
-        return unicode(key_), STATUS_AVAILABLE
+        return unicode(reservation.key.urlsafe()), STATUS_AVAILABLE
 
     def test_create_restaurant_identity(self):
         self.set_datastore_hr_probability(1)
@@ -75,10 +71,11 @@ class Test(oca_unittest.TestCase):
                        organization_type=ServiceProfile.ORGANIZATION_TYPE_PROFIT)
 
         solutionSettings = SolutionSettings(key=SolutionSettings.create_key(service_user), name=name,
-                            menu_item_color=None, address=u"lochristi", phone_number=None,
-                            currency=u"EUR", main_language=DEFAULT_LANGUAGE, solution=SOLUTION_FLEX)
+                                            menu_item_color=None, address=u"lochristi", phone_number=None,
+                                            currency=u"EUR", main_language=DEFAULT_LANGUAGE, solution=SOLUTION_FLEX)
 
-        settings = RestaurantSettings(key=RestaurantSettings.create_key(service_user))
+        settings = RestaurantConfiguration(key=RestaurantConfiguration.create_key(service_user,
+                                                                                  service_identity=ServiceIdentity.DEFAULT))
         settings.language = DEFAULT_LANGUAGE
 
         stream = StringIO()
@@ -89,7 +86,6 @@ class Test(oca_unittest.TestCase):
         main_branding.blob = db.Blob(stream.read())
         main_branding.branding_key = None
 
-        settings.shifts = Shifts()
 
         shift = Shift()
         shift.name = u'shift-lunch'
@@ -101,7 +97,7 @@ class Test(oca_unittest.TestCase):
         shift.end = 14 * 60 * 60
         shift.days = [1, 2, 3, 4, 5, 6, 7]
         shift.comment = u'shift-comment0'
-        settings.shifts.add(shift)
+        settings.shifts.append(shift)
 
         shift = Shift()
         shift.name = u'shift-dinner'
@@ -113,7 +109,7 @@ class Test(oca_unittest.TestCase):
         shift.end = 21 * 60 * 60
         shift.days = [1, 2, 3, 4, 5, 6, 7]
         shift.comment = u'shift-comment1'
-        settings.shifts.add(shift)
+        settings.shifts.append(shift)
 
         put_and_invalidate_cache(solutionSettings, settings, main_branding)
 
