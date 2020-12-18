@@ -18,31 +18,31 @@
 import base64
 import datetime
 import hashlib
+from httplib import HTTPException
 import json
 import logging
 import os
 import re
-import types
-from httplib import HTTPException
 from types import NoneType
+import types
 
-import facebook
 from google.appengine.api import images, urlfetch, search
 from google.appengine.api.urlfetch_errors import DeadlineExceededError
 from google.appengine.ext import db, deferred
 
+import facebook
 from mcfw.cache import invalidate_cache
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from mcfw.utils import chunks
 from rogerthat.bizz.communities.communities import get_community
-from rogerthat.bizz.friends import INVITE_ID, INVITE_FACEBOOK_FRIEND, invite, breakFriendShip, makeFriends, userCode
+from rogerthat.bizz.friends import INVITE_ID, INVITE_FACEBOOK_FRIEND, invite, makeFriends, userCode,\
+    breakFriendShip
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.maps.services import cleanup_map_index
 from rogerthat.bizz.messaging import sendMessage
 from rogerthat.bizz.session import drop_sessions_of_user
 from rogerthat.bizz.system import get_identity, identity_update_response_handler
-from rogerthat.bizz.user import reactivate_user_profile
 from rogerthat.capi.system import identityUpdate
 from rogerthat.consts import MC_DASHBOARD
 from rogerthat.dal import parent_key, put_and_invalidate_cache, app
@@ -50,14 +50,12 @@ from rogerthat.dal.app import get_app_name_by_id, get_app_by_user, get_app_by_id
 from rogerthat.dal.friend import get_friends_map
 from rogerthat.dal.profile import get_avatar_by_id, get_existing_profiles_via_facebook_ids, \
     get_existing_user_profiles, get_user_profile, get_profile_infos, get_profile_info, get_service_profile, \
-    get_user_profiles, get_service_or_user_profile, get_deactivated_user_profile
-from rogerthat.dal.service import get_default_service_identity_not_cached, get_all_service_friend_keys_query, \
-    get_service_identities_query, get_all_archived_service_friend_keys_query
+    get_user_profiles, get_service_or_user_profile
+from rogerthat.dal.service import get_default_service_identity_not_cached, \
+    get_service_identities_query, get_all_service_friend_keys_query
 from rogerthat.models import FacebookUserProfile, Avatar, ProfilePointer, ShortURL, FacebookProfilePointer, \
     FacebookDiscoveryInvite, Message, ServiceProfile, UserProfile, ServiceIdentity, ProfileInfo, \
-    App, \
-    Profile, SearchConfig, FriendServiceIdentityConnectionArchive, \
-    UserData, UserDataArchive, ActivationLog, ProfileHashIndex
+    App, Profile, SearchConfig, ProfileHashIndex
 from rogerthat.rpc import users
 from rogerthat.rpc.models import Mobile
 from rogerthat.rpc.rpc import logError, SKIP_ACCOUNTS
@@ -74,6 +72,7 @@ from rogerthat.utils.app import get_app_id_from_app_user, create_app_user, get_h
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.service import create_service_identity_user, remove_slash_default
 from rogerthat.utils.transactions import on_trans_committed, run_in_transaction
+
 
 try:
     from cStringIO import StringIO
@@ -653,24 +652,18 @@ def put_loyalty_user_profile(email, app_id, user_code, short_url_id, language, c
         user_profile = get_user_profile(app_user, cached=False)
         is_new_profile = False
         if not user_profile:
-            deactivated_user_profile = get_deactivated_user_profile(app_user)
-            if deactivated_user_profile:
-                deferred.defer(reactivate_user_profile, deactivated_user_profile, app_user, community_id=community_id, _transactional=True)
-                ActivationLog(timestamp=now(), email=app_user.email(), mobile=None,
-                              description="Reactivate user account by registering a paper loyalty card").put()
-            else:
-                is_new_profile = True
-                avatar, image = _create_new_avatar(app_user)
+            is_new_profile = True
+            avatar, image = _create_new_avatar(app_user)
 
-                user_profile = UserProfile(parent=parent_key(app_user), key_name=app_user.email())
-                user_profile.name = name
-                user_profile.first_name = None
-                user_profile.last_name = None
-                user_profile.language = language
-                user_profile.avatarId = avatar.key().id()
-                user_profile.app_id = app_id
-                user_profile.community_id = community_id
-                _calculateAndSetAvatarHash(user_profile, image)
+            user_profile = UserProfile(parent=parent_key(app_user), key_name=app_user.email())
+            user_profile.name = name
+            user_profile.first_name = None
+            user_profile.last_name = None
+            user_profile.language = language
+            user_profile.avatarId = avatar.key().id()
+            user_profile.app_id = app_id
+            user_profile.community_id = community_id
+            _calculateAndSetAvatarHash(user_profile, image)
 
         pp = ProfilePointer(key=db.Key.from_path(ProfilePointer.kind(), user_code))
         pp.user = app_user
@@ -1008,44 +1001,6 @@ def set_profile_data(service_user, app_user, data_string):
     db.run_in_transaction_options(xg_on, trans, data_object)
 
 
-def _archive_friend_connection(fsic_key):
-    app_user = users.User(fsic_key.parent().name())
-    service_identity_user = users.User(fsic_key.name())
-
-    def trans():
-        to_put = list()
-        user_data_key = UserData.createKey(app_user, service_identity_user)
-        fsic, user_data = db.get([fsic_key, user_data_key])
-        if fsic:
-            archived_fsic = fsic.archive(FriendServiceIdentityConnectionArchive)
-            to_put.append(archived_fsic)
-        if user_data:
-            archived_user_data = user_data.archive(UserDataArchive)
-            to_put.append(archived_user_data)
-        if to_put:
-            db.put(to_put)
-
-    db.run_in_transaction(trans)
-    breakFriendShip(service_identity_user, app_user)
-
-
-def _unarchive_friend_connection(fsic_archive_key):
-    app_user = users.User(fsic_archive_key.parent().name())
-    service_identity_user = users.User(fsic_archive_key.name())
-
-    user_data_key = UserDataArchive.createKey(app_user, service_identity_user)
-    user_data_archive = db.get(user_data_key)
-
-    if user_data_archive:
-        user_data_data = user_data_archive.data
-        db.delete(user_data_archive)
-    else:
-        user_data_data = None
-
-    deferred.defer(makeFriends, service_identity_user, app_user, app_user, None, None, notify_invitee=False,
-                   notify_invitor=False, user_data=user_data_data, _countdown=2)
-
-
 @returns()
 @arguments(service_user=users.User)
 def set_service_disabled(service_user):
@@ -1093,17 +1048,23 @@ def set_service_disabled(service_user):
 
 @returns()
 @arguments(service_user=users.User)
-def cleanup_friend_connections(service_user):
-    run_job(get_all_service_friend_keys_query, [service_user], _archive_friend_connection, [])
-
-
-@returns()
-@arguments(service_user=users.User)
 def cleanup_sessions(service_user):
     for user_profile_key in UserProfile.all(keys_only=True).filter('owningServiceEmails', service_user.email()):
         drop_sessions_of_user(users.User(user_profile_key.name()))
     drop_sessions_of_user(service_user)
     send_message(service_user, 'rogerthat.system.logout')
+
+
+@returns()
+@arguments(service_user=users.User)
+def cleanup_friend_connections(service_user):
+    run_job(get_all_service_friend_keys_query, [service_user], _cleanup_friend_connection, [])
+
+
+def _cleanup_friend_connection(fsic_key):
+    app_user = users.User(fsic_key.parent().name())
+    service_identity_user = users.User(fsic_key.name())
+    breakFriendShip(service_identity_user, app_user)
 
 
 @returns()
@@ -1116,5 +1077,3 @@ def set_service_enabled(service_user):
     service_profile.expiredAt = 0
     service_profile.enabled = True
     service_profile.put()
-
-    run_job(get_all_archived_service_friend_keys_query, [service_user], _unarchive_friend_connection, [])

@@ -41,7 +41,7 @@ from mcfw.serialization import deserializer, ds_model, register, s_model, s_long
 from mcfw.utils import Enum
 from rogerthat.consts import IOS_APPSTORE_WEB_URI_FORMAT, \
     ANDROID_MARKET_ANDROID_URI_FORMAT, ANDROID_MARKET_WEB_URI_FORMAT, ANDROID_BETA_MARKET_WEB_URI_FORMAT
-from rogerthat.dal import parent_key
+
 from rogerthat.models.common import NdbModel
 from rogerthat.models.properties import CompressedIntegerList
 from rogerthat.models.properties.app import AutoConnectedServicesProperty, AutoConnectedService
@@ -65,33 +65,6 @@ try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
-
-
-class ArchivedModel(object):
-
-    def archive(self, clazz):
-        key = db.Key.from_path(clazz.kind(), self.key().id_or_name(), parent=self.parent_key())
-        am = clazz(key=key)
-        for propname, propobject in self.properties().iteritems():
-            if propname == "_class" or get_meta(propobject, 'skip_on_archive', False):
-                continue
-            value = getattr(self, propname)
-            setattr(am, propname, value)
-        return am
-
-    @staticmethod
-    def constructArchivedModel(newClassName, originalClass):
-        azzert(issubclass(originalClass, db.Model))
-
-        properties = dict(originalClass.properties())
-        if '_class' in properties:
-            del properties['_class']
-        NewClass = type(newClassName, (db.Model, ArchivedModel), properties)
-        return NewClass
-
-    @staticmethod
-    def skip_on_archive(prop):
-        add_meta(prop, skip_on_archive=True)
 
 
 class AppServiceFilter(Enum):
@@ -319,10 +292,6 @@ class AppTranslations(db.Model):
         return langdict[key] % kwargs
 
 
-class AuthorizedUser(db.Model):
-    user = db.UserProperty()
-
-
 class UserLocation(db.Model):
     members = db.ListProperty(users.User)
     geoPoint = db.GeoPtProperty(indexed=False)
@@ -474,16 +443,12 @@ class Image(ndb.Model):
         return None
 
 
-class Avatar(db.Model, ArchivedModel):
+class Avatar(db.Model):
     user = db.UserProperty()
     picture = db.BlobProperty()
 
 
-class AvatarArchive(Avatar):
-    pass
-
-
-class FriendMap(db.Model, ArchivedModel):
+class FriendMap(db.Model):
     shareContacts = db.BooleanProperty(default=True)
     friends = db.ListProperty(users.User)
     friendDetails = FriendDetailsProperty()
@@ -508,11 +473,7 @@ class FriendMap(db.Model, ArchivedModel):
         return cls(key=cls.create_key(app_user), generation=0, friends=list(), friendDetails=FriendDetails())
 
 
-class FriendMapArchive(FriendMap):
-    pass
-
-
-class UserData(db.Model, ArchivedModel):
+class UserData(db.Model):
     data = db.TextProperty()  # deprecated, lazily migrated to userData when putting user_data
     userData = KeyValueProperty()
 
@@ -531,11 +492,7 @@ class UserData(db.Model, ArchivedModel):
         return db.Key.from_path(cls.kind(), service_identity_user.email(), parent=parent_key(app_user))
 
 
-class UserDataArchive(UserData):
-    pass
-
-
-class FriendServiceIdentityConnection(db.Model, ArchivedModel):
+class FriendServiceIdentityConnection(db.Model):
     friend_name = db.StringProperty()  # duplicate info - for performance + listing all users
     friend_avatarId = db.IntegerProperty(indexed=False)  # duplicate info - for performance
     service_identity_email = db.StringProperty()  # Needed to find all humans connected to a svc
@@ -581,11 +538,8 @@ class FriendServiceIdentityConnection(db.Model, ArchivedModel):
 
     @classmethod
     def list_by_app_user(cls, app_user, keys_only=False):
+        from rogerthat.dal import parent_key
         return cls.all(keys_only=keys_only).ancestor(parent_key(app_user))
-
-
-FriendServiceIdentityConnectionArchive = ArchivedModel.constructArchivedModel("FriendServiceIdentityConnectionArchive",
-                                                                              FriendServiceIdentityConnection)
 
 
 class FriendInvitationHistory(db.Model):
@@ -666,6 +620,7 @@ class Profile(BaseProfile, polymodel.PolyModel):
 
     @classmethod
     def createKey(cls, user):
+        from rogerthat.dal import parent_key
         return db.Key.from_path(cls.kind(), user.email(), parent=parent_key(user))
 
     @property
@@ -847,7 +802,7 @@ class NdbUserProfile(NdbProfile, ProfileInfo):
         return cls.query(cls.community_id == community_id)
 
 
-class UserProfile(Profile, BaseUserProfile, ArchivedModel):
+class UserProfile(Profile, BaseUserProfile):
     name = db.StringProperty(indexed=False)
     first_name = db.StringProperty(indexed=False)
     last_name = db.StringProperty(indexed=False)
@@ -873,7 +828,6 @@ class UserProfile(Profile, BaseUserProfile, ArchivedModel):
 
     consent_push_notifications_shown = db.BooleanProperty(indexed=True, default=False)
     home_screen_id = db.StringProperty(default=u'default')
-    ArchivedModel.skip_on_archive(service_roles)
 
     @classmethod
     def list_by_birth_day(cls, timestamp):
@@ -899,9 +853,6 @@ class UserProfile(Profile, BaseUserProfile, ArchivedModel):
     @classmethod
     def list_by_community(cls, community_id, keys_only=False):
         return cls.all(keys_only=keys_only).filter('community_id', community_id)
-
-
-UserProfileArchive = ArchivedModel.constructArchivedModel("UserProfileArchive", UserProfile)
 
 
 class UserAddressType(Enum):
@@ -1029,12 +980,9 @@ class NdbFacebookUserProfile(NdbUserProfile):
         return ['Profile', 'UserProfile', 'FacebookUserProfile']
 
 
-class FacebookUserProfile(UserProfile, ArchivedModel):
+class FacebookUserProfile(UserProfile):
     profile_url = db.StringProperty(False)
     access_token = db.StringProperty(False)
-
-
-FacebookUserProfileArchive = ArchivedModel.constructArchivedModel("FacebookUserProfileArchive", FacebookUserProfile)
 
 
 class BaseServiceProfile(object):
@@ -1795,7 +1743,7 @@ class MyDigiPassState(db.Model):
         return db.Key.from_path(cls.kind(), app_user.email(), parent=parent_key(app_user))
 
 
-class MyDigiPassProfilePointer(db.Model, ArchivedModel):
+class MyDigiPassProfilePointer(db.Model):
     user = db.UserProperty()
     access_token = db.StringProperty(indexed=False)
 
@@ -1854,7 +1802,7 @@ class OAuthState(NdbModel):
         return cls.query(cls.creation_time < date)
 
 
-class FacebookProfilePointer(db.Model, ArchivedModel):
+class FacebookProfilePointer(db.Model):
     user = db.UserProperty()
 
     @property
@@ -1865,10 +1813,6 @@ class FacebookProfilePointer(db.Model, ArchivedModel):
     def profile(self):
         from rogerthat.dal import parent_key
         return Profile.get_by_key_name(self.user.email(), parent_key(self.user))
-
-
-class FacebookProfilePointerArchive(FacebookProfilePointer):
-    pass
 
 
 class FacebookDiscoveryInvite(db.Model):
@@ -3233,7 +3177,7 @@ class JSEmbedding(db.Model):
         return self.key().name()
 
 
-class Group(db.Model, ArchivedModel):
+class Group(db.Model):
     name = db.StringProperty(indexed=False)
     avatar = db.BlobProperty(indexed=False)
     avatar_hash = db.StringProperty(indexed=True)

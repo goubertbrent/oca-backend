@@ -19,7 +19,6 @@ import logging
 from types import NoneType
 
 from google.appengine.ext import db, ndb
-from typing import Union
 
 from mcfw.cache import cached, get_from_request_cache, add_to_request_cache
 from mcfw.consts import MISSING
@@ -30,10 +29,9 @@ from rogerthat.dal import parent_key
 from rogerthat.dal.service import get_service_identity, get_default_service_identity, get_service_identity_not_cached, \
     get_default_service_identity_not_cached
 from rogerthat.models import ProfileInfo, Profile, Avatar, FacebookProfilePointer, SearchConfig, \
-    SearchConfigLocation, UserProfile, ServiceProfile, ServiceIdentity, UserProfileArchive, \
-    FacebookUserProfileArchive, App, NdbProfile, NdbServiceProfile, NdbUserProfile
+    SearchConfigLocation, UserProfile, ServiceProfile, ServiceIdentity, App, NdbProfile, NdbServiceProfile, NdbUserProfile
 from rogerthat.rpc import users
-from rogerthat.utils import get_python_stack_trace, first
+from rogerthat.utils import get_python_stack_trace
 from rogerthat.utils.app import get_app_id_from_app_user
 from rogerthat.utils.service import add_slash_default
 
@@ -116,19 +114,6 @@ def get_service_or_user_profile(user, cached=True):
         return _get_profile(user)
     else:
         return _get_db_profile_not_cached(user)
-
-
-@returns((UserProfileArchive, FacebookUserProfileArchive))
-@arguments(app_user=users.User)
-def get_deactivated_user_profile(app_user):
-    return first(lambda x: x is not None, db.get(get_deactivated_user_profile_keys(app_user)))
-
-
-@returns([db.Key])
-@arguments(app_user=users.User)
-def get_deactivated_user_profile_keys(app_user):
-    return [db.Key.from_path(UserProfileArchive.kind(), app_user.email(), parent=parent_key(app_user)),
-            db.Key.from_path(FacebookUserProfileArchive.kind(), app_user.email(), parent=parent_key(app_user))]
 
 
 @returns((NdbProfile, Profile))

@@ -41,7 +41,7 @@ from rogerthat.bizz.registration import register_mobile, get_device_names_of_my_
     get_communities_by_app_id
 from rogerthat.dal import parent_key
 from rogerthat.dal.app import get_app_by_id, get_app_settings
-from rogerthat.dal.profile import get_user_profile, get_deactivated_user_profile, get_service_or_user_profile, \
+from rogerthat.dal.profile import get_user_profile, get_service_or_user_profile, \
     get_service_profile
 from rogerthat.dal.registration import get_last_but_one_registration
 from rogerthat.dal.roles import get_service_admins
@@ -239,8 +239,7 @@ class InitiateRegistrationViaEmailVerificationHandler(webapp.RequestHandler):
                 if profile:
                     name = profile.name
                 else:
-                    deactivated_profile = get_deactivated_user_profile(app_user)
-                    name = deactivated_profile.name if deactivated_profile else None
+                    name =  None
                 if not registration:
                     registration = Registration(parent=parent_key(app_user), key_name=registration_id)
                 registration.timestamp = registration_time

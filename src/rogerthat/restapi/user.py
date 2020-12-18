@@ -40,8 +40,7 @@ from rogerthat.bizz.user import calculate_secure_url_digest, update_user_profile
 from rogerthat.consts import SESSION_TIMEOUT, DEBUG
 from rogerthat.dal import app
 from rogerthat.dal.mobile import get_mobile_by_account
-from rogerthat.dal.profile import get_profile_info, get_service_or_user_profile, get_deactivated_user_profile, \
-    get_user_profile
+from rogerthat.dal.profile import get_profile_info, get_service_or_user_profile, get_user_profile
 from rogerthat.exceptions import ServiceExpiredException
 from rogerthat.models import ActivationLog, App, CurrentlyForwardingLogs, UserContext, UserProfileInfo, \
     UserAddressType, UserContextScope
@@ -101,10 +100,6 @@ def signup(name, email, cont):
     user = users.User(app_user_email)
     profile = get_service_or_user_profile(user)
     if profile and profile.passwordHash:
-        return SIGNUP_ACCOUNT_EXISTS
-
-    deactivated_profile = get_deactivated_user_profile(user)
-    if deactivated_profile and deactivated_profile.passwordHash:
         return SIGNUP_ACCOUNT_EXISTS
 
     if not rate_signup_reset_password(user, os.environ.get('HTTP_X_FORWARDED_FOR', None)):
@@ -197,14 +192,7 @@ def login(email, password, remember):
 
     profile = get_service_or_user_profile(user)
     if not profile:
-        deactivated_profile = get_deactivated_user_profile(user)
-
-        if deactivated_profile:
-            ActivationLog(timestamp=now(), email=user.email(), mobile=None,
-                          description="Login web with deactivated user").put()
-            return LOGIN_ACCOUNT_DEACTIVATED
-        else:
-            return LOGIN_FAIL
+        return LOGIN_FAIL
 
     if not profile.passwordHash:
         return LOGIN_FAIL_NO_PASSWORD

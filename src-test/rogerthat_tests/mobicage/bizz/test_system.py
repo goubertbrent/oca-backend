@@ -16,7 +16,7 @@
 # @@license_version:1.7@@
 
 from rogerthat.bizz.system import unregister_mobile
-from rogerthat.bizz.user import archiveUserDataAfterDisconnect
+from rogerthat.bizz.user import delete_user_data
 from rogerthat.dal.friend import get_friends_map
 from rogerthat.dal.profile import get_user_profile
 from rogerthat.rpc import users
@@ -31,6 +31,5 @@ class Test(mc_unittest.TestCase):
     def test_unregister_deactivated_account(self):
         user = users.get_current_user()
         mobile = users.get_current_mobile()
-        # deactivate account
-        archiveUserDataAfterDisconnect(user, get_friends_map(user), get_user_profile(user), False)
+        delete_user_data(user, get_friends_map(user), get_user_profile(user))
         unregister_mobile(user, mobile)

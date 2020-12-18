@@ -45,7 +45,7 @@ from rogerthat.dal.friend import get_friends_map, get_friends_friends_maps, get_
 from rogerthat.dal.location import get_user_location
 from rogerthat.dal.mobile import get_mobile_key_by_account
 from rogerthat.dal.profile import get_profile_info, get_user_profile, is_service_identity_user, get_service_profile, \
-    get_profile_infos, are_service_identity_users, get_profile_key, get_deactivated_user_profile_keys
+    get_profile_infos, are_service_identity_users, get_profile_key
 from rogerthat.dal.roles import list_service_roles_by_type
 from rogerthat.dal.service import get_friend_serviceidentity_connection, get_service_identity
 from rogerthat.models import ProfileInfo, ServiceProfile, UserData, FriendServiceIdentityConnection, ServiceRole, \
@@ -1262,9 +1262,8 @@ def get_user_and_qr_code_url(code):
 @arguments(service_identity_user=users.User, app_user=users.User)
 def get_service_friend_status(service_identity_user, app_user):
     human_user, app_id = get_app_user_tuple(app_user)
-    models = db.get([FriendServiceIdentityConnection.createKey(app_user, service_identity_user),
-                     UserProfile.createKey(app_user)] + get_deactivated_user_profile_keys(app_user))
-    fsic, friend_profile = models[:2]
+    fsic, friend_profile = db.get([FriendServiceIdentityConnection.createKey(app_user, service_identity_user),
+                                   UserProfile.createKey(app_user)])
     app = get_app_by_id(app_id)
 
     is_friend = fsic is not None
@@ -1279,7 +1278,7 @@ def get_service_friend_status(service_identity_user, app_user):
     result.email = human_user.email()
     result.is_friend = is_friend
     result.last_heartbeat = last_heartbeat
-    result.deactivated = not friend_profile and any(models[3:])
+    result.deactivated = False
     if friend_profile:
         result.avatar = friend_profile.avatarUrl
         result.language = friend_profile.language

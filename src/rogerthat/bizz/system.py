@@ -46,7 +46,7 @@ from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.mobile import get_mobile_by_id, get_mobile_by_key, get_user_active_mobiles_count, \
     get_mobiles_by_ios_push_id, get_mobile_settings_cached
 from rogerthat.dal.profile import get_avatar_by_id, get_user_profile_key, get_user_profile, \
-    get_deactivated_user_profile, get_service_profile
+    get_service_profile
 from rogerthat.models import UserProfile, Avatar, CurrentlyForwardingLogs, Installation, InstallationLog, \
     UserProfileInfo, UserProfileInfoAddress, UserProfileInfoPhoneNumber, UserAddressType
 from rogerthat.models.properties.profiles import MobileDetails
@@ -370,9 +370,6 @@ def mark_mobile_for_delete(user, mobile_key):
     def trans():
         mobile, profile = db.get((mobile_key, get_user_profile_key(user)))
         _mark_mobile_for_delete(mobile)
-        if not profile:
-            logging.debug("No UserProfile found for user %s. Trying to get archived UserProfile...", user)
-            profile = get_deactivated_user_profile(user)
         if profile:
             if not profile.mobiles:
                 profile.mobiles = MobileDetails()

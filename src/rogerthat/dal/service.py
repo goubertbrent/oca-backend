@@ -29,7 +29,7 @@ from mcfw.rpc import arguments, returns
 from rogerthat.dal import parent_key, generator
 from rogerthat.models import APIKey, SIKKey, FriendServiceIdentityConnection, ServiceInteractionDef, MFRSIKey, \
     ServiceMenuDef, ServiceIdentity, QRTemplate, ServiceIdentityStatistic, ServiceProfile, \
-    FriendServiceIdentityConnectionArchive, NdbServiceMenuDef
+    NdbServiceMenuDef
 from rogerthat.rpc import users, rpc
 from rogerthat.rpc.models import ServiceLog, ServiceAPICallback, NdbServiceLog
 from rogerthat.utils import now
@@ -211,17 +211,6 @@ def get_all_service_friend_keys_query(service_user):
                       " AND service_identity_email < :to_service_identity_email")
     qry.bind(from_service_identity_email=email, to_service_identity_email=email + u"\ufffd")
     return qry
-
-
-@returns(db.Query)
-@arguments(service_user=users.User)
-def get_all_archived_service_friend_keys_query(service_user):
-    """Returns a query that results in all FriendServiceIdentityConnectionArchive of a service and all its identities.
-    """
-    email = get_service_user_from_service_identity_user(service_user).email() + '/'
-    return FriendServiceIdentityConnectionArchive.all(keys_only=True) \
-        .filter('service_identity_email >=', email) \
-        .filter('service_identity_email <', email + u"\ufffd")
 
 
 @returns(db.GqlQuery)

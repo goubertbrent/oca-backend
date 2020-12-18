@@ -25,7 +25,6 @@ from random import choice
 
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
-from typing import List
 
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
@@ -41,7 +40,7 @@ from rogerthat.bizz.profile import create_user_profile
 from rogerthat.bizz.roles import grant_service_roles
 from rogerthat.bizz.service.mfr import start_local_flow
 from rogerthat.bizz.system import update_settings_response_handler, unregister_mobile
-from rogerthat.bizz.user import reactivate_user_profile, archiveUserDataAfterDisconnect
+from rogerthat.bizz.user import delete_user_data
 from rogerthat.capi.system import updateSettings
 from rogerthat.consts import MC_DASHBOARD, DEBUG, FAST_QUEUE
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_ndb_key
@@ -49,11 +48,11 @@ from rogerthat.dal.app import get_app_by_id, get_app_settings
 from rogerthat.dal.friend import get_friends_map_key_by_user
 from rogerthat.dal.mobile import get_mobile_by_account, get_user_active_mobiles, \
     get_mobile_settings_cached
-from rogerthat.dal.profile import get_user_profile_key, get_user_profile, get_deactivated_user_profile, \
+from rogerthat.dal.profile import get_user_profile_key, get_user_profile, \
     get_service_profile, get_profile_key, get_profiles
 from rogerthat.dal.registration import get_registration_by_mobile
 from rogerthat.dal.service import get_service_identity
-from rogerthat.models import InstallationLog, UserInteraction, ProfilePointer, ActivationLog, App, ServiceIdentity, \
+from rogerthat.models import InstallationLog, UserInteraction, ProfilePointer, App, ServiceIdentity, \
     InstallationStatus, Installation, UserConsentHistory, UserData, FacebookUserProfile
 from rogerthat.models.properties.profiles import MobileDetails
 from rogerthat.rpc import users
@@ -170,50 +169,37 @@ def register_mobile(human_user, name=None, first_name=None, last_name=None, app_
     owncloud_password = unicode(uuid.uuid4()) if app.owncloud_base_uri else None
 
     # Create profile for user if needed
-    deactivated_user_profile = get_deactivated_user_profile(app_user)
-    if deactivated_user_profile:
-        if deactivated_user_profile.birthdate is not None and deactivated_user_profile.gender is not None:
+    user_profile = get_user_profile(app_user)
+    if not user_profile:
+        create_user_profile(app_user, name or human_user.email()[:40], language, ysaaa, owncloud_password, tos_version=tos_version,
+                            consent_push_notifications_shown=consent_push_notifications_shown, first_name=first_name, last_name=last_name,
+                            community_id=community_id)
+        if owncloud_password:
+            create_owncloud_account(
+                app_user, app.owncloud_base_uri, app.owncloud_admin_username, app.owncloud_admin_password, owncloud_password)
+    else:
+        should_put = False
+        if isinstance(user_profile, FacebookUserProfile) or user_profile.birthdate is not None and user_profile.gender is not None:
             age_and_gender_set = True
-        if owncloud_password and not deactivated_user_profile.owncloud_password:
+        if user_profile.isCreatedForService:
+            user_profile.isCreatedForService = False
+            should_put = True
+        if owncloud_password and not user_profile.owncloud_password:
+            user_profile.owncloud_password = owncloud_password
+            should_put = True
             create_owncloud_account(
                 app_user, app.owncloud_base_uri, app.owncloud_admin_username, app.owncloud_admin_password, owncloud_password)
 
-        reactivate_user_profile(deactivated_user_profile, app_user, owncloud_password, tos_version, consent_push_notifications_shown, community_id)
-        ActivationLog(timestamp=now(), email=app_user.email(), mobile=mobile,
-                      description="Reactivate user account by registering a mobile").put()
+        if tos_version:
+            user_profile.tos_version = tos_version
+            should_put = True
 
-    else:
-        user_profile = get_user_profile(app_user)
-        if not user_profile:
-            create_user_profile(app_user, name or human_user.email()[:40], language, ysaaa, owncloud_password, tos_version=tos_version,
-                                consent_push_notifications_shown=consent_push_notifications_shown, first_name=first_name, last_name=last_name,
-                                community_id=community_id)
-            if owncloud_password:
-                create_owncloud_account(
-                    app_user, app.owncloud_base_uri, app.owncloud_admin_username, app.owncloud_admin_password, owncloud_password)
-        else:
-            should_put = False
-            if isinstance(user_profile, FacebookUserProfile) or user_profile.birthdate is not None and user_profile.gender is not None:
-                age_and_gender_set = True
-            if user_profile.isCreatedForService:
-                user_profile.isCreatedForService = False
-                should_put = True
-            if owncloud_password and not user_profile.owncloud_password:
-                user_profile.owncloud_password = owncloud_password
-                should_put = True
-                create_owncloud_account(
-                    app_user, app.owncloud_base_uri, app.owncloud_admin_username, app.owncloud_admin_password, owncloud_password)
+        if not user_profile.community_id or community_id != user_profile.community_id:
+            user_profile.community_id = community_id
+            should_put = True
 
-            if tos_version:
-                user_profile.tos_version = tos_version
-                should_put = True
-
-            if not user_profile.community_id or community_id != user_profile.community_id:
-                user_profile.community_id = community_id
-                should_put = True
-
-            if should_put:
-                user_profile.put()
+        if should_put:
+            user_profile.put()
 
     return account, mobile, age_and_gender_set
 
@@ -537,7 +523,7 @@ def migrate_anonymous_account(anonymous_account, new_app_user):
                 makeFriends(new_app_user, friend_user, friend_user, None, notify_invitee=False, notify_invitor=False,
                             origin=ORIGIN_USER_INVITE, user_data=user_data_str)
 
-    deferred.defer(archiveUserDataAfterDisconnect, anonymous_user, anonymous_friend_map, anonymous_user_profile, False)
+    deferred.defer(delete_user_data, anonymous_user, anonymous_friend_map, anonymous_user_profile)
 
 
 def _finishup_mobile_registration_step2(mobile_key, invitor_code, invitor_secret):

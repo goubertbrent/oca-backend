@@ -75,7 +75,6 @@ from solutions.common.models import SolutionBrandingSettings
 from solutions.common.models.loyalty import SolutionLoyaltySlide, SolutionLoyaltySettings, \
     SolutionLoyaltyVisitRevenueDiscount, SolutionUserLoyaltySettings, SolutionLoyaltyScan, SolutionLoyaltyVisitLottery, \
     SolutionLoyaltyLottery, SolutionLoyaltyLotteryStatistics, SolutionLoyaltyVisitStamps, \
-    SolutionLoyaltyVisitRevenueDiscountArchive, SolutionLoyaltyVisitLotteryArchive, SolutionLoyaltyVisitStampsArchive, \
     SolutionLoyaltyExport, SolutionLoyaltyIdentitySettings, SolutionCityWideLotteryVisit, \
     SolutionCityWideLotteryStatistics, CustomLoyaltyCard, CityPostalCodes
 from solutions.common.models.news import NewsCoupon
@@ -1136,11 +1135,9 @@ def delete_visit(service_user, key):
         human_user, app_id = get_app_user_tuple(visit.app_user)
 
         if visit.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_REVENUE_DISCOUNT:
-            visit_archive = visit.archive(SolutionLoyaltyVisitRevenueDiscountArchive)
+            pass
 
         elif visit.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_LOTTERY:
-            visit_archive = visit.archive(SolutionLoyaltyVisitLotteryArchive)
-
             slls = SolutionLoyaltyLotteryStatistics.get_by_user(service_user, visit.service_identity)
             if slls:
                 if visit.app_user in slls.app_users:
@@ -1152,7 +1149,7 @@ def delete_visit(service_user, key):
                     slls.put()
 
         elif visit.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_STAMPS:
-            visit_archive = visit.archive(SolutionLoyaltyVisitStampsArchive)
+            pass
 
         else:
             raise BusinessException("error-occured-unknown")
@@ -1165,7 +1162,6 @@ def delete_visit(service_user, key):
                        visit.app_user, visit.timestamp, _countdown=5, _transactional=True)
 
         send_message(service_user, u"solutions.common.loyalty.points.update", visit.service_identity)
-        visit_archive.put()
         visit.delete()
 
     xg_on = db.create_transaction_options(xg=True)

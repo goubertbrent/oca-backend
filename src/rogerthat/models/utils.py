@@ -33,7 +33,7 @@ except ImportError:
 
 @returns(db.Property)
 def add_meta(prop, **kwargs):
-    # kwargs -> doc=None, order=None, skip_on_archive=False
+    # kwargs -> doc=None, order=None
     azzert(isinstance(prop, db.Property))
     for k, v in kwargs.iteritems():
         setattr(prop, '_%s' % k, v)
