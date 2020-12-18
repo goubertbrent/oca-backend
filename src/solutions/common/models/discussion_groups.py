@@ -45,7 +45,7 @@ class SolutionDiscussionGroup(db.Model):
 
     @classmethod
     def list(cls, service_user, order_by=None):
-        qry = cls.all(ancestor=cls._create_parent_key(service_user))
+        qry = cls.all().ancestor(cls._create_parent_key(service_user))
         if order_by:
             qry = qry.order(order_by)
         return qry
@@ -72,7 +72,7 @@ class DiscussionGroup(NdbModel):
 
     @classmethod
     def list(cls, service_user):
-        return cls.query().ancestor(cls._create_parent_key(service_user))
+        return cls.query(ancestor=cls._create_parent_key(service_user))
 
     @classmethod
     def list_ordered(cls, service_user):
