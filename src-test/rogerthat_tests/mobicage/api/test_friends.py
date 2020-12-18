@@ -33,7 +33,7 @@ from rogerthat.consts import WEEK
 from rogerthat.dal.friend import get_friends_map, get_friend_invitation_history
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_friend_serviceidentity_connection, get_default_service_identity
-from rogerthat.models import Message, UserData, App
+from rogerthat.models import Message, UserServiceData, App
 from rogerthat.restapi.messaging import getMessages, ackMessage
 from rogerthat.rpc import users
 from rogerthat.service.api import system
@@ -260,7 +260,7 @@ class Test(mc_unittest.TestCase):
         svc_user = users.User(u's%s@example.com' % time.time())
         si = create_service_profile(svc_user, u"Default name")[1]
 
-        self.assertIsNone(db.get(UserData.createKey(invitor, si.user)))
+        self.assertIsNone(UserServiceData.createKey(invitor, si.user).get())
 
         invite(invitor, remove_slash_default(si.user).email(), None, None,
                None, origin=ORIGIN_USER_INVITE, app_id=App.APP_ID_ROGERTHAT)
@@ -270,17 +270,16 @@ class Test(mc_unittest.TestCase):
         assert myFriendMap.generation > 0
         assert get_friend_serviceidentity_connection(invitor, si.user)
 
-        ud = db.get(UserData.createKey(invitor, si.user))
+        ud = UserServiceData.createKey(invitor, si.user).get()
         self.assertIsNotNone(ud)
         helper = FriendHelper.from_data_store(si.user, FRIEND_TYPE_SERVICE)
         user_data_string = FriendTO.fromDBFriendMap(helper, myFriendMap, si.user, True, True, invitor).userData
         self.assertIsNone(user_data_string)
-        ud_dict = ud.userData.to_json_dict()
-        self.assertDictEqual(user_data, ud_dict)
+        self.assertDictEqual(user_data, ud.data)
 
-        # test cleanup of UserData
+        # test cleanup of UserServiceData
         breakFriendShip(invitor, si.user)
-        self.assertIsNone(db.get(UserData.createKey(invitor, si.user)))
+        self.assertIsNone(UserServiceData.createKey(invitor, si.user).get())
 
     def test_invalid_user_data(self):
         invitor = users.get_current_user()

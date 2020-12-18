@@ -37,7 +37,7 @@ from rogerthat.bizz.service.mfr import MessageFlowDesignInUseException, InvalidM
 from rogerthat.dal.friend import get_friends_map
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_default_service_identity
-from rogerthat.models import ServiceIdentity, ServiceTranslation, UserData
+from rogerthat.models import ServiceIdentity, ServiceTranslation, UserServiceData
 from rogerthat.rpc import users
 from rogerthat.service.api import qr
 from rogerthat.service.api.messaging import start_flow
@@ -362,9 +362,8 @@ class Test(mc_unittest.TestCase):
                                                                                       True,
                                                                                       human_user))
 
-        ud = db.get(UserData.createKey(human_user, create_service_identity_user(service_user)))
-        ud_dict = ud.userData.to_json_dict()
-        self.assertDictEqual({'test': "tikkel", 'moe': "hahaha", 'john': "doe"}, ud_dict)
+        ud = UserServiceData.createKey(human_user, create_service_identity_user(service_user)).get()
+        self.assertDictEqual({'test': "tikkel", 'moe': "hahaha", 'john': "doe"}, ud.data)
         self.assertTrue(get_friendto().hasUserData)
 
         self.assertRaises(InvalidJsonStringException, put_user_data, friend_email, "invalid user data")

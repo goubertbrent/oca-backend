@@ -473,6 +473,24 @@ class FriendMap(db.Model):
         return cls(key=cls.create_key(app_user), generation=0, friends=list(), friendDetails=FriendDetails())
 
 
+class UserServiceData(NdbModel):
+    data = ndb.JsonProperty()
+    
+    @property
+    def service_identity_user(self):
+        return users.User(self.key().id())
+
+    @property
+    def app_user(self):
+        return users.User(self.parent_key().id())
+
+    @classmethod
+    def createKey(cls, app_user, service_identity_user):
+        from rogerthat.dal import parent_ndb_key
+        azzert('/' in service_identity_user.email(), 'no slash in %s' % service_identity_user.email())
+        return ndb.Key(cls, service_identity_user.email(), parent=parent_ndb_key(app_user))
+
+
 class UserData(db.Model):
     data = db.TextProperty()  # deprecated, lazily migrated to userData when putting user_data
     userData = KeyValueProperty()

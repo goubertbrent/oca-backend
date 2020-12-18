@@ -26,13 +26,13 @@ from mcfw.rpc import returns, arguments
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.messaging import _send_deleted
 from rogerthat.bizz.system import unregister_mobile
-from rogerthat.dal import parent_key, put_and_invalidate_cache
+from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_ndb_key
 from rogerthat.dal.friend import get_friends_map
 from rogerthat.dal.location import delete_user_location
 from rogerthat.dal.mobile import get_user_active_mobiles
 from rogerthat.dal.profile import get_avatar_by_id, get_user_profile, get_all_facebook_profile_pointers, \
     get_profile_infos
-from rogerthat.models import Settings, MobileSettings, UserData, UserProfile, FacebookUserProfile, \
+from rogerthat.models import Settings, MobileSettings, UserServiceData, UserProfile, FacebookUserProfile, \
     DoNotSendMeMoreInvites, FacebookProfilePointer, ProfilePointer, \
     UserInvitationSecret, FriendMap, Avatar, Profile, UserInteraction, LocationMessage, ActivationLog, \
     UserProfileInfo
@@ -95,7 +95,8 @@ def delete_user_data(app_user, friend_map, user_profile, unregister_reason=None)
     from rogerthat.bizz.news.cleanup import job as cleanup_news
     from rogerthat.bizz.jobs.workers import cleanup_jobs_data
     from rogerthat.bizz.job import cleanup_user_messaging
-
+    
+    ndb_models_to_delete = []
     models_to_delete = list()
 
     if isinstance(user_profile, FacebookUserProfile):
@@ -118,8 +119,8 @@ def delete_user_data(app_user, friend_map, user_profile, unregister_reason=None)
     if friend_map:
         models_to_delete.append(friend_map)
 
-        for userData in UserData.all().ancestor(parent_key(app_user)):
-            models_to_delete.append(userData)
+        for userData in UserServiceData.query(ancestor=parent_ndb_key(app_user)):
+            ndb_models_to_delete.append(userData.key())
 
         for f in friend_map.friendDetails:
             connected_user = users.User(f.email)
@@ -154,6 +155,7 @@ def delete_user_data(app_user, friend_map, user_profile, unregister_reason=None)
     UserProfileInfo.create_key(app_user).delete()
 
     db.delete(models_to_delete)
+    ndb.delete_multi(ndb_models_to_delete)
     user_profile.invalidateCache()
     cleanup_user_messaging.job(app_user)
 

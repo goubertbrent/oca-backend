@@ -37,7 +37,7 @@ from rogerthat.dal.messaging import get_message
 from rogerthat.dal.profile import get_user_profile, get_profile_info, \
     get_profile_key
 from rogerthat.dal.service import get_service_identity
-from rogerthat.models import UserData, Message, ChatMembers, UserDataExport, App
+from rogerthat.models import UserServiceData, Message, ChatMembers, UserDataExport, App
 from rogerthat.models.properties.friend import BaseFriendDetail
 from rogerthat.rpc import users
 from rogerthat.settings import get_server_settings
@@ -149,12 +149,9 @@ class ExportUserServicePipeline(WorkloadPipeline):
         app_user = create_app_user_by_email(human_user_email, app_id)
         service_identity_user = add_slash_default(users.User(service_identity_email))
         si = get_service_identity(service_identity_user)
-        ud = UserData.get(UserData.createKey(app_user, add_slash_default(service_identity_user)))
+        ud = UserServiceData.createKey(app_user, add_slash_default(service_identity_user)).get()
         if ud:
-            if ud.userData:
-                user_data = ud.userData.to_json_dict()
-            else:
-                user_data = json.loads(ud.data)
+            user_data = ud.data
         else:
             user_data = None
 

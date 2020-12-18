@@ -37,8 +37,8 @@ from rogerthat.dal.mobile import get_mobile_key_by_account
 from rogerthat.dal.profile import get_user_profile, get_service_profile, get_service_profiles
 from rogerthat.dal.service import get_friend_service_identity_connections_keys_of_app_user_query, \
     get_service_identities_query, get_one_friend_service_identity_connection_keys_query
-from rogerthat.models import ProfileInfo, ServiceTranslation, FriendServiceIdentityConnection, FriendMap, \
-    ServiceProfile, UserProfile, UserData
+from rogerthat.models import ProfileInfo, ServiceTranslation, FriendMap, \
+    ServiceProfile, UserProfile, UserServiceData
 from rogerthat.models.properties.friend import FriendDetail
 from rogerthat.rpc import users
 from rogerthat.rpc.models import RpcCAPICall
@@ -334,9 +334,8 @@ def do_update_friend_request(target_user, friend, status, friend_map, helper, sk
     user_profile = get_user_profile(target_user)
     service_identity_user = helper.service_identity_user
     mobile_details = user_profile.mobiles or []
-    models = db.get([UserData.createKey(target_user, service_identity_user)] + [
-        get_mobile_key_by_account(mobile_detail.account) for mobile_detail in mobile_details])
-    user_data, mobiles = models[0], models[1:]
+    user_data = UserServiceData.createKey(target_user, service_identity_user).get()
+    mobiles = db.get([get_mobile_key_by_account(mobile_detail.account) for mobile_detail in mobile_details])
 
     def update_friend_set():
         # type: () -> List[RpcCAPICall]

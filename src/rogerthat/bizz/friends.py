@@ -48,7 +48,7 @@ from rogerthat.dal.profile import get_profile_info, get_user_profile, is_service
     get_profile_infos, are_service_identity_users, get_profile_key
 from rogerthat.dal.roles import list_service_roles_by_type
 from rogerthat.dal.service import get_friend_serviceidentity_connection, get_service_identity
-from rogerthat.models import ProfileInfo, ServiceProfile, UserData, FriendServiceIdentityConnection, ServiceRole, \
+from rogerthat.models import ProfileInfo, ServiceProfile, UserServiceData, FriendServiceIdentityConnection, ServiceRole, \
     FriendInvitationHistory, ServiceTranslation, UserInvitationSecret, UserProfile, Message, ServiceIdentity, \
     ServiceInteractionDef, App, Group, ProfilePointer, FriendMap
 from rogerthat.models.properties.friend import FriendDetail
@@ -402,11 +402,8 @@ def makeFriends(invitor, invitee, original_invitee, servicetag, origin, notify_i
                         logging.warn("Invalid user data JSON string!", exc_info=True)
                         has_user_data = False
                     else:
-                        user_data_model_key = UserData.createKey(from_, to_profile_info.user)
-                        user_data_model = UserData(key=user_data_model_key)
-                        user_data_model.data = None
-                        user_data_model.userData = KVStore(user_data_model_key)
-                        user_data_model.userData.from_json_dict(data_object)
+                        user_data_model = UserServiceData(key=UserServiceData.createKey(from_, to_profile_info.user))
+                        user_data_model.data = data_object
                         user_data_model.put()
                         has_user_data = True
                         user_profile = get_user_profile(from_)
@@ -923,16 +920,15 @@ def breakFriendShip(user1, user2, current_mobile=None):
                 friendDetail = friendMap.friendDetails[email]
                 user_profile = get_user_profile(from_)
                 if friendDetail.type == FriendDetail.TYPE_SERVICE and friendDetail.hasUserData:
-                    user_data = UserData.get(UserData.createKey(from_, add_slash_default(to)))
+                    user_data_key = UserServiceData.createKey(from_, add_slash_default(to))
+                    user_data = user_data_key.get()
                     if user_data:
-                        if user_data.userData:
-                            from rogerthat.bizz.service import get_update_userdata_requests
-                            data_object = {k: None for k in user_data.userData.iterkeys()}
-                            mobiles = db.get([get_mobile_key_by_account(m.account) for m in user_profile.mobiles])
-                            rpcs = get_update_userdata_requests(mobiles, from_, to, data_object, data_object.keys())
-                            to_put.extend(rpcs)
-                            user_data.userData.clear()  # clears the underlying buckets
-                        user_data.delete()
+                        from rogerthat.bizz.service import get_update_userdata_requests
+                        data_object = {k: None for k in user_data.data.iterkeys()}
+                        mobiles = db.get([get_mobile_key_by_account(m.account) for m in user_profile.mobiles])
+                        rpcs = get_update_userdata_requests(mobiles, from_, to, data_object, data_object.keys())
+                        to_put.extend(rpcs)
+                        user_data_key.delete()
 
                 if to_is_service_identity:
                     # revoke all service roles for this service identity

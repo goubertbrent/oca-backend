@@ -53,7 +53,7 @@ from rogerthat.dal.profile import get_user_profile_key, get_user_profile, \
 from rogerthat.dal.registration import get_registration_by_mobile
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import InstallationLog, UserInteraction, ProfilePointer, App, ServiceIdentity, \
-    InstallationStatus, Installation, UserConsentHistory, UserData, FacebookUserProfile
+    InstallationStatus, Installation, UserConsentHistory, UserServiceData, FacebookUserProfile
 from rogerthat.models.properties.profiles import MobileDetails
 from rogerthat.rpc import users
 from rogerthat.rpc.models import Mobile
@@ -517,8 +517,8 @@ def migrate_anonymous_account(anonymous_account, new_app_user):
                 user_data_str = None
                 if friend_detail.hasUserData:
                     friend_user = add_slash_default(friend_user)
-                    user_data_key = UserData.createKey(anonymous_user, friend_user)
-                    user_data_str = json.dumps(db.get(user_data_key).userData.to_json_dict())
+                    user_data = UserServiceData.createKey(anonymous_user, friend_user).get()
+                    user_data_str = json.dumps(user_data.data)
 
                 makeFriends(new_app_user, friend_user, friend_user, None, notify_invitee=False, notify_invitor=False,
                             origin=ORIGIN_USER_INVITE, user_data=user_data_str)

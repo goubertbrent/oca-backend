@@ -23,7 +23,7 @@ from rogerthat.bizz.friends import makeFriends
 from rogerthat.bizz.profile import create_service_profile, create_user_profile
 from rogerthat.bizz.service import set_user_data_object, set_app_data
 from rogerthat.dal.service import get_service_identity
-from rogerthat.models import UserData
+from rogerthat.models import UserServiceData
 from rogerthat.rpc import users
 
 
@@ -44,23 +44,23 @@ class Test(mc_unittest.TestCase):
         expected_data = {'key1': 1, 'key2': 2}
         set_user_data_object(self.service_identity_user, self.app_user, expected_data)
 
-        user_data = db.get(UserData.createKey(self.app_user, self.service_identity_user))
-        self.assertDictEqual(expected_data, user_data.userData.to_json_dict())
+        user_data = UserServiceData.createKey(self.app_user, self.service_identity_user).get()
+        self.assertDictEqual(expected_data, user_data.data)
 
         new_data = {'key3': 3}
         set_user_data_object(self.service_identity_user, self.app_user, new_data)
 
         expected_data.update(new_data)
-        user_data = db.get(UserData.createKey(self.app_user, self.service_identity_user))
-        self.assertDictEqual(expected_data, user_data.userData.to_json_dict())
+        user_data = UserServiceData.createKey(self.app_user, self.service_identity_user).get()
+        self.assertDictEqual(expected_data, user_data.data)
 
         new_data = {'key1': None, 'key2': 'B', 'key3': 'C', 'key4': 'D'}
         set_user_data_object(self.service_identity_user, self.app_user, new_data)
 
         expected_data.update(new_data)
         del expected_data['key1']
-        user_data = db.get(UserData.createKey(self.app_user, self.service_identity_user))
-        self.assertDictEqual(expected_data, user_data.userData.to_json_dict())
+        user_data = UserServiceData.createKey(self.app_user, self.service_identity_user).get()
+        self.assertDictEqual(expected_data, user_data.data)
 
     def test_app_data(self):
         expected_data = {'key1': 1, 'key2': 2}

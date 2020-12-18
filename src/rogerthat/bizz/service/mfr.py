@@ -23,7 +23,7 @@ import uuid
 from xml.dom.minidom import parseString, parse
 
 from google.appengine.api import urlfetch
-from google.appengine.ext import db, deferred
+from google.appengine.ext import db, deferred, ndb
 
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
@@ -42,7 +42,7 @@ from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_profile_infos, get_service_profile
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import MessageFlowDesign, MessageFlowRunRecord, UserProfile, FriendServiceIdentityConnection, \
-    ServiceTranslation, CustomMessageFlowDesign, UserData
+    ServiceTranslation, CustomMessageFlowDesign, UserServiceData
 from rogerthat.rpc import users
 from rogerthat.rpc.models import RpcCAPICall, Mobile
 from rogerthat.rpc.rpc import logError, mapping, CAPI_KEYWORD_PUSH_DATA
@@ -57,6 +57,7 @@ from rogerthat.utils.app import get_app_user_tuple, get_app_id_from_app_user
 from rogerthat.utils.crypto import md5_hex
 from rogerthat.utils.service import get_service_user_from_service_identity_user, \
     get_identity_from_service_identity_user, remove_slash_default
+
 
 try:
     from cStringIO import StringIO
@@ -353,16 +354,13 @@ def _create_message_flow_run_xml_doc(service_identity_user, message_flow_design,
         bizz_check(force_language in mf_languages, "Can not run in %s." % get_full_language_string(force_language))
 
     userprofiles = get_profile_infos(members, expected_types=[UserProfile] * len(members))
-    user_datas = db.get([UserData.createKey(member, service_identity_user) for member in members])
+    user_datas = ndb.get_multi([UserServiceData.createKey(member, service_identity_user) for member in members])
     for i, p in enumerate(userprofiles):
         member_run_language = force_language or (p.language if p.language in mf_languages else fallback_language)
         human_user, app_id = get_app_user_tuple(p.user)
 
         if user_datas[i]:
-            if user_datas[i].userData:
-                user_data = json.dumps(user_datas[i].userData.to_json_dict())
-            else:
-                user_data = user_datas[i].data
+            user_data = json.dumps(user_datas[i].data)
         else:
             user_data = None
         run.add_memberRun(MemberRunSub(status="SUBMITTED", email=human_user.email(), name=p.name,

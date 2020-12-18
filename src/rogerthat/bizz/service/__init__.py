@@ -79,7 +79,7 @@ from rogerthat.dal.service import get_api_keys, get_api_key, get_api_key_count, 
 from rogerthat.models import Profile, APIKey, SIKKey, ServiceInteractionDef, ShortURL, \
     QRTemplate, Message, MFRSIKey, ServiceMenuDef, Branding, PokeTagMap, ServiceProfile, UserProfile, ServiceIdentity, \
     SearchConfigLocation, ProfilePointer, FacebookProfilePointer, MessageFlowDesign, ServiceTranslation, \
-    ServiceMenuDefTagMap, UserData, FacebookUserProfile, App, MessageFlowRunRecord, \
+    ServiceMenuDefTagMap, UserServiceData, FacebookUserProfile, App, MessageFlowRunRecord, \
     FriendServiceIdentityConnection, UserContext, UserContextLink, \
     ServiceCallBackSettings, ServiceCallBackConfig
 from rogerthat.models.properties.friend import FriendDetail, FriendDetails
@@ -2644,7 +2644,6 @@ def update_user_data_response_handler(context, result):
 def create_send_app_data_requests(mobiles, target_user, helper):
     # type: (List[Mobile], users.User, FriendHelper) -> List[RpcCAPICall]
     service_identity = helper.get_profile_info()
-    service_profile = helper.get_service_profile()
     service_data = helper.get_service_data()
     if service_data:
         app_data = service_data
@@ -2658,14 +2657,11 @@ def create_send_app_data_requests(mobiles, target_user, helper):
 
 
 @returns([RpcCAPICall])
-@arguments(mobiles=[Mobile], user_data_model=UserData, target_user=users.User, service_identity_user=users.User)
+@arguments(mobiles=[Mobile], user_data_model=UserServiceData, target_user=users.User, service_identity_user=users.User)
 def create_send_user_data_requests(mobiles, user_data_model, target_user, service_identity_user):
-    # type: (List[Mobile], UserData, users.User, users.User) -> List[RpcCAPICall]
+    # type: (List[Mobile], UserServiceData, users.User, users.User) -> List[RpcCAPICall]
     if user_data_model:
-        if user_data_model.userData:
-            user_data = user_data_model.userData.to_json_dict()
-        else:
-            user_data = json.loads(user_data_model.data)
+        user_data = user_data_model.data
     else:
         user_data = {}
     return _send_set_user_data(mobiles, target_user, service_identity_user,
@@ -2723,11 +2719,12 @@ def set_user_data(service_identity_user, friend_user, data_string, replace=False
 @arguments(service_identity_user=users.User, friend_user=users.User, data_dict=dict, replace=bool,
            must_be_friends=bool)
 def set_user_data_object(service_identity_user, friend_user, data_dict, replace=False, must_be_friends=True):
+    @ndb.transactional(xg=True)
     def trans(updated_json_dict):
-        user_data_key = UserData.createKey(friend_user, service_identity_user)
-        friend_map, user_data, user_profile = db.get([get_friends_map_key_by_user(friend_user),
-                                                      user_data_key,
-                                                      get_profile_key(friend_user)])
+        user_data_key = UserServiceData.createKey(friend_user, service_identity_user)
+        user_data = user_data_key.get()
+        friend_map, user_profile = db.get([get_friends_map_key_by_user(friend_user),
+                                           get_profile_key(friend_user)])
         current_mobile = users.get_current_mobile()
 
         if not friend_map:
@@ -2747,39 +2744,24 @@ def set_user_data_object(service_identity_user, friend_user, data_dict, replace=
         mobiles_future = db.get_async([get_mobile_key_by_account(m.account) for m in user_profile.mobiles
                                        if not current_mobile or m.account != current_mobile.account])
         if user_data:
-            if replace:
-                user_data.data = None
-                if user_data.userData is None:
-                    user_data.userData = KVStore(user_data_key)
-                else:
-                    user_data.userData.clear()
-            elif user_data.userData is None:
-                user_data.userData = KVStore(user_data_key)
-                if user_data.data:
-                    full_json_dict = json.loads(user_data.data)
-                    full_json_dict.update(updated_json_dict)
-                user_data.data = None
-            else:
-                full_json_dict = user_data.userData.to_json_dict()
+            if not replace:
+                full_json_dict = user_data.data
                 full_json_dict.update(updated_json_dict)
         else:
-            user_data = UserData(key=user_data_key,
-                                 data=None,
-                                 userData=KVStore(user_data_key))
+            user_data = UserServiceData(key=user_data_key, data={})
 
+        ndb_puts = []
         puts = []
-
-        try:
-            user_data.userData.from_json_dict(full_json_dict, remove_none_values=True)
-        except InvalidKeyError as e:
-            raise InvalidKeyException(key=e.key)
+        # Remove None values from full_json_dict
+        full_json_dict = {k: v for k, v in full_json_dict.iteritems() if v is not None}
+        user_data.data = full_json_dict
 
         friend_detail = friend_map.friendDetails[friend_detail_user.email()]
-        if len(user_data.userData.keys()) > 0:
-            puts.append(user_data)  # create or update UserData
+        if len(user_data.data.keys()) > 0:
+            ndb_puts.append(user_data)  # create or update UserData
             friend_detail.hasUserData = True
         else:
-            db.delete_async(user_data_key)
+            user_data_key.delete()
             friend_detail.hasUserData = False
         friend_detail.relationVersion += 1
         friend_map.generation += 1
@@ -2794,14 +2776,15 @@ def set_user_data_object(service_identity_user, friend_user, data_dict, replace=
         logging.debug("debugging_branding set_user_data_object friend_map.ver %s friend_map.gen %s friend_detail.relv %s",
                       friend_map.version, friend_map.generation, friend_detail.relationVersion)
 
-        # Remove None values from full_json_dict
-        full_json_dict = {k: v for k, v in full_json_dict.iteritems() if v is not None}
         mobiles = mobiles_future.get_result()
         puts.extend(get_update_userdata_requests(mobiles, friend_map.user, service_identity_user, full_json_dict,
                                                  updated_json_dict.keys()))
         put_and_invalidate_cache(*puts)
+        if ndb_puts:
+            ndb.put_multi(ndb_puts)
 
-    run_in_xg_transaction(trans, data_dict)
+#     run_in_xg_transaction(trans, data_dict)
+    trans(data_dict)
 
 
 @returns(dict)
@@ -2835,14 +2818,10 @@ def get_user_data(service_identity_user, friend_user, user_data_keys):
 
     def trans():
         result = {key: None for key in user_data_keys}
-        user_data = db.get(UserData.createKey(friend_user, service_identity_user))
+        user_data = UserServiceData.createKey(friend_user, service_identity_user).get()
         if user_data:
-            if user_data.userData:
-                result.update(_get_data_from_kv_store(user_data.userData, user_data_keys))
-            else:
-                data = json.loads(user_data.data)
-                for key in user_data_keys:
-                    result[key] = data.get(key)
+            for key in user_data_keys:
+                result[key] = user_data.data.get(key)
         return result
 
     return json.dumps(db.run_in_transaction(trans))

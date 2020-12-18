@@ -31,7 +31,7 @@ from rogerthat.dal.app import get_app_name_by_id
 from rogerthat.dal.mobile import get_mobile_key_by_account
 from rogerthat.dal.profile import get_user_profile, get_profile_info
 from rogerthat.dal.service import get_service_identity, get_default_service_identity
-from rogerthat.models import App, UserData, FriendMap
+from rogerthat.models import App, UserServiceData, FriendMap
 from rogerthat.rpc.rpc import expose
 from rogerthat.rpc.service import ApiWarning
 from rogerthat.to.friends import FriendTO, GetFriendsListResponseTO, GetFriendsListRequestTO, ShareLocationResponseTO, \
@@ -123,7 +123,7 @@ def getFriend(request):
 
         if friend_detail.type == FRIEND_TYPE_SERVICE:
             service_identity_user = add_slash_default(friend)
-            user_data_model = db.get(UserData.createKey(user, service_identity_user))
+            user_data_model = UserServiceData.createKey(user, service_identity_user).get()
             to_put.extend(create_send_user_data_requests(mobiles, user_data_model, user, service_identity_user))
             to_put.extend(create_send_app_data_requests(mobiles, user, helper))
 
