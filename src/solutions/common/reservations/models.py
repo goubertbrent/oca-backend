@@ -14,14 +14,14 @@
 # limitations under the License.
 #
 # @@license_version:1.5@@
-from google.appengine.ext import ndb, db
+
+from google.appengine.ext import ndb
 
 from rogerthat.dal import parent_ndb_key
 from rogerthat.models import NdbModel
 from rogerthat.rpc import users
 from rogerthat.utils.service import get_service_user_from_service_identity_user, get_identity_from_service_identity_user
 from solutions import SOLUTION_COMMON
-from solutions.common.models import SolutionUserProperty
 from solutions.common.utils import create_service_identity_user_wo_default
 
 

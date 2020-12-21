@@ -32,9 +32,10 @@ from rogerthat.utils import get_epoch_from_datetime
 from solutions.common.bizz.reservation import availability_and_shift, STATUS_AVAILABLE, STATUS_TOO_MANY_PEOPLE, \
     cancel_reservation, move_reservation, edit_reservation
 from solutions.common.models import SolutionSettings, SolutionMainBranding
-from solutions.common.reservations.models import RestaurantConfiguration, RestaurantReservation
-from solutions.common.reservations.to import Shift
+from solutions.common.reservations.models import RestaurantConfiguration, RestaurantReservation,\
+    RestaurantShift
 from solutions.flex import SOLUTION_FLEX
+
 
 try:
     from cStringIO import StringIO
@@ -47,6 +48,8 @@ class Test(oca_unittest.TestCase):
     def _test_reserve_table(self, service_user, service_identity, user_details, date, people, name, phone, comment, force=False):
         # TODO: race conditions?
         status, shift_start = availability_and_shift(service_user, None, date, people, force)
+        if status != STATUS_AVAILABLE:
+            return status
         date = datetime.datetime.utcfromtimestamp(date)
         rogerthat_user = users.User(user_details[0].email) if user_details else None
         reservation = RestaurantReservation(service_user=service_user,
@@ -87,7 +90,7 @@ class Test(oca_unittest.TestCase):
         main_branding.branding_key = None
 
 
-        shift = Shift()
+        shift = RestaurantShift()
         shift.name = u'shift-lunch'
         shift.capacity = 50
         shift.max_group_size = 6
@@ -99,7 +102,7 @@ class Test(oca_unittest.TestCase):
         shift.comment = u'shift-comment0'
         settings.shifts.append(shift)
 
-        shift = Shift()
+        shift = RestaurantShift()
         shift.name = u'shift-dinner'
         shift.capacity = 50
         shift.max_group_size = 6
@@ -111,7 +114,8 @@ class Test(oca_unittest.TestCase):
         shift.comment = u'shift-comment1'
         settings.shifts.append(shift)
 
-        put_and_invalidate_cache(solutionSettings, settings, main_branding)
+        put_and_invalidate_cache(solutionSettings, main_branding)
+        settings.put()
 
         date_ = datetime.datetime.combine(datetime.date.today() + datetime.timedelta(days=10), datetime.datetime.min.time())
         date_ = date_ + datetime.timedelta(hours=19)
