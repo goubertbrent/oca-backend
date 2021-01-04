@@ -133,7 +133,7 @@ COMMON_JS_KEYS = {
     'ERROR_OCCURED_UNKNOWN': 'error-occured-unknown',
     'EVENT_DATE': 'Date',
     'EVENT_ORGANIZER': 'events-organizer',
-    'EVENT_PLACE': 'events-place',
+    'EVENT_PLACE': 'oca.place',
     'EXPIRES': 'Expires',
     'FAILED': 'Failed',
     'FEATURE_DISABLED': 'feature-disabled',
