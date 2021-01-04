@@ -14,9 +14,40 @@
 # limitations under the License.
 #
 # @@license_version:1.5@@
-from google.appengine.ext import ndb, db
 
-from solutions.common.models.discussion_groups import SolutionDiscussionGroup, DiscussionGroup
+from google.appengine.ext import db, ndb
+
+from rogerthat.dal import parent_key
+from rogerthat.models import KeyValueProperty
+from solutions.common import SOLUTION_COMMON
+from solutions.common.models.discussion_groups import DiscussionGroup
+
+
+class SolutionDiscussionGroup(db.Model):
+    topic = db.StringProperty()
+    description = db.TextProperty()
+    members = KeyValueProperty()
+    message_key = db.StringProperty(indexed=False)
+    creation_timestamp = db.IntegerProperty(indexed=False)
+
+    @property
+    def id(self):
+        return self.key().id()
+
+    @staticmethod
+    def _create_parent_key(service_user):
+        return parent_key(service_user, SOLUTION_COMMON)
+
+    @classmethod
+    def create_key(cls, service_user, discussion_group_id):
+        return db.Key.from_path(cls.kind(), discussion_group_id, parent=cls._create_parent_key(service_user))
+
+    @classmethod
+    def list(cls, service_user, order_by=None):
+        qry = cls.all().ancestor(cls._create_parent_key(service_user))
+        if order_by:
+            qry = qry.order(order_by)
+        return qry
 
 
 def migrate(dry_run=True):
