@@ -1465,7 +1465,7 @@ def put_restaurant_reservation(sln_settings, current_coords, current_label, main
     else:
         restaurant_profile = RestaurantProfile(key=RestaurantProfile.create_key(service_user),
                                                reserve_flow_part2=reserve_flow_part2.identifier)
-    restaurant_profile.put()
+    restaurant_profile.put_async()  # async because we're in a db transaction here
 
     return [SolutionServiceMenuItem(u'fa-cutlery',
                                     None,
