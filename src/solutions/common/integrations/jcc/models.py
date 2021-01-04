@@ -69,11 +69,17 @@ class JccApiMethod(Enum):
     updateGovAppointmentWithFields = 'updateGovAppointmentWithFields'
 
 
+class JccApiVersion(object):
+    WSDL = 'wsdl'
+    REST_V1 = 'rest-v1'
+
+
 class JCCSettings(NdbModel):
     url = ndb.StringProperty()
     enabled = ndb.BooleanProperty(default=False)
     username = ndb.TextProperty()
     password = ndb.TextProperty()
+    version = ndb.StringProperty(default=JccApiVersion.WSDL)
 
     @property
     def service_user(self):

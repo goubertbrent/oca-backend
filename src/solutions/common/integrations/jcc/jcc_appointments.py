@@ -20,6 +20,7 @@ import logging
 from base64 import b64encode
 from datetime import datetime, date
 
+import requests
 import zeep
 from babel.dates import format_time, format_date
 from functools32 import lru_cache
@@ -36,7 +37,7 @@ from mcfw.cache import cached
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.app import get_app
-from rogerthat.consts import DAY
+from rogerthat.consts import DAY, DEBUG
 from rogerthat.rpc import users
 from rogerthat.to import convert_to_unicode
 from rogerthat.to.service import SendApiCallCallbackResultTO, UserDetailsTO
@@ -44,7 +45,8 @@ from rogerthat.utils import send_mail
 from rogerthat.utils.app import get_human_user_from_app_user, get_app_id_from_app_user
 from solutions import translate
 from solutions.common.dal import get_solution_settings
-from solutions.common.integrations.jcc.models import JCCSettings, JccApiMethod, JCCUserAppointments, JCCAppointment
+from solutions.common.integrations.jcc.models import JCCSettings, JccApiMethod, JCCUserAppointments, JCCAppointment, \
+    JccApiVersion
 from solutions.common.integrations.qmatic.qmatic import set_updates_pending
 
 # Disable logging of discovery of methods and types
@@ -64,6 +66,42 @@ def get_jcc_client(url, username, password):
     return Client(url, transport=transport)
 
 
+# @cached(0, lifetime=1800)
+@returns(unicode)
+@arguments(base_url=unicode, username=unicode, password=unicode)
+def get_jcc_auth_token(base_url, username, password):
+    # type: (str, str, str) -> str
+    full_url = base_url + '/api/warp/login'
+
+    multipart_data = {
+        'userName': (None, username),
+        'password': (None, password)
+    }
+    headers = {
+        'language': 'en',
+        'Accept': 'application/json',
+        'Content-Type': 'multipart/form-data'
+    }
+    result = requests.post(full_url, files=multipart_data, headers=headers)
+    if DEBUG:
+        logging.debug(result.content)
+    result.raise_for_status()
+    return result.content
+
+
+def jcc_rest_request(settings, language, method, path, data=None):
+    # type: (JCCSettings, str, str, dict, str) -> requests.models.Response
+    token = get_jcc_auth_token(settings.url, settings.username, settings.password)
+    full_url = settings.url + path
+    headers = {
+        'Accept': 'application/json',
+        'token': token,
+        'language': language,
+    }
+    result = requests.request(method, full_url, json=data, headers=headers)
+    return result
+
+
 def get_jcc_settings(service_user):
     # type: (users.User) -> JCCSettings
     key = JCCSettings.create_key(service_user)
@@ -79,11 +117,18 @@ def save_jcc_settings(service_user, url, username=None, password=None):
     settings.url = url
     settings.username = username
     settings.password = password
+    settings.version = JccApiVersion.WSDL if 'wsdl' in url else JccApiVersion.REST_V1
     if url:
         try:
-            client = get_jcc_client(settings.url, settings.username, settings.password)
-            client.service.getGovAvailableProducts()
-            enabled = True
+            if settings.version == JccApiVersion.WSDL:
+                client = get_jcc_client(settings.url, settings.username, settings.password)
+                client.service.getGovAvailableProducts()
+                enabled = True
+            else:
+                result = jcc_rest_request(settings, 'en', 'get', '/api/warp/version')
+                logging.debug('Test api call result:\n%s: %s', result.status_code, result.content)
+                result.raise_for_status()
+                enabled = True
         except Exception as e:
             logging.debug(e.message, exc_info=True)
             lang = get_solution_settings(service_user).main_language
