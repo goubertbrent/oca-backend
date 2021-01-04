@@ -22,7 +22,7 @@ from types import NoneType
 
 from babel.dates import format_datetime, get_timezone
 from google.appengine.ext import db, ndb
-from typing import Optional
+from typing import Optional, List
 
 from mcfw.consts import MISSING
 from mcfw.exceptions import HttpNotFoundException
@@ -162,6 +162,7 @@ def delete_discussion_group(service_user, discussion_group_id):
 @arguments(service_user=users.User, email=unicode, tag=unicode, result_key=unicode, context=unicode,
            service_identity=unicode, user_details=[UserDetailsTO])
 def poke_discussion_groups(service_user, email, tag, result_key, context, service_identity, user_details):
+    # type: (users.User, unicode, unicode, unicode, unicode, unicode, List[UserDetailsTO]) -> PokeCallbackResultTO
     from solutions.common.bizz.messaging import POKE_TAG_DISCUSSION_GROUPS
 
     result = PokeCallbackResultTO()
@@ -172,7 +173,7 @@ def poke_discussion_groups(service_user, email, tag, result_key, context, servic
     app_user_email = user_details[0].toAppUser().email()
     for discussion_group in DiscussionGroup.list(service_user):
         widget.choices.append(ChoiceTO(label=discussion_group.topic, value=unicode(discussion_group.id)))
-        if app_user_email in discussion_group.members['members']:
+        if app_user_email in discussion_group.members:
             widget.values.append(unicode(discussion_group.id))
 
     sln_settings, sln_main_branding = db.get([SolutionSettings.create_key(service_user),
