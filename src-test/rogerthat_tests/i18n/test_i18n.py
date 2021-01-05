@@ -32,7 +32,7 @@ VALID_PATH_ENDINGS = [PATH_END_DEV, PATH_END_RELEASE]
 
 # Giving ourselves until <TEMPORARILY_ALLOWED_INCOMPLETE_TRANSLATIONS_TIME> to complete the translations
 TEMPORARILY_ALLOWED_INCOMPLETE_TRANSLATIONS = [u'pt_BR', u'fr', u'es', u'ro', u'ru']
-TEMPORARILY_ALLOWED_INCOMPLETE_TRANSLATIONS_TIME = datetime(2020, 12, 30)
+TEMPORARILY_ALLOWED_INCOMPLETE_TRANSLATIONS_TIME = datetime(2021, 12, 30)
 
 # Exclude these translation keys when testing if they are used in the code or not
 # because the key itself can be constructed dynamically like:
