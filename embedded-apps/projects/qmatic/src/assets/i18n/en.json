@@ -19,16 +19,15 @@
       "no": "No",
       "no_activities_found": "No activities found",
       "no_upcoming_appointments_yet": "You don't have any upcoming appointments",
-      "notes": "Notes",
       "ok": "Ok",
       "phone": "Phone number",
+      "remarks": "Remarks",
       "retry": "Retry",
       "search": "Search",
       "service": "Service",
       "time": "Time",
       "unknown_error": "An unknown error occurred, please retry again later.",
       "validation_error_message": "Please fill in all required fields",
-      "via_app": "Via the {{ appName }} app",
       "yes": "Yes"
     }
   }

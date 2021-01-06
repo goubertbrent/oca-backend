@@ -8,6 +8,7 @@ import { Appointment, AppointmentStatus } from '../appointments';
 })
 export class AppointmentCardComponent {
   @Input() appointment: Appointment<Date>;
+  @Input() past = false;
   @Output() cancelClicked = new EventEmitter<Appointment<Date>>();
   @Output() addToCalendarClicked = new EventEmitter<Appointment<Date>>();
 

@@ -26,7 +26,8 @@ from datetime import datetime
 
 import cloudstorage
 import dateutil
-from babel.dates import format_date
+import html2text
+from babel.dates import format_date, format_time
 from google.appengine.api import urlfetch
 from icalendar import Calendar, Event, vCalAddress, vText
 from typing import Union
@@ -310,7 +311,6 @@ def create_ical(qmatic_settings, app_user, appointment_id):
             appointment['branch']['addressLine1'],
             appointment['branch']['addressLine2'],
             ('%s %s' % (appointment['branch']['addressZip'] or '', appointment['branch']['addressCity'] or '')).strip(),
-            appointment['branch']['addressCountry']
         ]
         location = ', '.join(p for p in parts if p)
     organizer_email = None
@@ -337,23 +337,40 @@ def create_ical(qmatic_settings, app_user, appointment_id):
     app = get_app(app_id)
     from_ = '%s <%s>' % (app.name, app.dashboard_email_address)
     ical_attachment = ('%s.ics' % appointment['title'] or 'Event', b64encode(cal.to_ical()))
-    subject = appointment['title']
     lang = sln_settings.main_language
-    # TODO show *correct* time
-    when = format_date(start_date, format='full', locale=sln_settings.locale)
-    body = [
-        appointment['title'],
-        '',
-        '%s: %s' % (common_translate(lang, 'when'), when),
-    ]
+    when_date = format_date(start_date, format='full', locale=sln_settings.locale)
+    when_time = format_time(start_date, format='short', locale=sln_settings.locale, tzinfo=sln_settings.tz_info)
+    when = '%s %s' % (when_date, when_time)
+    subject = '%s %s: %s' % (common_translate(lang, 'appointment'), when, appointment['title'])
+    body = None
+    html = None
+    for service in appointment['services']:
+        custom = service['custom']
+        if custom:
+            try:
+                parsed_custom = json.loads(custom)
+                info_text = parsed_custom.get('infoText')
+                if info_text:
+                    body = html2text.html2text(info_text)
+                    html = info_text
+                    break
+            except ValueError as e:
+                logging.debug(e, exc_info=True)
+    if not body:
+        body_lines = [
+            appointment['title'],
+            '',
+            '%s: %s' % (common_translate(lang, 'when'), when),
+        ]
 
-    if location:
-        body.append('%s: %s' % (common_translate(lang, 'oca.location'), location))
-    if appointment['notes']:
-        body.append('%s: %s' % (common_translate(lang, 'Note'), appointment['notes']))
+        if location:
+            body_lines.append('%s: %s' % (common_translate(lang, 'oca.location'), location))
+        if appointment['notes']:
+            body_lines.append('%s: %s' % (common_translate(lang, 'Note'), appointment['notes']))
+        body = '\n'.join(body_lines)
 
     # TODO shouldn't allow this more than 3 times to avoid spam
-    send_mail(from_, to_email, subject, '\n'.join(body), attachments=[ical_attachment])
+    send_mail(from_, to_email, subject, body, html=html, attachments=[ical_attachment])
     msg = common_translate(sln_settings.main_language, 'an_email_has_been_sent_with_appointment_event')
     return {'message': msg}
 

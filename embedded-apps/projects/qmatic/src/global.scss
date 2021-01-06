@@ -22,6 +22,40 @@
 //@import "~@ionic/angular/css/text-transformation.css";
 //@import "~@ionic/angular/css/flex-utils.css";
 
+@import '~@angular/material/theming';
+// Plus imports for other components in your app.
+
+// Include the common styles for Angular Material. We include this here so that you only
+// have to load a single css file for Angular Material in your app.
+// **Be sure that you only ever include this mixin once!**
+@include mat-core();
+
+// Define the theme.
+$app-accent: mat-palette($mat-pink, A200, A100, A400);
+$palette: (
+  100: var(--ion-color-primary-tint),
+  500: var(--ion-color-primary),
+  700: var(--ion-color-primary-shade),
+  contrast: (
+    100: $dark-primary-text,
+    500: $light-primary-text,
+    700: $light-primary-text,
+  )
+);
+
+$app-theme: mat-light-theme((
+  color: (
+    primary: $palette,
+    accent: $app-accent,
+    warn: mat-palette($mat-red),
+  )
+));
+
+// Include the theme styles for only specified components to reduce bundle size
+@include mat-core-theme($app-theme);
+@include mat-form-field-theme($app-theme);
+@include mat-datepicker-theme($app-theme);
+
 .qm-spinner-container {
   display: flex;
   justify-content: center;

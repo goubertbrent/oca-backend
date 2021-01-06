@@ -38,17 +38,18 @@ export const getAppointmentsList = createSelector(getQMaticState, s => {
   };
 });
 
-export const getServices = createSelector(getQMaticState, s =>
-  s.services.state === CallStateType.SUCCESS ? s.services.result.serviceList : []);
-export const getBranches = createSelector(getQMaticState, s =>
-  s.branches.state === CallStateType.SUCCESS ? s.branches.result.branchList : []);
-export const getDates = createSelector(getQMaticState, s =>
-  s.dates.state === CallStateType.SUCCESS ? s.dates.result.dates.map(d => ({ value: d.split('T')[ 0 ], date: new Date(d) })) : []);
-export const getTimes = createSelector(getQMaticState, s =>
-  s.times.state === CallStateType.SUCCESS ? s.times.result.times : []);
+export const getServices = createSelector(getQMaticState, s => s.services.state === CallStateType.SUCCESS
+  ? s.services.result.serviceList :
+  []);
+export const getBranches = createSelector(getQMaticState, s => s.branches.state === CallStateType.SUCCESS ?
+  s.branches.result.branchList
+  : []);
+export const getDates = createSelector(getQMaticState, s => s.dates.state === CallStateType.SUCCESS ?
+  s.dates.result.dates.map(d => new Date(d))
+  : []);
+export const getTimes = createSelector(getQMaticState, s => s.times.state === CallStateType.SUCCESS ?
+  s.times.result.times :
+  []);
 export const getReservedAppointment = createSelector(getQMaticState, s => s.reservedAppointment);
-export const isLoadingNewAppointmentInfo = createSelector(getQMaticState, s => s.services.state === CallStateType.LOADING ||
-  s.branches.state === CallStateType.LOADING ||
-  s.dates.state === CallStateType.LOADING ||
-  s.times.state === CallStateType.LOADING ||
-  s.reservedAppointment.state === CallStateType.LOADING);
+export const isLoadingNewAppointmentInfo = createSelector(getQMaticState, s =>
+  [s.services, s.branches, s.dates, s.times, s.reservedAppointment].some(status => status.state === CallStateType.LOADING));

@@ -11,19 +11,34 @@ export function qmaticReducer(state = initialQMaticState, action: QMaticActions)
     case QMaticActionTypes.GET_APPOINTMENTS_FAILED:
       return { ...state, appointments: stateError(action.error, state.appointments.result) };
     case QMaticActionTypes.GET_SERVICES:
-      return { ...state, services: stateLoading(initialQMaticState.services.result) };
+      return {
+        ...state,
+        services: stateLoading(initialQMaticState.services.result),
+        branches: initialQMaticState.branches,
+        dates: initialQMaticState.dates,
+        times: initialQMaticState.times,
+      };
     case QMaticActionTypes.GET_SERVICES_SUCCESS:
       return { ...state, services: stateSuccess(action.payload) };
     case QMaticActionTypes.GET_SERVICES_FAILED:
       return { ...state, services: stateError(action.error, state.services.result) };
     case QMaticActionTypes.GET_BRANCHES:
-      return { ...state, branches: stateLoading(initialQMaticState.branches.result) };
+      return {
+        ...state,
+        branches: stateLoading(initialQMaticState.branches.result),
+        dates: initialQMaticState.dates,
+        times: initialQMaticState.times,
+      };
     case QMaticActionTypes.GET_BRANCHES_SUCCESS:
       return { ...state, branches: stateSuccess(action.payload) };
     case QMaticActionTypes.GET_BRANCHES_FAILED:
       return { ...state, branches: stateError(action.error, state.branches.result) };
     case QMaticActionTypes.GET_DATES:
-      return { ...state, dates: stateLoading(initialQMaticState.dates.result) };
+      return {
+        ...state,
+        dates: stateLoading(initialQMaticState.dates.result),
+        times: initialQMaticState.times,
+      };
     case QMaticActionTypes.GET_DATES_SUCCESS:
       return { ...state, dates: stateSuccess(action.payload) };
     case QMaticActionTypes.GET_DATES_FAILED:

@@ -9,11 +9,8 @@
       <p *ngIf="appointment.branch.addressLine2">{{ appointment.branch.addressLine2 }}</p>
       <p>{{ appointment.branch.addressZip }} {{ appointment.branch.addressCity }}</p>
     </ng-container>
-    <ng-container *ngIf="appointment.notes">
-      <h3>{{ 'app.qm.notes' | translate }}</h3>
-      <p>{{ appointment.notes }}</p>
-    </ng-container>
-    <ng-container *ngIf="appointment.status === AppointmentStatus.BOOKED">
+    <p *ngIf="appointment.notes">{{ 'app.qm.remarks' | translate }}: {{ appointment.notes }}</p>
+    <ng-container *ngIf="appointment.status === AppointmentStatus.BOOKED && !past">
       <ion-button (click)="cancelClicked.emit(appointment)" color="danger" size="small">
         {{ 'app.qm.cancel' | translate }}
       </ion-button>

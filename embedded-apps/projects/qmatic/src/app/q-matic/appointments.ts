@@ -14,10 +14,24 @@ export interface ListResultMeta {
   totalResults: number;
 }
 
+export interface QMaticCustomServiceData {
+  cancelEnabled?: boolean;
+  infoText?: string;
+  notesFieldEnabled?: boolean;
+  rescheduleEnabled?: boolean;
+  emails?: string;
+  servicenametranslations?: unknown[];
+  hisId?: string;
+}
+
 export interface QMaticService {
   active: boolean;
   additionalCustomerDuration: number;
   created: number;
+  /**
+   * possibly contains json
+   * @see QMaticCustomServiceData
+   */
   custom: string | null;
   duration: number;
   name: string;
@@ -135,4 +149,10 @@ export interface CreateAppointment {
   title: string;
   customer: Partial<QMaticCustomer>;
   notes: string | null;
+}
+
+export function getDateString(date: Date): string {
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
 }

@@ -12,17 +12,22 @@
 <ion-content>
   <ng-container *ngIf="appointments$ | async as appointments">
     <qm-appointment-card (addToCalendarClicked)="addToCalendar($event)"
-                          (cancelClicked)="cancelAppointment($event)"
-                          *ngFor="let appointment of appointments.upcoming"
-                          [appointment]="appointment">
+                         (cancelClicked)="cancelAppointment($event)"
+                         *ngFor="let appointment of appointments.upcoming"
+                         [appointment]="appointment"
+                         [past]="false">
     </qm-appointment-card>
-    <p *ngIf="showNoResults$ | async" class="ion-padding">
-      {{ 'app.qm.no_upcoming_appointments_yet' | translate }}
-    </p>
+    <div *ngIf="showNoResults$ | async" class="ion-padding no-results">
+      <p>{{ 'app.qm.no_upcoming_appointments_yet' | translate }}</p>
+      <ion-button routerLink="/new-appointment">
+        {{ 'app.qm.create_appointment' | translate }}
+      </ion-button>
+    </div>
     <ng-container *ngIf="appointments.past.length > 0">
       <h2 class="ion-padding">{{ 'app.qm.former_appointments' | translate }}</h2>
       <qm-appointment-card *ngFor="let appointment of appointments.past"
-                            [appointment]="appointment">
+                           [appointment]="appointment"
+                           [past]="true">
       </qm-appointment-card>
     </ng-container>
   </ng-container>

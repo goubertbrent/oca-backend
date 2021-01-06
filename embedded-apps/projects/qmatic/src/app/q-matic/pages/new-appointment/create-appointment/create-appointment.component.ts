@@ -1,25 +1,19 @@
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  EventEmitter,
-  Input,
-  OnDestroy,
-  Output,
-  ViewEncapsulation,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnDestroy, Output, ViewChild } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
+import { MatDatepicker } from '@angular/material/datepicker';
+import { IonSelect } from '@ionic/angular';
 import { TranslateService } from '@ngx-translate/core';
 import { markFormGroupTouched } from '@oca/shared';
 import { IFormBuilder, IFormGroup } from '@rxweb/types';
+import { IonicSelectableComponent } from 'ionic-selectable';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { QMaticBranch, QMaticCustomer, QMaticService } from '../../../appointments';
+import { getDateString, QMaticBranch, QMaticCustomer, QMaticService } from '../../../appointments';
 
 export interface NewAppointmentForm {
   service: QMaticService | null;
   branch: string | null;
-  date: string | null;
+  date: Date | null;
   time: string | null;
   title: string;
   notes: string;
@@ -29,14 +23,16 @@ export interface NewAppointmentForm {
 @Component({
   selector: 'qm-create-appointment',
   templateUrl: './create-appointment.component.html',
+  styleUrls: ['./create-appointment.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  encapsulation: ViewEncapsulation.None,
 })
 export class CreateAppointmentComponent implements OnDestroy {
-  @Input() services: QMaticService[];
-  @Input() branches: QMaticBranch[];
-  @Input() dates: { value: string, date: Date }[];
-  @Input() times: string[];
+  @ViewChild('serviceSelect', { static: true }) serviceSelect: IonicSelectableComponent;
+  @ViewChild('branchSelect', { static: true }) branchSelect: IonSelect;
+  @ViewChild('dateInput', { static: true }) dateInput: HTMLInputElement;
+  @ViewChild('datePicker', { static: true }) datePicker: MatDatepicker<Date>;
+  @ViewChild('timePicker', { static: true }) timePicker: IonSelect;
+
   @Input() showLoading: boolean;
 
   @Output() serviceSelected = new EventEmitter<string>();
@@ -48,6 +44,15 @@ export class CreateAppointmentComponent implements OnDestroy {
 
   showValidationError = false;
   private destroyed$ = new Subject();
+  private autoOpened = {
+    services: false,
+    datePicker: false,
+    timePicker: false,
+  };
+  private _services: QMaticService[] = [];
+  private _branches: QMaticBranch[] = [];
+  private _dates: Date[] = [];
+  private _times: string[] = [];
 
   constructor(private translate: TranslateService,
               private formBuilder: FormBuilder) {
@@ -58,7 +63,7 @@ export class CreateAppointmentComponent implements OnDestroy {
       date: fb.control(null, Validators.required),
       time: fb.control(null, Validators.required),
       title: fb.control(null, Validators.required),
-      notes: fb.control(this.translate.instant('app.qm.via_app', { appName: rogerthat.system.appName }), Validators.required),
+      notes: fb.control(''),
       customer: fb.group<Partial<QMaticCustomer>>({
         firstName: fb.control(rogerthat.user.firstName || rogerthat.user.name.split(' ')[ 0 ], Validators.required),
         lastName: fb.control(this.getLastName(), Validators.required),
@@ -84,16 +89,84 @@ export class CreateAppointmentComponent implements OnDestroy {
         this.dateSelected.emit({
           service: this.formGroup.controls.service.value!.publicId!,
           branch: this.formGroup.controls.branch.value!,
-          date: v,
+          date: getDateString(v),
         });
       }
     });
+  }
+
+  get times() {
+    return this._times;
+  }
+
+  @Input() set times(value: string[]) {
+    this._times = value;
+    if (value?.length > 0 && !this.autoOpened.timePicker) {
+      this.autoOpened.timePicker = true;
+      // Automatically select first value if there's only one value, otherwise open the selector
+      if (value.length === 1) {
+        this.formGroup.controls.time.setValue(value[ 0 ]);
+      } else {
+        this.timePicker.open();
+      }
+    }
+  }
+
+  get dates() {
+    return this._dates;
+  }
+
+  @Input() set dates(value: Date[]) {
+    this._dates = value;
+    if (value?.length > 0 && !this.autoOpened.datePicker) {
+      this.autoOpened.datePicker = true;
+      this.autoOpened.timePicker = false;
+      this.datePicker.open();
+    }
+  }
+
+  get services() {
+    return this._services;
+  }
+
+  @Input() set services(value: QMaticService[]) {
+    this._services = value;
+    if (!this.autoOpened.services) {
+      this.autoOpened.services = true;
+      this.serviceSelect.open();
+    }
+  }
+
+  get branches() {
+    return this._branches;
+  }
+
+  @Input() set branches(value: QMaticBranch[]) {
+    this._branches = value;
+    if (value?.length > 0) {
+      this.autoOpened.timePicker = false;
+      this.autoOpened.datePicker = false;
+      // Automatically select first value if there's only one value, otherwise open the selector
+      if (value.length === 1) {
+        this.formGroup.controls.branch.setValue(value[ 0 ].publicId);
+      } else {
+        this.branchSelect.open();
+      }
+    }
   }
 
   ngOnDestroy() {
     this.destroyed$.next();
     this.destroyed$.complete();
   }
+
+  dateFilter = (date: Date | null): boolean => {
+    if (!date) {
+      return false;
+    }
+    const checkTime = date.getTime();
+    return this._dates.some(d => d.getTime() === checkTime);
+  };
 
   confirm() {
     if (this.formGroup.invalid) {

@@ -19,16 +19,15 @@
       "no": "Nee",
       "no_activities_found": "Geen activiteiten gevonden",
       "no_upcoming_appointments_yet": "U heeft geen toekomstige afspraken",
-      "notes": "Notities",
       "ok": "Ok",
       "phone": "Telefoonnummer",
+      "remarks": "Opmerkingen",
       "retry": "Opnieuw proberen",
       "search": "Zoeken",
       "service": "Dienst",
       "time": "Tijd",
       "unknown_error": "Er is een fout opgetreden, probeer het later opnieuw.",
       "validation_error_message": "Gelieve alle verplichte velden in te vullen",
-      "via_app": "Via de {{ appName }} app",
       "yes": "Ja"
     }
   }

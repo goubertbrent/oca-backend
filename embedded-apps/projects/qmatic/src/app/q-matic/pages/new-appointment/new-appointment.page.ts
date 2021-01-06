@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, ViewEncapsulation } from '@
 import { select, Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { QMState } from '../../../reducers';
-import { QMaticBranch, QMaticService } from '../../appointments';
+import { getDateString, QMaticBranch, QMaticService } from '../../appointments';
 import { GetBranchesAction, GetDatesAction, GetServicesAction, GetTimesAction, ReserveDateAction } from '../../q-matic-actions';
 import { getBranches, getDates, getServices, getTimes, isLoadingNewAppointmentInfo } from '../../q-matic.state';
 import { NewAppointmentForm } from './create-appointment/create-appointment.component';
@@ -15,7 +15,7 @@ import { NewAppointmentForm } from './create-appointment/create-appointment.comp
 export class NewAppointmentPage implements OnInit {
   services$: Observable<QMaticService[]>;
   branches$: Observable<QMaticBranch[]>;
-  dates$: Observable<{ value: string; date: Date }[]>;
+  dates$: Observable<Date[]>;
   times$: Observable<string[]>;
   isLoading$: Observable<boolean>;
 
@@ -51,7 +51,7 @@ export class NewAppointmentPage implements OnInit {
     this.store.dispatch(new ReserveDateAction({
       service_id: data.service!.publicId,
       branch_id: data.branch!,
-      date: data.date!,
+      date: getDateString(data.date!),
       time: data.time!,
       title: data.title,
       notes: data.notes,

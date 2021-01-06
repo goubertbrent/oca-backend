@@ -14,6 +14,7 @@ import { getAppointments, getAppointmentsList } from '../../q-matic.state';
 @Component({
   templateUrl: 'appointments.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styleUrls: ['./appointments.page.scss'],
 })
 export class AppointmentsPage implements OnInit {
   title = rogerthat.menuItem?.label;
