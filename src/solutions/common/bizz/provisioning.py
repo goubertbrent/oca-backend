@@ -33,7 +33,6 @@ from babel import dates
 from babel.dates import format_timedelta, get_next_timezone_transition, format_time
 from babel.numbers import format_currency
 from google.appengine.ext import db, deferred, ndb
-from typing import List
 
 import solutions
 from mcfw.properties import azzert
@@ -97,7 +96,7 @@ from solutions.common.models.group_purchase import SolutionGroupPurchase
 from solutions.common.models.loyalty import SolutionLoyaltySettings, SolutionLoyaltyLottery, \
     SolutionLoyaltyIdentitySettings
 from solutions.common.models.order import SolutionOrderWeekdayTimeframe
-from solutions.common.models.properties import MenuItem, ActivatedModules, \
+from solutions.common.models.properties import MenuItemTO, ActivatedModules, \
     ActivatedModule
 from solutions.common.models.reservation import RestaurantProfile
 from solutions.common.models.sandwich import SandwichType, SandwichTopping, SandwichSettings, SandwichOption
@@ -1111,7 +1110,7 @@ def put_menu(sln_settings, current_coords, current_label, main_branding, default
     for cat in menu.categories:
         cat.has_visible = False
         for item in cat.items:
-            if is_flag_set(MenuItem.VISIBLE_IN_MENU, item.visible_in):
+            if is_flag_set(MenuItemTO.VISIBLE_IN_MENU, item.visible_in):
                 item.visible = True
                 cat.has_visible = True
             else:
@@ -1214,7 +1213,7 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
             else:
                 item.image_url = None
 
-            if is_flag_set(MenuItem.VISIBLE_IN_ORDER, item.visible_in):
+            if is_flag_set(MenuItemTO.VISIBLE_IN_ORDER, item.visible_in):
                 item.visible = True
                 if not cat.has_visible:
                     cat.has_visible = True

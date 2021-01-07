@@ -34,7 +34,7 @@ def _re_provision(sln_settings_key):
     if 'order' in sln_settings.modules and not sln_settings.updates_pending:
         menu = RestaurantMenu.get(RestaurantMenu.create_key(sln_settings.service_user, sln_settings.solution))
         if menu:
-            for category in menu.categories:
+            for category in menu.get_categories().values():
                 for item in category.items:
                     if not item.has_price:
                         common_provision(sln_settings.service_user)

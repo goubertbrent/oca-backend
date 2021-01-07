@@ -15,19 +15,26 @@
 #
 # @@license_version:1.7@@
 
+import json
+
+from google.appengine.ext import db
+
+from mcfw.rpc import returns, arguments
 from rogerthat.dal import parent_key, parent_key_unsafe
 from rogerthat.rpc import users
 from rogerthat.utils.service import get_identity_from_service_identity_user, \
     get_service_user_from_service_identity_user
-from google.appengine.ext import db
-from mcfw.rpc import returns, arguments
 from solutions.common import SOLUTION_COMMON
 from solutions.common.models.properties import SolutionUserProperty
-from solutions.common.models.reservation.properties import ShiftsProperty
+from solutions.common.models.reservation.properties import ShiftsProperty,\
+    ShiftTO
 
 
 class RestaurantSettings(db.Model):
     shifts = ShiftsProperty()
+    shifts_json = db.TextProperty()
+    
+    _tmp_shifts = None
 
     @property
     def service_identity_user(self):
@@ -44,6 +51,26 @@ class RestaurantSettings(db.Model):
     @staticmethod
     def create_key(service_identity_user):
         return db.Key.from_path(RestaurantSettings.kind(), 'settings', parent=parent_key_unsafe(service_identity_user, SOLUTION_COMMON))
+    
+    def get_shifts(self):
+        if self._tmp_shifts is None:
+            data = json.loads(self.shifts_json) if self.shifts_json else {}
+            result = {}
+            if data:
+                for name, value in data.iteritems():
+                    result[name] = ShiftTO.from_dict(value)
+            elif self.shifts:
+                for s in self.shifts:
+                    result[s.name] = s
+            self._tmp_shifts = result
+        return self._tmp_shifts
+
+    def save_shifts(self, data):
+        result = {}
+        for key, value in data.iteritems():
+            result[key] = value.to_dict()
+        self.shifts_json = json.dumps(result)
+        self._tmp_shifts = data
 
 
 class RestaurantProfile(db.Model):

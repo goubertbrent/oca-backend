@@ -40,13 +40,12 @@ from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import bizz_check, channel
 from rogerthat.utils.transactions import run_in_xg_transaction, on_trans_committed
 from solutions import translate as common_translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import broadcast_updates_pending, delete_file_blob, create_file_blob, SolutionModule
 from solutions.common.consts import UNIT_PIECE, UNITS, ORDER_TYPE_ADVANCED
 from solutions.common.dal import get_solution_settings, get_restaurant_menu
 from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.models import RestaurantMenu, SolutionSettings, SolutionMainBranding
-from solutions.common.models.properties import MenuCategories, MenuCategory, MenuItem
+from solutions.common.models.properties import MenuCategoryTO, MenuItemTO
 from solutions.common.to import MenuTO
 
 try:
@@ -94,7 +93,8 @@ def save_menu(service_user, menu):
         m.is_default = False
         m.predescription = menu.predescription
         m.postdescription = menu.postdescription
-        m.categories = MenuCategories()
+        m.categories = None
+        categories = {}
         category_names = list()
         for c in menu.categories:
             if c.name in category_names:
@@ -111,7 +111,14 @@ def save_menu(service_user, menu):
                 if i.id == MISSING:
                     i.id = str(uuid.uuid4()).decode('UTF-8')
                 item_names.append(i.name)
-            m.categories.add(c)
+                
+            if c.id:
+                azzert(c.id not in categories)
+                categories[c.id] = c
+            else:
+                azzert(c.name not in categories)
+                categories[c.name] = c
+        m.save_categories(categories)
 
         sln_settings.updates_pending = True
         put_and_invalidate_cache(m, sln_settings)
@@ -132,7 +139,7 @@ def import_menu_from_excel(service_user, file_contents):
         return common_translate(sln_settings.main_language, translation_key, *args, **kwargs)
 
     def make_category(name, index, predescription=None, postdescription=None, items=None):
-        cat = MenuCategory()
+        cat = MenuCategoryTO()
         cat.name = name
         cat.index = index
         cat.predescription = predescription
@@ -159,7 +166,7 @@ def import_menu_from_excel(service_user, file_contents):
         raise BusinessException(menu_translate('item_unit_is_not_known', name=item_name, unit=unit, units=units))
 
     def make_item(name, description, price, unit, visible_in=None, step=1, image_url=None):
-        item = MenuItem()
+        item = MenuItemTO()
         item.name = name
         item.description = description
 
@@ -173,7 +180,7 @@ def import_menu_from_excel(service_user, file_contents):
         item.unit = item.custom_unit = guess_unit(name, unit.lower())
 
         if not visible_in:
-            item.visible_in = MenuItem.VISIBLE_IN_MENU | MenuItem.VISIBLE_IN_ORDER
+            item.visible_in = MenuItemTO.VISIBLE_IN_MENU | MenuItemTO.VISIBLE_IN_ORDER
         else:
             item.visible_in = visible_in
 
@@ -293,7 +300,7 @@ def export_menu_to_excel(service_user, sln_settings=None):
     for i, head in enumerate(MENU_HEADER):
         sheet.write(row, i, translate_f(head).capitalize())
 
-    for cat in menu.categories:
+    for cat in menu.get_categories().values():
         for item_idx, item in enumerate(cat.items):
             row += 1
             if item_idx == 0:
@@ -324,9 +331,11 @@ def _put_default_menu(service_user, translate_f=None, solution=None):
     menu.is_default = True
     menu.predescription = translate_f('prediscription') + " " + translate_f('your-menu')
     menu.postdescription = translate_f('postdiscription') + " " + translate_f('your-menu')
-    menu.categories = MenuCategories()
+    menu.categories = None
+    
+    categories = {}
 
-    drinks = MenuCategory()
+    drinks = MenuCategoryTO()
     drinks.name = translate_f('drinks')
     drinks.items = []
     drinks.index = 0
@@ -334,21 +343,21 @@ def _put_default_menu(service_user, translate_f=None, solution=None):
     drinks.postdescription = translate_f('postdiscription') + " " + translate_f('drinks')
     drinks.id = str(uuid.uuid4()).decode('UTF-8')
     for i in range(3):
-        drink = MenuItem()
+        drink = MenuItemTO()
         drink.name = translate_f('drink%d' % i)
         drink.price = 180
         drink.has_price = True
         drink.description = None
         drink.step = 1
         drink.unit = drink.custom_unit = UNIT_PIECE
-        drink.visible_in = MenuItem.VISIBLE_IN_MENU | MenuItem.VISIBLE_IN_ORDER
+        drink.visible_in = MenuItemTO.VISIBLE_IN_MENU | MenuItemTO.VISIBLE_IN_ORDER
         drink.image_id = -1
         drink.qr_url = None
         drink.id = str(uuid.uuid4()).decode('UTF-8')
         drinks.items.append(drink)
-    menu.categories.add(drinks)
+    categories[drinks.id] = drinks
 
-    starters = MenuCategory()
+    starters = MenuCategoryTO()
     starters.name = translate_f('starters')
     starters.items = []
     starters.index = 1
@@ -356,29 +365,29 @@ def _put_default_menu(service_user, translate_f=None, solution=None):
     starters.postdescription = translate_f('postdiscription') + " " + translate_f('starters')
     starters.id = str(uuid.uuid4()).decode('UTF-8')
     for i in range(3):
-        starter = MenuItem()
+        starter = MenuItemTO()
         starter.name = translate_f('starter%d' % i)
         starter.price = 695
         starter.has_price = True
         starter.description = translate_f('starter%d-desc' % i)
         starter.step = 1
         starter.unit = starter.custom_unit = UNIT_PIECE
-        starter.visible_in = MenuItem.VISIBLE_IN_MENU | MenuItem.VISIBLE_IN_ORDER
+        starter.visible_in = MenuItemTO.VISIBLE_IN_MENU | MenuItemTO.VISIBLE_IN_ORDER
         starter.image_id = -1
         starter.qr_url = None
         starter.id = str(uuid.uuid4()).decode('UTF-8')
         starters.items.append(starter)
-    menu.categories.add(starters)
+    categories[starters.id] = starters
 
-    main_courses = MenuCategory()
+    main_courses = MenuCategoryTO()
     main_courses.name = translate_f('main-courses')
     main_courses.items = []
     main_courses.index = 2
     main_courses.predescription = translate_f('prediscription') + " " + translate_f('main-courses')
     main_courses.postdescription = translate_f('postdiscription') + " " + translate_f('main-courses')
     main_courses.id = str(uuid.uuid4()).decode('UTF-8')
-    menu.categories.add(main_courses)
-
+    categories[main_courses.id] = main_courses
+    menu.save_categories(categories)
     menu.put()
     return menu
 
@@ -389,7 +398,7 @@ def get_menu_item_qr_url(service_user, category_index, item_index):
     from solutions.common.bizz.messaging import POKE_TAG_MENU_ITEM_IMAGE_UPLOAD
     from solutions.common.bizz.provisioning import put_menu_item_image_upload_flow
     menu = get_restaurant_menu(service_user)
-    for category in menu.categories:
+    for category in menu.get_categories().values():
         if category.index == category_index:
             item = category.items[item_index]
             if item.qr_url:
@@ -451,7 +460,7 @@ def set_menu_item_image(service_user, message_flow_run_id, member, steps, end_id
     def trans():
         sln_settings = get_solution_settings(service_user)
         menu = get_restaurant_menu(service_user, sln_settings.solution)
-        category = menu.categories[category_id]
+        category = menu.get_categories()[category_id]
         if not category:
             return create_error(common_translate(sln_settings.main_language, u'category_not_found',
                                                  name=category_name))
@@ -473,8 +482,8 @@ def set_menu_item_image(service_user, message_flow_run_id, member, steps, end_id
         item.image_id = create_file_blob(service_user, response.content).key().id()
         menu.put()
         on_trans_committed(channel.send_message, service_user, 'solutions.common.menu.item_image_configured',
-                           category=serialize_complex_value(category, MenuCategory, False),
-                           item=serialize_complex_value(item, MenuItem, False))
+                           category=serialize_complex_value(category, MenuCategoryTO, False),
+                           item=serialize_complex_value(item, MenuItemTO, False))
         return None
 
     return run_in_xg_transaction(trans)

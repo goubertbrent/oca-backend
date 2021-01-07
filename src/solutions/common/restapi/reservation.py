@@ -98,7 +98,7 @@ def get_broken_reservations():
     settings = get_restaurant_settings(service_user, service_identity)
     result = []
     for reservation in dal_get_broken_reservations(service_user, service_identity):
-        alternative_shifts = [shift.name for shift in settings.shifts if reservation.date.isoweekday() in shift.days]
+        alternative_shifts = [shift.name for shift in settings.get_shifts().values() if reservation.date.isoweekday() in shift.days]
         result.append(RestaurantBrokenReservationTO.fromReservation(reservation, alternative_shifts))
     return result
 

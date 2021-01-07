@@ -51,7 +51,7 @@ from solutions.common.consts import UNITS, UNIT_SYMBOLS, UNIT_PIECE, UNIT_LITER,
 from solutions.common.dal import get_solution_settings, get_restaurant_menu, get_solution_email_settings, \
     get_solution_settings_or_identity_settings
 from solutions.common.models import SolutionQR, SolutionServiceConsent
-from solutions.common.models.properties import MenuItem
+from solutions.common.models.properties import MenuItemTO
 from solutions.common.to import SolutionEmailSettingsTO
 from solutions.flex import SOLUTION_FLEX
 from solutions.jinja_extensions import TranslateExtension
@@ -316,8 +316,8 @@ class FlexHomeHandler(webapp2.RequestHandler):
             'UNIT_PLATTER': UNIT_PLATTER,
             'ORDER_TYPE_SIMPLE': ORDER_TYPE_SIMPLE,
             'ORDER_TYPE_ADVANCED': ORDER_TYPE_ADVANCED,
-            'ORDER_ITEM_VISIBLE_IN_MENU': MenuItem.VISIBLE_IN_MENU,
-            'ORDER_ITEM_VISIBLE_IN_ORDER': MenuItem.VISIBLE_IN_ORDER,
+            'ORDER_ITEM_VISIBLE_IN_MENU': MenuItemTO.VISIBLE_IN_MENU,
+            'ORDER_ITEM_VISIBLE_IN_ORDER': MenuItemTO.VISIBLE_IN_ORDER,
             'ORGANIZATION_TYPES': {
                 'CITY': OrganizationType.CITY,
                 'EMERGENCY': OrganizationType.EMERGENCY,

@@ -15,13 +15,14 @@
 #
 # @@license_version:1.7@@
 
+import json
 import logging
 
-from babel import Locale
-from babel.dates import get_timezone
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, ndb
 
+from babel import Locale
+from babel.dates import get_timezone
 from mcfw.cache import invalidate_cache, CachedModelMixIn
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
@@ -35,7 +36,7 @@ from rogerthat.utils.service import get_identity_from_service_identity_user, \
     get_service_user_from_service_identity_user
 from solutions.common import SOLUTION_COMMON
 from solutions.common.models.properties import SolutionUserProperty, MenuCategoriesProperty, \
-    ActivatedModulesProperty
+    ActivatedModulesProperty, MenuCategoryTO
 from solutions.common.utils import create_service_identity_user_wo_default
 
 
@@ -440,10 +441,13 @@ class SolutionMainBranding(db.Model):
 
 class RestaurantMenu(db.Model):
     categories = MenuCategoriesProperty()
+    categories_json = db.TextProperty()
     predescription = db.TextProperty()
     postdescription = db.TextProperty()
     name = db.StringProperty(indexed=False)
     is_default = db.BooleanProperty(indexed=False, default=False)
+    
+    _tmp_categories = None
 
     @property
     def service_user(self):
@@ -452,6 +456,29 @@ class RestaurantMenu(db.Model):
     @staticmethod
     def create_key(service_user, solution):
         return db.Key.from_path(RestaurantMenu.kind(), 'menu', parent=parent_key(service_user, solution))
+    
+    def get_categories(self):
+        if self._tmp_categories is None:
+            data = json.loads(self.categories_json) if self.categories_json else {}
+            result = {}
+            if data:
+                for id_, value in data.iteritems():
+                    result[id_] = MenuCategoryTO.from_dict(value)
+            elif self.categories:
+                for c in self.categories:
+                    if c.id:
+                        result[c.id] = c
+                    else:
+                        result[c.name] = c
+            self._tmp_categories = result
+        return self._tmp_categories
+
+    def save_categories(self, data):
+        result = {}
+        for key, value in data.iteritems():
+            result[key] = value.to_dict()
+        self.categories_json = json.dumps(result)
+        self._tmp_categories = data
 
 
 class RestaurantInvite(db.Model):

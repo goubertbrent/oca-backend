@@ -18,11 +18,11 @@
 from mcfw.properties import unicode_property, typed_property, long_list_property, long_property, unicode_list_property, \
     bool_property
 from solutions.common.dal.reservations import get_tables
-from solutions.common.models.reservation.properties import Shift
+from solutions.common.models.reservation.properties import ShiftTO
 from solutions.common.to import TimestampTO
 
 
-class RestaurantShiftTO(Shift):
+class RestaurantShiftTO(ShiftTO):
 
     @staticmethod
     def fromShift(obj):
@@ -51,7 +51,7 @@ class RestaurantSettingsTO(object):
     def fromRestaurantSettingsObject(obj):
         settings = RestaurantSettingsTO()
         settings.shifts = list()
-        for shift_obj in obj.shifts:
+        for shift_obj in obj.get_shifts().values():
             settings.shifts.append(RestaurantShiftTO.fromShift(shift_obj))
         settings.tables = map(TableTO.fromTable, get_tables(obj.service_user, obj.service_identity))
         return settings

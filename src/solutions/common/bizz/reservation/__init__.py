@@ -15,17 +15,17 @@
 #
 # @@license_version:1.7@@
 
+from datetime import datetime, timedelta, time
 import json
 import logging
-from datetime import datetime, timedelta, time
 from types import NoneType, FunctionType
 
-import pytz
-from babel.dates import format_date, format_time
 from google.appengine.ext import db, deferred
 
+from babel.dates import format_date, format_time
 from mcfw.properties import azzert, object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
+import pytz
 from rogerthat.dal import put_and_invalidate_cache, parent_key_unsafe
 from rogerthat.models import Message
 from rogerthat.models.properties.forms import Form, FormResult
@@ -57,11 +57,13 @@ from solutions.common.dal.reservations import get_restaurant_profile, get_planne
 from solutions.common.models import SolutionInboxMessage
 from solutions.common.models.properties import SolutionUser
 from solutions.common.models.reservation import RestaurantReservation, RestaurantSettings, RestaurantTable
-from solutions.common.models.reservation.properties import Shift, Shifts
+from solutions.common.models.reservation.properties import ShiftTO,\
+    DuplicateShiftException
 from solutions.common.to import TimestampTO, SolutionInboxMessageTO
 from solutions.common.to.reservation import RestaurantReservationStatisticsTO, RestaurantReservationStatisticTO, \
     RestaurantShiftTO, TableTO
 from solutions.common.utils import create_service_identity_user_wo_default
+
 
 STATUS_AVAILABLE = u'available'
 STATUS_RESTAURANT_CLOSED = u'restaurant-closed'
@@ -90,9 +92,10 @@ class InvalidTableException(BusinessException):
 def put_default_restaurant_settings(service_user, service_identity, translate_f, default_lang):
     service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
     settings = RestaurantSettings(key=RestaurantSettings.create_key(service_identity_user))
-    settings.shifts = Shifts()
+    settings.shifts = None
+    shifts = {}
 
-    shift = Shift()
+    shift = ShiftTO()
     shift.name = translate_f('shift-lunch')
     shift.capacity = 50
     shift.max_group_size = 6
@@ -102,9 +105,9 @@ def put_default_restaurant_settings(service_user, service_identity, translate_f,
     shift.end = 14 * 60 * 60
     shift.days = [1, 2, 3, 4, 5]
     shift.comment = translate_f('shift-comment0')
-    settings.shifts.add(shift)
+    shifts[shift.name] = shift
 
-    shift = Shift()
+    shift = ShiftTO()
     shift.name = translate_f('shift-dinner')
     shift.capacity = 50
     shift.max_group_size = 6
@@ -114,7 +117,8 @@ def put_default_restaurant_settings(service_user, service_identity, translate_f,
     shift.end = 21 * 60 * 60
     shift.days = [1, 2, 3, 4, 5]
     shift.comment = translate_f('shift-comment1')
-    settings.shifts.add(shift)
+    shifts[shift.name] = shift
+    settings.save_shifts(shifts)
     settings.put()
     return settings
 
@@ -734,11 +738,11 @@ def reserve_table(service_user, service_identity, user_details, date, people, na
 @arguments(service_user=users.User, service_identity=unicode, reservation_key=unicode, shift_name=unicode)
 def move_reservation(service_user, service_identity, reservation_key, shift_name):
     settings = get_restaurant_settings(service_user, service_identity)
-    bizz_check(shift_name in settings.shifts, "Cannot move reservation into unknown shift '%s'." % shift_name)
+    bizz_check(shift_name in settings.get_shifts(), "Cannot move reservation into unknown shift '%s'." % shift_name)
     def trans():
         reservation = db.get(reservation_key)
         bizz_check(reservation and isinstance(reservation, RestaurantReservation), "Reservation not found.")
-        shift = settings.shifts[shift_name]
+        shift = settings.get_shifts()[shift_name]
         bizz_check(reservation.date.isoweekday() in shift.days)
         shift_start = datetime(reservation.date.year, reservation.date.month, reservation.date.day, shift.start / 3600, shift.start % 3600 / 60)
         reservation.shift_start = shift_start
@@ -862,7 +866,7 @@ def get_shift_by_datetime(service_user, service_identity, now):
 
 
 @returns(tuple)
-@arguments(service_user=users.User, service_identity=unicode, current_shift=Shift, current_start_time=datetime)
+@arguments(service_user=users.User, service_identity=unicode, current_shift=ShiftTO, current_start_time=datetime)
 def get_next_shift(service_user, service_identity, current_shift, current_start_time):
     current_day = current_start_time.isoweekday()
     shifts = _get_sorted_shifts(service_user, service_identity)
@@ -1076,7 +1080,7 @@ def reply_reservation(service_user, email, app_id, message, reservation_key=None
                        tag=None,
                        service_identity=service_identity)
 
-@returns([Shift])
+@returns([ShiftTO])
 @arguments(service_user=users.User, service_identity=unicode, date=datetime)
 def _get_shifts_on_date(service_user, service_identity, date):
     date_day = date.isoweekday()
@@ -1088,7 +1092,7 @@ def _get_shifts_on_date(service_user, service_identity, date):
 def _get_sorted_shifts(service_user, service_identity):
     settings = get_restaurant_settings(service_user, service_identity)
     shifts = list()
-    for shift in settings.shifts:
+    for shift in settings.get_shifts().values():
         for day in shift.days:
             shifts.append((day, shift))
     def shift_cmp(left, right):
@@ -1101,7 +1105,7 @@ def _get_sorted_shifts(service_user, service_identity):
     return sorted(shifts, cmp=shift_cmp)
 
 
-@returns(Shift)
+@returns(ShiftTO)
 @arguments(service_user=users.User, service_identity=unicode, date=long)
 def _get_matching_shift(service_user, service_identity, date):
     seconds_from_midnight = date % 86400
@@ -1109,11 +1113,11 @@ def _get_matching_shift(service_user, service_identity, date):
     return _get_matching_shift2(service_user, service_identity, seconds_from_midnight, weekday)
 
 
-@returns(Shift)
+@returns(ShiftTO)
 @arguments(service_user=users.User, service_identity=unicode, seconds_from_midnight=(int, long), weekday=int)
 def _get_matching_shift2(service_user, service_identity, seconds_from_midnight, weekday):
     settings = get_restaurant_settings(service_user, service_identity)
-    for shift in settings.shifts:
+    for shift in settings.get_shifts().values():
         if weekday in shift.days and shift.start <= seconds_from_midnight < shift.end:
             return shift
     return None
@@ -1162,9 +1166,13 @@ def save_shifts(service_user, service_identity, shifts):
         # Save settings
         settings = get_restaurant_settings(service_user, service_identity)
         azzert(settings)
-        settings.shifts = Shifts()
+        settings.shifts = None
+        data = {}
         for shift in shifts:
-            settings.shifts.add(shift)
+            if shift.name in data:
+                raise DuplicateShiftException("Two shifts cannot have the same name!")
+            data[shift.name] = shift
+        settings.save_shifts(data)
         put_and_invalidate_cache(settings)
         handle_shift_updates(service_user, service_identity, today, shifts)
 

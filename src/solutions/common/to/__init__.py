@@ -34,7 +34,7 @@ from solutions import translate as common_translate
 from solutions.common.models import SolutionInboxMessage, SolutionBrandingSettings, SolutionSettings, \
     SolutionIdentitySettings
 from solutions.common.models.agenda import Event, EventCalendarType, EventPeriod, EventDate
-from solutions.common.models.properties import MenuCategory
+from solutions.common.models.properties import MenuCategoryTO
 
 
 class SolutionUserKeyLabelTO(TO):
@@ -234,7 +234,7 @@ class UrlReturnStatusTO(ReturnStatusTO):
 
 
 class MenuTO(object):
-    categories = typed_property('1', MenuCategory, True)
+    categories = typed_property('1', MenuCategoryTO, True)
     predescription = unicode_property('2')
     postdescription = unicode_property('3')
     name = unicode_property('4')
@@ -246,10 +246,10 @@ class MenuTO(object):
         menu.predescription = obj.predescription
         menu.postdescription = obj.postdescription
         menu.categories = list()
-        for category_obj in sorted(obj.categories, key=lambda x: x.index):
+        for category_obj in sorted(obj.get_categories().values(), key=lambda x: x.index):
             # copy
-            menu.categories.append(parse_complex_value(MenuCategory,
-                                                       serialize_complex_value(category_obj, MenuCategory, False),
+            menu.categories.append(parse_complex_value(MenuCategoryTO,
+                                                       serialize_complex_value(category_obj, MenuCategoryTO, False),
                                                        False))
         return menu
 

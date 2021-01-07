@@ -16,12 +16,14 @@
 # @@license_version:1.7@@
 
 from google.appengine.ext import db
+
 from mcfw.properties import unicode_property, long_property, \
     long_list_property
 from mcfw.serialization import s_long, s_unicode, ds_long, ds_unicode, \
     get_list_serializer, get_list_deserializer, s_long_list, ds_long_list
 from rogerthat.models.properties.messaging import SpecializedList
 from rogerthat.rpc.service import BusinessException
+from rogerthat.to import TO
 try:
     import cStringIO as StringIO
 except ImportError:
@@ -30,7 +32,7 @@ except ImportError:
 class DuplicateShiftException(BusinessException):
     pass
 
-class Shift(object):
+class ShiftTO(TO):
     name = unicode_property('1', 'Name of the shift. Eg Lunch, Dinner')
     start = long_property('2', 'Start of the shift expressed in a number of seconds since midnight.')
     end = long_property('3', 'End of the shift expressed in a number of seconds since midnight.')
@@ -41,7 +43,7 @@ class Shift(object):
     days = long_list_property('8', 'Days on which this shift applies. 1=Monday, 7=Sunday')
 
     def __eq__(self, other):
-        if not isinstance(other, Shift):
+        if not isinstance(other, ShiftTO):
             return False
         return self.start == other.start and self.end == other.end and self.days == other.days
 
@@ -63,7 +65,7 @@ def _serialize_shift(stream, s):
     s_long_list(stream, s.days)
 
 def _deserialize_shift(stream, version):
-    s = Shift()
+    s = ShiftTO()
     s.name = ds_unicode(stream)
     s.start = ds_long(stream)
     s.end = ds_long(stream)
@@ -96,7 +98,10 @@ class ShiftsProperty(db.UnindexedProperty):
     # For writing to datastore.
     def get_value_for_datastore(self, model_instance):
         stream = StringIO.StringIO()
-        _serialize_shifts(stream, super(ShiftsProperty, self).get_value_for_datastore(model_instance))
+        super_value = super(ShiftsProperty, self).get_value_for_datastore(model_instance)
+        if not super_value:
+            return None
+        _serialize_shifts(stream, super_value)
         return db.Blob(stream.getvalue())
 
     # For reading from datastore.

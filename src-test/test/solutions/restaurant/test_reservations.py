@@ -33,7 +33,7 @@ from solutions.common.bizz.reservation import availability_and_shift, STATUS_AVA
     cancel_reservation, move_reservation, edit_reservation
 from solutions.common.models import SolutionSettings, SolutionMainBranding
 from solutions.common.models.reservation import RestaurantReservation, RestaurantSettings
-from solutions.common.models.reservation.properties import Shifts, Shift
+from solutions.common.models.reservation.properties import ShiftTO
 from solutions.flex import SOLUTION_FLEX
 
 try:
@@ -89,9 +89,9 @@ class Test(oca_unittest.TestCase):
         main_branding.blob = db.Blob(stream.read())
         main_branding.branding_key = None
 
-        settings.shifts = Shifts()
-
-        shift = Shift()
+        settings.shifts = None
+        shifts = {}
+        shift = ShiftTO()
         shift.name = u'shift-lunch'
         shift.capacity = 50
         shift.max_group_size = 6
@@ -101,9 +101,9 @@ class Test(oca_unittest.TestCase):
         shift.end = 14 * 60 * 60
         shift.days = [1, 2, 3, 4, 5, 6, 7]
         shift.comment = u'shift-comment0'
-        settings.shifts.add(shift)
+        shifts[shift.name] = shift
 
-        shift = Shift()
+        shift = ShiftTO()
         shift.name = u'shift-dinner'
         shift.capacity = 50
         shift.max_group_size = 6
@@ -113,8 +113,8 @@ class Test(oca_unittest.TestCase):
         shift.end = 21 * 60 * 60
         shift.days = [1, 2, 3, 4, 5, 6, 7]
         shift.comment = u'shift-comment1'
-        settings.shifts.add(shift)
-
+        shifts[shift.name] = shift
+        settings.save_shifts(shifts)
         put_and_invalidate_cache(solutionSettings, settings, main_branding)
 
         date_ = datetime.datetime.combine(datetime.date.today() + datetime.timedelta(days=10), datetime.datetime.min.time())

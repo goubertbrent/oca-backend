@@ -26,8 +26,10 @@ from mcfw.serialization import s_long, s_unicode, ds_long, ds_unicode, get_list_
     s_bool, ds_bool
 from rogerthat.models import App
 from rogerthat.models.properties.messaging import SpecializedList
+from rogerthat.to import TO
 from rogerthat.to.service import UserDetailsTO
 from solutions.common.consts import UNIT_PIECE
+
 
 try:
     import cStringIO as StringIO
@@ -99,7 +101,7 @@ class SolutionUserProperty(db.UnindexedProperty):
         return deserialize_solution_user(StringIO.StringIO(value))
 
 
-class MenuItem(object):
+class MenuItemTO(TO):
     VISIBLE_IN_MENU = 1
     VISIBLE_IN_ORDER = 2
 
@@ -118,9 +120,9 @@ class MenuItem(object):
     custom_unit = long_property('11')
 
 
-class MenuCategory(object):
+class MenuCategoryTO(TO):
     name = unicode_property('1')
-    items = typed_property('2', MenuItem, True)
+    items = typed_property('2', MenuItemTO, True)
     index = long_property('3')
     predescription = unicode_property('4')
     postdescription = unicode_property('5')
@@ -158,11 +160,11 @@ def convert_price_to_long(str_price):
 
 
 def _deserialize_item(stream, version):
-    item = MenuItem()
+    item = MenuItemTO()
     item.name = ds_unicode(stream)
     item.price = convert_price_to_long(ds_unicode(stream)) if version < 5 else ds_long(stream)
     item.description = ds_unicode(stream)
-    item.visible_in = ds_long(stream) if version > 2 else MenuItem.VISIBLE_IN_MENU | MenuItem.VISIBLE_IN_ORDER
+    item.visible_in = ds_long(stream) if version > 2 else MenuItemTO.VISIBLE_IN_MENU | MenuItemTO.VISIBLE_IN_ORDER
     item.unit = ds_long(stream) if version > 3 else UNIT_PIECE
     item.step = ds_long(stream) if version > 3 else 1
     if version < 6:
@@ -192,7 +194,7 @@ def _serialize_category(stream, c):
 
 
 def _deserialize_category(stream, version):
-    c = MenuCategory()
+    c = MenuCategoryTO()
     c.name = ds_unicode(stream)
     c.items = _deserialize_item_list(stream, version)
     c.index = ds_long(stream)
@@ -225,7 +227,10 @@ class MenuCategoriesProperty(db.UnindexedProperty):
     # For writing to datastore.
     def get_value_for_datastore(self, model_instance):
         stream = StringIO.StringIO()
-        _serialize_categories(stream, super(MenuCategoriesProperty, self).get_value_for_datastore(model_instance))
+        super_value = super(MenuCategoriesProperty, self).get_value_for_datastore(model_instance)
+        if not super_value:
+            return None
+        _serialize_categories(stream, super_value)
         return db.Blob(stream.getvalue())
 
     # For reading from datastore.

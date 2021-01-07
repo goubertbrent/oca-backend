@@ -26,11 +26,11 @@ from google.appengine.ext import db
 from mcfw.rpc import arguments, returns
 from solutions.common.dal.reservations import get_reservations_keys_qry
 from solutions.common.models.reservation import RestaurantReservation
-from solutions.common.models.reservation.properties import Shift
+from solutions.common.models.reservation.properties import ShiftTO
 
 
 @returns(NoneType)
-@arguments(service_user=users.User, service_identity=unicode, start=datetime, shifts=[Shift])
+@arguments(service_user=users.User, service_identity=unicode, start=datetime, shifts=[ShiftTO])
 def handle_shift_updates(service_user, service_identity, start, shifts):
     run_job(get_reservations_keys_qry, [service_user, service_identity, start], _check_reservation, [shifts, service_user, service_identity])
 
