@@ -19,6 +19,7 @@ from google.appengine.ext import db
 
 from rogerthat.dal import parent_key
 from rogerthat.models import KeyValueProperty
+from rogerthat.rpc import users
 from solutions.common import SOLUTION_COMMON
 
 
@@ -26,12 +27,17 @@ class SolutionDiscussionGroup(db.Model):
     topic = db.StringProperty()
     description = db.TextProperty()
     members = KeyValueProperty()
+    member_list = db.StringListProperty(indexed=False)
     message_key = db.StringProperty(indexed=False)
     creation_timestamp = db.IntegerProperty(indexed=False)
 
     @property
     def id(self):
         return self.key().id()
+    
+    @property
+    def service_user(self):
+        return users.User(self.parent_key().name())
 
     @staticmethod
     def _create_parent_key(service_user):

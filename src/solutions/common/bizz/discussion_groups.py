@@ -131,8 +131,8 @@ def put_discussion_group(service_user, topic, description, discussion_group_id=N
         if is_new:
             # Create the model
             discussion_group = SolutionDiscussionGroup(key=key, message_key=message_key, creation_timestamp=now())
-            discussion_group.members = KVStore(key)
-            discussion_group.members.from_json_dict(dict(members=list()))
+            discussion_group.member_list = []
+            discussion_group.members = None
         else:
             discussion_group = SolutionDiscussionGroup.get(key)
             if not discussion_group:
@@ -162,7 +162,6 @@ def delete_discussion_group(service_user, discussion_group_id):
 
     def trans():
         discussion_group = db.get(key)
-        discussion_group.members.clear()  # clears the buckets
         discussion_group.delete()
     db.run_in_transaction(trans)
 
@@ -181,7 +180,7 @@ def poke_discussion_groups(service_user, email, tag, result_key, context, servic
     app_user_email = user_details[0].toAppUser().email()
     for discussion_group in SolutionDiscussionGroup.list(service_user):
         widget.choices.append(ChoiceTO(label=discussion_group.topic, value=unicode(discussion_group.id)))
-        if app_user_email in discussion_group.members['members']:
+        if app_user_email in discussion_group.member_list:
             widget.values.append(unicode(discussion_group.id))
 
     sln_settings, sln_main_branding = db.get([SolutionSettings.create_key(service_user),
@@ -244,23 +243,20 @@ def follow_discussion_groups(service_user, status, form_result, answer_id, membe
         followed_new_group = False
         to_put = list()
         for discussion_group in SolutionDiscussionGroup.list(service_user):
-            kv_store_dict = discussion_group.members.to_json_dict()
-            was_following = app_user_email in kv_store_dict['members']
+            was_following = app_user_email in discussion_group.member_list
             now_following = discussion_group.id in selected_ids
 
             if was_following != now_following:
                 if now_following:
                     followed_new_group = True
                     logging.debug('Adding %s to discussion group "%s"', app_user_email, discussion_group.topic)
-                    kv_store_dict['members'].append(app_user_email)
+                    discussion_group.member_list.append(app_user_email)
                     on_trans_committed(add_to_chat, discussion_group.message_key)
                 else:
                     logging.debug('Removing %s from discussion group "%s"', app_user_email, discussion_group.topic)
-                    kv_store_dict['members'].remove(app_user_email)
+                    discussion_group.member_list.remove(app_user_email)
                     on_trans_committed(rm_from_chat, discussion_group.message_key)
                 to_put.append(discussion_group)
-                # We need to set members again to force the KVStore to be put
-                discussion_group.members.from_json_dict(kv_store_dict)
         if to_put:
             put_and_invalidate_cache(*to_put)
         return followed_new_group
@@ -300,14 +296,11 @@ def discussion_group_deleted(service_user, parent_message_key, member, timestamp
             logging.info('Discussion group %s not found', discussion_group_id)
             return
 
-        kv_store_dict = discussion_group.members.to_json_dict()
-        members = kv_store_dict['members']
-        if app_user_email not in members:
+        if app_user_email not in discussion_group.member_list:
             logging.info('%s not found in discussion group %s', discussion_group_id)
             return
 
-        members.remove(app_user_email)
-        discussion_group.members.from_json_dict(kv_store_dict)
+        discussion_group.member_list.remove(app_user_email)
         discussion_group.put()
 
     run_in_xg_transaction(trans)
