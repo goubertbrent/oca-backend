@@ -110,8 +110,6 @@ class App(CachedModelMixIn, db.Model):
     apple_push_cert_valid_until = db.IntegerProperty()
     apns_key = db.TextProperty(indexed=False)
     apns_key_id = db.TextProperty(indexed=False)
-    # TODO communities: remove after migration
-    auto_connected_services = AutoConnectedServicesProperty()  # type: list[AutoConnectedService]
     is_default = db.BooleanProperty(indexed=True)
     qrtemplate_keys = db.StringListProperty(indexed=False)
     dashboard_email_address = db.StringProperty(indexed=False)
@@ -126,8 +124,6 @@ class App(CachedModelMixIn, db.Model):
     owncloud_base_uri = db.StringProperty(indexed=False)
     owncloud_admin_username = db.StringProperty(indexed=False)
     owncloud_admin_password = db.StringProperty(indexed=False)
-    # TODO communities: remove after migration
-    embedded_apps = db.StringListProperty(indexed=True, default=[])
     disabled = db.BooleanProperty(default=False)
     country = db.StringProperty()  # 2 letter country code
     default_app_name_mapping = db.TextProperty()
