@@ -82,7 +82,7 @@ from rogerthat.models import Profile, APIKey, SIKKey, ServiceInteractionDef, Sho
     ServiceMenuDefTagMap, UserData, FacebookUserProfile, App, MessageFlowRunRecord, \
     FriendServiceIdentityConnection, UserContext, UserContextLink, \
     ServiceCallBackSettings, ServiceCallBackConfig
-from rogerthat.models.properties.friend import FriendDetail, FriendDetails
+from rogerthat.models.properties.friend import FriendDetailTO
 from rogerthat.models.properties.keyvalue import KVStore, InvalidKeyError
 from rogerthat.models.settings import ServiceInfo
 from rogerthat.models.utils import allocate_id, allocate_ids
@@ -2738,8 +2738,8 @@ def set_user_data_object(service_identity_user, friend_user, data_dict, replace=
         if must_be_friends:
             if not friend_exists:
                 raise FriendNotFoundException()
-            friend_detail = friend_map.friendDetails[friend_detail_user.email()]
-            if friend_detail.existence != FriendDetail.FRIEND_EXISTENCE_ACTIVE:
+            friend_detail = friend_map.get_friend_detail_by_email(friend_detail_user.email())
+            if friend_detail.existence != FriendDetailTO.FRIEND_EXISTENCE_ACTIVE:
                 raise FriendNotFoundException()
 
         full_json_dict = updated_json_dict
@@ -2774,7 +2774,8 @@ def set_user_data_object(service_identity_user, friend_user, data_dict, replace=
         except InvalidKeyError as e:
             raise InvalidKeyException(key=e.key)
 
-        friend_detail = friend_map.friendDetails[friend_detail_user.email()]
+        friend_details = friend_map.get_friend_details()
+        friend_detail = friend_details[friend_detail_user.email()]
         if len(user_data.userData.keys()) > 0:
             puts.append(user_data)  # create or update UserData
             friend_detail.hasUserData = True
@@ -2782,6 +2783,7 @@ def set_user_data_object(service_identity_user, friend_user, data_dict, replace=
             db.delete_async(user_data_key)
             friend_detail.hasUserData = False
         friend_detail.relationVersion += 1
+        friend_map.save_friend_details(friend_details)
         friend_map.generation += 1
         puts.append(friend_map)
 
@@ -3084,10 +3086,9 @@ def fake_friend_connection(map_key_or_user, si):
 
     friend_map = run_in_transaction(_update_friend_map)
 
-    friend_detail = FriendDetails().addNew(remove_slash_default(si.user),
-                                           si.name, si.avatarId, type_=FriendDetail.TYPE_SERVICE)
+    friend_detail = FriendDetailTO.create(remove_slash_default(si.user), si.name, si.avatarId, type_=FriendDetailTO.TYPE_SERVICE)
     friend_detail.relationVersion = -1
-    friend_detail.existence = FriendDetail.FRIEND_EXISTENCE_DELETED
+    friend_detail.existence = FriendDetailTO.FRIEND_EXISTENCE_DELETED
 
     logging.debug("debugging_branding fake_friend_connection friend_map.ver %s friend_map.gen %s friend_detail.relv %s",
                   friend_map.version, friend_map.generation, friend_detail.relationVersion)

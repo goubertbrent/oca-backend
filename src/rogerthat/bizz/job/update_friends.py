@@ -37,9 +37,8 @@ from rogerthat.dal.mobile import get_mobile_key_by_account
 from rogerthat.dal.profile import get_user_profile, get_service_profile, get_service_profiles
 from rogerthat.dal.service import get_friend_service_identity_connections_keys_of_app_user_query, \
     get_service_identities_query, get_one_friend_service_identity_connection_keys_query
-from rogerthat.models import ProfileInfo, ServiceTranslation, FriendServiceIdentityConnection, FriendMap, \
-    ServiceProfile, UserProfile, UserData
-from rogerthat.models.properties.friend import FriendDetail
+from rogerthat.models import ProfileInfo, ServiceTranslation, FriendMap, ServiceProfile, UserProfile, UserData
+from rogerthat.models.properties.friend import FriendDetailTO
 from rogerthat.rpc import users
 from rogerthat.rpc.models import RpcCAPICall
 from rogerthat.rpc.rpc import logError
@@ -232,12 +231,13 @@ def _update_friend(friend_map_key, helper):
             return
 
         email = remove_slash_default(profile_info.user).email()
-        if email not in friend_map.friendDetails:
-            logging.warn(list(friend_map.friendDetails))
+        friend_details = friend_map.get_friend_details()
+        if email not in friend_details:
+            logging.warn(friend_details.keys())
             logging.warn("Probably friend %s was removed while updating %s" % (email, friend_map.user.email()))
             return
 
-        friend_detail = friend_map.friendDetails[email]
+        friend_detail = friend_details[email]
         friend_detail.avatarId = avatar_id
         if profile_info.isServiceIdentity:
             target_user_profile = get_user_profile(friend_map.user)
@@ -251,6 +251,7 @@ def _update_friend(friend_map_key, helper):
             friend_detail.name = profile_info.name
         friend_detail.type = helper.friend_type
         friend_detail.relationVersion += 1
+        friend_map.save_friend_details(friend_details)
         friend_map.generation += 1
 
         to_put = [friend_map]
@@ -292,12 +293,10 @@ def create_update_friend_requests(helper, updated_user, friend_map, status, extr
     if status == UpdateFriendRequestTO.STATUS_DELETE:
         friend_detail = None
     else:
-        try:
-            friend_detail = friend_map.friendDetails[remove_slash_default(updated_user).email()]
-        except KeyError:
+        friend_detail = friend_map.get_friend_detail_by_email(remove_slash_default(updated_user).email())
+        if not friend_detail:
             logging.warn("%s not found in the friendMap of %s. Not sending updateFriend request with status=%s",
                          remove_slash_default(updated_user), target_user, status)
-            friend_detail = None
     if not friend_detail:
         return []
     friend_to = convert_friend(helper, target_user, friend_detail, status, extra_conversion_kwargs)
@@ -309,7 +308,7 @@ def create_update_friend_requests(helper, updated_user, friend_map, status, extr
 
 
 @returns(FriendTO)
-@arguments(helper=FriendHelper, target_user=users.User, updated_friend_detail=FriendDetail, status=(int, long),
+@arguments(helper=FriendHelper, target_user=users.User, updated_friend_detail=FriendDetailTO, status=(int, long),
            extra_conversion_kwargs=dict)
 def convert_friend(helper, target_user, updated_friend_detail, status, extra_conversion_kwargs=None):
     # type: (FriendHelper, users.User, FriendDetail, long, dict) -> FriendTO
@@ -342,7 +341,7 @@ def do_update_friend_request(target_user, friend, status, friend_map, helper, sk
         # type: () -> List[RpcCAPICall]
         capi_calls = []
         request = UpdateFriendSetRequestTO()
-        request.friends = [remove_app_id(users.User(f.email)).email() for f in friend_map.friendDetails]
+        request.friends = [remove_app_id(users.User(f.email)).email() for f in friend_map.get_friend_details().values()]
         request.version = friend_map.version
         logging.debug('debugging_branding do_update_friend_request friend_map.ver %s', friend_map.version)
         request.added_friend = None

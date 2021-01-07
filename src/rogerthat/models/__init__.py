@@ -44,7 +44,7 @@ from rogerthat.models.common import NdbModel
 from rogerthat.models.properties import CompressedIntegerList
 from rogerthat.models.properties.app import AutoConnectedServicesProperty, AutoConnectedService
 from rogerthat.models.properties.forms import FormProperty
-from rogerthat.models.properties.friend import FriendDetailsProperty, FriendDetails
+from rogerthat.models.properties.friend import FriendDetailsProperty, FriendDetailTO
 from rogerthat.models.properties.keyvalue import KeyValueProperty, KVStore
 from rogerthat.models.properties.messaging import ButtonsProperty, MemberStatusesProperty, JsFlowDefinitionsProperty, \
     AttachmentsProperty, SpecializedList, EmbeddedAppProperty, JsFlowDefinitionTO
@@ -452,8 +452,11 @@ class FriendMap(db.Model):
     shareContacts = db.BooleanProperty(default=True)
     friends = db.ListProperty(users.User)
     friendDetails = FriendDetailsProperty()
+    friend_details_json = db.TextProperty()
     generation = db.IntegerProperty()
     version = db.IntegerProperty(indexed=False, default=0)  # bumped every time a friend is added/removed
+    
+    _tmp_friend_details = None
 
     @property
     def user(self):
@@ -470,8 +473,33 @@ class FriendMap(db.Model):
 
     @classmethod
     def create(cls, app_user):
-        return cls(key=cls.create_key(app_user), generation=0, friends=list(), friendDetails=FriendDetails())
+        return cls(key=cls.create_key(app_user), generation=0, friends=list(), friendDetails=None, friend_details_json=None)
+    
+    def get_friend_details(self):
+        if self._tmp_friend_details is None:
+            data = json.loads(self.friend_details_json) if self.friend_details_json else {}
+            result = {}
+            if data:
+                for email, value in data.iteritems():
+                    result[email] = FriendDetailTO.from_dict(value)
+            elif self.friendDetails:
+                for friend_detail in self.friendDetails.values():
+                    result[friend_detail.email] = friend_detail
+            self._tmp_friend_details = result
+        return self._tmp_friend_details
 
+    def save_friend_details(self, data):
+        result = {}
+        for email, value in data.iteritems():
+            result[email] = value.to_dict()
+        self.friend_details_json = json.dumps(result)
+        self._tmp_friend_details = data
+         
+    def get_friend_detail_by_email(self, email):
+        data = self.get_friend_details()
+        if email in data:
+            return data[email]
+        return None
 
 class UserData(db.Model):
     data = db.TextProperty()  # deprecated, lazily migrated to userData when putting user_data

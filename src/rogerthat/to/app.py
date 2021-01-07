@@ -17,7 +17,7 @@
 
 from mcfw.properties import bool_property, unicode_property, long_property, typed_property, unicode_list_property, \
     long_list_property, float_property
-from rogerthat.models.properties.friend import FriendDetail
+from rogerthat.models.properties.friend import FriendDetailTO
 from rogerthat.models.properties.oauth import OAuthSettings
 from rogerthat.to import TO
 from rogerthat.utils.app import get_human_user_from_app_user
@@ -174,11 +174,11 @@ class AppUserTO(object):
         self.name = user_profile.name
         self.relations = list()
         if friendMap:
-            for f in friendMap.friendDetails:
-                if f.existence != FriendDetail.FRIEND_EXISTENCE_ACTIVE:
+            for f in friendMap.get_friend_details().values():
+                if f.existence != FriendDetailTO.FRIEND_EXISTENCE_ACTIVE:
                     continue
                 self.relations.append(AppUserRelationTO(f.email, f.name,
-                                                        u"human" if f.type == FriendDetail.TYPE_USER else u"application"))
+                                                        u"human" if f.type == FriendDetailTO.TYPE_USER else u"application"))
 
 
 class AppUserListResultTO(object):

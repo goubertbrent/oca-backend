@@ -139,7 +139,7 @@ class TestUpdateService(FriendHelperTestCase):
         ds_helper = FriendHelper.from_data_store(self.service_user, FriendTO.TYPE_SERVICE)
 
         friend_map = get_friends_map(app_user)
-        friend_detail = friend_map.friendDetails[self.service_user.email()]
+        friend_detail = friend_map.get_friend_detail_by_email(self.service_user.email())
         status = UpdateFriendRequestTO.STATUS_MODIFIED
         ds_friend = convert_friend(ds_helper, app_user, friend_detail, status)
         cs_friend = convert_friend(cs_helper, app_user, friend_detail, status)

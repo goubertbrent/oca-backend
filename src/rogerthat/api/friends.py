@@ -64,7 +64,7 @@ def getFriendsList(request):
     response = GetFriendsListResponseTO()
     get_helper = lambda f: FriendHelper.from_data_store(users.User(f.email), f.type)
     response.friends = [FriendTO.fromDBFriendDetail(get_helper(f), f, True, True, targetUser=user)
-                        for f in friendMap.friendDetails]
+                        for f in friendMap.get_friend_details().values()]
     response.generation = friendMap.generation
     return response
 
@@ -116,7 +116,7 @@ def getFriend(request):
     to_put = []
 
     def populate_friend_response():
-        friend_detail = friend_map.friendDetails[friend.email()]
+        friend_detail = friend_map.get_friend_detail_by_email(friend.email())
         helper = FriendHelper.from_data_store(users.User(friend_detail.email), friend_detail.type)
         response.friend = FriendTO.fromDBFriendDetail(helper, friend_detail, True, True, targetUser=user)
         response.avatar = unicode(base64.b64encode(get_avatar(friend_detail.avatarId, avatar_size)))
@@ -127,11 +127,11 @@ def getFriend(request):
             to_put.extend(create_send_user_data_requests(mobiles, user_data_model, user, service_identity_user))
             to_put.extend(create_send_app_data_requests(mobiles, user, helper))
 
-    if friend.email() in friend_map.friendDetails:
+    if friend_map.get_friend_detail_by_email(friend.email()):
         populate_friend_response()
     else:
         friend = create_app_user(friend, get_app_id_from_app_user(user))
-        if friend.email() in friend_map.friendDetails:
+        if friend_map.get_friend_detail_by_email(friend.email()):
             populate_friend_response()
         else:
             response.friend = None

@@ -178,7 +178,7 @@ class ExportUserFriendsPipeline(WorkloadPipeline):
         friend_map = get_friends_map(app_user)
 
         friends = []
-        for fd in friend_map.friendDetails:
+        for fd in friend_map.get_friend_details().values():
             f = {}
             if fd.type == BaseFriendDetail.TYPE_USER:
                 f['type'] = 'user'

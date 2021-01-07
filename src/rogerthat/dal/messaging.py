@@ -21,7 +21,7 @@ from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from rogerthat.dal import generator
 from rogerthat.models import Message, Branding, TransferResult, TransferChunk, ThreadAvatar
-from rogerthat.models.properties.friend import FriendDetail
+from rogerthat.models.properties.friend import FriendDetailTO
 from rogerthat.rpc import users
 from rogerthat.utils.service import remove_slash_default
 
@@ -33,7 +33,7 @@ GET_UNREAD_MESSAGES_JOB_GQL = lambda: Message.gql("WHERE member_status_index = '
 def get_messages_query(app_user, cursor, user_only):
     if user_only:
         qry = Message.gql("WHERE member_status_index = :member AND sender_type = :sender_type AND timestamp > 0 ORDER BY timestamp DESC")
-        qry.bind(member=Message.statusIndexValue(app_user, Message.MEMBER_INDEX_STATUS_NOT_DELETED), sender_type=FriendDetail.TYPE_USER)
+        qry.bind(member=Message.statusIndexValue(app_user, Message.MEMBER_INDEX_STATUS_NOT_DELETED), sender_type=FriendDetailTO.TYPE_USER)
     else:
         qry = Message.gql("WHERE member_status_index = :member AND timestamp > 0 ORDER BY timestamp DESC")
         qry.bind(member=Message.statusIndexValue(app_user, Message.MEMBER_INDEX_STATUS_NOT_DELETED))
@@ -58,7 +58,7 @@ def get_messages(app_user, cursor, count, user_only=False):
 def get_service_inbox_query(app_user, cursor):
     qry = Message.gql("WHERE member_status_index = :member AND sender_type = :sender_type ORDER BY creationTimestamp DESC")
     qry.bind(member=Message.statusIndexValue(app_user, Message.MEMBER_INDEX_STATUS_SHOW_IN_INBOX),
-             sender_type=FriendDetail.TYPE_SERVICE)
+             sender_type=FriendDetailTO.TYPE_SERVICE)
     qry.with_cursor(cursor)
     return qry
 

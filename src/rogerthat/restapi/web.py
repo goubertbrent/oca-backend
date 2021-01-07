@@ -92,7 +92,7 @@ def load_web():
     result = WebTO()
     if friends_map:
         result.friends = [FriendTO.fromDBFriendDetail(FriendHelper.from_data_store(users.User(f.email), f.type), f)
-                          for f in friends_map.friendDetails
+                          for f in friends_map.get_friend_details().values()
                           if f.existence == f.FRIEND_EXISTENCE_ACTIVE]
     else:
         result.friends = []

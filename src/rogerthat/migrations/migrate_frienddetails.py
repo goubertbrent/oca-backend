@@ -16,29 +16,27 @@
 # @@license_version:1.7@@
 
 from google.appengine.ext import db
+
 from rogerthat.bizz.job import run_job
+from rogerthat.consts import MIGRATION_QUEUE
 from rogerthat.models import FriendMap
-from rogerthat.rpc import users
 
 
 def job():
-    run_job(_qry, [], _worker, [])
+    run_job(_query, [], _worker, [], worker_queue=MIGRATION_QUEUE)
 
 
-def _qry():
+def _query():
     return FriendMap.all(keys_only=True)
 
 
 def _worker(friend_map_key):
-    def trans():
-        updated = False
-        friend_map = db.get(friend_map_key)
-        for email in friend_map.friendDetails._table:
-            user = users.User(email)
-            if user not in friend_map.friends:
-                friend_map.friends.append(user)
-                updated = True
-        if updated:
-            friend_map.put()
-
-    db.run_in_transaction(trans)
+    friend_map = db.get(friend_map_key)  # type: FriendMap
+    if friend_map.friend_details_json:
+        return
+    data = {}
+    for friend_detail in friend_map.friendDetails.values():
+        data[friend_detail.email] = friend_detail
+    friend_map.save_friend_details(data)
+    friend_map.friendDetails = None
+    friend_map.put()  

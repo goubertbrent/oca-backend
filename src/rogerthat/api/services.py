@@ -27,7 +27,7 @@ from rogerthat.bizz.service import poke_service, poke_service_by_hashed_tag, ren
 from rogerthat.dal.app import get_app_name_by_id, get_app_by_id
 from rogerthat.dal.service import get_service_identity, get_friend_serviceidentity_connection
 from rogerthat.models import ProfilePointer, ServiceTranslation, MessageFlowDesign, ServiceProfile, ServiceIdentity
-from rogerthat.models.properties.friend import FriendDetail
+from rogerthat.models.properties.friend import FriendDetailTO
 from rogerthat.rpc.rpc import expose
 from rogerthat.to.friends import ErrorTO
 from rogerthat.to.service import GetServiceActionInfoResponseTO, GetServiceActionInfoRequestTO, \
@@ -75,7 +75,7 @@ def getActionInfo(request):
     response.description = translator.translate(ServiceTranslation.IDENTITY_TEXT, si.description, target_language)
     response.descriptionBranding = sid.branding or translator.translate(
         ServiceTranslation.IDENTITY_BRANDING, si.descriptionBranding, target_language)
-    response.type = FriendDetail.TYPE_SERVICE
+    response.type = FriendDetailTO.TYPE_SERVICE
     response.actionDescription = sid.description
     response.profileData = None
     response.app_id = None

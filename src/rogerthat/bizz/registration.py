@@ -510,8 +510,9 @@ def migrate_anonymous_account(anonymous_account, new_app_user):
     bizz_check(anonymous_user_profile, 'No UserProfile found for %s', anonymous_user.email())
 
     if anonymous_friend_map:
-        for friend_detail in anonymous_friend_map.friendDetails:
-            if new_friend_map is None or friend_detail.email not in new_friend_map.friendDetails:
+        new_friend_details = new_friend_map.get_friend_details() if new_friend_map else {}
+        for friend_detail in anonymous_friend_map.get_friend_details().values():
+            if new_friend_map is None or friend_detail.email not in new_friend_details:
                 logging.debug('Connecting %s to %s (%s)', new_app_user.email(), friend_detail.name, friend_detail.email)
                 friend_user = users.User(friend_detail.email)
                 user_data_str = None

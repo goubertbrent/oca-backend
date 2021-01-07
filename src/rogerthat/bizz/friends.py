@@ -51,7 +51,7 @@ from rogerthat.dal.service import get_friend_serviceidentity_connection, get_ser
 from rogerthat.models import ProfileInfo, ServiceProfile, UserData, FriendServiceIdentityConnection, ServiceRole, \
     FriendInvitationHistory, ServiceTranslation, UserInvitationSecret, UserProfile, Message, ServiceIdentity, \
     ServiceInteractionDef, App, Group, ProfilePointer, FriendMap
-from rogerthat.models.properties.friend import FriendDetail
+from rogerthat.models.properties.friend import FriendDetailTO
 from rogerthat.models.properties.keyvalue import KVStore
 from rogerthat.rpc import users
 from rogerthat.rpc.models import RpcCAPICall, ServiceAPICallback, Mobile
@@ -365,9 +365,9 @@ def makeFriends(invitor, invitee, original_invitee, servicetag, origin, notify_i
 
     def notifyActorInWebUI(helper, from_, friend_map, actor, to_friendDetail):
         if get_app_id_from_app_user(from_) == App.APP_TYPE_ROGERTHAT:
-            if to_friendDetail.type == FriendDetail.TYPE_USER:
-                friends = [FriendRelationTO.fromDBFriendDetail(fd) for fd in friend_map.friendDetails.values()
-                           if fd.existence == FriendDetail.FRIEND_EXISTENCE_ACTIVE]
+            if to_friendDetail.type == FriendDetailTO.TYPE_USER:
+                friends = [FriendRelationTO.fromDBFriendDetail(fd) for fd in friend_map.get_friend_details().values()
+                           if fd.existence == FriendDetailTO.FRIEND_EXISTENCE_ACTIVE]
                 friends_of_friend = serialize_complex_value(friends, FriendRelationTO, True)
             else:
                 friends_of_friend = []
@@ -394,7 +394,7 @@ def makeFriends(invitor, invitee, original_invitee, servicetag, origin, notify_i
             friendMap.friends.append(to)
             friendMap.friends = list(set(friendMap.friends))
             if to_profile_info:
-                profile_type = FriendDetail.TYPE_SERVICE if to_profile_info.isServiceIdentity else FriendDetail.TYPE_USER
+                profile_type = FriendDetailTO.TYPE_SERVICE if to_profile_info.isServiceIdentity else FriendDetailTO.TYPE_USER
                 if to_profile_info.isServiceIdentity and user_data is not None:
                     try:
                         data_object = json.loads(user_data)
@@ -416,23 +416,25 @@ def makeFriends(invitor, invitee, original_invitee, servicetag, origin, notify_i
                                                                      to_profile_info.user))
                 else:
                     has_user_data = False
-                to_friendDetail = friendMap.friendDetails.addNew(to, to_name, to_profile_info.avatarId, False, False,
-                                                                 to_shareContacts, profile_type, has_user_data)
+                to_friend_detail = FriendDetailTO.create(to, to_name, to_profile_info.avatarId, False, False, to_shareContacts, profile_type, has_user_data)
             else:
-                to_friendDetail = friendMap.friendDetails.addNew(to, to_name, -1, False, False, to_shareContacts,
-                                                                 FriendDetail.TYPE_USER)
+                to_friend_detail = FriendDetailTO.create(to, to_name, -1, False, False, to_shareContacts, FriendDetailTO.TYPE_USER)
+            
+            friend_details = friendMap.get_friend_details()
+            friend_details[to_friend_detail.email] = to_friend_detail
+            friendMap.save_friend_details(friend_details)
             friendMap.generation += 1
             friendMap.version += 1  # version of the set of friend e-mails
             logging.debug('debugging_branding makeFriends friend_map.gen %s friend_map.ver %s', friendMap.generation, friendMap.version)
             to_put.append(friendMap)
-            if to_friendDetail.type == FRIEND_TYPE_SERVICE and service_helper:
+            if to_friend_detail.type == FRIEND_TYPE_SERVICE and service_helper:
                 helper = service_helper
             else:
-                helper = FriendHelper.from_data_store(users.User(to_friendDetail.email), to_friendDetail.type)
-            side_effects.append(lambda: notifyActorInWebUI(helper, from_, friendMap, actor_type, to_friendDetail))
+                helper = FriendHelper.from_data_store(users.User(to_friend_detail.email), to_friend_detail.type)
+            side_effects.append(lambda: notifyActorInWebUI(helper, from_, friendMap, actor_type, to_friend_detail))
             to_put.extend(create_update_friend_requests(helper, to, friendMap, UpdateFriendRequestTO.STATUS_ADD))
             if not to_profile_info.isServiceIdentity:
-                notifyFriends = (from_, to, friendMap, to_friendDetail)  # both from and to are human users
+                notifyFriends = (from_, to, friendMap, to_friend_detail)  # both from and to are human users
             side_effects.append(lambda: schedule_re_index(from_))
         else:
             # from_ is a service
@@ -621,11 +623,13 @@ def shareLocation(user, friend, enabled):
 
     def runMe():
         myFriendMap = get_friends_map(user)
-        friendDetail = myFriendMap.friendDetails[friend.email()]
-        friendDetail.shareLocation = enabled
-        friendDetail.relationVersion += 1
+        friend_details = myFriendMap.get_friend_details()
+        friend_detail = friend_details[friend.email()]
+        friend_detail.shareLocation = enabled 
+        friend_detail.relationVersion += 1
+        myFriendMap.save_friend_details(friend_details)
         myFriendMap.generation += 1
-        logging.debug('debugging_branding shareLocation friend_map.gen %s friend_detail.relv %s', myFriendMap.generation, friendDetail.relationVersion)
+        logging.debug('debugging_branding shareLocation friend_map.gen %s friend_detail.relv %s', myFriendMap.generation, friend_detail.relationVersion)
         myFriendMap.put()
         userLocation = get_user_location(user)
         if userLocation.members:
@@ -636,32 +640,34 @@ def shareLocation(user, friend, enabled):
                 userLocation.members.remove(friend)
                 userLocation.put()
 
-        helper = FriendHelper.from_data_store(users.User(friendDetail.email), friendDetail.type)
+        helper = FriendHelper.from_data_store(users.User(friend_detail.email), friend_detail.type)
 
         def updateMyWeb(helper):
             if get_app_id_from_app_user(user) == App.APP_ID_ROGERTHAT:
                 channel.send_message(
                     user,
                     u'rogerthat.friend.shareLocationUpdate',
-                    friend=FriendTO.fromDBFriendDetail(helper, friendDetail).to_dict())
+                    friend=FriendTO.fromDBFriendDetail(helper, friend_detail).to_dict())
         return (myFriendMap, friend, helper, [updateMyWeb])
 
     def runHim():
         hisFriendMap = get_friends_map(friend)
-        friendDetail = hisFriendMap.friendDetails[user.email()]
-        friendDetail.sharesLocation = enabled
-        friendDetail.relationVersion += 1
+        friend_details = hisFriendMap.get_friend_details()
+        friend_detail = friend_details[friend.email()]
+        friend_detail.sharesLocation = enabled
+        friend_detail.relationVersion += 1
+        hisFriendMap.save_friend_details(friend_details)
         hisFriendMap.generation += 1
-        logging.debug('debugging_branding shareLocation friend_map.gen %s friend_detail.relv %s', hisFriendMap.generation, friendDetail.relationVersion)
+        logging.debug('debugging_branding shareLocation friend_map.gen %s friend_detail.relv %s', hisFriendMap.generation, friend_detail.relationVersion)
         hisFriendMap.put()
-        helper = FriendHelper.from_data_store(users.User(friendDetail.email), friendDetail.type)
+        helper = FriendHelper.from_data_store(users.User(friend_detail.email), friend_detail.type)
 
         def updateWebOfFriend(helper):
             if get_app_id_from_app_user(friend) == App.APP_ID_ROGERTHAT:
                 channel.send_message(
                     friend,
                     u'rogerthat.friend.shareLocation',
-                    friend=FriendTO.fromDBFriendDetail(helper, friendDetail).to_dict())
+                    friend=FriendTO.fromDBFriendDetail(helper, friend_detail).to_dict())
         return (hisFriendMap, user, helper, [updateWebOfFriend])
 
     friendmap = get_friends_map(user)
@@ -683,8 +689,11 @@ def shareLocation(user, friend, enabled):
 @arguments(user=users.User, friend=users.User, message=unicode)
 def requestLocationSharing(user, friend, message):
     myFriendMap = get_friends_map(user)
-    if not friend in myFriendMap.friends or myFriendMap.friendDetails[friend.email()].sharesLocation:
+    if not friend in myFriendMap.friends:
         logging.warning("RequestShareLocation performed to a non friend user!")
+        return
+    friend_detail = myFriendMap.get_friend_detail_by_email(friend.email())
+    if friend_detail.sharesLocation:
         return
 
     friend_profile, user_profile = get_profile_infos([friend, user], expected_types=[UserProfile, UserProfile])
@@ -739,11 +748,15 @@ def ackRequestLocationSharing(message):
         my_friend_map_key = FriendMap.create_key(user)
         his_friend_map_key = FriendMap.create_key(friend)
         my_friend_map, his_friend_map = db.get([my_friend_map_key, his_friend_map_key])
-        him = my_friend_map.friendDetails[friend.email()]
-        me = his_friend_map.friendDetails[user.email()]
+        my_friend_details = my_friend_map.get_friend_details()
+        him = my_friend_details[friend.email()]
+        his_friend_details = his_friend_map.get_friend_details()
+        me = his_friend_details[user.email()]
         him.sharesLocation = me.sharesLocation = True
         him.relationVersion += 1
+        my_friend_map.save_friend_details(my_friend_details)
         me.relationVersion += 1
+        his_friend_map.save_friend_details(his_friend_details)
         my_friend_map.generation += 1
         his_friend_map.generation += 1
         logging.debug('debugging_branding ackRequestLocationSharing my_friend_map.gen %s my_friend_detail.relv %s', my_friend_map.generation, me.relationVersion)
@@ -919,10 +932,11 @@ def breakFriendShip(user1, user2, current_mobile=None):
             if to in friendMap.friends:
                 friendMap.friends.remove(to)
                 friend_map_updated = True
-            if email in friendMap.friendDetails:
-                friendDetail = friendMap.friendDetails[email]
+            friend_details = friendMap.get_friend_details()
+            if email in friend_details:
+                friendDetail = friend_details[email]
                 user_profile = get_user_profile(from_)
-                if friendDetail.type == FriendDetail.TYPE_SERVICE and friendDetail.hasUserData:
+                if friendDetail.type == FriendDetailTO.TYPE_SERVICE and friendDetail.hasUserData:
                     user_data = UserData.get(UserData.createKey(from_, add_slash_default(to)))
                     if user_data:
                         if user_data.userData:
@@ -948,7 +962,7 @@ def breakFriendShip(user1, user2, current_mobile=None):
                         from rogerthat.bizz.roles import _send_service_role_grants_updates
                         on_trans_committed(_send_service_role_grants_updates,
                                            get_service_user_from_service_identity_user(service_identity_user))
-                friendMap.friendDetails.remove(email)
+                del friend_details[email]
                 friend_map_updated = True
 
                 def side_effects():
@@ -987,6 +1001,7 @@ def breakFriendShip(user1, user2, current_mobile=None):
                     yield lambda: schedule_re_index(from_)
 
             if friend_map_updated:
+                friendMap.save_friend_details(friend_details)
                 friendMap.generation += 1
                 friendMap.version += 1  # version of the set of friend e-mails
                 friendMap.put()
@@ -1055,13 +1070,18 @@ def setShareContacts(user, enabled):
     friendMap = get_friends_map(user)
     friendMap.shareContacts = enabled
     friendMap.put()
+    to_put = []
     for friendMap in get_friends_friends_maps(user):
-        try:
-            friendMap.friendDetails[user.email()].sharesContacts = enabled
-            friendMap.put()
-        except KeyError:
+        friend_details = friendMap.get_friend_details()
+        if user.email() in friend_details:
+            friend_details[user.email()].sharesContacts = enabled
+            friendMap.save_friend_details(friend_details)
+            to_put.append(friendMap)
+        else:
             logging.error("friendMap of %s is inconsistent" % friendMap.me())
-            pass
+            
+    if to_put:
+        db.put(to_put)
 
 
 @mapping(u'friend.invite_result.response_receiver')

@@ -121,7 +121,7 @@ def delete_user_data(app_user, friend_map, user_profile, unregister_reason=None)
         for userData in UserData.all().ancestor(parent_key(app_user)):
             models_to_delete.append(userData)
 
-        for f in friend_map.friendDetails:
+        for f in friend_map.get_friend_details().values():
             connected_user = users.User(f.email)
             breakFriendShip(friend_map.user, connected_user)
 

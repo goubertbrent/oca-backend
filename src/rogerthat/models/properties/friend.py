@@ -49,20 +49,20 @@ class BaseFriendDetail(TO):
     existence = long_property('9', default=FRIEND_EXISTENCE_ACTIVE)  # used to add friend without making a connection
 
 
-class FriendDetail(BaseFriendDetail):
+class FriendDetailTO(BaseFriendDetail):
     relationVersion = long_property('51', default=0, doc="bumped when data related to the friend relation is updated. "
                                     "Eg. location sharing, user data.")
 
     @property
     def isService(self):
-        return self.type == FriendDetail.TYPE_SERVICE
+        return self.type == FriendDetailTO.TYPE_SERVICE
 
     def __hash__(self):
         return hash("%s%s%s%s%s" % (self.email, self.name, self.avatarId, self.shareLocation, self.sharesLocation, \
                                     self.sharesContacts, self.type))
 
     def __eq__(self, other):
-        if not other or not isinstance(other, FriendDetail):
+        if not other or not isinstance(other, FriendDetailTO):
             return False
         return self.email == other.email \
             and self.name == other.name \
@@ -73,6 +73,23 @@ class FriendDetail(BaseFriendDetail):
             and self.hasUserData == other.hasUserData \
             and self.relationVersion == other.relationVersion \
             and self.existence == other.existence
+    
+    @classmethod
+    def create(cls, user, name, avatarId, shareLocation=False, sharesLocation=False, sharesContacts=True,
+               type_=BaseFriendDetail.TYPE_USER, hasUserData=False, existence=BaseFriendDetail.FRIEND_EXISTENCE_ACTIVE):
+        from rogerthat.utils.service import remove_slash_default
+        fd = cls()
+        fd.email = remove_slash_default(user, warn=True).email()
+        fd.name = name
+        fd.avatarId = avatarId
+        fd.shareLocation = shareLocation
+        fd.sharesLocation = sharesLocation
+        fd.sharesContacts = sharesContacts
+        fd.type = type_
+        fd.hasUserData = hasUserData
+        fd.relationVersion = 0
+        fd.existence = existence
+        return fd
 
 
 def _serialize_friend_detail(stream, fd):
@@ -88,7 +105,7 @@ def _serialize_friend_detail(stream, fd):
     s_long(stream, fd.existence)
 
 def _deserialize_friend_detail(stream, version):
-    fd = FriendDetail()
+    fd = FriendDetailTO()
     fd.email = ds_unicode(stream)
     fd.name = ds_unicode(stream)
     fd.avatarId = ds_long(stream)
@@ -98,12 +115,12 @@ def _deserialize_friend_detail(stream, version):
     if version == 1:
         from rogerthat.dal.profile import is_service_identity_user
         is_svc = is_service_identity_user(users.User(fd.email))
-        fd.type = FriendDetail.TYPE_SERVICE if is_svc else FriendDetail.TYPE_USER
+        fd.type = FriendDetailTO.TYPE_SERVICE if is_svc else FriendDetailTO.TYPE_USER
     else:
         fd.type = ds_long(stream)
     fd.hasUserData = False if version < 3 else ds_bool(stream)
     fd.relationVersion = 0 if version < 4 else ds_long(stream)
-    fd.existence = FriendDetail.FRIEND_EXISTENCE_ACTIVE if version < 5 else ds_long(stream)
+    fd.existence = FriendDetailTO.FRIEND_EXISTENCE_ACTIVE if version < 5 else ds_long(stream)
     return fd
 
 _serialize_friend_detail_list = get_list_serializer(_serialize_friend_detail)
@@ -116,14 +133,14 @@ class FriendDetails(object):
         self._table = dict()
 
     def append(self, fd):
-        if not fd or not isinstance(fd, FriendDetail):
+        if not fd or not isinstance(fd, FriendDetailTO):
             raise ValueError
         self._table[fd.email] = fd
 
     def addNew(self, user, name, avatarId, shareLocation=False, sharesLocation=False, sharesContacts=True,
-               type_=FriendDetail.TYPE_USER, hasUserData=False, existence=FriendDetail.FRIEND_EXISTENCE_ACTIVE):
+               type_=FriendDetailTO.TYPE_USER, hasUserData=False, existence=FriendDetailTO.FRIEND_EXISTENCE_ACTIVE):
         from rogerthat.utils.service import remove_slash_default
-        fd = FriendDetail()
+        fd = FriendDetailTO()
         fd.email = remove_slash_default(user, warn=True).email()
         fd.name = name
         fd.avatarId = avatarId
@@ -173,7 +190,10 @@ class FriendDetailsProperty(db.UnindexedProperty):
     # For writing to datastore.
     def get_value_for_datastore(self, model_instance):
         stream = StringIO()
-        _serialize_friend_details(stream, super(FriendDetailsProperty, self).get_value_for_datastore(model_instance))
+        super_value = super(FriendDetailsProperty, self).get_value_for_datastore(model_instance)
+        if not super_value:
+            return None
+        _serialize_friend_details(stream, super_value)
         return db.Blob(stream.getvalue())
 
     # For reading from datastore.

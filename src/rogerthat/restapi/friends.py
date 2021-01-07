@@ -52,11 +52,11 @@ def invite(email, message, tag):
 @arguments()
 def get():
     from rogerthat.dal.friend import get_friends_map
-    from rogerthat.models.properties.friend import FriendDetail
+    from rogerthat.models.properties.friend import FriendDetailTO
     user = users.get_current_user()
     friendMap = get_friends_map(user)
     return [FriendTO.fromDBFriendDetail(FriendHelper.from_data_store(users.User(f.email), f.type), f)
-            for f in friendMap.friendDetails if f.type == FriendDetail.TYPE_USER]
+            for f in friendMap.get_friend_details().values() if f.type == FriendDetailTO.TYPE_USER]
 
 
 @rest("/mobi/rest/friends/get_full", "get")
@@ -66,7 +66,7 @@ def get_full_friends_list():
     from rogerthat.dal.friend import get_friends_map_cached
     from rogerthat.dal.friend import get_friends_friends_maps
     from rogerthat.bizz.friends import userCode
-    from rogerthat.models.properties.friend import FriendDetail
+    from rogerthat.models.properties.friend import FriendDetailTO
     app_user = users.get_current_user()
     friendMap = get_friends_map_cached(app_user)
 
@@ -78,23 +78,24 @@ def get_full_friends_list():
     friendFriendMaps = get_friends_friends_maps(app_user)
     friendFriendMapsMap = dict(((ffm.user, ffm) for ffm in friendFriendMaps))
     l = list()
+    friend_details = friendMap.get_friend_details()
     for friend in friendMap.friends:
         ffm = friendFriendMapsMap.get(friend, None)
         if ffm:
             # User friends
             try:
-                friendDetail = friendMap.friendDetails[ffm.user.email()]
+                friendDetail = friend_details[ffm.user.email()]
             except KeyError:
                 continue
-            if friendDetail.existence != FriendDetail.FRIEND_EXISTENCE_ACTIVE:
+            if friendDetail.existence != FriendDetailTO.FRIEND_EXISTENCE_ACTIVE:
                 continue
             fwr = FriendWithRelationsTO()
             helper = FriendHelper.from_data_store(users.User(friendDetail.email), friendDetail.type)
             fwr.friend = FriendTO.fromDBFriendDetail(helper, friendDetail)
             if friendDetail.sharesContacts:
                 fwr.friends = [secure_email(FriendRelationTO.fromDBFriendDetail(fd))
-                               for fd in ffm.friendDetails.values()
-                               if fd.email != app_user.email() and fd.type == FriendDetail.TYPE_USER]
+                               for fd in ffm.get_friend_details().values()
+                               if fd.email != app_user.email() and fd.type == FriendDetailTO.TYPE_USER]
             else:
                 fwr.friends = []
             fwr.type = FRIEND_TYPE_PERSON
@@ -102,18 +103,18 @@ def get_full_friends_list():
 
     for ffm in friendFriendMaps:
         try:
-            friendDetail = friendMap.friendDetails[ffm.user.email()]
+            friendDetail = friend_details[ffm.user.email()]
         except KeyError:
             continue
-        if friendDetail.isService or friendDetail.existence != FriendDetail.FRIEND_EXISTENCE_ACTIVE:
+        if friendDetail.isService or friendDetail.existence != FriendDetailTO.FRIEND_EXISTENCE_ACTIVE:
             continue
         fwr = FriendWithRelationsTO()
         helper = FriendHelper.from_data_store(users.User(friendDetail.email), friendDetail.type)
         fwr.friend = FriendTO.fromDBFriendDetail(helper, friendDetail)
         if friendDetail.sharesContacts:
             fwr.friends = [FriendRelationTO.fromDBFriendDetail(fd)
-                           for fd in ffm.friendDetails.values()
-                           if fd.existence == FriendDetail.FRIEND_EXISTENCE_ACTIVE]
+                           for fd in ffm.get_friend_details().values()
+                           if fd.existence == FriendDetailTO.FRIEND_EXISTENCE_ACTIVE]
         else:
             fwr.friends = []
         l.append(fwr)
@@ -140,9 +141,10 @@ def get_full_services_list():
     from rogerthat.dal.friend import get_friends_map_cached
     app_user = users.get_current_user()
     friendMap = get_friends_map_cached(app_user)
+    friend_details = friendMap.get_friend_details()
     return [FriendTO.fromDBFriendDetail(FriendHelper.from_data_store(users.User(fd.email), fd.type),
                                         fd, True, True, tagetUser=app_user)
-            for fd in (friendMap.friendDetails[friend.email()] for friend in friendMap.friends)
+            for fd in (friend_details[friend.email()] for friend in friendMap.friends)
             if fd.isService and fd.existence == fd.FRIEND_EXISTENCE_ACTIVE]
 
 

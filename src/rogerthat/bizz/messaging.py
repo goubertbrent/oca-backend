@@ -63,7 +63,7 @@ from rogerthat.models.properties.forms import Form, RangeSlider, SingleSlider, M
     LongWidgetResult, LongListWidgetResult, FloatWidgetResult, FloatListWidgetResult, DateSelect, PhotoUpload, \
     GPSLocation, LocationWidgetResult, MyDigiPass, MdpScope, MyDigiPassWidgetResult, AdvancedOrder, \
     AdvancedOrderCategory, FriendSelect, KeyboardType, Sign, TextWidget, Oauth, Pay, OpenIdScope, OpenId
-from rogerthat.models.properties.friend import FriendDetail
+from rogerthat.models.properties.friend import FriendDetailTO
 from rogerthat.models.properties.messaging import Buttons, Button, MemberStatuses, MemberStatus, Attachments, \
     Attachment, MessageEmbeddedApp
 from rogerthat.models.properties.profiles import MobileDetails
@@ -620,7 +620,7 @@ def sendForm(sender_user_possibly_with_slash_default, parent_key, member, messag
         message = u""
 
     azzert(sender_user_possibly_with_slash_default != MC_DASHBOARD)
-    sender_type = FriendDetail.TYPE_SERVICE
+    sender_type = FriendDetailTO.TYPE_SERVICE
 
     flags &= ~Message.FLAG_ALLOW_REPLY
     flags &= ~Message.FLAG_ALLOW_REPLY_ALL
@@ -727,7 +727,7 @@ def sendForm(sender_user_possibly_with_slash_default, parent_key, member, messag
         fm.tag = tag
         fm.alert_flags = alert_flags
         fm.sender_type = sender_type
-        if sender_type == FriendDetail.TYPE_SERVICE:
+        if sender_type == FriendDetailTO.TYPE_SERVICE:
             fm.addStatusIndex(member, Message.SERVICE_MESSAGE_DEFAULT_MEMBER_INDEX_STATUSSES)
         else:
             fm.addStatusIndex(member, Message.USER_MESSAGE_DEFAULT_MEMBER_INDEX_STATUSSES)
@@ -893,10 +893,10 @@ def sendMessage(sender_user_possibly_with_slash_default, members, flags, timeout
     if sender_is_rogerthat_dashboard:
         get_profile_infos(member_users, expected_types=[UserProfile] * len(member_users))
         sender_is_service_identity = False
-        sender_type = FriendDetail.TYPE_USER
+        sender_type = FriendDetailTO.TYPE_USER
     else:
         sender_is_service_identity = is_service_identity_user(sender_user_possibly_with_slash_default)
-        sender_type = FriendDetail.TYPE_SERVICE if sender_is_service_identity else FriendDetail.TYPE_USER
+        sender_type = FriendDetailTO.TYPE_SERVICE if sender_is_service_identity else FriendDetailTO.TYPE_USER
         if not sender_is_service_identity:
 
             if parent_key is None \
@@ -1211,7 +1211,7 @@ def sendMessage(sender_user_possibly_with_slash_default, members, flags, timeout
                 ms.received_timestamp = maintenant
                 ms.acked_timestamp = maintenant
                 ms.button_index = m.buttons[sender_answer].index
-            if sender_type == FriendDetail.TYPE_SERVICE:
+            if sender_type == FriendDetailTO.TYPE_SERVICE:
                 mems = list(m.members)
                 mems.remove(sender_user_without_slash_default)
                 m.addStatusIndex(mems, Message.SERVICE_MESSAGE_DEFAULT_MEMBER_INDEX_STATUSSES)
@@ -1814,7 +1814,7 @@ def list_chat_messages(service_user, parent_message_key, cursor=None):
         raise MessageNotFoundException()
 
     messages = db.get(parent_message.childMessages)
-    senders = list({m.sender for m in messages if m.sender_type == FriendDetail.TYPE_USER})
+    senders = list({m.sender for m in messages if m.sender_type == FriendDetailTO.TYPE_USER})
     user_profiles = dict(zip(senders, get_profile_infos(senders, allow_none_in_results=True)))
     return ChatMessagesListResult(cursor=None, messages=messages, user_profiles=user_profiles)
 
@@ -2815,7 +2815,7 @@ def send_messages_after_registration(mobile_key):
 
     for parent_message in reversed(parent_messages):
         # Skip completed message flows
-        if parent_message.sender != MC_DASHBOARD and parent_message.sender_type == FriendDetail.TYPE_SERVICE \
+        if parent_message.sender != MC_DASHBOARD and parent_message.sender_type == FriendDetailTO.TYPE_SERVICE \
                 and _is_flow_completed(user, parent_message, child_messages.get(parent_message.key)):
             parent_messages.remove(parent_message)
         else:
@@ -3677,7 +3677,7 @@ def _ack_message(message_key, message_parent_key, responder, timestamp, button_i
         message.flags |= Message.FLAG_LOCKED
         locked = True
     message.removeStatusIndex(responder, Message.MEMBER_INDEX_STATUS_SHOW_IN_INBOX)
-    if message.sender_type == FriendDetail.TYPE_USER and message.sender != MC_DASHBOARD:
+    if message.sender_type == FriendDetailTO.TYPE_USER and message.sender != MC_DASHBOARD:
         message.addStatusIndex(message.sender, Message.MEMBER_INDEX_STATUS_SHOW_IN_INBOX)
 
     if message.step_id:
@@ -4809,7 +4809,7 @@ def get_conversation_member_matches(app_user, parent_message_key):
     result.emails = []
 
     friendMap = get_friends_map(app_user)
-    friends_dict = {f.email: f.email for f in friendMap.friendDetails if f.type == FriendDetail.TYPE_USER}
+    friends_dict = {f.email: f.email for f in friendMap.get_friend_details().values() if f.type == FriendDetailTO.TYPE_USER}
 
     chat_members_list = ChatMembers.list_by_thread_and_chat_members(parent_message_key, friends_dict.values())
     for chat_members_model in chat_members_list:

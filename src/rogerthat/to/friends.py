@@ -264,13 +264,13 @@ class FriendTO(BaseFriendDetail):
     def fromDBFriendMap(helper, friendMap, friend, includeAvatarHash=False, includeServiceDetails=False,
                         targetUser=None):
         friend = remove_slash_default(friend)
-        return FriendTO.fromDBFriendDetail(helper, friendMap.friendDetails[friend.email()], includeAvatarHash,
+        return FriendTO.fromDBFriendDetail(helper, friendMap.get_friend_detail_by_email(friend.email()), includeAvatarHash,
                                            includeServiceDetails, targetUser=targetUser)
 
     @staticmethod
     def fromDBFriendDetail(helper, friendDetail, includeAvatarHash=False, includeServiceDetails=False, targetUser=None,
                            existence=None):
-        # type: (FriendHelper, FriendDetails, bool, bool, users.User, bool) -> FriendTO
+        # type: (FriendHelper, FriendDetailTO, bool, bool, users.User, bool) -> FriendTO
         from rogerthat.bizz.communities.communities import get_community
         f = merge_transfer_object(friendDetail, FriendTO())
         user = users.User(friendDetail.email)

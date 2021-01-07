@@ -24,7 +24,7 @@ from rogerthat.bizz.friend_helper import FriendHelper
 from rogerthat.bizz.service import poke_service_by_hashed_tag
 from rogerthat.dal.service import get_friend_serviceidentity_connection
 from rogerthat.models import ServiceProfile
-from rogerthat.models.properties.friend import FriendDetail
+from rogerthat.models.properties.friend import FriendDetailTO
 from rogerthat.rpc import users
 from rogerthat.to.friends import FriendTO, FRIEND_TYPE_SERVICE
 from rogerthat.to.service import FindServiceResponseTO
@@ -58,8 +58,8 @@ def get():
     user = users.get_current_user()
     friendMap = get_friends_map(user)
     return [FriendTO.fromDBFriendDetail(FriendHelper.from_data_store(users.User(f.email), f.type), f)
-            for f in friendMap.friendDetails
-            if f.type == FriendDetail.TYPE_SERVICE and f.existence == FriendDetail.FRIEND_EXISTENCE_ACTIVE]
+            for f in friendMap.get_friend_details().values()
+            if f.type == FriendDetailTO.TYPE_SERVICE and f.existence == FriendDetailTO.FRIEND_EXISTENCE_ACTIVE]
 
 
 @rest("/mobi/rest/services/get_full_service", "get")

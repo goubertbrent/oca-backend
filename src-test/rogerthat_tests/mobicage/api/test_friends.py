@@ -194,7 +194,7 @@ class Test(mc_unittest.TestCase):
         print myFriendMap.generation
         assert myFriendMap.generation == 3
         assert get_friend_serviceidentity_connection(invitor, svc_identity_user)
-        assert not myFriendMap.friendDetails[remove_slash_default(svc_identity_user).email()].hasUserData
+        assert not myFriendMap.get_friend_detail_by_email(remove_slash_default(svc_identity_user).email()).hasUserData
 
         # Cleanup previously sent messages
         db.delete(Message.all())
@@ -226,8 +226,8 @@ class Test(mc_unittest.TestCase):
         assert invitee in myFriendMap.friends
         assert invitor in hisFriendMap.friends
 
-        assert not myFriendMap.friendDetails[invitee.email()].hasUserData
-        assert not hisFriendMap.friendDetails[invitor.email()].hasUserData
+        assert not myFriendMap.get_friend_detail_by_email(invitee.email()).hasUserData
+        assert not hisFriendMap.get_friend_detail_by_email(invitor.email()).hasUserData
 
     def test_clean_email(self):
         assert is_clean_app_user_email(users.User(u'aap@bbb.com'))

@@ -261,11 +261,11 @@ Accuracy: %(accuracy)sm""", name=profile.name, accuracy=loc.accuracy)
 @arguments(app_user=users.User, friend=users.User, target=int)
 def get_friend_location(app_user, friend, target=0):
     myFriendMap = get_friends_map(app_user)
-    if not friend.email() in myFriendMap.friendDetails:
+    friend_detail = myFriendMap.get_friend_detail_by_email(friend.email())
+    if not friend_detail:
         logging.warning("%s is not in %s his/her friendMap anymore. Ignoring getFriendLocation request.", friend, app_user)
         return
-    friendDetail = myFriendMap.friendDetails[friend.email()]
-    if not friendDetail.sharesLocation:
+    if not friend_detail.sharesLocation:
         return
     friend_profile = get_user_profile(friend)
     if not friend_profile.mobiles:
@@ -298,9 +298,10 @@ def request_friend_locations(app_user):
     request.target = GetLocationRequestTO.TARGET_MOBILE_FRIENDS_ON_MAP if users.get_current_mobile() else GetLocationRequestTO.TARGET_WEB
     myFriendMap = get_friends_map(app_user)
     location_sharing_friends = list()
+    friend_details = myFriendMap.get_friend_details()
     for friend in myFriendMap.friends:
-        friendDetail = myFriendMap.friendDetails[friend.email()]
-        if friendDetail.sharesLocation:
+        friend_detail = friend_details[friend.email()]
+        if friend_detail.sharesLocation:
             location_sharing_friends.append(friend)
     return len(getLocation(get_location_response_handler, dismissError, location_sharing_friends, request=request))
 
