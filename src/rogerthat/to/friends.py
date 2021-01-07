@@ -84,9 +84,9 @@ class BaseServiceMenuItemTO(TO):
         static_flow = None
         if smd.staticFlowKey:
             mfd = helper.get_message_flow(smd.staticFlowKey)
-            static_flow = mfd.js_flow_definitions.get_by_language(language)
+            static_flow = mfd.get_js_flow_definition_by_language(language)
             if not static_flow:
-                static_flow = mfd.js_flow_definitions.get_by_language(helper.get_service_profile().defaultLanguage)
+                static_flow = mfd.get_js_flow_definition_by_language(helper.get_service_profile().defaultLanguage)
 
         if static_flow:
             static_flow_brandings.extend(static_flow.brandings)

@@ -102,7 +102,8 @@ class LoadWiringHandler(webapp.RequestHandler):
             message_flow_design.language = language
             message_flow_design.design_timestamp = now()
             message_flow_design.status = MessageFlowDesign.STATUS_VALID
-            message_flow_design.js_flow_definitions = JsFlowDefinitions()
+            message_flow_design.js_flow_definitions = None
+            message_flow_design.js_flow_definitions_json = None
             message_flow_design.put()
         self.response.out.write(json.dumps(result))
 

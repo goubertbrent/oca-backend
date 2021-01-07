@@ -19,9 +19,9 @@ import base64
 import json
 import logging
 import re
+from types import NoneType
 import uuid
 import zlib
-from types import NoneType
 
 from google.appengine.ext import db
 
@@ -49,7 +49,7 @@ from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_service_menu_items
 from rogerthat.models import MessageFlowDesign, MessageFlowDesignBackup, ServiceTranslation
 from rogerthat.models.properties.forms import MdpScope, TextWidget, OpenIdScope
-from rogerthat.models.properties.messaging import JsFlowDefinition, JsFlowDefinitions
+from rogerthat.models.properties.messaging import JsFlowDefinitionTO
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException, BusinessException
 from rogerthat.to import WIDGET_MAPPING
@@ -63,6 +63,7 @@ from rogerthat.utils.attachment import get_attachment_content_type_and_length
 from rogerthat.utils.crypto import md5_hex
 from rogerthat.utils.service import add_slash_default
 from rogerthat.utils.transactions import run_in_transaction
+
 
 try:
     from cStringIO import StringIO
@@ -1106,7 +1107,8 @@ def save_message_flow_by_xml(service_user, xml, multilanguage=False, force=False
             update_i18n_warning(mfd, service_languages, mfd_languages)
             render_js_for_message_flow_designs([mfd], True)
         else:
-            mfd.js_flow_definitions = JsFlowDefinitions()
+            mfd.js_flow_definitions = None
+            mfd.js_flow_definitions_json = None
             mfd.xml = None
             mfd.i18n_warning = None
 
@@ -1218,7 +1220,8 @@ def save_message_flow(service_user, mfd_name, design, language, force, multilang
             if had_i18n_warning != bool(mfd.i18n_warning):
                 parent_keys_to_be_analyzed.update([k for k, v in parent_flows.iteritems() if v.multilanguage])
         else:
-            mfd.js_flow_definitions = JsFlowDefinitions()
+            mfd.js_flow_definitions = None
+            mfd.js_flow_definitions_json = None
             mfd.xml = None
             mfd.i18n_warning = None
 
@@ -1340,29 +1343,31 @@ def render_js_for_message_flow_designs(mfds, notify_friends=True):
             js_flow_definition_dict = generate_js_flow(helper, mfd.xml)
 
             referenced_by_smi = str(mfd.key()) in static_flow_keys
-            old_js_flow_definitions = mfd.js_flow_definitions
-
-            mfd.js_flow_definitions = JsFlowDefinitions()
+            old_js_flow_definitions_dict = mfd.get_js_flow_definitions()
+            new_js_flow_definitions_dict = {}
             for language, (flow_definition, brandings, attachments) in js_flow_definition_dict.iteritems():
-                new_jfd = JsFlowDefinition()
+                new_jfd = JsFlowDefinitionTO()
                 new_jfd.language = language
                 new_jfd.definition = compress_js_flow_definition(flow_definition)
                 new_jfd.hash_ = unicode(md5_hex(new_jfd.definition))
                 new_jfd.brandings = brandings
                 new_jfd.attachments = attachments
-                mfd.js_flow_definitions.add(new_jfd)
+                
+                new_js_flow_definitions_dict[new_jfd.language] = new_jfd
 
                 if referenced_by_smi:
-                    if old_js_flow_definitions:
-                        old_jfd = old_js_flow_definitions.get_by_language(language)
+                    if old_js_flow_definitions_dict:
+                        old_jfd = old_js_flow_definitions_dict.get(language)
 
                         if not old_jfd or old_jfd.hash_ != new_jfd.hash_:
                             changed_languages.add(language)
                     else:
                         changed_languages.add(language)
 
-            if referenced_by_smi and old_js_flow_definitions:
-                for old_jfd in old_js_flow_definitions.values():
+            mfd.save_js_flow_definitions(new_js_flow_definitions_dict)
+
+            if referenced_by_smi and old_js_flow_definitions_dict:
+                for old_jfd in old_js_flow_definitions_dict.values():
                     if old_jfd.language not in js_flow_definition_dict:
                         changed_languages.add(old_jfd.language)
 

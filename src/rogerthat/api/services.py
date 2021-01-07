@@ -82,9 +82,9 @@ def getActionInfo(request):
     static_flow = None
     if sid.staticFlowKey:
         mfd = MessageFlowDesign.get(sid.staticFlowKey)
-        static_flow = mfd.js_flow_definitions.get_by_language(target_language)
+        static_flow = mfd.get_js_flow_definition_by_language(target_language)
         if not static_flow:
-            static_flow = mfd.js_flow_definitions.get_by_language(get_service_profile(sid.user).defaultLanguage)
+            static_flow = mfd.get_js_flow_definition_by_language(get_service_profile(sid.user).defaultLanguage)
     if static_flow:
         response.staticFlowHash = static_flow.hash_
         response.staticFlow = static_flow.definition
@@ -202,7 +202,7 @@ def getStaticFlow(request):
         return None
 
     mfd = MessageFlowDesign.get(smd.staticFlowKey)
-    static_flow = mfd.js_flow_definitions.get_by_hash(request.staticFlowHash)
+    static_flow = mfd.get_js_flow_definition_by_hash(request.staticFlowHash)
     if not static_flow:
         logging.info("No static flow found on MFD '%s' with hash %s" % (mfd.name, request.staticFlowHash))
         return None

@@ -429,7 +429,7 @@ class Test(mc_unittest.TestCase):
         self.assertFalse(mfd.validation_error, msg)
         self.assertFalse(mfd.broken_sub_flows, msg)
         self.assertTrue(mfd.xml, msg)
-        self.assertTrue(mfd.js_flow_definitions.values(), msg)
+        self.assertTrue(mfd.get_js_flow_definitions().values(), msg)
 
     def assertStatusBroken(self, mfd):
         msg = self.mfd_str(mfd)
@@ -438,7 +438,7 @@ class Test(mc_unittest.TestCase):
         self.assertFalse(mfd.sub_flows, msg)
         self.assertFalse(mfd.broken_sub_flows, msg)
         self.assertFalse(mfd.xml, msg)
-        self.assertFalse(mfd.js_flow_definitions.values(), msg)
+        self.assertFalse(mfd.get_js_flow_definitions().values(), msg)
 
     def assertStatusSubFlowBroken(self, mfd, broken_sub_flows):
         msg = self.mfd_str(mfd)
@@ -448,7 +448,7 @@ class Test(mc_unittest.TestCase):
         self.assertTrue(mfd.broken_sub_flows, msg)
         self.assertTrue(set(mfd.broken_sub_flows).issubset(set(mfd.sub_flows)), msg)
         self.assertFalse(mfd.xml, msg)
-        self.assertFalse(mfd.js_flow_definitions.values(), msg)
+        self.assertFalse(mfd.get_js_flow_definitions().values(), msg)
         if broken_sub_flows:
             broken_keys = set([f.key() for f in broken_sub_flows])
             self.assertFalse(broken_keys.difference(set(mfd.broken_sub_flows)), msg)
@@ -1348,5 +1348,5 @@ class Test(mc_unittest.TestCase):
         mfd = db.get(mfd.key())
 
         for lang in get_service_profile(mfd.user).supportedLanguages:
-            flow = mfd.js_flow_definitions.get_by_language(lang)
+            flow = mfd.get_js_flow_definition_by_language(lang)
             self.assertTrue(flow, "js_flow_def with language '%s' not found" % lang)

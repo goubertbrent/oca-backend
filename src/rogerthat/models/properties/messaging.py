@@ -416,7 +416,7 @@ class AttachmentsProperty(db.UnindexedProperty):
         return not value
 
 
-class JsFlowDefinition(object):
+class JsFlowDefinitionTO(TO):
     language = unicode_property('1')
     hash_ = unicode_property('2')
     definition = unicode_property('3')
@@ -446,8 +446,10 @@ class JsFlowDefinitionsProperty(db.UnindexedProperty):
 
     def get_value_for_datastore(self, model_instance):
         stream = StringIO.StringIO()
-        _serialize_js_flow_definitions(
-            stream, super(JsFlowDefinitionsProperty, self).get_value_for_datastore(model_instance))
+        super_value = super(JsFlowDefinitionsProperty, self).get_value_for_datastore(model_instance)
+        if not super_value:
+            return None
+        _serialize_js_flow_definitions(stream, super_value)
         return db.Blob(stream.getvalue())
 
     # For reading from datastore.
@@ -475,7 +477,7 @@ def _serialize_js_flow_definition(stream, jfd):
 
 
 def _deserialize_js_flow_definition(stream, version):
-    jfd = JsFlowDefinition()
+    jfd = JsFlowDefinitionTO()
     jfd.language = ds_unicode(stream)
     jfd.hash_ = ds_unicode(stream)
     jfd.definition = ds_unicode(stream)

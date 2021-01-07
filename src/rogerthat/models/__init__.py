@@ -15,6 +15,7 @@
 #
 # @@license_version:1.7@@
 
+from collections import namedtuple
 import datetime
 import hashlib
 import json
@@ -25,15 +26,13 @@ import urllib
 import urlparse
 import uuid
 import zlib
-from collections import namedtuple
 
-from dateutil.parser import parse as parse_date
 from google.appengine.ext import db, ndb
 from google.appengine.ext.db import polymodel
 from google.appengine.ext.ndb.polymodel import PolyModel as NdbPolyModel
 from google.appengine.ext.ndb.query import QueryOptions
-from typing import List
 
+from dateutil.parser import parse as parse_date
 from mcfw.cache import CachedModelMixIn, invalidate_cache, invalidate_model_cache
 from mcfw.properties import azzert
 from mcfw.serialization import deserializer, ds_model, register, s_model, s_long, ds_long, serializer, \
@@ -41,7 +40,6 @@ from mcfw.serialization import deserializer, ds_model, register, s_model, s_long
 from mcfw.utils import Enum
 from rogerthat.consts import IOS_APPSTORE_WEB_URI_FORMAT, \
     ANDROID_MARKET_ANDROID_URI_FORMAT, ANDROID_MARKET_WEB_URI_FORMAT, ANDROID_BETA_MARKET_WEB_URI_FORMAT
-
 from rogerthat.models.common import NdbModel
 from rogerthat.models.properties import CompressedIntegerList
 from rogerthat.models.properties.app import AutoConnectedServicesProperty, AutoConnectedService
@@ -49,7 +47,7 @@ from rogerthat.models.properties.forms import FormProperty
 from rogerthat.models.properties.friend import FriendDetailsProperty, FriendDetails
 from rogerthat.models.properties.keyvalue import KeyValueProperty, KVStore
 from rogerthat.models.properties.messaging import ButtonsProperty, MemberStatusesProperty, JsFlowDefinitionsProperty, \
-    AttachmentsProperty, SpecializedList, EmbeddedAppProperty
+    AttachmentsProperty, SpecializedList, EmbeddedAppProperty, JsFlowDefinitionTO
 from rogerthat.models.properties.oauth import OAuthSettingsProperty
 from rogerthat.models.properties.profiles import MobileDetailsProperty, \
     MobileDetailsNdbProperty
@@ -60,6 +58,8 @@ from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import base38, base65, llist, now, calculate_age_from_date
 from rogerthat.utils.crypto import sha256_hex, encrypt
 from rogerthat.utils.translations import localize_app_translation
+from typing import List
+
 
 try:
     from cStringIO import StringIO
@@ -2608,6 +2608,9 @@ class MessageFlowDesign(db.Model):
     multilanguage = db.BooleanProperty(indexed=True, default=False)
     i18n_warning = db.TextProperty()
     js_flow_definitions = JsFlowDefinitionsProperty()
+    js_flow_definitions_json = db.TextProperty()
+    
+    _tmp_js_flow_definitions = None
 
     @property
     def user(self):
@@ -2617,6 +2620,39 @@ class MessageFlowDesign(db.Model):
     def list_by_service_user(cls, service_user):
         from rogerthat.dal import parent_key
         return cls.all().ancestor(parent_key(service_user)).filter('status', cls.STATUS_VALID)
+    
+    def get_js_flow_definitions(self):
+        if self._tmp_js_flow_definitions is None:
+            data = json.loads(self.js_flow_definitions_json) if self.js_flow_definitions_json else {}
+            result = {}
+            if data:
+                for lang, value in data.iteritems():
+                    result[lang] = JsFlowDefinitionTO.from_dict(value)
+            elif self.js_flow_definitions:
+                for jfd in self.js_flow_definitions:
+                    result[jfd.language] = jfd
+            self._tmp_js_flow_definitions = result
+        return self._tmp_js_flow_definitions
+
+    def save_js_flow_definitions(self, data):
+        result = {}
+        for lang, value in data.iteritems():
+            result[lang] = value.to_dict()
+        self.js_flow_definitions_json = json.dumps(result)
+        self._tmp_js_flow_definitions = data
+        
+    def get_js_flow_definition_by_language(self, lang):
+        data = self.get_js_flow_definitions()
+        for lang in data:
+            return data[lang]
+        return None
+    
+    def get_js_flow_definition_by_hash(self, static_flow_hash):
+        data = self.get_js_flow_definitions()
+        for _, value in data.iteritems():
+            if value.hash_ == static_flow_hash:
+                return value
+        return None
 
 
 class MessageFlowDesignBackup(db.Model):
