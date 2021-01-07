@@ -96,8 +96,7 @@ from solutions.common.models.group_purchase import SolutionGroupPurchase
 from solutions.common.models.loyalty import SolutionLoyaltySettings, SolutionLoyaltyLottery, \
     SolutionLoyaltyIdentitySettings
 from solutions.common.models.order import SolutionOrderWeekdayTimeframe
-from solutions.common.models.properties import MenuItemTO, ActivatedModules, \
-    ActivatedModule
+from solutions.common.models.properties import MenuItemTO, ActivatedModuleTO
 from solutions.common.models.reservation import RestaurantProfile
 from solutions.common.models.sandwich import SandwichType, SandwichTopping, SandwichSettings, SandwichOption
 from solutions.common.models.static_content import SolutionStaticContent
@@ -576,9 +575,8 @@ def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang
 
     if not sln_settings.provisioned_modules:
         sln_settings.provisioned_modules = []
-    if not sln_settings.activated_modules:
-        sln_settings.activated_modules = ActivatedModules()
 
+    activated_modules = sln_settings.get_activated_modules()
     branding_settings = SolutionBrandingSettings.get_by_user(sln_settings.service_user)
     fall_through = branding_settings.left_align_icons if branding_settings else False
 
@@ -586,7 +584,8 @@ def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang
     for provisioned_module in sln_settings.provisioned_modules:
         if provisioned_module not in sln_settings.modules:
             logging.info("should remove module: %s", provisioned_module)
-            sln_settings.activated_modules.remove(provisioned_module)
+            if provisioned_module in activated_modules:
+                del activated_modules[provisioned_module]
             current_coords = get_coords_of_service_menu_item(service_menu, POKE_TAGS[provisioned_module])
             delete_func = MODULES_DELETE_FUNCS[provisioned_module]
             delete_func(sln_settings, current_coords, service_menu)
@@ -599,13 +598,14 @@ def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang
 
     now_ = now()
     for module in sln_settings.modules:
-        if module not in sln_settings.activated_modules:
-            activated_module = ActivatedModule()
+        if module not in activated_modules:
+            activated_module = ActivatedModuleTO()
             activated_module.name = module
             activated_module.timestamp = now_
-            sln_settings.activated_modules.add(activated_module)
+            activated_modules[module] = activated_module
 
     sln_settings.provisioned_modules = []
+    sln_settings.save_activated_modules(activated_modules)
 
     _configure_inbox_qr_code_if_needed(sln_settings, main_branding)
     ssmi_modules = {}
@@ -1039,7 +1039,7 @@ def put_loyalty(sln_settings, current_coords, current_label, main_branding, defa
 
             limited = False
             if customer and customer.country == "BE":
-                if sln_settings.activated_modules[SolutionModule.LOYALTY].timestamp > 0:
+                if sln_settings.get_activated_modules()[SolutionModule.LOYALTY].timestamp > 0:
                     limited = True
 
             if limited and loyalty_settings.loyalty_type != SolutionLoyaltySettings.LOYALTY_TYPE_SLIDES_ONLY:

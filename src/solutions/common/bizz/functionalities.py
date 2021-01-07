@@ -22,6 +22,7 @@ from typing import Tuple, List, Dict
 from rogerthat.bizz.communities.models import Community
 from solutions import translate as common_translate
 from solutions.common.bizz import SolutionModule
+from solutions.common.models import ActivatedModuleTO
 
 OTHER_LANGUAGES = ['nl']
 
@@ -47,9 +48,8 @@ MEDIA = {
 
 class Functionality(object):
 
-    def __init__(self, language, activated_modules, name):
+    def __init__(self, language, name):
         self.language = language
-        self.activated_modules = activated_modules
         self.name = name
 
     def translate(self, key, fallback=None):
@@ -135,7 +135,7 @@ def sort_modules(name):
 
 
 def get_functionalities(language, my_modules, activated_modules, community):
-    # type: (str, List[str], List[str], Community) -> Tuple[List[str], Dict[str, Dict]]
+    # type: (str, List[str], Dict[str, ActivatedModuleTO], Community) -> Tuple[List[str], Dict[str, Dict]]
     # we need the news module to be the first
     modules = sorted(SolutionModule.FUNCTIONALITY_MODULES, key=sort_modules)
     if SolutionModule.CITY_APP in my_modules:
@@ -148,6 +148,6 @@ def get_functionalities(language, my_modules, activated_modules, community):
         feat = SolutionModule.COMMUNITY_MODULES.get(module)
         if feat and feat not in community.features:
             modules.remove(module)
-    functionalities = [Functionality(language, activated_modules, module) for module in modules]
+    functionalities = [Functionality(language, module) for module in modules]
     info = {func.name: func.to_dict() for func in functionalities}
     return modules, info

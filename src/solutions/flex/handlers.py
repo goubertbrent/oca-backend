@@ -334,7 +334,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
         functionality_modules = functionality_info = None
         if community.signup_enabled:
             functionality_modules, functionality_info = map(json.dumps, get_functionalities(
-                lang, sln_settings.modules, sln_settings.activated_modules, community))
+                lang, sln_settings.modules, sln_settings.get_activated_modules(), community))
 
         is_city = service_user == community.main_service_user
         news_review_enabled = AppFeatures.NEWS_REVIEW in community.features

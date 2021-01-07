@@ -248,14 +248,9 @@ class MenuCategoriesProperty(db.UnindexedProperty):
         return not value
 
 
-class ActivatedModule(object):
-    name = unicode_property('1')
-    timestamp = long_property('2')
-
-    def __init__(self, name=None, timestamp=0):
-        self.name = name
-        self.timestamp = timestamp
-
+class ActivatedModuleTO(TO):
+    name = unicode_property('1', default=None)
+    timestamp = long_property('2', default=0)
 
 def _serialize_activated_module(stream, m):
     s_unicode(stream, m.name)
@@ -263,7 +258,7 @@ def _serialize_activated_module(stream, m):
 
 
 def _deserialize_activated_module(stream, version):
-    m = ActivatedModule()
+    m = ActivatedModuleTO()
     m.name = ds_unicode(stream)
     m.timestamp = ds_long(stream)
     return m
@@ -303,8 +298,11 @@ class ActivatedModulesProperty(db.UnindexedProperty):
 
     # For writing to datastore.
     def get_value_for_datastore(self, model_instance):
+        super_value = super(ActivatedModulesProperty, self).get_value_for_datastore(model_instance)
+        if not super_value:
+            return None
         with closing(StringIO.StringIO()) as stream:
-            _serialize_activated_modules(stream, super(ActivatedModulesProperty, self).get_value_for_datastore(model_instance))
+            _serialize_activated_modules(stream, super_value)
             return db.Blob(stream.getvalue())
 
     # For reading from datastore.

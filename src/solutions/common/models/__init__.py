@@ -20,6 +20,7 @@ import logging
 
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, ndb
+from typing import Dict
 
 from babel import Locale
 from babel.dates import get_timezone
@@ -36,7 +37,7 @@ from rogerthat.utils.service import get_identity_from_service_identity_user, \
     get_service_user_from_service_identity_user
 from solutions.common import SOLUTION_COMMON
 from solutions.common.models.properties import SolutionUserProperty, MenuCategoriesProperty, \
-    ActivatedModulesProperty, MenuCategoryTO
+    ActivatedModulesProperty, ActivatedModuleTO, MenuCategoryTO
 from solutions.common.utils import create_service_identity_user_wo_default
 
 
@@ -288,6 +289,7 @@ class SolutionSettings(SolutionIdentitySettings):
     modules_to_put = db.StringListProperty(default=[])
     modules_to_remove = db.StringListProperty(default=[])
     activated_modules = ActivatedModulesProperty()
+    activated_modules_json = db.TextProperty()
 
     # Events
     events_visible = db.BooleanProperty(indexed=False, default=True)
@@ -305,6 +307,8 @@ class SolutionSettings(SolutionIdentitySettings):
 
     service_disabled = db.BooleanProperty(default=False)
     hidden_by_city = db.DateTimeProperty(default=None)
+
+    _tmp_activated_modules = None
 
     @staticmethod
     def create_key(service_user):
@@ -362,6 +366,28 @@ class SolutionSettings(SolutionIdentitySettings):
     @property
     def currency_symbol(self):
         return Locale.parse(self.main_language).currency_symbols.get(self.currency, self.currency)
+
+    def get_activated_modules(self):
+        # type: () -> Dict[str, ActivatedModuleTO]
+        if self._tmp_activated_modules is None:
+            data = json.loads(self.activated_modules_json) if self.activated_modules_json else {}
+            result = {}
+            if data:
+                for module, value in data.iteritems():
+                    result[module] = ActivatedModuleTO.from_dict(value)
+            elif self.activated_modules:
+                for module in self.activated_modules:
+                    result[module.name] = module
+            self._tmp_activated_modules = result
+        return self._tmp_activated_modules
+
+    def save_activated_modules(self, data):
+        # type: (Dict[str, ActivatedModuleTO]) -> None
+        result = {}
+        for module, value in data.iteritems():
+            result[module] = value.to_dict()
+        self.activated_modules_json = json.dumps(result)
+        self._tmp_activated_modules = data
 
 
 class SolutionBrandingSettings(db.Model):
