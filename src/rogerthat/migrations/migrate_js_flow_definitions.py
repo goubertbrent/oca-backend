@@ -35,8 +35,9 @@ def _worker(mfd_key):
     if message_flow_design.js_flow_definitions_json:
         return
     data = {}
-    for jfd in message_flow_design.js_flow_definitions:
-        data[jfd.language] = jfd
+    if message_flow_design.js_flow_definitions:
+        for jfd in message_flow_design.js_flow_definitions:
+            data[jfd.language] = jfd
     message_flow_design.save_js_flow_definitions(data)
     message_flow_design.js_flow_definitions = None
     message_flow_design.put() 
