@@ -82,7 +82,7 @@ class NewsItemStatistics(object):
         return [cls.get_age_label(index) for index in xrange(cls.AGE_LENGTH)]
 
 
-class NewsButton(object):
+class NewsButtonTO(object):
     id = unicode_property('1')
     caption = unicode_property('2')
     action = unicode_property('3')
@@ -106,7 +106,7 @@ def _serialize_news_button(stream, b):
 
 
 def _deserialize_news_button(stream, version):
-    b = NewsButton()
+    b = NewsButtonTO()
     b.id = ds_unicode(stream)
     b.caption = ds_unicode(stream)
     b.action = ds_unicode(stream)

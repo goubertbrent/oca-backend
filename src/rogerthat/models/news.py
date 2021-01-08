@@ -69,6 +69,14 @@ class NewsItemLocation(NdbModel):
     addresses = ndb.StructuredProperty(NewsItemAddress, repeated=True)
 
 
+class NewsButton(NdbModel):
+    id = ndb.TextProperty()
+    caption = ndb.TextProperty()
+    action = ndb.TextProperty()
+    flow_params = ndb.TextProperty()
+    index = ndb.IntegerProperty(indexed=False)
+
+
 class NewsItem(NdbModel):
     STATUS_SCHEDULED = u'scheduled'
     STATUS_PUBLISHED = u'published'
@@ -126,6 +134,7 @@ class NewsItem(NdbModel):
     locations = ndb.StructuredProperty(NewsItemLocation)  # type: NewsItemLocation
 
     buttons = NewsButtonsProperty(indexed=False)
+    actions = ndb.LocalStructuredProperty(NewsButton, repeated=True)
     qr_code_content = ndb.StringProperty(indexed=False)
     qr_code_caption = ndb.StringProperty(indexed=False)
     version = ndb.IntegerProperty(indexed=False, default=1)
@@ -211,9 +220,9 @@ class NewsItem(NdbModel):
 
     @classmethod
     def list_published_by_group_id_sorted(cls, group_id):
-        return cls.query()\
-            .filter(cls.status == cls.STATUS_PUBLISHED)\
-            .filter(cls.group_ids == group_id)\
+        return cls.query() \
+            .filter(cls.status == cls.STATUS_PUBLISHED) \
+            .filter(cls.group_ids == group_id) \
             .order(-cls.published_timestamp)
 
     @classmethod
@@ -298,7 +307,8 @@ class NewsItemWebActionHistory(NdbModel):
 
 
 class NewsItemWebActions(NdbModel):
-    actions = ndb.StructuredProperty(NewsItemWebActionHistory, indexed=False, repeated=True)  # type: List[NewsItemWebActionHistory]
+    actions = ndb.StructuredProperty(NewsItemWebActionHistory, indexed=False,
+                                     repeated=True)  # type: List[NewsItemWebActionHistory]
 
     @classmethod
     def create_key(cls, session_key, news_id):
@@ -329,8 +339,8 @@ class NewsItemActionStatistics(NdbModel):
     created = ndb.DateTimeProperty(auto_now_add=True)
     news_id = ndb.IntegerProperty()
     action = ndb.StringProperty()
-    age = ndb.StringProperty(indexed=False) # if empty, it's a web user
-    gender = ndb.StringProperty(indexed=False) # if empty, it's a web user
+    age = ndb.StringProperty(indexed=False)  # if empty, it's a web user
+    gender = ndb.StringProperty(indexed=False)  # if empty, it's a web user
     app_id = ndb.StringProperty(indexed=False)  # if empty, parent key is always an app user
 
     def get_app_id(self):
@@ -350,14 +360,14 @@ class NewsItemActionStatistics(NdbModel):
 
     @classmethod
     def list_by_action(cls, news_id, action):
-        return NewsItemActionStatistics.query()\
-            .filter(NewsItemActionStatistics.news_id == news_id)\
+        return NewsItemActionStatistics.query() \
+            .filter(NewsItemActionStatistics.news_id == news_id) \
             .filter(NewsItemActionStatistics.action == action)
 
     @classmethod
     def list_between(cls, start, end):
-        return NewsItemActionStatistics.query()\
-            .filter(NewsItemActionStatistics.created > start)\
+        return NewsItemActionStatistics.query() \
+            .filter(NewsItemActionStatistics.created > start) \
             .filter(NewsItemActionStatistics.created <= end)
 
 
@@ -382,7 +392,7 @@ class NewsStream(NdbModel):
 
     @classmethod
     def create_key(cls, community_id):
-        return ndb.Key(cls, community_id) # todo communities pre-migration
+        return ndb.Key(cls, community_id)  # todo communities pre-migration
 
 
 class NewsStreamCustomLayout(NdbModel):
@@ -416,7 +426,7 @@ class NewsGroup(NdbModel):
 
     name = ndb.StringProperty(indexed=False)  # not visible to users/customers
     app_id = ndb.StringProperty()
-    community_id = ndb.IntegerProperty() # todo communities
+    community_id = ndb.IntegerProperty()  # todo communities
     send_notifications = ndb.BooleanProperty(indexed=False, default=True)
     visible_until = ndb.DateTimeProperty(indexed=True)
 
@@ -472,7 +482,7 @@ class NewsSettingsService(NdbModel):
     # 999 skipped
 
     default_app_id = ndb.StringProperty()  # TODO communities: remove after migration
-    community_id = ndb.IntegerProperty() # todo communities
+    community_id = ndb.IntegerProperty()  # todo communities
     setup_needed_id = ndb.IntegerProperty()
     groups = ndb.LocalStructuredProperty(NewsSettingsServiceGroup,
                                          repeated=True)  # type: List[NewsSettingsServiceGroup]
@@ -670,13 +680,13 @@ class NewsItemActions(NdbModel):
 
     @classmethod
     def list_by_action(cls, app_user, action):
-        return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE))\
+        return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE)) \
             .filter(cls.actions == action)
 
     @classmethod
     def list_pinned(cls, app_user):
-        return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE))\
-            .filter(cls.actions == NewsItemAction.PINNED)\
+        return cls.query(ancestor=parent_ndb_key(app_user, namespace=cls.NAMESPACE)) \
+            .filter(cls.actions == NewsItemAction.PINNED) \
             .order(-NewsItemActions.pinned_time)
 
     def add_action(self, action, action_time):

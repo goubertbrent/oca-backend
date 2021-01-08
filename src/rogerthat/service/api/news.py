@@ -116,8 +116,8 @@ def publish(sticky=MISSING, sticky_until=MISSING, title=MISSING, message=MISSING
                               timestamp,
                               accept_missing=True)
     # Replace hashed tag with real tag
-    if action_buttons and news_item.buttons:
-        for button in news_item.buttons:
+    if action_buttons and news_item.actions:
+        for button in news_item.actions:
             for btn in action_buttons:
                 if button.id == btn.id and button.action.startswith('poke://'):
                     button.action = btn.action

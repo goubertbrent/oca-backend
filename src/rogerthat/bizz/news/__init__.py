@@ -16,21 +16,20 @@
 # @@license_version:1.7@@
 
 import base64
+from collections import defaultdict
+from datetime import datetime
 import imghdr
 import json
 import logging
+from types import NoneType
 import urllib2
 import urlparse
-from collections import defaultdict
-from datetime import datetime
-from types import NoneType
 
 from google.appengine.api import urlfetch, images, taskqueue
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
 from google.appengine.ext.ndb import utils
 from google.appengine.ext.ndb.query import Cursor
-from typing import List, Dict, Tuple, Iterable, Any, Optional
 
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
@@ -71,8 +70,9 @@ from rogerthat.models.news import NewsItem, NewsItemImage, NewsItemActionStatist
     NewsMedia, NewsStream, NewsItemLocation, NewsItemGeoAddress, NewsItemAddress, \
     NewsNotificationStatus, NewsNotificationFilter, NewsStreamCustomLayout, NewsItemAction, MediaType, \
     NewsSettingsServiceGroup, NewsItemWebActions, NewsItemActions, \
-    NewsMatchType, UserNewsGroupSettings
-from rogerthat.models.properties.news import NewsItemStatistics, NewsButtons, NewsButton
+    NewsMatchType, UserNewsGroupSettings, NewsButton
+from rogerthat.models.properties.messaging import DuplicateButtonIdException
+from rogerthat.models.properties.news import NewsItemStatistics
 from rogerthat.models.utils import ndb_allocate_id
 from rogerthat.rpc import users
 from rogerthat.rpc.models import RpcCAPICall
@@ -96,6 +96,8 @@ from rogerthat.utils.iOS import construct_push_notification
 from rogerthat.utils.service import add_slash_default, get_service_user_from_service_identity_user, \
     remove_slash_default, get_service_identity_tuple
 from rogerthat.web_client.models import WebClientSession
+from typing import List, Dict, Tuple, Iterable, Any, Optional
+
 
 _DEFAULT_LIMIT = 100
 ALLOWED_NEWS_BUTTON_ACTIONS = list(ALLOWED_BUTTON_ACTIONS) + ['poke']
@@ -840,7 +842,11 @@ def replace_hashed_news_button_tags_with_real_tag(news_items, service_user):
     """
     poke_tag_maps_to_get = []
     for news_item in news_items:
-        if news_item.buttons:
+        if news_item.actions:
+            for button in news_item.actions:
+                if button.action.startswith('poke://'):
+                    poke_tag_maps_to_get.append(PokeTagMap.create_key(button.action.split('poke://')[1], service_user))
+        elif news_item.buttons:
             for button in news_item.buttons:
                 if button.action.startswith('poke://'):
                     poke_tag_maps_to_get.append(PokeTagMap.create_key(button.action.split('poke://')[1], service_user))
@@ -848,7 +854,12 @@ def replace_hashed_news_button_tags_with_real_tag(news_items, service_user):
     if poke_tag_maps_to_get:
         poke_tag_maps = {poke_tag_map.hash: poke_tag_map for poke_tag_map in PokeTagMap.get(poke_tag_maps_to_get)}
         for news_item in news_items:
-            if news_item.buttons:
+            if news_item.actions:
+                for button in news_item.actions:
+                    if button.action.startswith('poke://'):
+                        hashed_tag = button.action.split('poke://')[1]
+                        button.action = u'poke://%s' % poke_tag_maps[hashed_tag].tag
+            elif news_item.buttons:
                 for button in news_item.buttons:
                     if button.action.startswith('poke://'):
                         hashed_tag = button.action.split('poke://')[1]
@@ -959,11 +970,14 @@ def put_news(sender, sticky, sticky_until, title, message, image, news_type, new
             raise InvalidScheduledTimestamp()
     scheduled_at = scheduled_at if not is_empty(scheduled_at) else 0
 
-    buttons = NewsButtons()
+    buttons = []
+    button_ids = []
 
     poke_tags_to_create = []
     if is_set(news_buttons):
         for i, news_button in enumerate(news_buttons):
+            if news_button.id in button_ids:
+                raise DuplicateButtonIdException()
             btn = NewsButton()
             btn.id = news_button.id
             if not news_button.caption or not news_button.caption.strip():
@@ -993,8 +1007,9 @@ def put_news(sender, sticky, sticky_until, title, message, image, news_type, new
                     btn.action = 'poke://' + hashed_tag
                     poke_tags_to_create.append(PokeTagMap(key=PokeTagMap.create_key(hashed_tag, service_user),
                                                           tag=tag))
-
-            buttons.add(btn)
+            
+            button_ids.append(btn.id)
+            buttons.append(btn)
     if poke_tags_to_create:
         deferred.defer(_save_models, poke_tags_to_create, _transactional=ndb.in_transaction())
 
@@ -1112,7 +1127,8 @@ def put_news(sender, sticky, sticky_until, title, message, image, news_type, new
         if len(buttons) > max_button_count:
             raise TooManyNewsButtonsException()
 
-        news_item.buttons = buttons
+        news_item.buttons = None
+        news_item.actions = buttons
         news_item.flags = item_flags
         if tags and is_set(tags):
             news_item.tags = tags

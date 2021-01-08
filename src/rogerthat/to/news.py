@@ -313,7 +313,12 @@ class NewsItemTO(TO):
     @classmethod
     def from_model(cls, model, base_url, service_profile, service_identity, share_url):
         # type: (NewsItem, unicode, Union[ServiceProfile, NdbServiceProfile], ServiceIdentity, unicode) -> NewsItemTO
-        buttons = model.buttons.values() if model.buttons else []
+        if model.actions:
+            buttons = model.actions
+        elif model.buttons:
+            buttons = model.buttons.values()
+        else:
+            buttons = []
 
         # set the target audience
         if model.target_audience_enabled:
