@@ -397,16 +397,15 @@ def makeFriends(invitor, invitee, original_invitee, servicetag, origin, notify_i
                 profile_type = FriendDetailTO.TYPE_SERVICE if to_profile_info.isServiceIdentity else FriendDetailTO.TYPE_USER
                 if to_profile_info.isServiceIdentity and user_data is not None:
                     try:
-                        data_object = json.loads(user_data)
+                        _ = json.loads(user_data)
                     except:
                         logging.warn("Invalid user data JSON string!", exc_info=True)
                         has_user_data = False
                     else:
                         user_data_model_key = UserData.createKey(from_, to_profile_info.user)
                         user_data_model = UserData(key=user_data_model_key)
-                        user_data_model.data = None
-                        user_data_model.userData = KVStore(user_data_model_key)
-                        user_data_model.userData.from_json_dict(data_object)
+                        user_data_model.data = user_data
+                        user_data_model.userData = None
                         user_data_model.put()
                         has_user_data = True
                         user_profile = get_user_profile(from_)
@@ -939,13 +938,13 @@ def breakFriendShip(user1, user2, current_mobile=None):
                 if friendDetail.type == FriendDetailTO.TYPE_SERVICE and friendDetail.hasUserData:
                     user_data = UserData.get(UserData.createKey(from_, add_slash_default(to)))
                     if user_data:
-                        if user_data.userData:
+                        if user_data.data:
                             from rogerthat.bizz.service import get_update_userdata_requests
-                            data_object = {k: None for k in user_data.userData.iterkeys()}
+                            user_data_dict = json.loads(user_data.data)
+                            data_object = {k: None for k in user_data_dict.iterkeys()}
                             mobiles = db.get([get_mobile_key_by_account(m.account) for m in user_profile.mobiles])
                             rpcs = get_update_userdata_requests(mobiles, from_, to, data_object, data_object.keys())
                             to_put.extend(rpcs)
-                            user_data.userData.clear()  # clears the underlying buckets
                         user_data.delete()
 
                 if to_is_service_identity:

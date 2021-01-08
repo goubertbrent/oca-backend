@@ -498,8 +498,8 @@ class FriendMap(db.Model):
         return None
 
 class UserData(db.Model):
-    data = db.TextProperty()  # deprecated, lazily migrated to userData when putting user_data
-    userData = KeyValueProperty()
+    data = db.TextProperty()
+    userData = KeyValueProperty() # deprecated and migrated via job (lazy also works)
 
     @property
     def service_identity_user(self):

@@ -275,7 +275,7 @@ class Test(mc_unittest.TestCase):
         helper = FriendHelper.from_data_store(si.user, FRIEND_TYPE_SERVICE)
         user_data_string = FriendTO.fromDBFriendMap(helper, myFriendMap, si.user, True, True, invitor).userData
         self.assertIsNone(user_data_string)
-        ud_dict = ud.userData.to_json_dict()
+        ud_dict = json.loads(ud.data)
         self.assertDictEqual(user_data, ud_dict)
 
         # test cleanup of UserData
@@ -290,9 +290,7 @@ class Test(mc_unittest.TestCase):
 
         invalid_user_data = json.dumps(dict(_invalid_key=False, valid_key=True))
         set_current_user(si.service_user)
-        with self.assertRaises(InvalidKeyException) as ctx:
-            system.put_user_data(invitor.email(), invalid_user_data)
-        self.assertEqual('_invalid_key', ctx.exception.fields['key'])
+        system.put_user_data(invitor.email(), invalid_user_data)
 
     def test_get_friends(self):
         FRIEND_AMOUNT = 14

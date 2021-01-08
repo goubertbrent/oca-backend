@@ -363,7 +363,7 @@ class Test(mc_unittest.TestCase):
                                                                                       human_user))
 
         ud = db.get(UserData.createKey(human_user, create_service_identity_user(service_user)))
-        ud_dict = ud.userData.to_json_dict()
+        ud_dict = json.loads(ud.data)
         self.assertDictEqual({'test': "tikkel", 'moe': "hahaha", 'john': "doe"}, ud_dict)
         self.assertTrue(get_friendto().hasUserData)
 

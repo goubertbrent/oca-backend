@@ -2662,10 +2662,10 @@ def create_send_app_data_requests(mobiles, target_user, helper):
 def create_send_user_data_requests(mobiles, user_data_model, target_user, service_identity_user):
     # type: (List[Mobile], UserData, users.User, users.User) -> List[RpcCAPICall]
     if user_data_model:
-        if user_data_model.userData:
-            user_data = user_data_model.userData.to_json_dict()
-        else:
+        if user_data_model.data:
             user_data = json.loads(user_data_model.data)
+        else:
+            user_data = user_data_model.userData.to_json_dict()
     else:
         user_data = {}
     return _send_set_user_data(mobiles, target_user, service_identity_user,
@@ -2749,34 +2749,30 @@ def set_user_data_object(service_identity_user, friend_user, data_dict, replace=
         if user_data:
             if replace:
                 user_data.data = None
-                if user_data.userData is None:
-                    user_data.userData = KVStore(user_data_key)
-                else:
+                if user_data.userData:
                     user_data.userData.clear()
-            elif user_data.userData is None:
-                user_data.userData = KVStore(user_data_key)
-                if user_data.data:
-                    full_json_dict = json.loads(user_data.data)
+            elif user_data.data is None:
+                if user_data.userData:
+                    full_json_dict = user_data.userData.to_json_dict()
                     full_json_dict.update(updated_json_dict)
-                user_data.data = None
+                    user_data.userData.clear()
             else:
-                full_json_dict = user_data.userData.to_json_dict()
+                full_json_dict = json.loads(user_data.data)
                 full_json_dict.update(updated_json_dict)
+                
         else:
             user_data = UserData(key=user_data_key,
                                  data=None,
-                                 userData=KVStore(user_data_key))
+                                 userData=None)
 
         puts = []
 
-        try:
-            user_data.userData.from_json_dict(full_json_dict, remove_none_values=True)
-        except InvalidKeyError as e:
-            raise InvalidKeyException(key=e.key)
-
+        # Remove None values from full_json_dict
+        full_json_dict = {k: v for k, v in full_json_dict.iteritems() if v is not None}
         friend_details = friend_map.get_friend_details()
         friend_detail = friend_details[friend_detail_user.email()]
-        if len(user_data.userData.keys()) > 0:
+        if len(full_json_dict.keys()) > 0:
+            user_data.data = json.dumps(full_json_dict)
             puts.append(user_data)  # create or update UserData
             friend_detail.hasUserData = True
         else:
@@ -2796,8 +2792,6 @@ def set_user_data_object(service_identity_user, friend_user, data_dict, replace=
         logging.debug("debugging_branding set_user_data_object friend_map.ver %s friend_map.gen %s friend_detail.relv %s",
                       friend_map.version, friend_map.generation, friend_detail.relationVersion)
 
-        # Remove None values from full_json_dict
-        full_json_dict = {k: v for k, v in full_json_dict.iteritems() if v is not None}
         mobiles = mobiles_future.get_result()
         puts.extend(get_update_userdata_requests(mobiles, friend_map.user, service_identity_user, full_json_dict,
                                                  updated_json_dict.keys()))
@@ -2839,12 +2833,12 @@ def get_user_data(service_identity_user, friend_user, user_data_keys):
         result = {key: None for key in user_data_keys}
         user_data = db.get(UserData.createKey(friend_user, service_identity_user))
         if user_data:
-            if user_data.userData:
-                result.update(_get_data_from_kv_store(user_data.userData, user_data_keys))
-            else:
+            if user_data.data:
                 data = json.loads(user_data.data)
                 for key in user_data_keys:
                     result[key] = data.get(key)
+            else:
+                result.update(_get_data_from_kv_store(user_data.userData, user_data_keys))
         return result
 
     return json.dumps(db.run_in_transaction(trans))

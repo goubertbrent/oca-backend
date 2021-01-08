@@ -359,10 +359,10 @@ def _create_message_flow_run_xml_doc(service_identity_user, message_flow_design,
         human_user, app_id = get_app_user_tuple(p.user)
 
         if user_datas[i]:
-            if user_datas[i].userData:
-                user_data = json.dumps(user_datas[i].userData.to_json_dict())
-            else:
+            if user_datas[i].data:
                 user_data = user_datas[i].data
+            else:
+                user_data = json.dumps(user_datas[i].userData.to_json_dict())
         else:
             user_data = None
         run.add_memberRun(MemberRunSub(status="SUBMITTED", email=human_user.email(), name=p.name,

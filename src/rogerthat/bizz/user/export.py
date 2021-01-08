@@ -151,10 +151,10 @@ class ExportUserServicePipeline(WorkloadPipeline):
         si = get_service_identity(service_identity_user)
         ud = UserData.get(UserData.createKey(app_user, add_slash_default(service_identity_user)))
         if ud:
-            if ud.userData:
-                user_data = ud.userData.to_json_dict()
-            else:
+            if ud.data:
                 user_data = json.loads(ud.data)
+            else:
+                user_data = ud.userData.to_json_dict()
         else:
             user_data = None
 
