@@ -701,6 +701,7 @@ def _populate_service_identity(to, si):
     if to.admin_emails is not MISSING:
         si.metaData = ",".join(to.admin_emails)
     if to.app_data is not MISSING:
+        si.serviceData = None
         si.appData = None
         if to.app_data:
             try:
@@ -712,11 +713,7 @@ def _populate_service_identity(to, si):
             if not isinstance(data_object, dict):
                 raise InvalidJsonStringException()
 
-            if si.serviceData is None:
-                si.serviceData = KVStore(si.key())
-            else:
-                si.serviceData.clear()
-            si.serviceData.from_json_dict(data_object)
+            si.appData = to.app_data
 
     if to.qualified_identifier is not MISSING:
         si.qualifiedIdentifier = to.qualified_identifier
@@ -814,7 +811,6 @@ def create_service_identity(service_user, to):
 
         si_key = ServiceIdentity.keyFromUser(service_identity_user)
         si = ServiceIdentity(key=si_key)
-        si.serviceData = KVStore(si_key)
         _populate_service_identity(to, si)
         si.shareSIDKey = share_sid_key
         si.creationTimestamp = now()
@@ -2644,7 +2640,6 @@ def update_user_data_response_handler(context, result):
 def create_send_app_data_requests(mobiles, target_user, helper):
     # type: (List[Mobile], users.User, FriendHelper) -> List[RpcCAPICall]
     service_identity = helper.get_profile_info()
-    service_profile = helper.get_service_profile()
     service_data = helper.get_service_data()
     if service_data:
         app_data = service_data
@@ -2850,18 +2845,19 @@ def set_app_data(service_identity_user, data_string):
 
     def trans(json_dict):
         si = get_service_identity(service_identity_user)
-        if not si.serviceData:
-            si.serviceData = KVStore(si.key())
-
         if si.appData:
-            old_app_data = json.loads(si.appData)
-            old_app_data.update(json_dict)
-            json_dict = old_app_data
-        si.appData = None
-        try:
-            si.serviceData.update(json_dict, remove_none_values=True)
-        except InvalidKeyError, e:
-            raise InvalidKeyException(e.key)
+            old_json_data = json.loads(si.appData)
+        elif si.serviceData:
+            old_json_data = si.serviceData.to_json_dict()
+        else:
+            old_json_data = {}
+
+        if si.serviceData:
+            si.serviceData.clear()
+        
+        old_json_data.update(json_dict)
+        full_json_dict = {k: v for k, v in old_json_data.iteritems() if v is not None}
+        si.appData = json.dumps(full_json_dict)
         si.put()
         update_friends(si)
 
@@ -2879,12 +2875,12 @@ def get_app_data(service_identity_user, keys):
     def trans():
         result = {key: None for key in keys}
         si = get_service_identity(service_identity_user)
-        if si.serviceData:
-            result.update(_get_data_from_kv_store(si.serviceData, keys))
-        else:
+        if si.appData:
             data = json.loads(si.appData)
             for key in keys:
                 result[key] = data.get(key)
+        else:
+            result.update(_get_data_from_kv_store(si.serviceData, keys))
         return result
 
     return json.dumps(db.run_in_transaction(trans))

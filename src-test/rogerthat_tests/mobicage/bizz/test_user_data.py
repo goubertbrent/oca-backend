@@ -67,14 +67,14 @@ class Test(mc_unittest.TestCase):
         set_app_data(self.service_identity_user, json.dumps(expected_data))
 
         si = get_service_identity(self.service_identity_user)
-        self.assertDictEqual(expected_data, si.serviceData.to_json_dict())
+        self.assertDictEqual(expected_data, json.loads(si.appData))
 
         new_data = {'key3': 3}
         set_app_data(self.service_identity_user, json.dumps(new_data))
 
         expected_data.update(new_data)
         si = get_service_identity(self.service_identity_user)
-        self.assertDictEqual(expected_data, si.serviceData.to_json_dict())
+        self.assertDictEqual(expected_data, json.loads(si.appData))
 
         new_data = {'key1': None, 'key2': 'B', 'key3': 'C', 'key4': 'D'}
         set_app_data(self.service_identity_user, json.dumps(new_data))
@@ -82,4 +82,4 @@ class Test(mc_unittest.TestCase):
         expected_data.update(new_data)
         del expected_data['key1']
         si = get_service_identity(self.service_identity_user)
-        self.assertDictEqual(expected_data, si.serviceData.to_json_dict())
+        self.assertDictEqual(expected_data, json.loads(si.appData))

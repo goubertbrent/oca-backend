@@ -210,11 +210,13 @@ class ServiceIdentityDetailsTO(ServiceIdentitySummaryTO):
         details.admin_emails = [] if service_identity.metaData is None else [e.strip() for e in
                                                                              service_identity.metaData.split(',') if
                                                                              e.strip()]
-        if service_identity.serviceData:
+        if service_identity.appData:
+            details.app_data = service_identity.appData
+        elif service_identity.serviceData:
             service_data = service_identity.serviceData.to_json_dict()
             details.app_data = json.dumps(service_data).decode('utf-8') if service_data else None
         else:
-            details.app_data = service_identity.appData
+            details.app_data = None
 
         details.search_use_default = is_flag_set(ServiceIdentity.FLAG_INHERIT_SEARCH_CONFIG,
                                                  service_identity.inheritanceFlags)

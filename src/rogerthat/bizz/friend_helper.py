@@ -17,13 +17,14 @@
 
 import StringIO
 import collections
-import logging
 from contextlib import closing
+import json
+import logging
 
-import cloudstorage
 from google.appengine.api import memcache
 from google.appengine.ext import db
 
+import cloudstorage
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.serialization import s_any, ds_any
@@ -225,7 +226,7 @@ class _FriendDatastoreHelper(FriendHelper):
     def get_service_data(self):
         if self.is_service:
             service_identity = self.get_profile_info()
-            return service_identity.serviceData and service_identity.serviceData.to_json_dict()
+            return service_identity.appData and json.loads(service_identity.appData)
 
     def list_service_menu_items(self):
         return get_service_menu_items(self.user) if self.is_service else []

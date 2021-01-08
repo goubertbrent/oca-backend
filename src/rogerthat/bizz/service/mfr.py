@@ -332,10 +332,12 @@ def _create_message_flow_run_xml_doc(service_identity_user, message_flow_design,
     run.set_serviceDisplayEmail(si.qualifiedIdentifier or si.user.email())
     run.set_serviceEmail(si.user.email())
     run.set_flowParams(message_flow_run_record.flow_params)
-    if si.serviceData:
+    if si.appData:
+        run.set_serviceData(si.appData)
+    elif si.serviceData:
         run.set_serviceData(json.dumps(si.serviceData.to_json_dict()))
     else:
-        run.set_serviceData(si.appData)
+        run.set_serviceData(json.dumps({}))
     fallback_language = force_language or get_service_profile(service_user).defaultLanguage
 
     mf_languages = list()
