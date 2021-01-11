@@ -46,7 +46,7 @@ def _4_disable_all_customers(community_id, reason, dry_run=True):
     if dry_run:
         return [c.name for c in to_cancel]
 
-    tasks = [create_task(cancel_subscription, c.id, cancel_reason=reason, immediately=True) for c in to_cancel]
+    tasks = [create_task(cancel_subscription, c.id, cancel_reason=reason) for c in to_cancel]
     schedule_tasks(tasks, MIGRATION_QUEUE)
 
 

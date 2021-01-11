@@ -26,35 +26,23 @@ from mcfw.consts import NOT_AUTHENTICATED
 from mcfw.restapi import rest_functions
 from rogerthat.handlers.blobstore import CloudStorageBlobstoreHandler
 from rogerthat.wsgi import RogerthatWSGIApplication
-from shop.handlers import ExportInvoicesHandler, ExportProductsHandler, \
-    CustomerMapHandler, CustomerMapServicesHandler, CustomerSigninHandler, \
+from shop.handlers import CustomerMapHandler, CustomerMapServicesHandler, CustomerSigninHandler, \
     CustomerSignupHandler, CustomerSetPasswordHandler, CustomerResetPasswordHandler, CustomerSignupPasswordHandler, \
     CustomerCirkloAcceptHandler, VouchersCirkloSignupHandler
-from solutions.common.handlers.launcher import GetOSALaucherAppsHandler, GetOSALaucherAppHandler
 from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, LoyaltyNoMobilesUnsubscribeEmailHandler, \
     LoyaltyLotteryConfirmWinnerHandler
 from solutions.common.handlers.menu import ViewMenuItemImageHandler
-from solutions.common.handlers.payments import StripeHandler, StripeSuccessHandler, \
-    StripeCancelHandler, StripeWebhookHandler
 from solutions.common.handlers.vcard import VCardHandler
 from solutions.common.restapi.rss import RssCoronavirusDotBeHandler
 from solutions.flex.handlers import FlexHomeHandler
 
 handlers = [
     ('/flex/', FlexHomeHandler),
-    ('/unauthenticated/payments/stripe', StripeHandler),
-    ('/unauthenticated/payments/stripe/success', StripeSuccessHandler),
-    ('/unauthenticated/payments/stripe/cancel', StripeCancelHandler),
-    ('/unauthenticated/payments/stripe/webhook', StripeWebhookHandler),
     ('/unauthenticated/loyalty/slide', LoyaltySlideDownloadHandler),
     ('/unauthenticated/loyalty/no_mobiles/unsubscribe_email', LoyaltyNoMobilesUnsubscribeEmailHandler),
     ('/unauthenticated/loyalty/no_mobiles/lottery_winner', LoyaltyLotteryConfirmWinnerHandler),
-    ('/unauthenticated/osa/launcher/apps', GetOSALaucherAppsHandler),
-    ('/unauthenticated/osa/launcher/app/download', GetOSALaucherAppHandler),
     Route('/unauthenticated/rss/info-coronavirus-be', RssCoronavirusDotBeHandler),
     ('/bob/api/apps/set_ios_app_id', SetIosAppIdHandler),
-    ('/shop/invoices/export', ExportInvoicesHandler),
-    ('/shop/products/export', ExportProductsHandler),
     ('/customers/map/([a-z-_0-9]+)/services', CustomerMapServicesHandler),
     ('/customers/map/([a-z-_0-9]+)', CustomerMapHandler),
     RedirectRoute('/vcards', VCardHandler, 'vcard', strict_slash=True),

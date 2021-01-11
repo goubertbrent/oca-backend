@@ -44,7 +44,6 @@ class Question(NdbModel):
     modules = ndb.StringProperty(repeated=True)  # type: List[str]
     status = ndb.IntegerProperty(choices=QuestionStatus.all(), default=QuestionStatus.NEW)
     language = ndb.StringProperty()
-    team_id = ndb.IntegerProperty(indexed=True)
 
     STATUS_STRINGS = {
         QuestionStatus.NEW: 'New',

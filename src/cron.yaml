@@ -68,10 +68,6 @@ cron:
   url: /cron/user/cleanup/context
   schedule: every day 00:00
 
-- description: Shop recurrent billing
-  url: /admin/cron/shop/recurrent_billing
-  schedule: every day 00:00
-
 - description: Solution regional news budget check/update
   url: /admin/cron/rpc/solutions_news_budget_updater
   schedule: every day 00:00
@@ -132,10 +128,6 @@ cron:
 - description: Service statistics email
   url: /cron/rpc/service_statistics_email
   schedule: every monday 05:00
-
-- description: Shop export reseller invoices
-  url: /admin/cron/rpc/shop_export_reseller_invoices
-  schedule: every monday 14:00
 
 - description: Jobs cleanup
   url: /cron/jobs/cleanup

@@ -44,7 +44,6 @@ from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, \
 from rogerthat.utils.channel import send_message_to_session
 from shop.bizz import create_customer_service_to, search_customer, \
     update_contact
-from shop.business.audit import audit_log, dict_str_for_audit_log
 from shop.business.order import cancel_subscription
 from shop.dal import get_customer
 from shop.exceptions import DuplicateCustomerNameException, NotOperatingInCountryException, EmptyValueException, \
@@ -70,11 +69,11 @@ def search_services(search_string, organization_type=None):
 
     customers = []
     # if app id is set, the customer should have a service
-    for c in search_customer(search_string, [community.id], None, organization_type=organization_type):
+    for c in search_customer(search_string, [community.id], organization_type=organization_type):
         # exclude own service and disabled services
         if c.service_email == city_service_user.email() or c.service_disabled_at:
             continue
-        customers.append(CustomerTO.fromCustomerModel(c, False, False))
+        customers.append(CustomerTO.fromCustomerModel(c))
 
     return customers
 
@@ -288,11 +287,6 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
                              customer.service_email)
                 customer.user_email = user_email
                 customer.put()
-            variables = dict_str_for_audit_log({
-                'user_email': user_email,
-                'modules': modules,
-            })
-            audit_log(customer_id, 'put_service', variables, city_service_user)
             return WarningReturnStatusTO.create()
 
 
@@ -307,7 +301,7 @@ def rest_delete_service(service_email):
         logging.warn(u'Service %s tried to delete its own service', city_service_user)
         lang = get_solution_settings(city_service_user).main_language
         return ReturnStatusTO.create(False, translate(lang, 'no_permission'))
-    cancel_subscription(customer.id, Customer.DISABLED_REASONS[Customer.DISABLED_BY_CITY], True)
+    cancel_subscription(customer.id, Customer.DISABLED_REASONS[Customer.DISABLED_BY_CITY])
     session = users.get_current_session()
     service_identity = session.service_identity
     send_message_to_session(city_service_user, session,

@@ -22,11 +22,13 @@ from rogerthat.bizz.job import run_job, MODE_BATCH
 from rogerthat.consts import MIGRATION_QUEUE
 
 
-def job(cls, namespace=None):
+def job(cls, namespace=None, batch_size=50):
     if issubclass(cls, db.Model):
-        run_job(_qry_db, [cls, namespace], _worker_db, [], worker_queue=MIGRATION_QUEUE, mode=MODE_BATCH, batch_size=25)
+        run_job(_qry_db, [cls, namespace], _worker_db, [], worker_queue=MIGRATION_QUEUE, mode=MODE_BATCH,
+                batch_size=batch_size)
     elif issubclass(cls, ndb.Model):
-        run_job(_qry_ndb, [cls, namespace], _worker_ndb, [], worker_queue=MIGRATION_QUEUE, mode=MODE_BATCH, batch_size=25)
+        run_job(_qry_ndb, [cls, namespace], _worker_ndb, [], worker_queue=MIGRATION_QUEUE, mode=MODE_BATCH,
+                batch_size=batch_size)
 
 
 def _qry_db(cls, namespace=None):

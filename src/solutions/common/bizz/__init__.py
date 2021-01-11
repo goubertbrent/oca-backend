@@ -165,13 +165,13 @@ class SolutionModule(Enum):
     PROVISION_ORDER = defaultdict(lambda: 10)
 
     # Modules allowed for static content subscriptions
-    STATIC_MODULES = {WHEN_WHERE, BILLING}
+    STATIC_MODULES = {WHEN_WHERE}
     # These are the modules that the customer or cityapp service of the customer can choose themselves
     ASSOCIATION_MODULES = {AGENDA, ASK_QUESTION, NEWS, BULK_INVITE, STATIC_CONTENT}
     POSSIBLE_MODULES = {AGENDA, APPOINTMENT, ASK_QUESTION, NEWS, BULK_INVITE, DISCUSSION_GROUPS, GROUP_PURCHASE,
                         MENU, ORDER, PHARMACY_ORDER, REPAIR, RESTAURANT_RESERVATION, SANDWICH_BAR,
                         STATIC_CONTENT, FORMS, PARTICIPATION}
-    MANDATORY_MODULES = {BILLING, QR_CODES, WHEN_WHERE}
+    MANDATORY_MODULES = {QR_CODES, WHEN_WHERE}
 
     COMMUNITY_MODULES = {
         JOBS: AppFeatures.JOBS,
@@ -1098,14 +1098,6 @@ def enable_or_disable_solution_module(service_user, module, enabled):
                 return
     else:
         deactivate_solution_module(sln_settings, module)
-
-    # set customer has_loyalty if the module is loyalty
-    if module == SolutionModule.LOYALTY:
-        from shop.models import Customer
-        customer = Customer.get_by_service_email(service_user.email())
-        if customer:
-            customer.has_loyalty = enabled
-            to_put.append(customer)
     sln_settings.updates_pending = True
     to_put.append(sln_settings)
     put_and_invalidate_cache(*to_put)

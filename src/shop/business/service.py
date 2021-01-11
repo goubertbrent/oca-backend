@@ -17,15 +17,12 @@
 
 from google.appengine.ext import db
 
+from mcfw.rpc import arguments, returns
 from rogerthat.bizz.profile import set_service_disabled as rogerthat_set_service_disabled, \
     set_service_enabled as rogerthat_re_enable_service
-from rogerthat.dal.service import get_service_identity
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.utils import now
-from mcfw.rpc import arguments, returns
-from rogerthat.utils.service import create_service_identity_user
-from shop.exceptions import NoSubscriptionException
 from shop.models import Customer
 from solutions.common.dal import get_solution_settings
 
@@ -50,7 +47,7 @@ def set_service_disabled(customer_or_id, disabled_reason_int):
         customer = Customer.get_by_id(customer_or_id)
 
     if not customer.service_email:
-        raise NoSubscriptionException(customer)
+        raise BusinessException('Customer %d has no service email' % customer.id)
     if disabled_reason_int not in Customer.DISABLED_REASONS:
         raise BusinessException('Invalid disable service reason')
 
@@ -58,7 +55,6 @@ def set_service_disabled(customer_or_id, disabled_reason_int):
     sln_settings = get_solution_settings(service_user)
     customer.service_disabled_at = now()
     customer.disabled_reason_int = disabled_reason_int
-    customer.subscription_cancel_pending_date = 0
     sln_settings.search_enabled = False
     sln_settings.service_disabled = True
     db.put([customer, sln_settings])
@@ -71,7 +67,7 @@ def set_service_disabled(customer_or_id, disabled_reason_int):
 def set_service_enabled(customer_id):
     customer = Customer.get_by_id(customer_id)
     if not customer.service_email:
-        raise NoSubscriptionException(customer)
+        raise BusinessException('Customer %d has no service email' % customer.id)
 
     service_user = users.User(customer.service_email)
     sln_settings = get_solution_settings(service_user)
@@ -79,7 +75,6 @@ def set_service_enabled(customer_id):
     customer.service_disabled_at = 0
     customer.disabled_reason = u''
     customer.disabled_reason_int = 0
-    customer.subscription_cancel_pending_date = 0
     db.put([customer, sln_settings])
 
     rogerthat_re_enable_service(service_user)

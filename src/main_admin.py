@@ -19,8 +19,7 @@ import webapp2
 import admin.explorer.api
 from mcfw.restapi import rest_functions
 from rogerthat.wsgi import RogerthatWSGIApplication
-from shop.cron import RecurrentBilling, ExportResellerInvoicesHandler, \
-    CleanupUnverifiedSignupRequests
+from shop.cron import CleanupUnverifiedSignupRequests
 from solution_server_settings.handlers import SolutionServerSettingsHandler
 from solutions.common.bizz.forms.integrations.email_integration import TestFormSubmissionEmailHandler
 from solutions.common.cron.budget import BudgetCheckHandler
@@ -35,26 +34,21 @@ from solutions.common.cron.paddle import SyncPaddleInfoHandler
 from solutions.common.cron.statistics import DailyStatisticsHandler
 from solutions.common.handlers.admin.gmb import gmbOauthDecorator, \
     GoogleMyBusinessHandler
-from solutions.common.handlers.admin.launcher import OSAAppsPage, PostOSAAppHandler
 
 handlers = [
     ('/admin/cron/rpc/cleanup_solution_events', CleanupSolutionEvents),
     ('/admin/cron/rpc/re_index_periodic_events', ReIndexPeriodicEventsHandler),
     ('/admin/cron/rpc/solution_sync_google_calendar_events', SolutionSyncGoogleCalendarEvents),
     ('/admin/cron/rpc/solution_cityapp_events_uitdatabank', CityAppSolutionEventsUitdatabank),
-    ('/admin/cron/rpc/shop_export_reseller_invoices', ExportResellerInvoicesHandler),
     ('/admin/cron/rpc/solution_loyalty_lottery_loot', LootLotteryCronHandler),
     ('/admin/cron/rpc/solution_loyalty_export', SolutionLoyaltyExportHandler),
     ('/admin/cron/rpc/solution_rss_scraper', SolutionRssScraper),
     ('/admin/cron/rpc/solutions_news_budget_updater', BudgetCheckHandler),
-    ('/admin/cron/shop/recurrent_billing', RecurrentBilling),
     ('/admin/cron/shop/clean_unverified_signup_requests', CleanupUnverifiedSignupRequests),
     ('/admin/cron/daily_statistics', DailyStatisticsHandler),
     ('/admin/cron/finish_forms', FinishFormsCron),
     ('/admin/cron/jobs-notifications', JobsNotificationsHandler),
     ('/admin/cron/paddle', SyncPaddleInfoHandler),
-    ('/admin/osa/launcher/apps', OSAAppsPage),
-    ('/admin/osa/launcher/app/post', PostOSAAppHandler),
     ('/admin/settings', SolutionServerSettingsHandler),
     ('/admin/gmb', GoogleMyBusinessHandler),
     webapp2.Route('/admin/form-submission-email/<form_id:\d+>/submission/<submission_id:\d+>',

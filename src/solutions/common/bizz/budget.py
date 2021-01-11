@@ -39,4 +39,4 @@ def update_budget(service_user, amount, service_identity=None, context_type=None
     budget.balance = new_balance
 
     ndb.put_multi([budget, budget_transaction])
-    return budget
+    return budget, budget_transaction

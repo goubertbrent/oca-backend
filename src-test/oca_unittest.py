@@ -15,6 +15,7 @@
 #
 # @@license_version:1.7@@
 from __future__ import unicode_literals
+
 from setup_devserver import init_env
 
 init_env()
@@ -29,7 +30,7 @@ import sys
 import traceback
 import unittest
 
-from google.appengine.ext import db, ndb
+from google.appengine.ext import db
 
 from mcfw.cache import _tlocal
 from rogerthat.bizz.qrtemplate import store_template
@@ -39,8 +40,6 @@ from rogerthat.dal import put_and_invalidate_cache, app
 from rogerthat.models import App
 from rogerthat.utils import now, guid
 
-from shop.models import RegioManagerTeam, RegioManager, LegalEntity
-from shop.products import add_all_products
 from solution_server_settings import get_solution_server_settings
 
 
@@ -51,8 +50,9 @@ class TestCase(unittest.TestCase):
         sys.stdout.write("\n" + traceback.format_stack()[-2].splitlines()[0] + "\n")
         for logitem in logs:
             if isinstance(logitem, db.Model):
-                sys.stdout.write("  db.model: %s.%s key_name %s key_id %s parent_key name %s" % (logitem.__class__.__module__, logitem.__class__.__name__, logitem.key().name(),
-                                                                                                 logitem.key().id(), logitem.parent_key().name()))
+                sys.stdout.write("  db.model: %s.%s key_name %s key_id %s parent_key name %s" % (
+                    logitem.__class__.__module__, logitem.__class__.__name__, logitem.key().name(),
+                    logitem.key().id(), logitem.parent_key().name()))
                 logitem = db.to_dict(logitem)
             sys.stdout.write('\n  ' + '\n  '.join(pprint.pformat(logitem, 2, 120, None).splitlines()))
         sys.stdout.write("\n\n")
@@ -159,40 +159,7 @@ class TestCase(unittest.TestCase):
 
         app.get_default_app = lambda: rogerthat_app
 
-        mobicage_entity = LegalEntity(is_mobicage=True,
-                                      name='Mobicage NV',
-                                      address='Antwerpsesteenweg 19',
-                                      postal_code='9080',
-                                      city='Lochristi',
-                                      country_code='BE',
-                                      phone='+32 9 324 25 64',
-                                      email='info@example.com',
-                                      iban='BE85 3630 8576 4006',
-                                      bic='BBRUBEBB',
-                                      terms_of_use=None,
-                                      vat_number='BE 0835 560 572',
-                                      vat_percent=21)
-        mobicage_entity.put()
-
-        regio_manager_team = RegioManagerTeam()
-        regio_manager_team.deleted = False
-        regio_manager_team.name = '(test) Mobicage headquarters'
-        regio_manager_team.app_ids = ['rogerthat', 'be-loc']
-        regio_manager_team.legal_entity_id = mobicage_entity.key().id()
-        regio_manager_team.put()  # need to put here because we need its id later on
-
-        regio_manager = RegioManager(key=RegioManager.create_key('support@example.com'))
-        regio_manager.name = 'Support'
-        regio_manager.app_ids = ['rogerthat', 'be-loc']
-        regio_manager.read_only_app_ids = []
-        regio_manager.show_in_stats = True
-        regio_manager.internal_support = True
-        regio_manager.phone = '0032654984984'
-        regio_manager.credentials = None
-        regio_manager.team_id = regio_manager_team.id
-        regio_manager_team.support_manager = regio_manager.email
-
-        to_put = apps.values() + [ss, sss, regio_manager, regio_manager_team]
+        to_put = apps.values() + [ss, sss]
         put_and_invalidate_cache(*to_put)
 
         users.get_current_user = lambda: users.User('g.audenaert@gmail.com')
@@ -201,19 +168,17 @@ class TestCase(unittest.TestCase):
         m = register_tst_mobile(user.email())
         users.get_current_mobile = lambda: m
 
-        add_all_products(mobicage_entity)
-
     def setup_qr_templates(self):
         qrtemplate_keys = []
         description = "DEFAULT"
         key_name = create_qr_template_key_name('test', description)
         store_template(None, DEFAULT_QR_CODE_OVERLAY, description, "".join(("%X" % c).rjust(2, '0')
-                                                                            for c in DEFAULT_QR_CODE_COLOR), key_name)
+                                                                           for c in DEFAULT_QR_CODE_COLOR), key_name)
         qrtemplate_keys.append(key_name)
         description = "HAND"
         key_name = create_qr_template_key_name('test', description)
         store_template(None, HAND_ONLY_QR_CODE_OVERLAY, description, "".join(("%X" % c).rjust(2, '0')
-                                                                              for c in DEFAULT_QR_CODE_COLOR), key_name)
+                                                                             for c in DEFAULT_QR_CODE_COLOR), key_name)
         qrtemplate_keys.append(key_name)
         return qrtemplate_keys
 

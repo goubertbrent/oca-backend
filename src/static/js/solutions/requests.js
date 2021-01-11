@@ -87,9 +87,6 @@ RequestsService.prototype = {
     getSandwichSettings: function (options) {
         return this.get('/common/sandwich/settings/load', options);
     },
-    getBudget: function (options) {
-        return this.get('/common/billing/budget', options);
-    },
     getAppSettings: function (options) {
         return this.get('/common/settings/app', options);
     },

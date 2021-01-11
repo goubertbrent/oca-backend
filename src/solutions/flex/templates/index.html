@@ -12,18 +12,12 @@
 <link href="/static/node_modules/font-awesome/css/font-awesome.min.css" rel="stylesheet">
 <link href="/static/bootstrap/colorpicker/css/bootstrap-colorpicker.min.css" rel="stylesheet" media="screen">
 <link href="/static/bootstrap/modal-fullscreen/css/bootstrap-modal-fullscreen.css" rel="stylesheet" media="screen">
-{% if SolutionModule.BILLING in sln_settings.modules %}
-<link href="/static/css/solutions/flex/shop.css" rel="stylesheet">
-{% endif %}
 <link rel="stylesheet" type="text/css" href="/static/js/cropperjs/cropper.min.css"/>
 {% if functionality_modules %}
 <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500" rel="stylesheet">
 <link href="/static/css/solutions/flex/functionalities.css" rel="stylesheet">
 {% endif %}
 <link href="/static/css/solutions/style.css" rel="stylesheet" media="screen">
-{% if SolutionModule.BILLING in sln_settings.modules %}
-<link href="/static/css/fonts/great_vibes.css" rel="stylesheet" type="text/css">
-{% endif %}
 {% if SolutionModule.SANDWICH_BAR in sln_settings.modules %}
 <link href="/static/css/solutions/sandwich.css" rel="stylesheet" media="screen">
 {% endif %}
@@ -36,7 +30,6 @@
 <script src="/static/bootstrap/colorpicker/js/bootstrap-colorpicker.min.js"></script>
 <script src="/static/bootstrap/modal-fullscreen/js/bootstrap-modal-fullscreen.js"></script>
 <script src="/static/js/jquery.tmpl.min.js"></script>
-<script src="/static/js/modernizr.custom.62420.js"></script>
 <script src="/static/js/cropperjs/cropper.min.js"></script>
 <!-- Security measure, must be inserted after jquery before sln-utils.js -->
 <script language="javascript">
@@ -51,18 +44,14 @@ $.ajaxSetup({
 var EMAIL_SETTINGS = {{ email_settings|safe }};
 var UNITS = {{ UNITS }};
 var UNIT_SYMBOLS = {{ UNIT_SYMBOLS }};
-var LEGAL_ENTITY_CURRENCY = "{{ LEGAL_ENTITY_CURRENCY }}";
 var CONSTS = {{ CONSTS_JSON }};
 var MODULES = {{ modules }};
 var PROVISIONED_MODULES = {{ provisioned_modules }};
-var VAT_PCT = {{ VAT_PCT }};
-var IS_MOBICAGE_LEGAL_ENTITY = {% if IS_MOBICAGE_LEGAL_ENTITY %}true{% else %}false{% endif %};
 var ROUTES = {};
 var LocalCache = {};
 var modules = {};
 var ORGANIZATION_TYPES = {{ organization_types_json }};
 var templates = {{ templates|safe }};
-var LOGO_LANGUAGES = [{% for lang in logo_languages %}"{{ lang }}",{% endfor %}];
 var DEBUG = {% if debug %}true{% else %}false{% endif %};
 var LANGUAGE = "{{ language }}";
 var MONTHS = [{% for m in months %}"{{ m }}",{% endfor %}];
@@ -237,11 +226,6 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                                 </a>
                             </li>
                         </ul>
-                        {% if customer and SolutionModule.BILLING in sln_settings.modules and IS_MOBICAGE_LEGAL_ENTITY and not is_layout_user %}
-                            <div class="pull-right" menu="shoppage"><a class="btn btn-success" href="#/shop"
-                                                                       id="shoplink">{% translate language, "shop" %}</a>
-                            </div>
-                        {% endif %}
                         {% if SolutionModule.CITY_APP in sln_settings.modules %}
                             <a class="pull-right btn btn-default" href="/?sp=1"
                                style="margin-right:10px">{% translate language, "service_panel" %}</a>
@@ -383,9 +367,6 @@ var DAYS_STR = { {% for day_num, day_name in days %}
         {% if customer and sln_settings.can_edit_services(customer) and not loyalty %}
             {%- include 'services/services.tmpl' %}
         {% endif %}
-        {% if customer and SolutionModule.BILLING in sln_settings.modules and IS_MOBICAGE_LEGAL_ENTITY %}
-            {%- include 'shop/shop.tmpl' %}
-        {% endif %}
     {% endif %}
                     <div id="settings" class="page" style="display: none; height: 100%;">
                         <ul class="nav nav-tabs" id="settings-tabs">
@@ -395,9 +376,6 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                                 <li section="section_app-settings">
                                     <a href="#/settings/app-settings">{% translate language, 'app' %}</a>
                                 </li>
-                            {% endif %}
-                            {% if not is_layout_user and SolutionModule.BILLING in sln_settings.modules %}
-                                <li section="section_billing"><a href="#/settings/billing">{% translate language, "Billing" %}</a></li>
                             {% endif %}
                             <li section="section_branding"><a
                               href="#/settings/branding">{% translate language, "Branding" %}</a></li>
@@ -469,11 +447,6 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                         </ul>
                         {% if SolutionModule.CITY_APP in sln_settings.modules %}
                             <section id="section_app-settings" style="display: none;"></section>
-                        {% endif %}
-                        {% if not is_layout_user and SolutionModule.BILLING in sln_settings.modules %}
-                            <section id="section_billing" style="display: none;">
-                                {% include 'billing_settings.tmpl' %}
-                            </section>
                         {% endif %}
                         <section id="section_branding" style="display: none;">
                             <div id="branding_settings" class="pull-left"></div>
@@ -605,9 +578,6 @@ var DAYS_STR = { {% for day_num, day_name in days %}
             sln.runChannel();
         });
     </script>
-    {% if not loyalty %}
-    <script src="/static/js/solutions/sln-requirements.js"></script>
-    {% endif %}
     {% if SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules %}
         <script src="/static/js/solutions/sln-loyalty.js"></script>
     {% endif %}

@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { ErrorService } from '@oca/web-shared';
-import { Observable, Subject } from 'rxjs';
+import { combineLatest, Observable, Subject } from 'rxjs';
 import { distinctUntilChanged, map, takeUntil, withLatestFrom } from 'rxjs/operators';
 import { BrandingSettings } from '../../../shared/interfaces/oca';
 import { Loadable } from '../../../shared/loadable/loadable';
@@ -53,8 +53,7 @@ export class EditNewsPageComponent implements OnInit, OnDestroy {
         this.router.navigate(['/news']);
       });
     });
-    this.remainingBudget$ = this.options$.pipe(
-      withLatestFrom(this.store.pipe(select(getBudget))),
+    this.remainingBudget$ = combineLatest([this.options$, this.store.pipe(select(getBudget))]).pipe(
       map(([options, budget]) => {
         let views: string | number = 0;
         if (options?.tags.includes(NewsSettingsTag.FREE_REGIONAL_NEWS)) {

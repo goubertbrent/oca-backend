@@ -45,6 +45,7 @@ import { EditNewsPageComponent } from './pages/edit-news-page/edit-news-page.com
 import { NewsDetailPageComponent } from './pages/news-detail-page/news-detail-page.component';
 import { NewsListPageComponent } from './pages/news-list-page/news-list-page.component';
 import { NewsSettingsPageComponent } from './pages/news-settings-page/news-settings-page.component';
+import { CreateBudgetChargeComponent } from './components/create-budget-charge/create-budget-charge.component';
 
 @NgModule({
   declarations: [
@@ -63,6 +64,7 @@ import { NewsSettingsPageComponent } from './pages/news-settings-page/news-setti
     NewsAppMapPickerDialogComponent,
     NewsReachComponent,
     NewsSettingsPageComponent,
+    CreateBudgetChargeComponent,
   ],
   imports: [
     SharedModule,

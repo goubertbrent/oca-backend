@@ -15,7 +15,6 @@
 #
 # @@license_version:1.7@@
 from datetime import datetime
-
 from google.appengine.ext import db, ndb
 
 from mcfw.restapi import rest
@@ -24,7 +23,6 @@ from rogerthat.rpc import users
 from rogerthat.settings import get_server_settings
 from rogerthat.to import ReturnStatusTO
 from rogerthat.utils import now, send_mail
-from shop.models import RegioManagerTeam
 from solution_server_settings import get_solution_server_settings
 from solutions import translate
 from solutions.common.dal import get_solution_settings
@@ -37,7 +35,6 @@ from solutions.common.q_and_a.to import QuestionTO, QuestionsWithCursorReturnSta
 @arguments(title=unicode, description=unicode, modules=[unicode])
 def ask_question(title, description, modules):
     solution_server_settings = get_solution_server_settings()
-    default_team_id = RegioManagerTeam.get_mobicage().id
 
     def trans():
         sln_settings = get_solution_settings(users.get_current_user())
@@ -48,8 +45,7 @@ def ask_question(title, description, modules):
                  description=description,
                  modules=modules,
                  language=sln_settings.main_language,
-                 status=QuestionStatus.NEW,
-                 team_id=default_team_id).put()
+                 status=QuestionStatus.NEW).put()
 
         message = """Please reply to %s (%s) with the following link:
 %s/internal/shop/questions

@@ -114,9 +114,6 @@ RequestsService.prototype = {
     deleteContact: function (customerId, contactId, options) {
         return this.delete(`/internal/shop/rest/customers/${customerId}/contacts/${contactId}`, options);
     },
-    getProducts: function(language, options){
-        return this.get(`/internal/shop/rest/products?language=${language}`, options);
-    }
 };
 
 var ShopRequests = new RequestsService();

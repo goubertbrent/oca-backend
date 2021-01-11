@@ -7,6 +7,9 @@ export const enum SharedActionTypes {
   GET_BUDGET = '[shared] Get budget',
   GET_BUDGET_COMPLETE = '[shared] Get budget complete',
   GET_BUDGET_FAILED = '[shared] Get budget failed',
+  ADD_BUDGET = '[shared] Add budget',
+  ADD_BUDGET_COMPLETE = '[shared] Add budget complete',
+  ADD_BUDGET_FAILED = '[shared] Add budget failed',
   GET_SOLUTION_SETTINGS = '[shared] Get solution settings',
   GET_SOLUTION_SETTINGS_COMPLETE = '[shared] Get solution settings complete',
   GET_SOLUTION_SETTINGS_FAILED = '[shared] Get solution settings failed',
@@ -36,6 +39,28 @@ export class GetBudgetCompleteAction implements Action {
 
 export class GetBudgetFailedAction implements Action {
   readonly type = SharedActionTypes.GET_BUDGET_FAILED;
+
+  constructor(public error: ApiError) {
+  }
+}
+
+export class AddBudgetAction implements Action {
+  readonly type = SharedActionTypes.ADD_BUDGET;
+
+  constructor(public payload: { vat: string }) {
+  }
+
+}
+
+export class AddBudgetCompleteAction implements Action {
+  readonly type = SharedActionTypes.ADD_BUDGET_COMPLETE;
+
+  constructor(public payload: Budget) {
+  }
+}
+
+export class AddBudgetFailedAction implements Action {
+  readonly type = SharedActionTypes.ADD_BUDGET_FAILED;
 
   constructor(public error: ApiError) {
   }
@@ -134,6 +159,9 @@ export type SharedActions =
   | GetBudgetAction
   | GetBudgetCompleteAction
   | GetBudgetFailedAction
+  | AddBudgetAction
+  | AddBudgetCompleteAction
+  | AddBudgetFailedAction
   | GetSolutionSettingsAction
   | GetSolutionSettingsCompleteAction
   | GetSolutionSettingsFailedAction

@@ -51,91 +51,7 @@ class ContactNotFoundException(BusinessException):
         BusinessException.__init__(self, msg)
 
 
-class ContactHasOrdersException(BusinessException):
-    def __init__(self, contact_id):
-        msg = 'Contact with id %s has one or more orders assigned to it so it cannot be deleted.' % contact_id
-        BusinessException.__init__(self, msg)
-
-
-class ContactHasCreditCardException(BusinessException):
-    def __init__(self, contact_id):
-        msg = 'Contact with id %s has one or more credit cards assigned to it so it cannot be deleted.' % contact_id
-        BusinessException.__init__(self, msg)
-
-# Order exceptions
-
-
-class NoProductsSelectedException(BusinessException):
-    def __init__(self):
-        BusinessException.__init__(self, 'No products selected')
-
-
-class ProductNotFoundException(BusinessException):
-    def __init__(self, product_name):
-        self.product_name = product_name
-        BusinessException.__init__(self, "Product \"%s\" does not exist." % product_name)
-
-
-class InvalidProductAmountException(BusinessException):
-    def __init__(self, amount, product_name):
-        self.amount = amount
-        self.product_name = product_name
-        BusinessException.__init__(self,
-                                   '%d is not a valid amount of items for product \"%s\"' % (amount, product_name))
-
-
-class ProductNotAllowedException(BusinessException):
-    def __init__(self, product_description):
-        self.product_description = product_description
-        BusinessException.__init__(self, "Product \"%s\" is not allowed for this customer." % product_description)
-
-
-class NoSubscriptionFoundException(BusinessException):
-    def __init__(self, customer):
-        self.customer = customer
-        BusinessException.__init__(self, 'No subscription found for customer %s' % customer.name)
-
-
-class InvalidProductQuantityException(BusinessException):
-    def __init__(self, product_description, dependency_description):
-        BusinessException.__init__(self, "\"%s\" cannot be ordered without the same quantity \"%s\"." % (
-            product_description, dependency_description))
-
-
-class MissingProductDependencyException(BusinessException):
-    def __init__(self, product_description, dependency_description):
-        self.product_description = product_description
-        self.dependency_description = dependency_description
-        BusinessException.__init__(self,
-                                   "\"%s\" cannot be ordered without \"%s\" in this or a previously signed order." % (
-                                       product_description, dependency_description))
-
-
-class ReplaceBusinessException(BusinessException):
-    def __init__(self, existing_subscription_order_number):
-        self.existing_subscription_order_number = existing_subscription_order_number
-        BusinessException.__init__(self, "Customer already has a subscription: %s" % existing_subscription_order_number)
-
-
-class NoSubscriptionException(BusinessException):
-    def __init__(self, customer):
-        self.customer = customer
-        BusinessException.__init__(self, 'Customer %s has no subscription yet' % customer.name)
-
-
-class OrderAlreadyCanceledException(BusinessException):
-    def __init__(self, order):
-        self.order = order
-        BusinessException.__init__(self, 'Order %s has already been canceled' % order.order_number)
-
-
 # Service creation/update exceptions
-
-
-class NoOrderException(BusinessException):
-    def __init__(self):
-        BusinessException.__init__(self,
-                                   "This customer does not have an order yet. First create an order for this customer.")
 
 
 class ModulesNotAllowedException(BusinessException):
@@ -207,11 +123,3 @@ class NoCreditCardException(BusinessException):
 
 def replace_underscores(value):
     return value.replace('_', ' ').capitalize()
-
-
-# Regiomanager and RegiomanagerTeam exceptions
-
-class NoSupportManagerException(BusinessException):
-    def __init__(self, team):
-        self.team = team
-        BusinessException.__init__(self, 'Regiomanager team %s has no support manager' % team.name)

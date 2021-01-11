@@ -270,7 +270,7 @@ var showServiceTab = function() {
             showChangeServiceEmail(currentCustomer);
     });
 
-    customerForm.find("#button_add_location").toggle(!!(currentCustomer.is_admin && currentCustomer.service_email)).unbind('click').click(function () {
+    customerForm.find("#button_add_location").toggle(!!(currentCustomer.service_email)).unbind('click').click(function () {
         if (!$(this).attr('disabled'))
             showAddLocation(currentCustomer);
     });

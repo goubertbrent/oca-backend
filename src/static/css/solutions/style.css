@@ -537,35 +537,6 @@ select.disabled {
 
 .typeahead_secondary { font-size: .8em; margin-top: -5px; }
 
-.fullscreen-pdf-modal {
-    height: 90%;
-    top: 2.5% !important;
-    width: 90%;
-    left: 5%;
-    margin: 0;
-}
-
-.fullscreen-pdf-modal div.modal-body {
-    height: 90%;
-    max-height: none;
-    padding: 0;
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-.fullscreen-pdf-modal div.modal-body #pdf-container {
-    height: 100%;
-    width: 100%;
-    -webkit-overflow-scrolling: touch;
-    overflow: auto;
-}
-
-.fullscreen-pdf-modal div.modal-body #pdf-viewer {
-    height: 4000px;
-    width: 100%;
-    border-width: 0;
-}
-
 .full-screen {
     width: 100%;
     height: 100%;

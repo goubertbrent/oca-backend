@@ -18,6 +18,10 @@ export class SharedService {
     return this.http.get<Budget>('/common/billing/budget');
   }
 
+  addBudget(vat: string) {
+    return this.http.post<Budget>('/common/billing/budget', { vat });
+  }
+
   getBrandingSettings() {
     return this.http.get<BrandingSettings>('/common/settings/branding');
   }

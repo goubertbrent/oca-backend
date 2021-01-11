@@ -38,12 +38,9 @@ from rogerthat.rpc import users
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils.channel import send_message_to_session
 from shop.bizz import get_organization_types, update_customer_consents
-from shop.business.legal_entities import get_vat_pct
-from shop.constants import LOGO_LANGUAGES
 from shop.dal import get_customer
 from solutions import translate, translations, COMMON_JS_KEYS
 from solutions.common.bizz import OrganizationType, SolutionModule
-from solutions.common.bizz.budget import BUDGET_RATE
 from solutions.common.bizz.functionalities import get_functionalities
 from solutions.common.bizz.settings import get_service_info
 from solutions.common.consts import UNITS, UNIT_SYMBOLS, UNIT_PIECE, UNIT_LITER, UNIT_KG, UNIT_GRAM, UNIT_HOUR, \
@@ -70,8 +67,6 @@ DEFAULT_JS_TEMPLATES = [
     'qanda_question_table',
     'qanda_question_modules',
     'qanda_question_detail',
-    'shop/shopping_cart',
-    'shop/product',
     'settings/settings_branding',
     'settings/settings_branding_preview',
     'settings/app_user_roles',
@@ -79,7 +74,6 @@ DEFAULT_JS_TEMPLATES = [
     'settings/app_user_add_roles',
     'settings/try_publish_changes',
     'functionalities/functionality',
-    'budget_balance_warning',
 ]
 
 MODULES_JS_TEMPLATE_MAPPING = {
@@ -94,13 +88,6 @@ MODULES_JS_TEMPLATE_MAPPING = {
     ],
     SolutionModule.APPOINTMENT: [
         'timeframe_template'
-    ],
-    SolutionModule.BILLING: [
-        'billing_budget',
-        'billing_view_invoice',
-        'billing_settings_unsigned_orders_table',
-        'billing_settings_orders_table',
-        'billing_settings_invoices_table'
     ],
     SolutionModule.CITY_APP: [
         'services/service',
@@ -324,12 +311,8 @@ class FlexHomeHandler(webapp2.RequestHandler):
                 'PROFIT': OrganizationType.PROFIT,
                 'NON_PROFIT': OrganizationType.NON_PROFIT,
             },
-            'BUDGET_RATE': BUDGET_RATE,
             'CURRENCY_SYMBOLS': currency_symbols
         }
-        vat_pct = get_vat_pct(customer)
-        is_mobicage = customer.team.legal_entity.is_mobicage
-        legal_entity_currency = customer.team.legal_entity.currency
 
         functionality_modules = functionality_info = None
         if community.signup_enabled:
@@ -348,7 +331,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
         organization_types = get_organization_types(customer, community.default_app, lang, include_all=True)
         currency = service_info.currency
         params = {'language': lang,
-                  'logo_languages': LOGO_LANGUAGES,
                   'sln_settings': sln_settings,
                   'sln_i_settings': sln_i_settings,
                   'hidden_by_city': sln_settings.hidden_by_city,
@@ -357,7 +339,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'service_name': service_info.name,
                   'service_user_email': service_user.email().encode("utf-8"),
                   'service_identity': service_identity,
-                  'has_multiple_locations': True if sln_settings.identities else False,
                   'qr_codes': self._get_qr_codes(sln_settings, service_identity),
                   'SolutionModule': SolutionModule,
                   'days': days,
@@ -380,16 +361,12 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'CONSTS_JSON': json.dumps(consts),
                   'modules': json.dumps(sln_settings.modules),
                   'provisioned_modules': json.dumps(sln_settings.provisioned_modules),
-                  'VAT_PCT': vat_pct,
-                  'IS_MOBICAGE_LEGAL_ENTITY': is_mobicage,
-                  'LEGAL_ENTITY_CURRENCY': legal_entity_currency,
                   'translations': json.dumps(all_translations),
                   'organization_types': organization_types,
                   'organization_types_json': json.dumps(dict(organization_types)),
                   'is_city': is_city,
                   'news_review_enabled': news_review_enabled,
                   'can_edit_paddle': is_city and session_.shop,
-                  'is_shop_admin': session_.shop if session_ else False,
                   'default_router_location': default_router_location
                   }
 

@@ -56,9 +56,6 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     shop_reply_to_email = add_meta(db.StringProperty(indexed=False),
                                    doc="The email address that is used as reply-to in all e-mails.",
                                    order=301)
-    shop_billing_email = add_meta(db.StringProperty(indexed=False),
-                                  doc="The email address that is used to send all the e-mails regarding billing",
-                                  order=302)
     shop_export_email = add_meta(db.StringProperty(indexed=False),
                                  doc="The email address that is used to send all the e-mails regarding exports",
                                  order=303)
@@ -71,12 +68,6 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     shop_bizz_admin_emails = add_meta(db.StringListProperty(indexed=False),
                                       doc="The email addresses that have admin access to the shop dashboard",
                                       order=307)
-    shop_payment_admin_emails = add_meta(db.StringListProperty(indexed=False),
-                                         doc="The email addresses that can set the payment status of an order",
-                                         order=308)
-
-    shop_gcs_bucket = add_meta(db.StringProperty(indexed=False), doc='Cloud storage bucket for shop-related files',
-                               order=311)
 
     solution_qanda_info_receivers = add_meta(db.StringListProperty(indexed=False),
                                              doc="The email addresses that will receive an e-mail when a question has been asked",
@@ -101,16 +92,6 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     facebook_apps = add_meta(db.StringListProperty(indexed=False),
                              doc="Facebook apps (3 entries per app (domain, app id and secret): - www.example.com - 123456789 - aabbccddeeffggeehh123445",
                              order=1301)
-
-    stripe_public_key = add_meta(db.StringProperty(indexed=False),
-                                      doc="Stripe public key",
-                                      order=1401)
-    stripe_secret_key = add_meta(db.StringProperty(indexed=False),
-                                      doc="Stripe secret key",
-                                      order=1402)
-    stripe_webhook_secret = add_meta(db.StringProperty(indexed=False),
-                                     doc="Stripe webhook secret",
-                                     order=1403)
 
     recaptcha_site_key = add_meta(db.StringProperty(indexed=False),
                                   doc="Google ReCaptcha site key",

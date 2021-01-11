@@ -27,36 +27,26 @@ from rogerthat.restapi import apps, embedded_apps, firebase, payment, maps
 from rogerthat.wsgi import RogerthatWSGIApplication
 from shop import view, shop_q_and_a
 from shop.handlers import StaticFileHandler, GenerateQRCodesHandler
-from shop.view import BizzAdminHandler, OrdersHandler, OrderPdfHandler, ChargesHandler, QuestionsHandler, \
-    QuestionsDetailHandler, InvoicePdfHandler, authorize_manager, LoyaltySlidesHandler, UploadLoyaltySlideHandler, \
-    OpenInvoicesHandler, LoginAsCustomerHandler, RegioManagersHandler, ExportEmailAddressesHandler, \
+from shop.view import BizzAdminHandler, QuestionsHandler, \
+    QuestionsDetailHandler, authorize_manager, LoyaltySlidesHandler, UploadLoyaltySlideHandler, \
+    LoginAsCustomerHandler, ExportEmailAddressesHandler, \
     LoyaltySlidesNewOrderHandler, UploadLoyaltySlideNewOrderHandler, \
-    SalesStatisticsHandler, shopOauthDecorator, ShopLogoutHandler, \
-    LegalEntityHandler, CustomersImportHandler, ConsoleHandler, ConsoleIndexHandler
+    ShopLogoutHandler, CustomersImportHandler, ConsoleHandler, ConsoleIndexHandler
 
 handlers = [
     ('/internal/shop/?', BizzAdminHandler),
     ('/internal/shop/logout', ShopLogoutHandler),
-    ('/internal/shop/invoices/open', OpenInvoicesHandler),
-    ('/internal/shop/orders', OrdersHandler),
-    ('/internal/shop/order/pdf', OrderPdfHandler),
-    ('/internal/shop/charges', ChargesHandler),
-    ('/internal/shop/regio_managers', RegioManagersHandler),
     ('/internal/shop/questions', QuestionsHandler),
     ('/internal/shop/questions/(.*)', QuestionsDetailHandler),
-    ('/internal/shop/invoice/pdf', InvoicePdfHandler),
     ('/internal/shop/loyalty/slides', LoyaltySlidesHandler),
     ('/internal/shop/loyalty/slides/new_order', LoyaltySlidesNewOrderHandler),
     ('/internal/shop/loyalty/slide/upload', UploadLoyaltySlideHandler),
     ('/internal/shop/loyalty/slide/new_order/upload', UploadLoyaltySlideNewOrderHandler),
     ('/internal/shop/login_as', LoginAsCustomerHandler),
     ('/internal/shop/contacts_export', ExportEmailAddressesHandler),
-    ('/internal/shop/legal_entities', LegalEntityHandler),
-    ('/internal/shop/stats', SalesStatisticsHandler),
     ('/internal/shop/stat/(.*)', StaticFileHandler),
     ('/internal/shop/customers/generate-qr', GenerateQRCodesHandler),
     ('/internal/shop/customers/import', CustomersImportHandler),
-    (shopOauthDecorator.callback_path, shopOauthDecorator.callback_handler()),  # /shop/oauth2callback
     webapp2.Route('/internal/console<route:.*>', ConsoleHandler),
     webapp2.Route('/console-api/images/apps/<app_id:[^/]+>/qr-templates/<description:[^/]+>', AppQRTemplateHandler),
     webapp2.Route('/console-api/uploads/apps/<app_id:[^/]+>/assets/<asset_type:[^/]+>', UploadAppAssetHandler),

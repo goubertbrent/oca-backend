@@ -35,52 +35,6 @@ html, body {
     padding-right: 2px;
 }
 
-td.right {
-    text-align: right;
-}
-
-.order-item-row {
-    cursor: pointer;
-}
-
-span.comment {
-    font-style: italic;
-    display: none;
-}
-
-.fullscreen-pdf-modal {
-    height: 90%;
-    top: 2.5% !important;
-    width: 90%;
-    left: 5%;
-    margin: 0;
-}
-
-.fullscreen-pdf-modal div.modal-body {
-    height: 90%;
-    max-height: none;
-    padding: 0;
-    overflow: auto;
-    overflow-scrolling: touch;
-}
-
-.fullscreen-pdf-modal div.modal-body #pdf-container {
-    height: 100%;
-    width: 100%;
-    overflow-scrolling: touch;
-    overflow: auto;
-}
-
-.fullscreen-pdf-modal div.modal-body #pdf-viewer {
-    height: 4000px;
-    width: 100%;
-    border-width: 0;
-}
-
-#signature_canvas {
-    border: 1px dotted black;
-}
-
 #customer_form {
     width: 70%;
     padding: 0;
@@ -202,12 +156,8 @@ span.comment {
     margin-bottom: 10px;
 }
 
-.default-app {
-    color: grey;
-}
-
 pre.formatted {
-    padding: 0px;
+    padding: 0;
     word-break: normal;
     border: none;
     background-color: transparent;
@@ -342,23 +292,6 @@ pre.formatted {
 
 /* end loading spinnner */
 
-/* new order styles */
-.sub-buttons {
-    margin: 15px 0 0;
-}
-
-.sub-buttons button {
-    transition: all 300ms
-}
-
-#duplicate_error {
-    color: #f00;
-    margin: 20px;
-    font-size: 20px;
-    display: none;
-}
-
-/* end new order styles */
 
 .modal-footer .btn.pull-right {
     margin-right: 5px;
@@ -372,26 +305,10 @@ pre.formatted {
     padding: 0 10px 10px;
 }
 
-.team-select {
-    display: none;
-    margin: 0;
-    padding: 0 5px;
-    height: 25px;
-    line-height: 25px;
-}
-
 #other-customer-info > div {
     margin-top: 5px;
 }
 
 label.control-label {
     font-weight: bold;
-}
-
-.datepicker {
-    z-index: 9999;
-}
-
-.pointer {
-    cursor: pointer
 }

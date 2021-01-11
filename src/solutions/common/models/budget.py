@@ -24,6 +24,25 @@ from rogerthat.models.common import NdbModel
 from solutions import SOLUTION_COMMON
 
 
+class BudgetOrderStatus(object):
+    ORDERED = 0
+    PAID = 1
+
+
+class BudgetOrder(NdbModel):
+    date = ndb.DateTimeProperty(auto_now_add=True)
+    service_email = ndb.StringProperty()
+    status = ndb.IntegerProperty(default=BudgetOrderStatus.ORDERED)
+
+    @property
+    def paid(self):
+        return self.status == BudgetOrderStatus.PAID
+
+    @classmethod
+    def list_by_service(cls, service_email):
+        return cls.query().filter(cls.service_email == service_email)
+
+
 class Budget(NdbModel):
     DEFAULT_NAME = 'main'
 

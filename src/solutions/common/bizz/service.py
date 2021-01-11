@@ -18,7 +18,6 @@
 import logging
 import time
 from datetime import datetime
-
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
 from typing import Set
@@ -37,7 +36,7 @@ from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import channel, log_offload, now, send_mail
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import run_in_xg_transaction
-from shop.models import Product, RegioManagerTeam, CustomerSignup, Customer, CustomerSignupStatus
+from shop.models import CustomerSignup, Customer, CustomerSignupStatus
 from shop.to import CustomerServiceTO
 from solutions import translate as common_translate
 from solutions.common.bizz import SolutionModule, common_provision
@@ -101,26 +100,8 @@ def create_customer_with_service(city_customer, customer, service, name, address
     if not customer and organization_type not in city_customer.editable_organization_types:
         organization_type = city_customer.editable_organization_types[0]
 
-    if city_customer.can_only_edit_organization_type(ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT):
-        product_code = Product.PRODUCT_SUBSCRIPTION_ASSOCIATION
-    else:
-        product_code = Product.PRODUCT_FREE_SUBSCRIPTION
-
-    team = RegioManagerTeam.get_by_id(city_customer.team_id)
-    if not team.legal_entity.is_mobicage:
-        if product_code == Product.PRODUCT_SUBSCRIPTION_ASSOCIATION:
-            from shop.products import create_sjup_product
-            p = create_sjup_product(team.legal_entity_id, "%s." % team.legal_entity_id)
-            p.put()
-            product_code = p.code
-        else:
-            from shop.products import create_free_product
-            p = create_free_product(team.legal_entity_id, "%s." % team.legal_entity_id)
-            p.put()
-            product_code = p.code
-
     return put_customer_with_service(service, name, address1, address2, zip_code, city, city_customer.country, language,
-                                     organization_type, vat, city_customer.team_id, product_code, customer_id,
+                                     organization_type, vat, customer_id,
                                      website, facebook_page, force=force)
 
 

@@ -11,6 +11,12 @@ export function sharedReducer(state: SharedState = initialSharedState, action: S
       return { ...state, budget: onLoadableSuccess(action.payload) };
     case SharedActionTypes.GET_BUDGET_FAILED:
       return { ...state, budget: onLoadableError(action.error, initialSharedState.budget.data) };
+    case SharedActionTypes.ADD_BUDGET:
+      return { ...state, budget: onLoadableLoad(state.budget.data) };
+    case SharedActionTypes.ADD_BUDGET_COMPLETE:
+      return { ...state, budget: onLoadableSuccess(action.payload) };
+    case SharedActionTypes.ADD_BUDGET_FAILED:
+      return { ...state, budget: onLoadableError(action.error, state.budget.data) };
     case SharedActionTypes.GET_SOLUTION_SETTINGS:
       return { ...state, solutionSettings: onLoadableLoad(initialSharedState.solutionSettings.data) };
     case SharedActionTypes.GET_SOLUTION_SETTINGS_COMPLETE:

@@ -241,6 +241,7 @@ TRANSLATION_MAPPING = {
         'services',
         'denied',
         'refresh',
+        'vat',
     },
     'web': {
         'Close',

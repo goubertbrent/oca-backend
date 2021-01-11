@@ -1,17 +1,6 @@
 {% extends "base.html" %}
 
 {% block body %}
-    {% if show_team_switcher %}
-        <form method="get">
-            <select name="team" id="select_team" onchange="this.form.submit();">
-                <option value="">All</option>
-                {% for team_id, team in teams.items %}
-                    <option value="{{ team.id }}"
-                            {% if selected_team == team.id %}selected{% endif %}>{{ team.name }}</option>
-                {% endfor %}
-            </select>
-        </form>
-    {% endif %}
 <table id="questions_table" class="table table-striped table-hover table-bordered">
     <thead>
         <tr>
@@ -19,7 +8,6 @@
             <th>Author</th>
             <th>Title</th>
             <th>Status</th>
-            {% if admin %}<th>Team</th>{% endif %}
             <th>Actions</th>
         </tr>
     </thead>
@@ -30,14 +18,7 @@
             <td>{{ question.author.email }}</td>
             <td>{{ question.title }}</td>
             <td>{{ question.status_str }}</td>
-            {% if admin %}
-                <td>{{ question.team.name }}</td>{% endif %}
             <td>
-                {% if admin %}
-                    <button type="button" class="btn btn-primary assign-team" question_id="{{ question.id }}"
-                            team_id="{{ question.team_id }}">Assign
-                    </button>
-                {% endif %}
                 <a class="btn btn-success" href="/internal/shop/questions/{{ question.id }}">View</a>
             </td>
         </tr>
@@ -46,14 +27,13 @@
 </table>
     <div class="pagination">
         <ul>
-            <li><a href="/internal/shop/questions?team={{ selected_team }}">First page</a></li>
+            <li><a href="/internal/shop/questions">First page</a></li>
             {% if cursor %}
-                <li><a href="/internal/shop/questions?cursor={{ cursor }}&team={{ selected_team }}">Next page</a></li>
+                <li><a href="/internal/shop/questions?cursor={{ cursor }}">Next page</a></li>
             {% endif %}
         </ul>
     </div>
 {% endblock %}
 
 {% block custom_javascript %}
-    <script src="/static/js/shop/questions.js"></script>
 {% endblock %}

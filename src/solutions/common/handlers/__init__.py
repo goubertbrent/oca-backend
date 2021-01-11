@@ -15,17 +15,17 @@
 #
 # @@license_version:1.7@@
 
-import base64
-import logging
 import os
-from contextlib import closing
-from zipfile import ZipFile
 
+import base64
 import jinja2
+import logging
 import webapp2
+from contextlib import closing
 from google.appengine.ext import webapp, db
 from jinja2 import Undefined, DebugUndefined
 from lxml import html, etree
+from zipfile import ZipFile
 
 from rogerthat.consts import MAX_BRANDING_PDF_SIZE, DEBUG
 from rogerthat.dal import parent_key, put_and_invalidate_cache
@@ -33,8 +33,6 @@ from rogerthat.rpc import users
 from rogerthat.service.api import system
 from rogerthat.templates.jinja_htmlcompress import HTMLCompress
 from rogerthat.utils.channel import broadcast_via_iframe_result, send_message
-from shop.exceptions import CustomerNotFoundException
-from shop.models import Order
 from solutions import translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import broadcast_updates_pending, put_pdf_branding
@@ -111,71 +109,6 @@ class SolutionMainBrandingHandler(webapp2.RequestHandler):
             content = etree.tostring(doc)  # @UndefinedVariable
 
         self.response.out.write(content)
-
-
-class OrderPdfHandler(webapp2.RequestHandler):
-
-    def get(self):
-        from shop.models import Customer
-        from shop.view import generate_order_or_invoice_pdf
-
-        service_user = users.get_current_user()
-
-        customer_id = long(self.request.get("customer_id"))
-        order_number = self.request.get("order_number")
-        download = self.request.get("download", "false") == "true"
-
-        self.response.headers['Content-Type'] = 'application/pdf'
-        self.response.headers[
-            'Content-Disposition'] = str('%s; filename=order_%s.pdf' % ("attachment" if download else "inline", order_number))
-
-        customer, order = db.get((Customer.create_key(customer_id), Order.create_key(customer_id, order_number)))
-        if not customer:
-            logging.error('No customer found for id %d while trying to display order pdf %s', customer_id, order_number)
-            self.abort(404)
-            return
-        if customer.service_email != service_user.email():
-            logging.error("%s attempted to download order of %s", service_user, customer.service_email)
-            self.abort(403)
-            return
-        generate_order_or_invoice_pdf(self.response.out, customer, order, order.contact)
-
-
-class InvoicePdfHandler(webapp.RequestHandler):
-
-    def get(self):
-        from shop.models import Customer, Invoice
-        service_user = users.get_current_user()
-
-        customer_id = long(self.request.get("customer_id"))
-        order_number = self.request.get("order_number")
-        charge_id = long(self.request.get("charge_id"))
-        invoice_number = self.request.get("invoice_number")
-        download = self.request.get("download", "false") == "true"
-
-        self.response.headers['Content-Type'] = 'application/pdf'
-        self.response.headers[
-            'Content-Disposition'] = str('%s; filename=invoice_%s.pdf' % ("attachment" if download else "inline", invoice_number))
-
-        try:
-            customer = Customer.get_by_id(customer_id)
-        except CustomerNotFoundException, exception:
-            logging.exception(exception)
-            self.abort(500)
-            return
-        if customer.service_email != service_user.email():
-            logging.error("%s attempted to download invoice of %s", service_user, customer.service_email)
-            self.error(500)
-            return
-
-        invoice = db.get(Invoice.create_key(customer_id, order_number, charge_id, invoice_number))
-
-        if not invoice or not invoice.pdf:
-            logging.error(
-                "%s attempted to download invoice %s which does not exist or does not have a pdf generated", service_user, invoice_number)
-            self.error(500)
-            return
-        self.response.out.write(invoice.pdf)
 
 
 class UploadStaticContentPDFHandler(webapp.RequestHandler):

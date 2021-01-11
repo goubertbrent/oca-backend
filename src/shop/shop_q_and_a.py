@@ -14,20 +14,16 @@
 # limitations under the License.
 #
 # @@license_version:1.5@@
-from types import NoneType
 
 from google.appengine.api import users as gusers
-from google.appengine.ext import db, ndb
+from google.appengine.ext import ndb
 
-from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.rpc import users
 from rogerthat.settings import get_server_settings
-from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.utils import now, send_mail
-from shop.business.permissions import user_has_permissions_to_question
-from shop.models import Customer, RegioManagerTeam
+from shop.models import Customer
 from solutions.common.dal import get_solution_settings
 from solutions.common.q_and_a.models import QuestionReply, Question, QuestionStatus
 
@@ -37,8 +33,6 @@ from solutions.common.q_and_a.models import QuestionReply, Question, QuestionSta
 @arguments(question_id=(int, long), title=unicode)
 def set_question_title(question_id, title):
     question = Question.get_by_id(question_id)
-    user = gusers.get_current_user()
-    azzert(user_has_permissions_to_question(user, question))
     question.title = title
     question.put()
 
@@ -48,8 +42,6 @@ def set_question_title(question_id, title):
 @arguments(question_id=(int, long), modules=[unicode])
 def set_question_modules(question_id, modules):
     question = Question.get_by_id(question_id)
-    user = gusers.get_current_user()
-    azzert(user_has_permissions_to_question(user, question))
     question.modules = modules
     question.put()
 
@@ -59,8 +51,6 @@ def set_question_modules(question_id, modules):
 @arguments(question_id=(int, long), status=(int, long))
 def set_question_status(question_id, status):
     question = Question.get_by_id(question_id)
-    user = gusers.get_current_user()
-    azzert(user_has_permissions_to_question(user, question))
     question.status = status
     question.put()
 
@@ -70,9 +60,6 @@ def set_question_status(question_id, status):
 @arguments(question_id=(int, long), description=unicode, author_name=unicode, close=bool)
 def send_reply(question_id, description, author_name, close=False):
     question = Question.get_by_id(question_id)
-    user = gusers.get_current_user()
-    azzert(user_has_permissions_to_question(user, question))
-
     settings = get_server_settings()
 
     if close:
@@ -105,33 +92,3 @@ Kind regards,
 
 The Rogerthat team.""" % (sln_settings.login.email() if sln_settings.login else question.author.email(), question.title)
     send_mail(settings.senderEmail, to_email, subject, message)
-
-
-@rest("/internal/shop/rest/question/assign", "post")
-@returns(ReturnStatusTO)
-@arguments(question_id=(int, long), team_id=(int, long))
-def assign_team_to_question(question_id, team_id):
-    question = Question.get_by_id(question_id)
-    user = gusers.get_current_user()
-    azzert(user_has_permissions_to_question(user, question))
-    team = RegioManagerTeam.get_by_id(team_id)
-
-    question.team_id = team.id
-    question.put()
-
-    support_manager = team.get_support()
-    if support_manager:
-        support_email = support_manager.user.email()
-        name = question.get_author_name()
-        settings = get_server_settings()
-        message = """Please reply to %s (%s) with the following link:
-%s/internal/shop/questions
-
-Title:
-%s
-
-Description:
-%s""" % (name, question.author, settings.baseUrl, question.title, question.description)
-        send_mail(settings.senderEmail, support_email, question.title, message)
-
-    return RETURNSTATUS_TO_SUCCESS

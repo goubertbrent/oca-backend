@@ -15,13 +15,10 @@
 #
 # @@license_version:1.7@@
 
-from google.appengine.ext import db
-
-from mcfw.cache import cached
 from mcfw.rpc import returns, arguments
 from rogerthat.dal import generator
 from rogerthat.rpc import users
-from shop.models import Customer, CustomerSignup, ShopLoyaltySlide, ShopLoyaltySlideNewOrder, LegalEntity
+from shop.models import Customer, CustomerSignup, ShopLoyaltySlide, ShopLoyaltySlideNewOrder
 
 
 @returns(Customer)
@@ -51,16 +48,6 @@ def get_shop_loyalty_slides(app_id=None):
 @arguments()
 def get_shop_loyalty_slides_new_order():
     return generator(ShopLoyaltySlideNewOrder.all())
-
-
-@cached(1, lifetime=0, request=False, memcache=False, datastore=u"get_mobicage_legal_entity")
-@returns(LegalEntity)
-@arguments()
-def get_mobicage_legal_entity():
-    @db.non_transactional
-    def get():
-        return LegalEntity.all().filter('is_mobicage', True).get()
-    return get()
 
 
 @returns([CustomerSignup])

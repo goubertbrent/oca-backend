@@ -33,12 +33,11 @@ import solutions.common.restapi.reports
 import solutions.common.restapi.reservation
 import solutions.common.restapi.services
 import solutions.common.restapi.settings
-import solutions.common.restapi.store
 import solutions.common.q_and_a.restapi
 from mcfw.restapi import rest_functions
 from rogerthat.wsgi import AuthenticatedRogerthatWSGIApplication
-from solutions.common.handlers import ImageViewerHandler, SolutionMainBrandingHandler, InvoicePdfHandler, \
-    OrderPdfHandler, UploadStaticContentPDFHandler, FlowStatisticsExportHandler
+from solutions.common.handlers import ImageViewerHandler, SolutionMainBrandingHandler, \
+    UploadStaticContentPDFHandler, FlowStatisticsExportHandler
 from solutions.common.handlers.discussion_groups import DiscussionGroupsPdfHandler
 from solutions.common.handlers.events import EventsGoogleOauth2callbackHandler
 from solutions.common.handlers.loyalty import UploadLoyaltySlideHandler, LoyaltySlidePreviewHandler, \
@@ -53,8 +52,6 @@ handlers = [
     ('/common/login_as', LoginAsServiceHandler),
     ('/common/image_viewer', ImageViewerHandler),
     ('/common/main_branding/(.*)', SolutionMainBrandingHandler),
-    ('/common/order/pdf', OrderPdfHandler),
-    ('/common/invoice/pdf', InvoicePdfHandler),
     ('/common/static_content/pdf/post', UploadStaticContentPDFHandler),
     ('/common/loyalty/slide/upload', UploadLoyaltySlideHandler),
     ('/common/loyalty/slide/preview', LoyaltySlidePreviewHandler),
@@ -85,7 +82,6 @@ modules = [
     solutions.common.restapi.reservation,
     solutions.common.q_and_a.restapi,
     solutions.common.restapi.reports,
-    solutions.common.restapi.store,
     solutions.common.restapi.settings,
     vouchers_api,
 ]

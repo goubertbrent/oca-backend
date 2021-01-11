@@ -178,4 +178,3 @@ OFFICIALLY_SUPPORTED_LANGUAGES = {
     # u'zh': u'Chinese',
     # u'zu': u'Zulu'
 }
-STORE_MANAGER = users.User(u'customers@shop')

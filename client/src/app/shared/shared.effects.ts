@@ -3,10 +3,13 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { ErrorService } from '@oca/web-shared';
 import { of, timer } from 'rxjs';
-import { catchError, map, mergeMap, retryWhen, switchMap, take } from 'rxjs/operators';
+import { catchError, map, mergeMap, retryWhen, switchMap, take, tap } from 'rxjs/operators';
 import { RootState } from '../reducers';
 import { transformErrorResponse } from './errors/errors';
 import {
+  AddBudgetAction,
+  AddBudgetCompleteAction,
+  AddBudgetFailedAction,
   GetBrandingSettingFailedAction,
   GetBrandingSettingsAction,
   GetBrandingSettingsCompleteAction,
@@ -40,14 +43,23 @@ export class SharedEffects {
       retryWhen(attempts => attempts.pipe(mergeMap(() => timer(2000)))),
     ))));
 
-   getBudget$ = createEffect(() => this.actions$.pipe(
+  getBudget$ = createEffect(() => this.actions$.pipe(
     ofType<GetBudgetAction>(SharedActionTypes.GET_BUDGET),
     switchMap(() => this.sharedService.getBudget().pipe(
       map(data => new GetBudgetCompleteAction(data)),
       catchError(err => of(new GetBudgetFailedAction(transformErrorResponse(err)))))),
   ));
 
-   getSolutionSettings$ = createEffect(() => this.actions$.pipe(
+  addBudget$ = createEffect(() => this.actions$.pipe(
+    ofType<AddBudgetAction>(SharedActionTypes.ADD_BUDGET),
+    switchMap(action => this.sharedService.addBudget(action.payload.vat).pipe(
+      map(data => new AddBudgetCompleteAction(data)),
+      catchError(err => of(new AddBudgetFailedAction(transformErrorResponse(err))).pipe(
+        tap(e => this.errorService.showErrorDialog(e.error.error))
+      )))),
+  ));
+
+  getSolutionSettings$ = createEffect(() => this.actions$.pipe(
     ofType<GetSolutionSettingsAction>(SharedActionTypes.GET_SOLUTION_SETTINGS),
     switchMap(() => this.sharedService.getSolutionSettings().pipe(
       map(data => new GetSolutionSettingsCompleteAction(data)),
@@ -55,7 +67,7 @@ export class SharedEffects {
     ),
   ));
 
-   getBrandingSettings$ = createEffect(() => this.actions$.pipe(
+  getBrandingSettings$ = createEffect(() => this.actions$.pipe(
     ofType<GetBrandingSettingsAction>(SharedActionTypes.GET_BRANDING_SETTINGS),
     switchMap(action => this.sharedService.getBrandingSettings().pipe(
       map(data => new GetBrandingSettingsCompleteAction(data)),

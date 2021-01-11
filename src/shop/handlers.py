@@ -15,21 +15,21 @@
 #
 # @@license_version:1.7@@
 
-import binascii
-import datetime
 import json
-import logging
 import os
-import time
 import urllib
 
+import binascii
+import datetime
+import logging
+import time
 import webapp2
 from babel import Locale
-from dateutil.relativedelta import relativedelta
 from google.appengine.api import search, users as gusers
 from google.appengine.ext import db
 from google.appengine.ext.deferred import deferred
 from google.appengine.ext.webapp import template
+from markdown import Markdown
 
 from mcfw.cache import cached
 from mcfw.consts import MISSING
@@ -41,7 +41,6 @@ from rogerthat.bizz.friends import user_code_by_hash, makeFriends, ORIGIN_USER_I
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.service import SERVICE_LOCATION_INDEX, re_index_map_only
 from rogerthat.bizz.session import create_session
-from rogerthat.consts import DEBUG
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
 from rogerthat.models import ProfilePointer, ServiceProfile
@@ -53,7 +52,8 @@ from rogerthat.rpc.service import BusinessException
 from rogerthat.settings import get_server_settings
 from rogerthat.templates import get_languages_from_request
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, WarningReturnStatusTO
-from rogerthat.utils import get_epoch_from_datetime, bizz_check, try_or_defer, get_country_code_by_ipaddress
+from rogerthat.translations import DEFAULT_LANGUAGE
+from rogerthat.utils import bizz_check, try_or_defer, get_country_code_by_ipaddress
 from rogerthat.utils.app import get_app_id_from_app_user
 from rogerthat.utils.cookie import set_cookie
 from rogerthat.utils.service import create_service_identity_user
@@ -64,7 +64,7 @@ from shop.bizz import create_customer_signup, complete_customer_signup, get_orga
 from shop.business.i18n import shop_translate
 from shop.business.permissions import is_admin
 from shop.constants import OFFICIALLY_SUPPORTED_LANGUAGES
-from shop.models import Invoice, OrderItem, Product, RegioManagerTeam, LegalEntity, Customer
+from shop.models import Customer
 from shop.to import CompanyTO, CustomerTO, CustomerLocationTO
 from shop.view import get_shop_context, get_current_http_host
 from solution_server_settings import get_solution_server_settings
@@ -73,44 +73,10 @@ from solutions.common.bizz.grecaptcha import recaptcha_verify
 from solutions.common.bizz.settings import get_consents_for_community
 from solutions.common.integrations.cirklo.cirklo import check_merchant_whitelisted
 from solutions.common.integrations.cirklo.models import CirkloMerchant, CirkloCity
+from solutions.common.markdown_newtab import NewTabExtension
 from solutions.common.models import SolutionServiceConsent
 from solutions.common.restapi.services import do_create_service
 from solutions.common.to.settings import PrivacySettingsGroupTO
-from markdown import Markdown
-from solutions.common.markdown_newtab import NewTabExtension
-from rogerthat.translations import DEFAULT_LANGUAGE
-
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO  # @UnusedImport
-
-
-class ExportProductsHandler(webapp2.RequestHandler):
-
-    def get(self):
-        if self.request.headers.get('X-Rogerthat-Secret') != get_server_settings().secret:
-            self.abort(401)
-
-        products = export_products()
-
-        self.response.headers['Content-Type'] = 'text/json'
-        self.response.write(json.dumps(products))
-
-
-class ExportInvoicesHandler(webapp2.RequestHandler):
-
-    def get(self):
-        if self.request.headers.get('X-Rogerthat-Secret') != get_server_settings().secret:
-            self.abort(401)
-
-        year = int(self.request.GET['year'])
-        month = int(self.request.GET['month'])
-
-        invoices = export_invoices(year, month)
-
-        self.response.headers['Content-Type'] = 'text/json'
-        self.response.write(json.dumps(invoices))
 
 
 class StaticFileHandler(webapp2.RequestHandler):
@@ -120,106 +86,6 @@ class StaticFileHandler(webapp2.RequestHandler):
         path = os.path.join(cur_path, u'html', filename)
         with open(path, 'r') as f:
             self.response.write(f.read())
-
-
-def model_to_dict(model):
-    d = db.to_dict(model)
-    if 'pdf' in d:
-        del d['pdf']
-    for k, v in d.iteritems():
-        if isinstance(v, users.User):
-            d[k] = v.email()
-    d['_key'] = str(model.key())
-    return d
-
-
-def export_invoices(year, month):
-    start_date = datetime.date(year, month, 1)
-    end_date = start_date + relativedelta(months=1)
-
-    qry = Invoice.all() \
-        .filter('date >=', get_epoch_from_datetime(start_date)) \
-        .filter('date <', get_epoch_from_datetime(end_date))
-
-    invoices = list()
-    order_keys = set()
-    all_products = dict(((p.code, p) for p in Product.all()))
-    for invoice_model in qry:
-        i = model_to_dict(invoice_model)
-        order_key = invoice_model.parent_key().parent()
-        i['invoice_number'] = invoice_model.invoice_number
-        i['order_items'] = map(model_to_dict, OrderItem.all().ancestor(order_key))
-        if invoice_model.charge.is_recurrent:
-            # only apply recurrent charges
-            for order_item in reversed(i['order_items']):
-                order_item['count'] = invoice_model.charge.subscription_extension_length or 1
-                product = all_products[order_item['product_code']]
-                if not (
-                    product.is_subscription_discount or product.is_subscription or product.is_subscription_extension):
-                    i['order_items'].remove(order_item)
-
-            # add the subscription extensions like XCTY
-            if invoice_model.charge.subscription_extension_order_item_keys:
-                known_extension_item_keys = [item['_key'] for item in i['order_items']]
-
-                extension_order_items = db.get(invoice_model.charge.subscription_extension_order_item_keys)
-                for item in extension_order_items:
-                    item.count = 1
-                    if str(item.key()) not in known_extension_item_keys:
-                        i['order_items'].append(model_to_dict(item))
-
-        i['order_key'] = order_key
-        i['currency'] = invoice_model.currency_code
-        order_keys.add(order_key)
-        invoices.append(i)
-
-    orders = {o.key(): o for o in db.get(order_keys)}
-
-    contact_keys = set()
-    customer_keys = set()
-    for i in invoices:
-        order_model = orders[i['order_key']]
-        del i['order_key']
-        i['customer_key'] = order_model.customer_key
-        i['contact_key'] = order_model.contact_key
-        i['manager'] = None if not order_model.manager else order_model.manager.email()
-        customer_keys.add(order_model.customer_key)
-        contact_keys.add(order_model.contact_key)
-
-    del orders
-
-    customer_and_contact_models = {m.key(): m for m in db.get(customer_keys.union(contact_keys))}
-
-    # filter invoices for customers of resellers
-    reseller_ids = [k.id() for k in LegalEntity.list_non_mobicage(keys_only=True)]
-    reseller_team_ids = [t.id for t in RegioManagerTeam.all().filter('legal_entity_id IN', reseller_ids)]
-
-    for i in reversed(invoices):
-        customer_model = customer_and_contact_models[i['customer_key']]
-        if customer_model.team_id in reseller_team_ids:
-            invoices.remove(i)
-            continue
-        del i['customer_key']
-        i['customer'] = model_to_dict(customer_model)
-        contact_model = customer_and_contact_models[i['contact_key']]
-        del i['contact_key']
-        i['contact'] = model_to_dict(contact_model)
-
-    del customer_and_contact_models
-
-    return sorted(invoices,
-                  key=lambda i: int(i['invoice_number'].split('.')[-1]))
-
-
-def export_products():
-    products = list()
-    for product_model in Product.all():
-        p = model_to_dict(product_model)
-        p['product_code'] = product_model.code
-        p['description'] = product_model.description(u'nl')
-        p['default_comment'] = product_model.default_comment(u'nl')
-        products.append(p)
-    return products
 
 
 class GenerateQRCodesHandler(webapp2.RequestHandler):
@@ -272,7 +138,6 @@ def get_customer_locations_for_app(app_id):
             if field.name == 'service':
                 customer = customers.get(field.value.split('/')[0])
                 if customer:
-                    customer_location.has_terminal = customer.has_loyalty
                     customer_location.address = customer.address1
                     customer_location.type = customer.organization_type
                     if customer.address2:

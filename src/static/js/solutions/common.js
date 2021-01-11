@@ -28,14 +28,9 @@ $(function () {
         $("#content-container>.page").hide();
         li.addClass("active");
         $("#" + menu).show();
-        if (event.target.id === "shoplink") {
-            $('#shoplink').parent().addClass('active');
-        } else if (!event.target.id) {
-            $('#shoplink').parent().removeClass('active');
-        }
     };
 
-    $("#topmenu li a, #shoplink").click(menuPress);
+    $("#topmenu li a").click(menuPress);
     $("#topmenu").find("li:first-child a").click();
 
     // Disable certain links in docs

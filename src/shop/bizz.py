@@ -15,30 +15,26 @@
 #
 # @@license_version:1.7@@
 
-import base64
-import csv
-import datetime
 import hashlib
 import json
-import logging
-import os
 import urllib
 import urlparse
 from collections import OrderedDict
-from contextlib import closing
 from functools import partial
 from types import NoneType
 
+import base64
 import cloudstorage
+import csv
+import datetime
+import logging
 from babel.dates import format_datetime, get_timezone, format_date
-from dateutil.relativedelta import relativedelta
-from google.appengine.api import images, users as gusers, urlfetch
+from google.appengine.api import urlfetch
 from google.appengine.ext import deferred, db, ndb
 
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
-from oauth2client.contrib.appengine import OAuth2Decorator
 from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.communities.models import Community
 from rogerthat.bizz.elasticsearch import get_elasticsearch_config, create_index, \
@@ -47,7 +43,7 @@ from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.maps.services import SearchTag
 from rogerthat.bizz.profile import update_password_hash, create_user_profile, get_service_profile
 from rogerthat.bizz.rtemail import EMAIL_REGEX
-from rogerthat.consts import WEEK, SCHEDULED_QUEUE, FAST_QUEUE, OFFICIALLY_SUPPORTED_COUNTRIES, DEBUG, EXPORTS_BUCKET
+from rogerthat.consts import FAST_QUEUE, OFFICIALLY_SUPPORTED_COUNTRIES, DEBUG, EXPORTS_BUCKET
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.app import get_app_settings, get_app_by_id, get_app_name_by_id
 from rogerthat.dal.profile import get_service_or_user_profile, get_user_profile
@@ -61,36 +57,22 @@ from rogerthat.rpc import users
 from rogerthat.settings import get_server_settings
 from rogerthat.to.messaging import AnswerTO
 from rogerthat.translations import DEFAULT_LANGUAGE, localize
-from rogerthat.utils import bizz_check, now, channel, generate_random_key, get_epoch_from_datetime, send_mail, \
+from rogerthat.utils import bizz_check, now, channel, generate_random_key, send_mail, \
     get_server_url
 from rogerthat.utils.crypto import encrypt, decrypt, sha256_hex
 from rogerthat.utils.transactions import run_in_transaction, run_in_xg_transaction, run_after_transaction
 from shop import SHOP_JINJA_ENVIRONMENT
-from shop.business.audit import audit_log
 from shop.business.i18n import shop_translate
-from shop.business.legal_entities import get_vat_pct
-from shop.business.order import validate_and_sanitize_order_items, calculate_order_totals, \
-    _generate_order_or_invoice_pdf, cancel_order
-from shop.business.permissions import is_admin, is_admin_or_other_legal_entity, is_payment_admin, \
-    user_has_permissions_to_team, regio_manager_has_permissions_to_team
-from shop.business.service import set_service_enabled
 from shop.constants import OFFICIALLY_SUPPORTED_LANGUAGES
 from shop.exceptions import BusinessException, CustomerNotFoundException, ContactNotFoundException, \
-    ReplaceBusinessException, InvalidEmailFormatException, EmptyValueException, NoOrderException, \
-    InvalidServiceEmailException, InvalidLanguageException, ModulesNotAllowedException, \
-    DuplicateCustomerNameException, \
-    NotOperatingInCountryException, ContactHasOrdersException, ContactHasCreditCardException, \
-    NoSupportManagerException, NoPermissionException
-from shop.models import Customer, Contact, normalize_vat, Invoice, Order, Charge, OrderItem, Product, \
-    StructuredInfoSequence, ChargeNumber, InvoiceNumber, RegioManager, \
-    RegioManagerStatistic, OrderNumber, RegioManagerTeam, CreditCard, LegalEntity, CustomerSignup, \
-    LegalDocumentAcceptance, LegalDocumentType
-from shop.to import CustomerChargeTO, CustomerChargesTO, AppRightsTO, CustomerServiceTO, \
-    OrderItemTO, CompanyTO, CustomerTO
+    InvalidEmailFormatException, EmptyValueException, \
+    InvalidServiceEmailException, InvalidLanguageException, DuplicateCustomerNameException, \
+    NotOperatingInCountryException, NoPermissionException
+from shop.models import Customer, Contact, normalize_vat, CustomerSignup, LegalDocumentAcceptance, LegalDocumentType
+from shop.to import CustomerServiceTO, CompanyTO, CustomerTO
 from solution_server_settings import get_solution_server_settings, CampaignMonitorWebhook
-from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
 from solutions import translate as common_translate, translate
-from solutions.common.bizz import SolutionModule, common_provision, campaignmonitor
+from solutions.common.bizz import SolutionModule, campaignmonitor
 from solutions.common.bizz.grecaptcha import recaptcha_verify
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
 from solutions.common.bizz.service import new_inbox_message, send_signup_update_messages, \
@@ -107,16 +89,6 @@ try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
-
-shopOauthDecorator = OAuth2Decorator(
-    client_id=SHOP_OAUTH_CLIENT_ID,
-    client_secret=SHOP_OAUTH_CLIENT_SECRET,
-    scope=u'https://www.googleapis.com/auth/calendar',
-    callback_path=u'/shop/oauth2callback', )
-
-
-class PaymentFailedException(Exception):
-    pass
 
 
 def create_customer_index():
@@ -160,9 +132,8 @@ def delete_customer_index():
 
 
 @returns([Customer])
-@arguments(search_string=unicode, community_ids=[(int, long)], team_id=(int, long, NoneType), limit=(int, long),
-           organization_type=(int, long))
-def search_customer(search_string, community_ids, team_id, limit=20, organization_type=None):
+@arguments(search_string=unicode, community_ids=[(int, long)], limit=(int, long), organization_type=(int, long))
+def search_customer(search_string, community_ids, limit=20, organization_type=None):
     qry = {
         'size': limit,
         'from': 0,
@@ -189,13 +160,6 @@ def search_customer(search_string, community_ids, team_id, limit=20, organizatio
             }
         })
 
-    if team_id:
-        tag = 'team_id#%s' % unicode(team_id)
-        qry['query']['bool']['filter'].append({
-            'term': {
-                'tags': tag
-            }
-        })
     if organization_type is not None:
         qry['query']['bool']['filter'].append({
             'term': {
@@ -272,8 +236,6 @@ def re_index_customer(customer_key):
         doc['full_matches'].append(contact.email)
         doc['contact'].append('%s %s' % (contact.first_name, contact.last_name))
 
-    doc['tags'].append('team_id#%s' % unicode(customer.team_id))
-
     if customer.service_email:
         si = get_default_service_identity(users.User(customer.service_email))
         doc['service'].append(si.name)
@@ -295,13 +257,13 @@ def re_index_customer(customer_key):
 
 
 @returns(Customer)
-@arguments(current_user=users.User, customer_id=(int, long, NoneType), vat=unicode, name=unicode, address1=unicode,
+@arguments(customer_id=(int, long, NoneType), vat=unicode, name=unicode, address1=unicode,
            address2=unicode, zip_code=unicode, city=unicode, country=unicode, language=unicode,
-           organization_type=(int, long), force=bool, team_id=(int, long, NoneType),
-           website=unicode, facebook_page=unicode, community_id=(int, long, NoneType))
-def create_or_update_customer(current_user, customer_id, vat, name, address1, address2, zip_code, city, country,
-                              language, organization_type, force=False, team_id=None,
-                              website=None, facebook_page=None, community_id=0):
+           organization_type=(int, long), force=bool, website=unicode, facebook_page=unicode,
+           community_id=(int, long, NoneType))
+def create_or_update_customer(customer_id, vat, name, address1, address2, zip_code, city, country,
+                              language, organization_type, force=False, website=None, facebook_page=None,
+                              community_id=0):
     is_in_transaction = db.is_in_transaction()
     name = name.strip()
     if not name:
@@ -319,30 +281,10 @@ def create_or_update_customer(current_user, customer_id, vat, name, address1, ad
     if not customer_id and not community_id:
         raise EmptyValueException('community_id')
 
-    regio_manager = RegioManager.get(RegioManager.create_key(current_user.email())) if current_user else None
-    customer_team_id = regio_manager.team_id if regio_manager else team_id
-    if not customer_team_id:
-        if is_admin(current_user):
-            customer_team_id = RegioManagerTeam.get_mobicage().id
-        else:
-            raise EmptyValueException('team')
-
     if customer_id:
         customer = Customer.get_by_id(customer_id)
-        if not customer.manager:
-            customer.manager = current_user
-        if not customer.team_id:
-            customer.team_id = customer_team_id
-
-        if is_admin(current_user):
-            customer.team_id = team_id
-        elif regio_manager:
-            azzert(regio_manager_has_permissions_to_team(regio_manager, customer.team_id))
-
     else:
-        customer = Customer(creation_time=now(),
-                            team_id=customer_team_id,
-                            manager=current_user)
+        customer = Customer(creation_time=now())
 
     if community_id:
         customer.community_id = community_id
@@ -386,129 +328,6 @@ def create_or_update_customer(current_user, customer_id, vat, name, address1, ad
     return customer
 
 
-@returns(Order)
-@arguments(customer_or_id=(Customer, int, long), contact_or_id=(Contact, int, long), items=[OrderItemTO],
-           charge_interval=(int, long), replace=bool, regio_manager_user=gusers.User, should_auto_sign=bool)
-def create_order(customer_or_id, contact_or_id, items, charge_interval=1, replace=False, regio_manager_user=None,
-                 should_auto_sign=False):
-    if isinstance(customer_or_id, Customer):
-        customer = customer_or_id
-    else:
-        customer = Customer.get_by_id(customer_or_id)
-    audit_log(customer.id, u"Creating new order.")
-    google_user = gusers.get_current_user()
-    team = RegioManagerTeam.get_by_id(customer.team_id)
-    if google_user:
-        azzert(user_has_permissions_to_team(google_user, customer.team_id))
-    customer_id = customer.id
-
-    if isinstance(contact_or_id, Contact):
-        contact = contact_or_id
-    else:
-        contact = Contact.get_by_contact_id(customer, contact_or_id)
-        if not contact:
-            raise ContactNotFoundException(contact_or_id)
-    contact_id = contact.id
-
-    vat_pct = get_vat_pct(customer, team)
-
-    @db.non_transactional
-    def get_products():
-        return {p.code: p for p in Product.list_by_legal_entity(team.legal_entity_id)}
-
-    all_products = get_products()
-    validate_and_sanitize_order_items(customer, all_products, items)
-    _, total, vat, total_vat_incl = calculate_order_totals(vat_pct, items, all_products)
-    is_subscription = False
-    is_subscription_extension_order = False
-    for item in items:
-        product = all_products[item.product]
-        if product.is_subscription:
-            is_subscription = True
-        if product.is_subscription_extension:
-            is_subscription_extension_order = True
-
-    def trans():
-        if isinstance(customer_or_id, Customer):
-            customer = customer_or_id
-        else:
-            # ensure the latest version of the customer object is used
-            customer = Customer.get_by_id(customer_id)
-        # In case of subscription order, check if this customer does not already own a subscription, only 1 is supported
-        if is_subscription and customer.subscription_order_number:
-            if replace:
-                customer = cancel_order(customer, customer.subscription_order_number, False, False)
-                if customer.service_email:
-                    # Limit service modules according new subscription
-                    deferred.defer(vacuum_service_modules_by_subscription, customer_id, _transactional=True)
-            else:
-                raise ReplaceBusinessException(customer.subscription_order_number)
-
-        order = Order(key_name=OrderNumber.next(team.legal_entity_key), parent=customer)
-        order.contact_id = contact_id
-        order.date = now()
-        order.vat_pct = vat_pct
-        order.amount = int(round(total))
-        order.vat = int(round(vat))
-        order.total_amount = int(round(total_vat_incl))
-        order.is_subscription_order = is_subscription
-        order.is_subscription_extension_order = is_subscription_extension_order
-        order.charge_interval = charge_interval
-        regio_manager = None
-        if regio_manager_user:
-            regio_manager = RegioManager.get(RegioManager.create_key(regio_manager_user.email()))
-            if not regio_manager:
-                azzert(is_admin(regio_manager_user))
-
-        if regio_manager:
-            order.team_id = regio_manager.team_id
-            order.manager = regio_manager.user
-        else:
-            order.team_id = customer.team_id
-            order.manager = customer.manager
-
-        def has_product(order_item, product_code):
-            # legal entities have their product code prefixed
-            return order_item.product == product_code or order_item.product.endswith('_' + product_code)
-
-        number = 0
-        for item in items:
-            number += 1
-            order_item = OrderItem(parent=order)
-            order_item.number = number
-            order_item.comment = item.comment
-            order_item.product_code = item.product
-            order_item.count = item.count
-            order_item.price = item.price
-            order_item.put()
-            if any(has_product(item, product_code) for product_code in ('MSSU', 'SUBY', Product.PRODUCT_FREE_PRESENCE)):
-                customer.subscription_type = Customer.SUBSCRIPTION_TYPE_STATIC
-            elif any(has_product(item, product_code) for product_code in ('MSUP', 'SUBX')):
-                customer.subscription_type = Customer.SUBSCRIPTION_TYPE_DYNAMIC
-            elif any(has_product(item, product_code) for product_code in ('LOYA', 'LSUP')):
-                customer.has_loyalty = True
-
-        if is_subscription:
-            customer.subscription_order_number = order.key().name()
-            customer.manager = order.manager
-            customer.team_id = order.team_id
-
-        if customer.creation_time == 0:
-            customer.creation_time = now()
-
-        put_and_invalidate_cache(order, customer)
-
-        return order
-
-    order = run_in_transaction(trans, True)
-
-    # sign orders that either cost nothing or are made for a demo community
-    if should_auto_sign and total_vat_incl == 0.0 or get_community(customer.community_id).demo:
-        deferred.defer(sign_order, customer_id, order.order_number, u'', no_charge=True, _countdown=2,
-                       _transactional=db.is_in_transaction(), _queue=FAST_QUEUE)
-    return order
-
-
 @arguments(service=CustomerServiceTO)
 def validate_service(service):
     # type: (CustomerServiceTO) -> None
@@ -534,40 +353,7 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
         customer = customer_or_id
     else:
         customer = Customer.get_by_id(customer_or_id)
-    google_user = gusers.get_current_user()
-    if google_user:
-        azzert(user_has_permissions_to_team(google_user, customer.team_id),
-               'manager %s has no permission update a service from team %s ' % (google_user.email(), customer.team_id))
 
-    customer_id = customer.id
-    audit_log(customer_id, u"Update or create service")
-    # Check if there is an order for this customer with a subscription license.
-    module_sets = set()
-    products = set()
-    if not skip_module_check:
-        for order in Order.all().ancestor(customer).filter("is_subscription_order =", True).filter("status <",
-                                                                                                   Order.STATUS_CANCELED):
-            for order_item in OrderItem.all().ancestor(order):
-                products.add(order_item.product_code)
-        for product in db.get([Product.create_key(code) for code in products]):
-            if product.is_subscription and product.module_set:
-                module_sets.add(product.module_set)
-        if not module_sets:
-            raise NoOrderException()
-
-        # Check if this customer can order these modules.
-        if 'ALL' not in module_sets:
-            module_set = set()
-            for ms in module_sets:
-                for m in getattr(SolutionModule, ms):
-                    module_set.add(m)
-            service_modules = set(service.modules)
-            if not service_modules.issubset(module_set):
-                raise ModulesNotAllowedException(sorted([m for m in service_modules if m not in module_set]))
-
-    has_loyalty = any([m in service.modules for m in [SolutionModule.LOYALTY]])
-    if customer.has_loyalty != has_loyalty:
-        customer.has_loyalty = has_loyalty
     customer.managed_organization_types = service.managed_organization_types
     customer.put()
     redeploy = bool(customer.service_email)
@@ -715,12 +501,6 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, community_id,
     run_in_xg_transaction(trans)
 
 
-@returns([Invoice])
-@arguments(customer_or_key=(db.Key, Customer))
-def get_invoices(customer_or_key):
-    return Invoice.all().ancestor(customer_or_key).order('-date')
-
-
 @returns(Contact)
 @arguments(customer_or_id=(int, long, Customer), first_name=unicode, last_name=unicode, email_address=unicode,
            phone_number=unicode)
@@ -742,7 +522,6 @@ def create_contact(customer_or_id, first_name, last_name, email_address, phone_n
     else:
         customer = Customer.get_by_id(customer_or_id)
 
-    audit_log(customer.id, u"Creating new contact.")
     contact = Contact(parent=customer)
     contact.first_name = first_name
     contact.last_name = last_name
@@ -792,682 +571,7 @@ def delete_contact(customer_id, contact_id):
     if not customer:
         raise CustomerNotFoundException(customer_id)
     if contact:
-        if Order.list_by_contact_id(contact_id).get():
-            raise ContactHasOrdersException(contact_id)
-        if CreditCard.list_by_contact_id(contact_id).get():
-            raise ContactHasCreditCardException(contact_id)
         contact.delete()
-
-
-@returns(tuple)
-@arguments(customer_id=(int, long), order_number=unicode, signature=unicode, no_charge=bool)
-def sign_order(customer_id, order_number, signature, no_charge=False):
-    audit_log(customer_id, u"Sign order")
-
-    if not no_charge:
-        _, png_in_base64 = signature.split(',', 1)
-        png = base64.decodestring(png_in_base64)
-        img = images.Image(png)
-        img.im_feeling_lucky()
-        jpg = img.execute_transforms(output_encoding=images.JPEG)
-    products = Product.get_products_dict()
-
-    def trans():
-        order_key = Order.create_key(customer_id, order_number)
-        customer, order = db.get((Customer.create_key(customer_id), order_key))  # type: [Customer, Order]
-        bizz_check(order, "Order not found!")
-
-        bizz_check(not order.signature, "Already signed order!")
-        cur_google_user = gusers.get_current_user()
-        if cur_google_user:
-            azzert(user_has_permissions_to_team(cur_google_user, customer.team_id))
-
-        if not no_charge:
-            order.signature = jpg
-        with closing(StringIO()) as pdf:
-            generate_order_or_invoice_pdf(pdf, customer, order, order.contact)
-            order.pdf = pdf.getvalue()
-        order.status = Order.STATUS_SIGNED
-        order.date_signed = now()
-
-        order_items = list(OrderItem.list_by_order(order.key()))
-        if order.is_subscription_order:
-            months = 0
-
-            for item in order_items:
-                product = products[item.product_code]
-                if product.is_subscription and product.price > 0:
-                    months += item.count
-                if not product.is_subscription and product.extra_subscription_months > 0:
-                    months += product.extra_subscription_months
-
-            if months > 0:
-                next_charge_datetime = datetime.datetime.utcfromtimestamp(now()) + relativedelta(months=months)
-                order.next_charge_date = get_epoch_from_datetime(next_charge_datetime)
-            else:
-                order.next_charge_date = Order.default_next_charge_date()
-
-            # reconnect all previous connected friends if the service was disabled in the past
-            if customer.service_disabled_at != 0:
-                deferred.defer(set_service_enabled, customer.id, _queue=FAST_QUEUE)
-        else:
-            extra_months = 0
-            for item in order_items:
-                product = products[item.product_code]
-                if not product.is_subscription and product.extra_subscription_months > 0:
-                    extra_months += product.extra_subscription_months
-
-            sub_order = None
-            if extra_months > 0:
-                sub_order = Order.get_by_order_number(customer_id, customer.subscription_order_number)
-                next_charge_datetime = datetime.datetime.utcfromtimestamp(
-                    sub_order.next_charge_date) + relativedelta(months=extra_months)
-                sub_order.next_charge_date = get_epoch_from_datetime(next_charge_datetime)
-                sub_order.put()
-
-            is_subscription_extension_order = False
-            for item in order_items:
-                product = products[item.product_code]
-                if product.is_subscription_extension:
-                    is_subscription_extension_order = True
-                    break
-            order.is_subscription_extension_order = is_subscription_extension_order
-            if is_subscription_extension_order:
-                sub_order = sub_order or Order.get_by_order_number(customer.id, customer.subscription_order_number)
-                order.next_charge_date = sub_order.next_charge_date
-        order.put()
-
-        if not no_charge and order.total_amount > 0:
-            charge = Charge(parent=order_key)
-            charge.date = now()
-            charge.type = Charge.TYPE_ORDER_DELIVERY
-            charge.amount = order.amount
-            charge.vat_pct = order.vat_pct
-            charge.vat = order.vat
-            charge.total_amount = order.total_amount
-            charge.manager = order.manager
-            charge.team_id = order.team_id
-            charge.charge_number = ChargeNumber.next(customer.team.legal_entity_key)
-            charge.currency_code = customer.team.legal_entity.currency_code
-            charge.put()
-
-            # Update the regio manager statistics
-            deferred.defer(update_regiomanager_statistic, gained_value=order.amount / 100, manager=order.manager,
-                           _transactional=True)
-            return customer, charge
-
-        return None, None
-
-    return run_in_transaction(trans, True)
-
-
-def send_order_email(order_key, google_user):
-    order = db.run_in_transaction(db.get, order_key)
-
-    customer = db.get(order.customer_key)
-    if not customer.user_email:
-        logging.info('There is no service yet for Customer %s (%s). Waiting with sending order %s...',
-                     customer.id, customer.name, order.order_number)
-        deferred.defer(send_order_email, order_key, google_user, _countdown=60, _queue=SCHEDULED_QUEUE)
-        return
-
-    solution_server_settings = get_solution_server_settings()
-    contact = order.contact
-
-    subject = shop_translate(customer.language, 'osa_order_email_subject', order_number=order.order_number)
-
-    # TODO: (?) Email with OSA styling (header, footer)
-    with closing(StringIO()) as sb:
-        sb.write(shop_translate(customer.language, 'dear_name',
-                                name=contact.first_name + ' ' + contact.last_name).encode('utf-8'))
-        sb.write('\n\n')
-        sb.write(shop_translate(customer.language, 'thanks_for_order').encode('utf-8'))
-        sb.write('\n\n')
-        sb.write(shop_translate(customer.language, 'goto_dashboard_to_download_invoice').encode('utf-8'))
-        sb.write('\n- ')
-        sb.write(shop_translate(customer.language, 'login_with_email', email=customer.user_email).encode('utf-8'))
-        sb.write('\n- ')
-        sb.write(shop_translate(customer.language, 'navigate_to_settings').encode('utf-8'))
-        sb.write('\n- ')
-        sb.write(shop_translate(customer.language, 'select_billing').encode('utf-8'))
-        sb.write('\n\n')
-        sb.write(shop_translate(customer.language, 'with_regards').encode('utf-8'))
-        sb.write('\n\n')
-        sb.write(shop_translate(customer.language, 'the_osa_team').encode('utf-8'))
-        body = sb.getvalue()
-
-    to_ = [contact.email]
-    if google_user:
-        to_.append(google_user.email())
-    send_mail(solution_server_settings.shop_billing_email, to_, subject, body)
-
-
-@returns()
-@arguments(current_user=users.User, customer_id=(int, long), charge_reference=unicode)
-def finish_on_site_payment(current_user, customer_id, charge_reference):
-    audit_log(customer_id, u"Finish on site payment")
-
-    def trans():
-        customer = Customer.get_by_id(customer_id)
-        if not customer.team.legal_entity.is_mobicage:
-            raise BusinessException('On site payment can only be used in the mobicage team.')
-        azzert(user_has_permissions_to_team(current_user, customer.team_id))
-        charge = Charge.get_by_reference(charge_reference, customer)
-        azzert(charge, "Charge not found")
-
-        if charge.status == Charge.STATUS_EXECUTED:
-            logging.warn('Charge %s already has status EXECUTED', charge_reference)
-            return
-
-        _mark_charge_as_executed(current_user, customer_id, charge.order_number, charge, Invoice.PAYMENT_ON_SITE)
-
-    xg_on = db.create_transaction_options(xg=True)
-    db.run_in_transaction_options(xg_on, trans)
-
-
-@returns()
-@arguments(current_user=users.User, customer_id=(int, long), order_number=unicode, charge_id=(int, long), paid=bool)
-def manual_payment(current_user, customer_id, order_number, charge_id, paid):
-    manager = RegioManager.get(RegioManager.create_key(current_user.email()))
-
-    # Only allow priviliged people, change this logic and get fired :), * Geert
-    if not (is_payment_admin(current_user) or (manager and manager.team.legal_entity.is_reseller)):
-        raise NoPermissionException()
-
-    def trans():
-        charge = db.get(Charge.create_key(charge_id, order_number, customer_id))
-        if not charge:
-            raise PaymentFailedException("Received incorrect request")
-        _mark_charge_as_executed(current_user, customer_id, order_number, charge,
-                                 Invoice.PAYMENT_MANUAL if paid else Invoice.PAYMENT_MANUAL_AFTER)
-
-    xg_on = db.create_transaction_options(xg=True)
-    db.run_in_transaction_options(xg_on, trans)
-
-
-def _mark_charge_as_executed(current_user, customer_id, order_number, charge, payment_type):
-    azzert(db.is_in_transaction())
-
-    if charge.status == Charge.STATUS_EXECUTED:
-
-        if payment_type == Invoice.PAYMENT_MANUAL_AFTER:
-            raise PaymentFailedException("Do not know what to do.")
-
-        invoices = list(Invoice.all().ancestor(charge))
-        if len(invoices) == 0:
-            raise PaymentFailedException("Failed to find invoice of executed payment.")
-        elif len(invoices) == 1:
-            invoice = invoices[0]
-            invoice.paid = True
-            invoice.paid_timestamp = now()
-            invoice.put()
-            logging.info('Invoice %s marked as paid', invoice.invoice_number)
-        else:
-            raise PaymentFailedException("Multiple invoices found for executed payment.")
-
-    else:
-        # Update the charge
-        charge.status = Charge.STATUS_EXECUTED
-        charge.date_executed = now()
-        charge.put()
-
-        invoice_number = InvoiceNumber.next(Customer.get_by_id(customer_id).team.legal_entity_key)
-        deferred.defer(create_invoice, customer_id, order_number, charge.id, invoice_number, current_user, payment_type,
-                       _transactional=True, _queue=FAST_QUEUE)
-
-
-@returns(unicode)
-@arguments(customer_id=(int, long), order_number=unicode, charge_id=(int, long), invoice_number=unicode,
-           operator=gusers.User, payment_type=int)
-def create_invoice(customer_id, order_number, charge_id, invoice_number, operator, payment_type):
-    def trans():
-        customer_key = Customer.create_key(customer_id)
-        order_key = Order.create_key(customer_id, order_number)
-        charge_key = Charge.create_key(charge_id, order_number, customer_id)
-        invoice_key = Invoice.create_key(customer_id, order_number, charge_id, invoice_number)
-
-        customer, order, charge, invoice = db.get((customer_key, order_key, charge_key, invoice_key))
-        contact = order.contact
-        azzert(order and contact and charge and customer)
-
-        if not charge.structured_info:
-            charge.structured_info = StructuredInfoSequence.next()
-
-        if invoice is None:
-            invoice = Invoice(key_name=invoice_number, parent=charge, amount=charge.amount, vat_pct=charge.vat_pct,
-                              vat=charge.vat, total_amount=charge.total_amount, date=now(), payment_type=payment_type,
-                              operator=operator, paid=False)
-            invoice.legal_entity_id = customer.legal_entity.id
-        else:
-            invoice.payment_type = payment_type
-        azzert(invoice.legal_entity_id, 'invoice has no legal_entity_id')
-        if payment_type == Invoice.PAYMENT_MANUAL_AFTER:
-            buf = generate_transfer_document_image(charge)
-            transfer_doc_png = buf.getvalue()
-            payment_note = "data:image/png;base64,%s" % base64.b64encode(transfer_doc_png)
-            invoice.payment_term = now() + WEEK
-        else:
-            transfer_doc_png = None
-            payment_note = None
-            invoice.paid = True
-            invoice.paid_timestamp = now()
-
-        with closing(StringIO()) as pdf:
-            generate_order_or_invoice_pdf(pdf, customer, order, contact, invoice, payment_type=payment_type,
-                                          payment_note=payment_note, charge=charge)
-            invoice.pdf = pdf.getvalue()
-
-        if charge.invoice_number and charge.invoice_number != invoice.invoice_number:
-            raise BusinessException('Charge %s already has another invoice: %s' % (charge_id, invoice.invoice_number))
-        charge.invoice_number = invoice.invoice_number
-        db.put([invoice, charge])
-
-        if customer.service_email:
-            channel.send_message(users.User(customer.service_email), 'common.billing.invoices.update')
-
-        deferred.defer(send_invoice_email, customer.key(), invoice.key(), contact.key(), payment_type, transfer_doc_png,
-                       _transactional=True)
-
-    run_in_xg_transaction(trans)
-
-
-def send_invoice_email(customer_key, invoice_key, contact_key, payment_type, transfer_doc_png):
-    customer, invoice, contact = db.run_in_transaction(db.get, (customer_key, invoice_key, contact_key))
-    if not customer.user_email:
-        logging.info('There is no service yet for Customer %s (%s). Waiting with sending invoice %s...',
-                     customer.id, customer.name, invoice.invoice_number)
-        deferred.defer(send_invoice_email, customer_key, invoice_key, contact_key, payment_type, transfer_doc_png,
-                       _countdown=60, _queue=SCHEDULED_QUEUE)
-        return
-
-    solution_server_settings = get_solution_server_settings()
-
-    subject = shop_translate(customer.language, 'osa_new_invoice')
-    if payment_type != Invoice.PAYMENT_MANUAL_AFTER:
-        payment_notice = shop_translate(customer.language, 'payment_already_satisfied')
-    else:
-        payment_notice = shop_translate(customer.language, 'maximum_payment_date', date=invoice.payment_term_formatted)
-
-    # TODO: email with OSA styling (header, footer)
-
-    with closing(StringIO()) as sb:
-        sb.write(shop_translate(customer.language, 'dear_name', name="%s %s" %
-                                                                     (contact.first_name, contact.last_name)).encode(
-            'utf-8'))
-        sb.write('\n\n')
-        sb.write(
-            shop_translate(customer.language, 'invoice_is_available', invoice=invoice.invoice_number).encode('utf-8'))
-        sb.write('\n')
-        sb.write(payment_notice.encode('utf-8'))
-        sb.write('\n\n')
-        sb.write(shop_translate(customer.language, 'goto_dashboard_to_download_invoice').encode('utf-8'))
-        sb.write('\n- ')
-        sb.write(shop_translate(customer.language, 'login_with_email', email=customer.user_email).encode('utf-8'))
-        sb.write('\n- ')
-        sb.write(shop_translate(customer.language, 'navigate_to_settings').encode('utf-8'))
-        sb.write('\n- ')
-        sb.write(shop_translate(customer.language, 'select_billing').encode('utf-8'))
-        sb.write('\n')
-        sb.write(
-            shop_translate(customer.language, 'for_questions_contact_us',
-                           contact_email=solution_server_settings.shop_reply_to_email).encode('utf-8'))
-        sb.write('\n\n')
-        sb.write(shop_translate(customer.language, 'thx_for_doing_business').encode('utf-8'))
-        sb.write('\n\n')
-        sb.write(shop_translate(customer.language, 'with_regards').encode('utf-8'))
-        sb.write('\n')
-        sb.write(shop_translate(customer.language, 'the_osa_team').encode('utf-8'))
-        body = sb.getvalue()
-
-    attachments = None
-    if payment_type in (Invoice.PAYMENT_ON_SITE, Invoice.PAYMENT_MANUAL):
-        pass
-    elif payment_type == Invoice.PAYMENT_MANUAL_AFTER:
-        attachments = []
-        attachments.append(("invoice-%s.pdf" % invoice.invoice_number,
-                            base64.b64encode(invoice.pdf)))
-
-        if customer.legal_entity.is_mobicage:
-            attachments.append(("payment.png",
-                                base64.b64encode(transfer_doc_png)))
-    else:
-        raise ValueError("Unknown payment_type received.")
-
-    to = [contact.email]
-    to.extend(solution_server_settings.shop_payment_admin_emails)
-    send_mail(solution_server_settings.shop_billing_email, to, subject, body, attachments=attachments)
-
-
-def vacuum_service_modules_by_subscription(customer_id):
-    def trans():
-        customer = Customer.get_by_id(customer_id)
-        products = set()
-        order = Order.get_by_order_number(customer_id, customer.subscription_order_number)
-        for order_item in OrderItem.all().ancestor(order):
-            products.add(order_item.product_code)
-        module_sets = set()
-        for product in db.get([Product.create_key(code) for code in products]):
-            if product.is_subscription:
-                module_sets.add(product.module_set)
-        if 'ALL' in module_sets:
-            return
-        module_set = set()
-        for ms in module_sets:
-            for m in getattr(SolutionModule, ms):
-                module_set.add(m)
-        service_modules = list(module_set)
-
-        service_user = users.User(customer.service_email)
-        sln_settings = get_solution_settings(service_user)
-        sln_settings.modules = service_modules
-        put_and_invalidate_cache(sln_settings)
-        deferred.defer(common_provision, service_user, _transactional=True, _queue=FAST_QUEUE)
-
-    run_in_xg_transaction(trans)
-
-
-@arguments(charge=Charge)
-def generate_transfer_document_image(charge):
-    from PIL import Image  # @Reimport
-    from PIL import ImageDraw
-    from PIL import ImageFont
-    sepa_templates_path = os.path.join(os.path.dirname(__file__), "sepa_templates")
-    font = ImageFont.truetype(os.path.join(sepa_templates_path, 'Courier New Bold.ttf'), 50)
-    text_img = Image.new('RGBA', (2480, 1176), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(text_img)
-    amount_str = " ".join(list(("% 11.2f" % (charge.total_amount / 100.0)))).replace('.', ' ')
-    draw.text((1795, 290), amount_str, font=font, fill=(0, 0, 0, 255))
-    if charge.structured_info:
-        structured_info = " ".join(list(charge.structured_info))
-        draw.text((415, 1095), structured_info, font=font, fill=(0, 0, 0, 255))
-    background = Image.open(os.path.join(sepa_templates_path, "SEPA_NF.png"))
-    background.paste(text_img, (0, 0), text_img)
-    buf = StringIO()
-    background.save(buf, "PNG")
-    return buf
-
-
-@returns()
-@arguments(customer_id=(int, long), order_number=unicode, charge_id=(int, long), customer_po_number=unicode)
-def set_po_number(customer_id, order_number, charge_id, customer_po_number):
-    def trans():
-        charge = db.get(Charge.create_key(charge_id, order_number, customer_id))
-        azzert(charge)
-        charge.customer_po_number = customer_po_number
-        charge.put()
-
-    return db.run_in_transaction(trans)
-
-
-@returns()
-@arguments(google_user=gusers.User, customer_id=(int, long), order_number=unicode, charge_id=(int, long),
-           amount=(int, long))
-def set_charge_advance_payment(google_user, customer_id, order_number, charge_id, amount):
-    # Only admins and managers in non-mobicage legal entities have access to this function
-    if not is_admin_or_other_legal_entity(google_user):
-        raise NoPermissionException()
-
-    def trans():
-        charge = db.get(Charge.create_key(charge_id, order_number, customer_id))
-        azzert(charge)
-        charge.amount_paid_in_advance = amount
-        charge.put()
-
-    return db.run_in_transaction(trans)
-
-
-@returns(NoneType)
-@arguments(customer_id=(int, long), order_number=unicode, charge_id=(int, long), google_user=gusers.User)
-def send_payment_info(customer_id, order_number, charge_id, google_user):
-    # Only admins and managers in non-mobicage legal entities have access to this function
-    if not is_admin_or_other_legal_entity(google_user):
-        raise NoPermissionException()
-
-    def trans():
-        charge = db.get(Charge.create_key(charge_id, order_number, customer_id))
-        if not charge.structured_info:
-            charge.structured_info = StructuredInfoSequence.next()
-        else:
-            charge.payment_reminders += 1
-        charge.last_notification = now()
-        charge.put()
-        return charge
-
-    xg_on = db.create_transaction_options(xg=True)
-    charge = db.run_in_transaction_options(xg_on, trans)
-
-    buf = generate_transfer_document_image(charge)
-
-    transfer_doc_png = buf.getvalue()
-
-    order, customer = db.get((Order.create_key(customer_id, order_number), Customer.create_key(customer_id)))
-    contact = order.contact
-    to = contact.email
-    subject = shop_translate(customer.language, 'oca_charge', order_number=order_number, charge_id=charge.key().id())
-    if charge.payment_reminders > 0:
-        subject = shop_translate(customer.language, 'oca_reminder', payment_reminder_number=charge.payment_reminders,
-                                 subject=subject)
-
-    solution_server_settings = get_solution_server_settings()
-
-    with closing(StringIO()) as sb:
-        sb.write(shop_translate(customer.language, 'dear_name', name=(
-            contact.first_name + ' ' + contact.last_name)).encode('utf-8'))
-        sb.write('\n\n')
-        sb.write(shop_translate(customer.language, 'pro_forma_in_attachment').encode('utf-8'))
-        sb.write('\n')
-        sb.write(shop_translate(customer.language, 'final_invoice_after_payment').encode('utf-8'))
-        sb.write('\n\n')
-        sb.write(shop_translate(customer.language, 'can_still_opt_for_cc').encode('utf-8'))
-        sb.write('\n')
-        sb.write(shop_translate(customer.language, 'cc_no_wasted_time').encode('utf-8'))
-        sb.write('\n')
-        sb.write(shop_translate(customer.language, 'howto_configure_cc').encode('utf-8'))
-        sb.write('\n- ')
-        sb.write(shop_translate(customer.language, 'login_with_email', email=customer.user_email).encode('utf-8'))
-        sb.write('\n- ')
-        sb.write(shop_translate(customer.language, 'navigate_to_settings').encode('utf-8'))
-        sb.write('\n- ')
-        sb.write(shop_translate(customer.language, 'select_billing').encode('utf-8'))
-        sb.write('\n- ')
-        sb.write(shop_translate(customer.language, 'use_manage_cc_function').encode('utf-8'))
-        sb.write('\n\n')
-        sb.write(shop_translate(customer.language, 'with_regards').encode('utf-8'))
-        sb.write('\n')
-        sb.write(shop_translate(customer.language, 'the_osa_team').encode('utf-8'))
-        body = sb.getvalue()
-
-    attachments = []
-    with closing(StringIO()) as pdf_stream:
-        generate_order_or_invoice_pdf(pdf_stream, customer, order, contact, None, True,
-                                      "data:image/png;base64,%s" % base64.b64encode(transfer_doc_png),
-                                      charge=charge)
-        attachments.append(("pro-forma-invoice.pdf",
-                            base64.b64encode(pdf_stream.getvalue())))
-
-    attachments.append(("payment.png",
-                        base64.b64encode(transfer_doc_png)))
-
-    send_mail(solution_server_settings.shop_billing_email, to, subject, body, attachments=attachments)
-
-
-def generate_order_or_invoice_pdf(output_stream, customer, order, contact, invoice=None, pro_forma=False,
-                                  payment_note=None, payment_type=None, charge=None):
-    # type: (StringIO, Customer, Order, Contact, Invoice, bool, str, int, Charge) -> None
-    order_items = OrderItem.all().ancestor(order).fetch(None)
-    products_to_get = [i.product_code for i in order_items]
-    recurrent = charge and charge.is_recurrent
-    if invoice or pro_forma:
-        path = 'invoice_pdf.html'
-    else:
-        path = 'order_pdf.html'
-
-    pdf_order_items = []  # type: list[OrderItem]
-    if recurrent and charge.subscription_extension_order_item_keys:
-        recurrent_order_items = db.get(charge.subscription_extension_order_item_keys)
-        products_to_get.extend([i.product_code for i in recurrent_order_items])
-        pdf_order_items.extend(recurrent_order_items)
-    products = {product.code: product for product in db.get([Product.create_key(code) for code in products_to_get])}
-    for item in order_items:
-        if recurrent:
-            product = products[item.product_code]
-            if product.is_subscription or product.is_subscription_discount or product.is_subscription_extension:
-                pdf_order_items.append(item)
-        else:  # new order
-            pdf_order_items.append(item)
-
-    legal_entity = db.get(customer.team.legal_entity_key)
-    _generate_order_or_invoice_pdf(charge, customer, invoice, order, pdf_order_items, output_stream, path, payment_note,
-                                   payment_type, products, recurrent, legal_entity, contact)
-
-
-@returns(RegioManagerTeam)
-@arguments(team_id=(int, long, NoneType), name=unicode, legal_entity_id=(int, long, NoneType),
-           app_ids=[unicode])
-def put_regio_manager_team(team_id, name, legal_entity_id, app_ids):
-    if not name:
-        raise EmptyValueException('name')
-    if not legal_entity_id:
-        raise EmptyValueException('legal_entity')
-    entity = LegalEntity.get_by_id(legal_entity_id)
-    if not entity:
-        raise BusinessException('Legal identity with id %d does not exist' % legal_entity_id)
-
-    def trans():
-        if team_id:
-            rmt = RegioManagerTeam.get_by_id(team_id)
-        else:
-            rmt = RegioManagerTeam()
-
-        rmt.deleted = False
-        rmt.name = name
-        rmt.legal_entity_id = legal_entity_id
-        rmt.app_ids = app_ids
-        rmt.put()
-        return rmt
-
-    return db.run_in_transaction(trans)
-
-
-@returns(RegioManager)
-@arguments(current_user=users.User, email=unicode, name=unicode, phone=unicode, app_rights=[AppRightsTO],
-           show_in_stats=bool, is_support=bool, team_id=(int, long), admin=bool)
-def put_regio_manager(current_user, email, name, phone, app_rights, show_in_stats, is_support, team_id, admin):
-    bizz_check(email, 'Email is required')
-    bizz_check(name, 'Name is required')
-    bizz_check(phone, 'Phone number is required')
-    bizz_check(team_id, 'Team is required')
-
-    def trans():
-        regio_manager, rmt = db.get([RegioManager.create_key(email), RegioManagerTeam.create_key(team_id)])
-        if not regio_manager:
-            bizz_check(EMAIL_REGEX.match(email), u'Invalid email')
-            regio_manager = RegioManager(key=RegioManager.create_key(email))
-            deferred.defer(create_stats_for_new_manager, _transactional=True, email=email)
-
-        for r in app_rights:
-            if r.access == RegioManager.ACCESS_NO:
-                regio_manager.revoke(r.app_id)
-            elif r.access in (RegioManager.ACCESS_READ_ONLY, RegioManager.ACCESS_FULL):
-                regio_manager.grant(r.app_id, r.access)
-            else:
-                azzert(False, 'Unexpected access type %s for app_id %s' % (r.access, r.app_id))
-        regio_manager.show_in_stats = show_in_stats
-        regio_manager.name = name
-        regio_manager.phone = phone
-        regio_manager.internal_support = is_support
-        regio_manager.admin = admin
-
-        to_put = {regio_manager}
-        if regio_manager.team_id != team_id:
-            if regio_manager.team_id:
-                raise BusinessException('Changing team is not supported')
-
-            regio_manager.team_id = team_id
-            rmt.regio_managers.append(email)
-            to_put.add(rmt)
-
-        # There can be only one support manager per team. For now at least.
-        if is_support:
-            if rmt.support_manager != email:
-                try:
-                    support_manager = rmt.get_support()
-                    support_manager.internal_support = False
-                    to_put.add(support_manager)
-                except NoSupportManagerException:
-                    pass
-                rmt.support_manager = email
-                to_put.add(rmt)
-        else:
-            if rmt.support_manager == email:
-                rmt.support_manager = None
-                to_put.add(rmt)
-
-        put_and_invalidate_cache(*list(to_put))
-        return regio_manager
-
-    xg_on = db.create_transaction_options(xg=True)
-    regio_manager = db.run_in_transaction_options(xg_on, trans)
-
-    # todo channel update to update this regiomanager
-
-    return regio_manager
-
-
-@returns(RegioManagerStatistic)
-@arguments(email=unicode)
-def create_stats_for_new_manager(email):
-    month_list = list()
-    now = datetime.datetime.now()
-    year = now.year
-    month = now.month
-    for i in xrange(2015, year + 1):
-        if i == 2015:
-            if now.year == 2015:
-                for j in xrange(3, month + 1):  # sales started in march 2015
-                    month_list.append(datetime.date(i, j, 1))
-            else:
-                for j in xrange(3, 13):  # sales started in march 2015
-                    month_list.append(datetime.date(i, j, 1))
-        else:
-            for j in xrange(1, month + 1):
-                month_list.append(datetime.date(i, j, 1))
-
-    st = RegioManagerStatistic(key=RegioManagerStatistic.create_key(email))
-    st.month_revenue = list()
-    for date in month_list:
-        month_amount = 0
-        st.month_revenue.append(int(date.strftime('%Y%m')))
-        st.month_revenue.append(month_amount)
-    st.put()
-    return st
-
-
-@returns([RegioManagerStatistic])
-@arguments()
-def get_regiomanager_statistics():
-    return RegioManagerStatistic.all()
-
-
-@returns()
-@arguments(gained_value=(int, long), manager=gusers.User)
-def update_regiomanager_statistic(gained_value, manager):
-    if not manager:
-        return
-
-    statistic = db.get(RegioManagerStatistic.create_key(manager.email()))
-    if not statistic:
-        statistic = create_stats_for_new_manager(manager.email())
-
-    month_date = int(datetime.datetime.now().strftime('%Y%m'))
-    try:
-        index = statistic.month_revenue.index(month_date)  # throws error when it doesn't exist yet
-        statistic.month_revenue[index + 1] += gained_value
-    except ValueError:
-        # not in the list yet, add it.
-        statistic.month_revenue.append(month_date)
-        statistic.month_revenue.append(gained_value)
-    statistic.put()
 
 
 @returns(db.Query)
@@ -1505,8 +609,6 @@ def export_customers_csv(google_user):
                                                   tzinfo=get_timezone('Europe/Brussels'))
             for p in properties:
                 d[p] = getattr(customer, p)
-            d['Subscription type'] = Customer.SUBSCRIPTION_TYPES[customer.subscription_type]
-            d['Has terminal'] = u'Yes' if customer.has_loyalty else u'No'
             d['Telephone'] = phone_numbers.get(customer.id, u'')
             result.append(d)
             community = communities.get(customer.community_id)  # type: Community
@@ -1520,7 +622,7 @@ def export_customers_csv(google_user):
     result.sort(key=lambda d: d['Language'])
     logging.debug('Creating csv with %s customers', len(result))
     fieldnames = ['name', 'Email', 'Customer since', 'address1', 'address2', 'zip_code', 'country', 'Telephone',
-                  'Subscription type', 'Has terminal', 'App', 'Language']
+                  'App', 'Language']
 
     date = format_datetime(datetime.datetime.now(), locale='en_GB', format='medium')
     gcs_path = '/%s/customers/export-%s.csv' % (EXPORTS_BUCKET, date.replace(' ', '-'))
@@ -1614,13 +716,6 @@ def export_cirklo_customers_csv(google_user, app_id):
             logging.info(gcs_file.read())
 
 
-@returns([RegioManager])
-@arguments(app_id=unicode)
-def get_regiomanagers_by_app_id(app_id):
-    azzert(app_id)
-    return RegioManager.list_by_app_id(app_id)
-
-
 def create_customer_service_to(name, email, language, phone_number, organization_type, community_id, modules):
     # type: (str, str, str, str, int, str, List[str]) -> CustomerServiceTO
     service = CustomerServiceTO()
@@ -1639,18 +734,18 @@ def create_customer_service_to(name, email, language, phone_number, organization
 
 
 def put_customer_with_service(service, name, address1, address2, zip_code, city, country, language,
-                              organization_type, vat, team_id, product_code, customer_id=None,
+                              organization_type, vat, customer_id=None,
                               website=None, facebook_page=None, force=False):
-    # type: (CustomerServiceTO, str, str, str, str, str, str, str, str, str, int, str, int, str, str, bool) -> Tuple[Customer, bool, bool]
+    # type: (CustomerServiceTO, str, str, str, str, str, str, str, str, str, int, str, str, bool) -> Tuple[Customer, bool, bool]
 
     def trans1():
         email_has_changed = False
         is_new = False
-        customer = create_or_update_customer(current_user=None, customer_id=customer_id, vat=vat, name=name,
+        customer = create_or_update_customer(customer_id=customer_id, vat=vat, name=name,
                                              address1=address1, address2=address2, zip_code=zip_code,
                                              country=country, language=language, city=city,
                                              organization_type=organization_type,
-                                             force=force, team_id=team_id, website=website, facebook_page=facebook_page,
+                                             force=force, website=website, facebook_page=facebook_page,
                                              community_id=service.community_id)
 
         customer.put()
@@ -1670,24 +765,7 @@ def put_customer_with_service(service, name, address1, address2, zip_code, city,
         else:
             is_new = True
             # create a new service. Name of the customer, contact, and service will all be the same.
-
-            contact = create_contact(customer, name, u'', service.email, service.phone_number)
-
-            # Create an order with only one order item
-            order_items = list()
-            item = OrderItemTO()
-            item.product = product_code
-            item.count = Product.get_by_code(product_code).default_count
-            item.comment = u''
-            order_items.append(item)
-            order = create_order(customer, contact, order_items, should_auto_sign=False)
-            order.status = Order.STATUS_SIGNED
-            with closing(StringIO()) as pdf:
-                generate_order_or_invoice_pdf(pdf, customer, order, contact)
-                order.pdf = db.Blob(pdf.getvalue())
-
-            order.next_charge_date = Order.default_next_charge_date()
-            order.put()
+            create_contact(customer, name, u'', service.email, service.phone_number)
         return customer, email_has_changed, is_new
 
     customer, email_changed, is_new_association = run_in_xg_transaction(trans1)
@@ -1958,99 +1036,6 @@ def update_customer_consents(email, consents, headers, context):
             remove_service_consent(email, consent, data)
             if list_id:
                 campaignmonitor.unsubscribe(list_id, email)
-
-
-def _get_charges_with_sent_invoice(is_reseller, manager):
-    """Will fetch the charges with STATUS_EXECUTED that have a sent invoice"""
-    charge_keys = []
-
-    invoice_qry = Invoice.all(keys_only=True) \
-        .filter('payment_type', Invoice.PAYMENT_MANUAL_AFTER) \
-        .filter('paid', False)
-    if is_reseller:
-        invoice_qry = invoice_qry.filter('legal_entity_id', manager.team.legal_entity_id)
-    for invoice_key in invoice_qry:
-        if invoice_key.parent() not in charge_keys:
-            charge_keys.append(invoice_key.parent())
-
-    return charge_keys
-
-
-@returns(CustomerChargesTO)
-@arguments(user=users.User, paid=bool, limit=int, cursor=unicode)
-def get_customer_charges(user, paid, limit=50, cursor=None):
-    if paid:
-        status = Charge.STATUS_EXECUTED
-    else:
-        status = Charge.STATUS_PENDING
-
-    charges_qry = Charge.all(keys_only=True).with_cursor(cursor).filter("status =", status).order('-date')
-    manager = RegioManager.get(RegioManager.create_key(user.email()))
-    user_is_admin = is_admin(user)
-    if manager and manager.admin:
-        charges_qry.filter("team_id =", manager.team_id)
-    elif not user_is_admin:
-        charges_qry = charges_qry.filter("manager =", user)
-
-    charge_keys = []
-    is_reseller = manager and not manager.team.legal_entity.is_mobicage
-    payment_admin = is_payment_admin(user)
-    if not paid and not cursor:
-        # fetch all the charges with sent invoices once (if cursor is not provided)
-        if payment_admin or is_reseller:
-            charge_keys.extend(_get_charges_with_sent_invoice(is_reseller, manager))
-
-    charge_keys.extend(charges_qry.fetch(limit))
-    cursor = charges_qry.cursor()
-
-    customer_keys = []
-    for charge_key in charge_keys:
-        customer_key = charge_key.parent().parent()
-        if customer_key not in customer_keys:
-            customer_keys.append(customer_key)
-
-    results = db.get(customer_keys + charge_keys)
-    customers = {customer.id: customer for customer in results[:len(customer_keys)]}
-
-    def sort_charges(charge):
-        return charge.status != Charge.STATUS_EXECUTED, -charge.date
-
-    if not paid:
-        # sort it this way for unpaid charges only
-        charges = sorted(results[len(customer_keys):], key=sort_charges)
-    else:
-        charges = results[len(customer_keys):]
-
-    # to filter the charges as paid/unpaid, we get the invoices first
-    # then set the charge to paid if the invoice is paid
-    invoice_keys = []
-    for charge in charges:
-        if charge.invoice_number:
-            invoice_key = Invoice.create_key(charge.customer_id, charge.order_number, charge.id, charge.invoice_number)
-            invoice_keys.append(invoice_key)
-
-    invoices = {invoice.charge_id: invoice for invoice in db.get(invoice_keys)}
-    mapped_customers = []
-    filtered_charges = []
-    for charge in charges:
-        invoice = invoices.get(charge.id)
-        invoice_is_paid = invoice.paid if invoice else False
-        if invoice_is_paid == paid:
-            charge.paid = invoice_is_paid
-            filtered_charges.append(charge)
-            mapped_customers.append(customers[charge.customer_id])
-
-    customer_charges = []
-    for charge, customer in zip(filtered_charges, mapped_customers):
-        customer_charges.append(CustomerChargeTO.from_model(charge, customer))
-
-    result = CustomerChargesTO()
-    result.is_admin = user_is_admin
-    result.is_reseller = is_reseller
-    result.is_payment_admin = payment_admin
-    result.customer_charges = customer_charges
-    result.cursor = unicode(cursor)
-    return result
 
 
 @returns([tuple])

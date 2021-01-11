@@ -15,41 +15,34 @@
 #
 # @@license_version:1.7@@
 
+import json
+import os
+from collections import namedtuple
+from types import NoneType
+
 import base64
 import csv
 import datetime
-import json
 import logging
-import os
-from cgi import FieldStorage
-from collections import namedtuple
-from datetime import date, timedelta
-from types import NoneType
-
 import webapp2
-from PIL.Image import Image  # @UnresolvedImport
-from babel import Locale
-from babel.dates import format_date
+from cgi import FieldStorage
 from google.appengine.api import users as gusers
 from google.appengine.ext import db, deferred, ndb
 from google.appengine.ext.webapp import template
-from oauth2client.client import HttpAccessTokenRefreshError
 
 from add_1_monkey_patches import DEBUG
-from mcfw.cache import cached
-from mcfw.consts import MISSING, REST_TYPE_TO
+from mcfw.consts import REST_TYPE_TO
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.properties import azzert
 from mcfw.restapi import rest
-from mcfw.rpc import arguments, returns, serialize_complex_value
+from mcfw.rpc import arguments, returns
 from rogerthat.bizz import channel
 from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.gcs import upload_to_gcs
 from rogerthat.bizz.profile import create_user_profile
 from rogerthat.bizz.session import switch_to_service_identity, create_session
-from rogerthat.consts import  OFFICIALLY_SUPPORTED_COUNTRIES, ROGERTHAT_ATTACHMENTS_BUCKET
-from rogerthat.dal import put_and_invalidate_cache
-from rogerthat.dal.app import get_apps, get_apps_by_type, get_apps_by_id, get_app_by_id
+from rogerthat.consts import OFFICIALLY_SUPPORTED_COUNTRIES, ROGERTHAT_ATTACHMENTS_BUCKET
+from rogerthat.dal.app import get_apps, get_apps_by_type, get_app_by_id
 from rogerthat.dal.profile import get_service_profile, get_profile_info
 from rogerthat.exceptions import ServiceExpiredException
 from rogerthat.models import App, ServiceProfile
@@ -57,50 +50,25 @@ from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.settings import get_server_settings
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
-from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import now
 from rogerthat.utils.channel import broadcast_via_iframe_result
 from rogerthat.utils.cookie import set_cookie
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import on_trans_committed, allow_transaction_propagation
-from shop import SHOP_JINJA_ENVIRONMENT
-from shop.bizz import search_customer, create_or_update_customer, \
-    generate_order_or_invoice_pdf, generate_transfer_document_image, \
-    PaymentFailedException, put_regio_manager, get_invoices, get_regiomanager_statistics, create_contact, create_order, export_customers_csv, \
-    put_service, update_contact, put_regio_manager_team, \
-    get_regiomanagers_by_app_id, delete_contact, finish_on_site_payment, send_payment_info, manual_payment, \
-    shopOauthDecorator, get_customer_charges, sign_order, import_customer, \
-    export_cirklo_customers_csv
-from shop.business.audit import audit_log, dict_str_for_audit_log
-from shop.business.charge import cancel_charge
-from shop.business.legal_entities import put_legal_entity
-from shop.business.order import get_customer_subscription_length, cancel_subscription, get_subscription_order, \
-    set_next_charge_date, cancel_order
-from shop.business.permissions import is_admin, is_payment_admin, is_team_admin, user_has_permissions_to_team, \
-    regio_manager_has_permissions_to_team, user_has_permissions_to_question
-from shop.business.product import list_products
+from shop.bizz import search_customer, create_or_update_customer, create_contact, export_customers_csv, put_service, \
+    update_contact, delete_contact, import_customer, export_cirklo_customers_csv
+from shop.business.permissions import is_admin
 from shop.business.qr import generate_unassigned_qr_codes_zip_for_app
-from shop.constants import OFFICIALLY_SUPPORTED_LANGUAGES, COUNTRY_DEFAULT_LANGUAGES, \
-    LOGO_LANGUAGES, STORE_MANAGER
-from shop.dal import get_shop_loyalty_slides, get_shop_loyalty_slides_new_order, get_mobicage_legal_entity, \
-    get_customer
-from shop.exceptions import DuplicateCustomerNameException, ReplaceBusinessException, NoSubscriptionFoundException, \
-    CustomerNotFoundException, NoPermissionException
+from shop.constants import OFFICIALLY_SUPPORTED_LANGUAGES, COUNTRY_DEFAULT_LANGUAGES
+from shop.dal import get_shop_loyalty_slides, get_shop_loyalty_slides_new_order, get_customer
+from shop.exceptions import DuplicateCustomerNameException, CustomerNotFoundException
 from shop.jobs.migrate_user import migrate as migrate_user
-from shop.jobs.remove_regio_manager import remove_regio_manager
-from shop.models import Customer, Contact, Order, Invoice, Charge, RegioManager, \
-    ShopLoyaltySlide, ShopLoyaltySlideNewOrder, RegioManagerTeam, RegioManagerStatistic, \
-    LegalEntity, ShopExternalLinks
-from shop.to import CustomerTO, ContactTO, OrderItemTO, CustomerServiceTO, CustomerReturnStatusTO, \
-    CreateOrderReturnStatusTO, JobReturnStatusTO, JobStatusTO, SignOrderReturnStatusTO, \
-    RegioManagerReturnStatusTO, RegioManagerTeamsTO, AppRightsTO, ModulesReturnStatusTO, \
-    OrderAndInvoiceTO, RegioManagerStatisticTO, SimpleAppTO, ProductTO, RegioManagerTeamTO, \
-    RegioManagerTO, SubscriptionLengthReturnStatusTO, OrderReturnStatusTO, LegalEntityTO, \
-    LegalEntityReturnStatusTO, CustomerChargesTO, ImportCustomersReturnStatusTO
+from shop.models import Customer, Contact, RegioManager, ShopLoyaltySlide, ShopLoyaltySlideNewOrder, ShopExternalLinks
+from shop.to import CustomerTO, ContactTO, CustomerServiceTO, CustomerReturnStatusTO, JobReturnStatusTO, JobStatusTO, \
+    ModulesReturnStatusTO, SimpleAppTO, ImportCustomersReturnStatusTO
 from solutions.common.bizz import SolutionModule, OrganizationType
 from solutions.common.bizz.locations import create_new_location
 from solutions.common.bizz.loyalty import update_all_user_data_admins
-from solutions.common.consts import CURRENCIES, get_currency_name
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionSettings
 from solutions.common.q_and_a.models import QuestionReply, Question
@@ -134,7 +102,6 @@ def _get_default_modules():
             SolutionModule.BULK_INVITE,
             SolutionModule.QR_CODES,
             SolutionModule.WHEN_WHERE,
-            SolutionModule.BILLING,
             SolutionModule.STATIC_CONTENT
             )
 
@@ -165,67 +132,30 @@ def _get_default_organization_types():
 def authorize_manager():
     user = gusers.get_current_user()
 
-    if is_admin(user):
+    if gusers.is_current_user_admin() or is_admin(user):
         return True
 
-    manager = RegioManager.get_by_key_name(user.email())
+    manager = RegioManager.create_key(user.email()).get()
     return bool(manager)
-
-
-@cached(1, request=True, memcache=False)
-@returns(RegioManager)
-@arguments(user=users.User)
-def get_regional_manager(user):
-    user = user or gusers.get_current_user()
-    regio_manager = RegioManager.get(RegioManager.create_key(user.email()))
-    return regio_manager
-
-
-def _get_current_user_apps():
-    user = gusers.get_current_user()
-    if is_admin(user):
-        current_user_apps = _get_apps()
-    else:
-        manager = get_regional_manager(user)
-        regio_manager_team = manager.team
-        current_user_apps_unfiltered = get_apps_by_id(regio_manager_team.app_ids)
-        current_user_apps = sorted([app for app in current_user_apps_unfiltered if app.visible],
-                                   key=lambda app: app.name)
-    return current_user_apps
 
 
 def get_shop_context(**kwargs):
     user = gusers.get_current_user()
-
-    team_admin = False
-    if not is_admin(user):
-        manager = get_regional_manager(user)
-        team_admin = manager and manager.admin
     # These are the variables used in base.html
     js_templates = kwargs.pop('js_templates', {})
     js_templates.update(render_js_templates(['customer_popup'], is_folders=True))
     js_templates.update(render_js_templates(['app_select_modal']))
-    locale = Locale.parse(DEFAULT_LANGUAGE)
-    currencies = {currency: get_currency_name(locale, currency) for currency in CURRENCIES}
-    ctx = dict(modules=_get_solution_modules(),
-               default_modules=_get_default_modules(),
-               static_modules=SolutionModule.STATIC_MODULES,
-               admin=is_admin(user),
-               team_admin=team_admin,
-               payment_admin=is_payment_admin(user),
-               js_templates=json.dumps(js_templates),
-               disabled_reasons_json=json.dumps(Customer.DISABLED_REASONS),
-               languages=sorted(OFFICIALLY_SUPPORTED_LANGUAGES.iteritems(), key=lambda (k, v): v),
-               languages_json=json.dumps(OFFICIALLY_SUPPORTED_LANGUAGES),
-               countries=sorted(OFFICIALLY_SUPPORTED_COUNTRIES.iteritems(), key=lambda (k, v): v),
-               countries_json=json.dumps(OFFICIALLY_SUPPORTED_COUNTRIES),
-               default_languages_json=json.dumps(COUNTRY_DEFAULT_LANGUAGES),
-               logo_languages_json=json.dumps(LOGO_LANGUAGES),
-               currencies=currencies.items(),
-               CURRENCIES=json.dumps(currencies),
-               DEBUG=DEBUG,
-               organization_types=_get_default_organization_types(),
-               )
+    ctx = {
+        'modules': _get_solution_modules(),
+        'default_modules': _get_default_modules(),
+        'admin': is_admin(user),
+        'js_templates': json.dumps(js_templates),
+        'languages': sorted(OFFICIALLY_SUPPORTED_LANGUAGES.iteritems(), key=lambda (k, v): v),
+        'countries': sorted(OFFICIALLY_SUPPORTED_COUNTRIES.iteritems(), key=lambda (k, v): v),
+        'default_languages_json': json.dumps(COUNTRY_DEFAULT_LANGUAGES),
+        'DEBUG': DEBUG,
+        'organization_types': _get_default_organization_types()
+    }
     ctx.update(kwargs)
     return ctx
 
@@ -250,6 +180,7 @@ class BizzManagerHandler(webapp2.RequestHandler):
 
     def dispatch(self):
         if not authorize_manager():
+            logging.warning('User %s has no permission to this page', gusers.get_current_user())
             self.abort(401)
         return super(BizzManagerHandler, self).dispatch()
 
@@ -262,32 +193,7 @@ class BizzManagerHandler(webapp2.RequestHandler):
 
 class BizzAdminHandler(BizzManagerHandler):
 
-    @shopOauthDecorator.oauth_required
     def get(self, *args, **kwargs):
-        from googleapiclient.discovery import build
-        credentials = shopOauthDecorator.credentials  # type: Credentials
-
-        try:
-            http_auth = credentials.authorize(shopOauthDecorator.http())
-            calendar_service = build('calendar', 'v3', http=http_auth)
-            now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-            calendar_service.events().list(
-                calendarId='primary', timeMin=now, maxResults=10, singleEvents=True, orderBy='startTime').execute()
-        except HttpAccessTokenRefreshError as e:
-            if not self.request.get('retry'):
-                return self.redirect('/internal/shop?retry=false')
-            logging.error('OAuth error, cannot refresh access token: %s', e)
-        except Exception as e:
-            logging.error('An error occurred while loading events: %s', e)
-
-        user = gusers.get_current_user()
-        regiomanager = RegioManager.get(RegioManager.create_key(user.email()))
-        # always save the latest credentials in the datastore.
-        if regiomanager:
-            logging.info('Setting google credentials for user %s' % user.nickname())
-            regiomanager.credentials = credentials
-            regiomanager.put()
-
         if self.request.get('iframe', 'false') != 'true':
             # loads admin.html in an iframe
             path = os.path.join(os.path.dirname(__file__), 'html', 'index.html')
@@ -309,217 +215,26 @@ class ShopLogoutHandler(webapp2.RequestHandler):
         self.redirect(gusers.create_logout_url("/internal/shop"))
 
 
-class OrdersHandler(BizzManagerHandler):
-
-    def get(self):
-        path = os.path.join(os.path.dirname(__file__), 'html', 'orders.html')
-        user = gusers.get_current_user()
-        orders = Order.all().filter("status =", 0)
-        manager = RegioManager.get(RegioManager.create_key(user.email()))
-        if manager and manager.admin:
-            orders.filter("team_id =", manager.team_id)
-        elif not is_admin(user):
-            orders.filter("manager =", user)
-        orders.order("-date")
-        filtered_orders = list()
-        to_get = list()
-        for order in orders:
-            if order.order_number != Order.CUSTOMER_STORE_ORDER_NUMBER:
-                filtered_orders.append(order)
-                to_get.append(order.customer_key)
-        customers = db.get(to_get)
-        context = get_shop_context(orders=zip(filtered_orders, customers), managers=RegioManager.all().order("name"))
-        self.response.out.write(template.render(path, context))
-
-
-class OrderPdfHandler(BizzManagerHandler):
-
-    def get(self):
-        customer_id = long(self.request.get("customer_id"))
-        order_number = self.request.get("order_number")
-        download = self.request.get("download", "false") == "true"
-
-        self.response.headers['Content-Type'] = 'application/pdf'
-        self.response.headers[
-            'Content-Disposition'] = str('%s; filename=order_%s.pdf' % ("attachment" if download else "inline", order_number))
-
-        customer, order = db.get((Customer.create_key(customer_id), Order.create_key(customer_id, order_number)))
-
-        # Audit
-        if download:
-            audit_log(customer_id, "Downloaded order")
-        else:
-            audit_log(customer_id, "Viewed order")
-
-        if order.pdf:
-            self.response.out.write(order.pdf)
-        else:
-            generate_order_or_invoice_pdf(self.response.out, customer, order, order.contact)
-
-
-class ChargesHandler(BizzManagerHandler):
-
-    def get(self):
-        path = os.path.join(os.path.dirname(__file__), 'html', 'charges.html')
-        context = get_shop_context(js_templates=render_js_templates(['charge']))
-        self.response.out.write(template.render(path, context))
-
-
-class InvoicePdfHandler(BizzManagerHandler):
-
-    def get(self):
-        customer_id = long(self.request.get("customer_id"))
-        order_number = self.request.get("order_number")
-        charge_id = long(self.request.get("charge_id"))
-        invoice_number = self.request.get("invoice_number")
-        download = self.request.get("download", "false") == "true"
-
-        self.response.headers['Content-Type'] = 'application/pdf'
-        self.response.headers[
-            'Content-Disposition'] = str('%s; filename=invoice_%s.pdf' % ("attachment" if download else "inline", invoice_number))
-
-        # Audit
-        if download:
-            audit_log(customer_id, "Downloaded invoice")
-        else:
-            audit_log(customer_id, "Viewed invoice")
-
-        customer, order, charge = db.get([Customer.create_key(customer_id), Order.create_key(
-            customer_id, order_number), Charge.create_key(charge_id, order_number, customer_id)])
-
-        invoice = db.get(Invoice.create_key(
-            customer_id, order_number, charge_id, invoice_number)) if invoice_number else None
-
-        if invoice:
-            logging.info("Invoice found, serving existing invoice.")
-            if not invoice.pdf:
-                logging.error("Attempt to download invoice without pdf.")
-                self.error(500)
-            self.response.out.write(invoice.pdf)
-        else:
-            logging.info("Invoice not found, generating PRO Forma invoice.")
-            img = generate_transfer_document_image(charge)
-            payment_note = "data:image/png;base64,%s" % base64.b64encode(img.getvalue())
-            contact = order.contact
-            generate_order_or_invoice_pdf(self.response.out, customer, order, contact, invoice, True, payment_note,
-                                          charge=charge)
-
-
-class OpenInvoicesHandler(BizzManagerHandler):
-
-    def get(self):
-        from xhtml2pdf import pisa
-        from PyPDF2.merger import PdfFileMerger
-        current_user = gusers.get_current_user()
-        if not is_admin(current_user):
-            self.abort(403)
-            return
-        invoices = list(Invoice.all().filter(
-            "payment_type =", Invoice.PAYMENT_MANUAL_AFTER).filter("paid =", False).order("-date"))
-        charges = db.get([i.parent_key() for i in invoices])
-        orders = db.get([c.parent_key() for c in charges])
-        customers = db.get([o.parent_key() for o in orders])
-        items = [dict(zip(['invoice', 'charge', 'order', 'customer'], x))
-                 for x in zip(invoices, charges, orders, customers)]
-
-        today = date.today()
-
-        # Monkey patch problem in PIL
-        merger = PdfFileMerger()
-        orig_to_bytes = getattr(Image, "tobytes", None)
-        try:
-            if orig_to_bytes is None:
-                Image.tobytes = Image.tostring
-            html_dir = os.path.join(os.path.dirname(__file__), 'html')
-            for data in items:
-                customer = data['customer']
-                data['today'] = format_date(today, locale=customer.language, format='full')
-                data['until'] = format_date(today + timedelta(days=7), locale=customer.language, format='full')
-                data['language'] = customer.language
-                source_html = SHOP_JINJA_ENVIRONMENT.get_template('invoice_letter_pdf.html').render(data)
-                stream = StringIO()
-                pisa.CreatePDF(src=source_html, dest=stream, path=html_dir)
-                stream.seek(0)
-                merger.append(stream)
-                stream = StringIO(data['invoice'].pdf)
-                merger.append(stream)
-        finally:
-            if orig_to_bytes is None:
-                delattr(Image, "tobytes")
-
-        self.response.headers['Content-Type'] = 'application/pdf'
-        self.response.headers['Content-Disposition'] = str('attachment; filename=invoices.pdf')
-
-        stream = StringIO()
-        merger.write(stream)
-        merger.close()
-        self.response.out.write(stream.getvalue())
-
-
 class QuestionsHandler(BizzManagerHandler):
 
     def get(self):
         cursor = self.request.get('cursor') or None
-        team_id = self.request.get('team')
-        team_id = long(team_id) if team_id else None
-
-        current_user = gusers.get_current_user()
-        manager = RegioManager.get(RegioManager.create_key(current_user.email()))
-        admin = is_admin(current_user)
-        if not admin:
-            if not (manager and manager.admin):
-                return self.abort(403)
-
-        questions_qry = Question.list_latest()
-        if not admin:
-            # show only the team questions to the manager
-            questions_qry = questions_qry.filter(Question.team_id == manager.team.id)
-        else:
-            # filter if team id is provided for admin
-            if team_id:
-                questions_qry = questions_qry.filter(Question.team_id == long(team_id))
-
-        teams = {team.id: team for team in RegioManagerTeam.all()}
-        questions, new_cursor, _ = questions_qry.fetch_page(20, start_cursor=cursor and ndb.Cursor.from_websafe_string(cursor))
-        for question in questions:  # type: Question
-            question.team = teams[question.team_id]
+        questions, new_cursor, _ = Question.list_latest() \
+            .fetch_page(20, start_cursor=cursor and ndb.Cursor.from_websafe_string(cursor))
         path = os.path.join(os.path.dirname(__file__), 'html', 'questions.html')
-        show_team_switcher = admin or manager.team.is_mobicage
         context = get_shop_context(questions=questions,
-                                   show_team_switcher=show_team_switcher,
-                                   teams=teams,
-                                   selected_team=team_id or '',
-                                   cursor=new_cursor and new_cursor.to_websafe_string() or '',
-                                   js_templates=render_js_templates(['teams_select_modal']))
+                                   cursor=new_cursor and new_cursor.to_websafe_string() or '')
         self.response.out.write(template.render(path, context))
 
 
 class QuestionsDetailHandler(BizzManagerHandler):
 
     def get(self, question_id):
-        current_user = gusers.get_current_user()
         question = Question.get_by_id(long(question_id))
-        if not user_has_permissions_to_question(current_user, question):
-            return self.abort(403)
-
         path = os.path.join(os.path.dirname(__file__), 'html', 'questions_detail.html')
         all_replies = QuestionReply.list_by_question(question.key)
         context = get_shop_context(question=question, all_replies=all_replies,
                                    question_statuses=Question.STATUS_STRINGS.iteritems())
-        self.response.out.write(template.render(path, context))
-
-
-class RegioManagersHandler(BizzManagerHandler):
-
-    def get(self):
-        current_user = gusers.get_current_user()
-        if not is_admin(current_user):
-            self.abort(403)
-        path = os.path.join(os.path.dirname(__file__), 'html', 'regio_managers.html')
-        context = get_shop_context(js_templates=render_js_templates(['regio_manager_list',
-                                                                     'regio_manager_team_apps',
-                                                                     'regio_manager_app_rights']),
-                                   legal_entities=LegalEntity.list_all())
         self.response.out.write(template.render(path, context))
 
 
@@ -535,14 +250,13 @@ class LoginAsCustomerHandler(BizzManagerHandler):
             customer = Customer.get_by_id(customer_id)
             service_identity_user = create_service_identity_user(users.User(customer.service_email))
         else:
-            regio_manager, customer = db.get((RegioManager.create_key(google_user.email()),
-                                              Customer.create_key(customer_id)))
+            regio_manager = RegioManager.create_key(google_user.email()).get()
+            customer = db.get(Customer.create_key(customer_id))
             service_identity_user = create_service_identity_user(users.User(customer.service_email))
-            # service_identity = get_service_identity(service_identity_user)
             if not regio_manager:
                 access = RegioManager.ACCESS_NO
             else:
-                access = regio_manager.has_access(customer.team_id)
+                access = regio_manager.has_access()
 
         if access == RegioManager.ACCESS_NO:
             self.response.out.write("Access denied!")
@@ -592,51 +306,6 @@ class CustomersImportHandler(BizzManagerHandler):
         return self.render_template('customers_import')
 
 
-class LegalEntityHandler(BizzManagerHandler):
-
-    def get(self):
-        current_user = gusers.get_current_user()
-        if not is_admin(current_user):
-            self.abort(403)
-        path = os.path.join(os.path.dirname(__file__), 'html', 'legal_entities.html')
-        js_templates = render_js_templates(['legal_entities'], True)
-        self.response.out.write(template.render(path, get_shop_context(js_templates=js_templates)))
-
-
-@rest('/internal/shop/rest/legal_entity/list', 'get')
-@returns([LegalEntityTO])
-@arguments()
-def rest_get_legal_entities():
-    return [LegalEntityTO.from_model(entity) for entity in LegalEntity.list_all()]
-
-
-@rest('/internal/shop/rest/legal_entity/put', 'post')
-@returns(LegalEntityReturnStatusTO)
-@arguments(entity=LegalEntityTO)
-def rest_put_legal_entity(entity):
-    azzert(is_admin(gusers.get_current_user()))
-    try:
-        entity = put_legal_entity(entity.id if entity.id is not MISSING else None, entity.name, entity.address,
-                                  entity.postal_code, entity.city, entity.country_code, entity.phone,
-                                  entity.email, entity.vat_percent, entity.vat_number, entity.currency_code, entity.iban,
-                                  entity.bic, entity.revenue_percentage)
-        return LegalEntityReturnStatusTO.create(True, None, entity)
-    except BusinessException as exception:
-        return LegalEntityReturnStatusTO.create(False, exception)
-
-
-@rest('/internal/shop/rest/legal_entity', 'get')
-@returns(LegalEntityTO)
-@arguments()
-def rest_get_legal_entity():
-    manager = RegioManager.get(RegioManager.create_key(gusers.get_current_user().email()))
-    if not manager:
-        legal_entity = get_mobicage_legal_entity()
-    else:
-        legal_entity = RegioManagerTeam.get_by_id(manager.team_id).legal_entity
-    return LegalEntityTO.from_model(legal_entity)
-
-
 @rest("/internal/shop/rest/customers/export", "get")
 @returns(ReturnStatusTO)
 @arguments()
@@ -645,6 +314,7 @@ def export_customers():
     azzert(is_admin(google_user))
     deferred.defer(export_customers_csv, google_user)
     return RETURNSTATUS_TO_SUCCESS
+
 
 @rest("/internal/shop/rest/customers/cirklo/export", "get")
 @returns(ReturnStatusTO)
@@ -656,218 +326,41 @@ def export_cirklo_customers(app_id):
     return RETURNSTATUS_TO_SUCCESS
 
 
-class SalesStatisticsHandler(BizzManagerHandler):
-
-    def get(self):
-        path = os.path.join(os.path.dirname(__file__), 'html', 'sales_stats.html')
-        self.response.out.write(template.render(path, get_shop_context()))
-
-
-@rest("/internal/shop/rest/salesstats/load", "get")
-@returns([RegioManagerStatisticTO])
-@arguments()
-def sales_stats():
-    google_user = gusers.get_current_user()
-    if is_admin(google_user):
-        stats = list(get_regiomanager_statistics())
-        regio_managers = db.get([RegioManager.create_key(stat.manager) for stat in stats])
-    else:
-        regio_manager = RegioManager.get(RegioManager.create_key(google_user.email()))
-        regio_manager_team = RegioManagerTeam.get_by_id(regio_manager.team_id)
-        stats = []
-        regio_managers = []
-        for rm in db.get([RegioManager.create_key(rm_email) for rm_email in regio_manager_team.regio_managers]):
-            if rm:
-                rm_stats = db.get(RegioManagerStatistic.create_key(rm.email))
-                if rm_stats:
-                    regio_managers.append(rm)
-                    stats.append(rm_stats)
-
-    return [RegioManagerStatisticTO.create(s, r) for s, r in zip(stats, regio_managers) if s and r]
-
-
-@rest("/internal/shop/rest/regio_manager/get_all_by_app", "get")
-@returns([RegioManagerTO])
-@arguments(app_id=unicode)
-def get_all_by_app(app_id):
-    return [RegioManagerTO.from_model(m) for m in get_regiomanagers_by_app_id(app_id)]
-
-
-@rest('/internal/shop/rest/regio_manager/list', 'get')
-@returns(RegioManagerTeamsTO)
-@arguments()
-def regio_manager_list():
-    azzert(is_admin(gusers.get_current_user()))
-    audit_log(None, u'Load RegioManagers')
-    regio_manager_teams = sorted(RegioManagerTeam.all(), key=lambda x: x.name.lower())
-    regio_managers = sorted((r for r in RegioManager.all() if r.user != STORE_MANAGER), key=lambda x: x.name.lower())
-    return RegioManagerTeamsTO.from_model(regio_manager_teams, regio_managers, _get_apps())
-
-
-@rest("/internal/shop/rest/regio_manager_team/list", "get", silent_result=True)
-@returns([RegioManagerTeamTO])
-@arguments()
-def regio_manager_team_list():
-    regio_manager_teams = sorted(RegioManagerTeam.all(), key=lambda x: x.name.lower())
-    return [RegioManagerTeamTO.from_model(regio_manager_team, []) for regio_manager_team in regio_manager_teams]
-
-
-@rest('/internal/shop/rest/regio_manager_team/put', 'post')
-@returns(ReturnStatusTO)
-@arguments(team_id=(int, long, NoneType), name=unicode, legal_entity_id=(int, long, NoneType), app_ids=[unicode])
-def rest_put_regio_manager_team(team_id, name, legal_entity_id, app_ids):
-    azzert(is_admin(gusers.get_current_user()))
-    try:
-        put_regio_manager_team(team_id, name, legal_entity_id, app_ids)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, be:
-        return ReturnStatusTO.create(False, be.message)
-
-
-@rest('/internal/shop/rest/regio_manager/put', 'post')
-@returns(RegioManagerReturnStatusTO)
-@arguments(email=unicode, name=unicode, phone=unicode, app_rights=[AppRightsTO], show_in_stats=bool, is_support=bool, team_id=(int, long), admin=bool)
-def regio_manager_put(email, name, phone, app_rights, show_in_stats, is_support, team_id, admin):
-    azzert(is_admin(gusers.get_current_user()))
-    try:
-        regio_manager = put_regio_manager(gusers.get_current_user(), email, name, phone, app_rights, show_in_stats,
-                                          is_support, team_id, admin)
-        variables = dict(locals())
-        variables['app_rights'] = serialize_complex_value(app_rights, AppRightsTO, True)
-        audit_log(None, u'Update RegioManager', variables=dict_str_for_audit_log(variables))
-        return RegioManagerReturnStatusTO.create(regio_manager=regio_manager)
-    except BusinessException, be:
-        return RegioManagerReturnStatusTO.create(False, be.message)
-
-
-@rest('/internal/shop/rest/regio_manager/delete', 'post')
-@returns(ReturnStatusTO)
-@arguments(email=unicode)
-def regio_manager_delete(email):
-    google_user = gusers.get_current_user()
-    azzert(is_admin(google_user))
-    try:
-        remove_regio_manager(email)
-        audit_log(None, u'Delete RegioManager')
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException as be:
-        return ReturnStatusTO.create(False, be.message)
-
-
-@rest("/internal/shop/rest/order/set_manager", "post")
-@returns()
-@arguments(customer_id=(int, long), order_number=unicode, manager=unicode)
-def set_manager(customer_id, order_number, manager):
-    audit_log(customer_id, u"Set manager.")
-    azzert(is_admin(gusers.get_current_user()))
-    regio_manager = RegioManager.get_by_key_name(manager)
-    azzert(regio_manager)
-
-    def trans():
-        order, customer = db.get([Order.create_key(customer_id, order_number), Customer.create_key(customer_id)])
-        customer.manager = gusers.User(manager)
-        customer.team_id = regio_manager.team_id
-        order.manager = gusers.User(manager)
-        order.team_id = regio_manager.team_id
-        put_and_invalidate_cache(customer, order)
-
-    db.run_in_transaction(trans)
-
-
-@rest("/internal/shop/rest/order/get_subscription_order", "get")
-@returns(OrderReturnStatusTO)
-@arguments(customer_id=(int, long))
-def rest_get_subscription_order(customer_id):
-    audit_log(customer_id, u'Get subscription order')
-    try:
-        return OrderReturnStatusTO.create(True, None, get_subscription_order(customer_id))
-    except BusinessException, exception:
-        return OrderReturnStatusTO.create(False, exception.message)
-
-
-@rest("/internal/shop/rest/customer/set_next_charge_date", "post")
-@returns(ReturnStatusTO)
-@arguments(customer_id=(int, long), next_charge_date=(int, long))
-def rest_set_next_charge_date(customer_id, next_charge_date):
-    audit_log(customer_id, u'Set next charge date')
-    manager = RegioManager.get(RegioManager.create_key(gusers.get_current_user().email()))
-    is_reseller = manager and not manager.team.legal_entity.is_mobicage
-    try:
-        if is_reseller:
-            customer = Customer.get_by_id(customer_id)
-            if not regio_manager_has_permissions_to_team(manager, customer.team_id):
-                raise NoPermissionException('Set next charge date of customer \'{}\''.format(customer.name))
-        elif not is_admin(gusers.get_current_user()):
-            raise NoPermissionException('Set next charge date')
-        set_next_charge_date(customer_id, next_charge_date)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException as exception:
-        return ReturnStatusTO.create(False, exception.message)
-
-
 @rest("/internal/shop/rest/customer/put", "post")
 @returns(CustomerReturnStatusTO)
 @arguments(customer_id=(int, long, NoneType), name=unicode, address1=unicode, address2=unicode, zip_code=unicode,
            city=unicode, country=unicode, language=unicode, vat=unicode, organization_type=(int, long),
-           force=bool, team_id=(int, long, NoneType), community_id=(int, long))
+           force=bool, community_id=(int, long))
 def put_customer(customer_id, name, address1, address2, zip_code, city, country, language, vat, organization_type,
-                 force=False, team_id=None, community_id=0):
+                 force=False, community_id=0):
     try:
-        customer = create_or_update_customer(gusers.get_current_user(), customer_id, vat, name, address1, address2,
+        customer = create_or_update_customer(customer_id, vat, name, address1, address2,
                                              zip_code, city, country, language, organization_type, force,
-                                             team_id, community_id=community_id)
-        audit_log(customer.id, u"Save Customer.")
+                                             community_id=community_id)
     except DuplicateCustomerNameException as ex:
         return CustomerReturnStatusTO.create(False, warning=ex.message)
     except BusinessException as be:
         return CustomerReturnStatusTO.create(False, be.message)
 
-    return CustomerReturnStatusTO.create(customer=CustomerTO.fromCustomerModel(customer, True, is_admin(gusers.get_current_user())))
+    return CustomerReturnStatusTO.create(customer=CustomerTO.fromCustomerModel(customer))
 
 
 @rest("/internal/shop/rest/customer/find", "get")
 @returns([CustomerTO])
-@arguments(search_string=unicode, find_all=bool)
-def find_customer(search_string, find_all=False):
-    audit_log(-1, u"Customer lookup.")
-    user = gusers.get_current_user()
-    if is_admin(user):
-        team_id = None
-        has_admin_permissions = True
-    else:
-        regio_manager = RegioManager.get(RegioManager.create_key(user.email()))
-        team_id = regio_manager.team_id
-        has_admin_permissions = False
-
-    customers = []
-    for c in search_customer(search_string, [], None if find_all else team_id):
-        can_edit = team_id is None or team_id == c.team_id
-        admin = has_admin_permissions or (team_id == c.team_id and regio_manager.admin)
-        customers.append(CustomerTO.fromCustomerModel(c, can_edit, admin))
-    return customers
+@arguments(search_string=unicode)
+def find_customer(search_string):
+    return [CustomerTO.fromCustomerModel(c) for c in search_customer(search_string, [])]
 
 
 @rest("/internal/shop/rest/customer", "get")
 @returns(CustomerReturnStatusTO)
 @arguments(customer_id=(int, long))
 def get_customer_details(customer_id):
-    audit_log(customer_id, u"Loading customer details.")
     try:
         customer = db.run_in_transaction(Customer.get_by_id, customer_id)
-    except CustomerNotFoundException, exception:
+    except CustomerNotFoundException as exception:
         return CustomerReturnStatusTO.create(False, errormsg=exception.message)
-
-    user = gusers.get_current_user()
-    can_edit = True
-    if is_admin(user):
-        has_admin_permissions = True
-    else:
-        regio_manager = RegioManager.get(RegioManager.create_key(user.email()))
-        if regio_manager.team_id and regio_manager.team_id != customer.team_id:
-            can_edit = False
-        has_admin_permissions = False
-
-    return CustomerReturnStatusTO.create(True, customer=CustomerTO.fromCustomerModel(customer, can_edit, has_admin_permissions))
+    return CustomerReturnStatusTO.create(True, customer=CustomerTO.fromCustomerModel(customer))
 
 
 @rest('/internal/shop/rest/customers/<customer_id:[^/]+>/contacts', 'post', type=REST_TYPE_TO)
@@ -916,187 +409,7 @@ def list_contacts(customer_id):
 @returns(ModulesReturnStatusTO)
 @arguments(customer_id=(int, long))
 def get_default_modules(customer_id):
-    customer = Customer.get_by_id(customer_id)
-    if customer.subscription_order_number:
-        if customer.subscription_type == Customer.SUBSCRIPTION_TYPE_STATIC:
-            # order is static; return default static modules
-            # success variable stands for static or not
-            return ModulesReturnStatusTO.create(success=True, modules=list(SolutionModule.STATIC_MODULES), errormsg=None)
-        else:
-            return ModulesReturnStatusTO.create(success=False, modules=_get_default_modules(), errormsg=None)
-    else:
-        return ModulesReturnStatusTO.create(
-            success=False,
-            errormsg=u"This customer does not have an order yet. First create an order for this customer."
-        )
-
-
-@rest("/internal/shop/rest/order/contact", "get")
-@returns(ContactTO)
-@arguments(customer_id=(int, long), order_number=unicode)
-def get_order_contact(customer_id, order_number):
-    audit_log(customer_id, u"Get order contact")
-    customer, order = db.get((Customer.create_key(customer_id), Order.create_key(customer_id, order_number)))
-    contact = Contact.get_by_contact_id(customer, order.contact_id)
-    if contact:
-        return ContactTO.fromContactModel(contact)
-    return None
-
-
-@rest("/internal/shop/rest/order/contact", "post")
-@returns(unicode)
-@arguments(customer_id=(int, long), order_number=unicode, contact_id=(int, long))
-def rest_put_order_contact(customer_id, order_number, contact_id):
-    audit_log(customer_id, u"Put order contact")
-    order, contact = db.get((Order.create_key(customer_id, order_number),
-                             Contact.create_key(contact_id, customer_id)))
-    if not contact:
-        return u'New contact could not be found'
-    if order.status == Order.STATUS_SIGNED:
-        return u'You may not change the contact of an order that has already been signed'
-    order.contact_id = contact_id
-    order.put()
-
-
-@rest("/internal/shop/rest/order/new", "post")
-@returns(CreateOrderReturnStatusTO)
-@arguments(customer_id=(int, long), contact_id=(int, long), items=[OrderItemTO], charge_interval=(int, long),
-           replace=bool)
-def create_new_order(customer_id, contact_id, items, charge_interval=None, replace=False):
-    try:
-        create_order(customer_id, contact_id, items, charge_interval, replace,
-                     regio_manager_user=gusers.get_current_user(), should_auto_sign=True)
-        return CreateOrderReturnStatusTO.create(True)
-    except ReplaceBusinessException as e:
-        return CreateOrderReturnStatusTO.create(False, e.message, True)
-    except BusinessException as e:
-        return CreateOrderReturnStatusTO.create(False, e.message)
-
-
-@rest("/internal/shop/rest/order/cancel", "post")
-@returns(unicode)
-@arguments(customer_id=(int, long), order_number=unicode, confirm=bool)
-def rest_cancel_order(customer_id, order_number, confirm=False):
-    audit_log(customer_id, u"Cancel order.")
-    try:
-        customer = Customer.get_by_id(customer_id)
-        azzert(user_has_permissions_to_team(gusers.get_current_user(), customer.team_id))
-        cancel_order(customer, order_number, confirm, True)
-    except BusinessException, e:
-        return e.message
-
-
-@rest('/internal/shop/rest/order/subscription_order_length', 'get')
-@returns(SubscriptionLengthReturnStatusTO)
-@arguments(customer_id=(int, long))
-def rest_get_subscription_order_length(customer_id):
-    try:
-        return SubscriptionLengthReturnStatusTO.create(True, None, get_customer_subscription_length(customer_id))
-    except NoSubscriptionFoundException:
-        return SubscriptionLengthReturnStatusTO.create(False, None, 0)
-    except BusinessException, exception:
-        return SubscriptionLengthReturnStatusTO.create(False, exception.message)
-
-
-@rest("/internal/shop/rest/order/cancel_subscription", "post")
-@returns(ReturnStatusTO)
-@arguments(customer_id=(int, long), cancel_reason=unicode)
-def rest_cancel_subscription(customer_id, cancel_reason):
-    audit_log(customer_id, u'Cancel subscription')
-    manager = RegioManager.get(RegioManager.create_key(gusers.get_current_user().email()))
-    is_reseller = manager and not manager.team.legal_entity.is_mobicage
-    try:
-        if is_reseller:
-            customer = Customer.get_by_id(customer_id)
-            if not regio_manager_has_permissions_to_team(manager, customer.team_id):
-                raise NoPermissionException('cancel the subscription of customer \'{}\''.format(customer.name))
-        elif not is_admin(gusers.get_current_user()):
-            raise NoPermissionException('cancel a subscription')
-
-        cancel_subscription(customer_id, cancel_reason)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException as exception:
-        return ReturnStatusTO.create(False, exception.message)
-
-
-@rest("/internal/shop/rest/charge/send_payment_info", "post")
-@returns(unicode)
-@arguments(customer_id=(int, long), order_number=unicode, charge_id=(int, long))
-def rest_send_payment_info(customer_id, order_number, charge_id):
-    audit_log(customer_id, u"Send payment info.")
-    send_payment_info(customer_id, order_number, charge_id, gusers.get_current_user())
-
-
-@rest("/internal/shop/rest/charge/set_po_number", "post")
-@returns(ReturnStatusTO)
-@arguments(customer_id=(int, long), order_number=unicode, charge_id=(int, long), customer_po_number=unicode)
-def set_po_number(customer_id, order_number, charge_id, customer_po_number):
-    audit_log(customer_id, u"Set PO number.")
-    from shop.bizz import set_po_number as bizz_set_po_number
-    return wrap_with_result_status(bizz_set_po_number, customer_id, order_number, charge_id, customer_po_number)
-
-
-@rest("/internal/shop/rest/charge/set_advance_payment", "post")
-@returns(ReturnStatusTO)
-@arguments(customer_id=(int, long), order_number=unicode, charge_id=(int, long), amount=(int, long))
-def set_charge_advance_payment(customer_id, order_number, charge_id, amount):
-    audit_log(customer_id, u"Set invoice saldo.")
-    from shop.bizz import set_charge_advance_payment as bizz_set_charge_advance_payment
-    return wrap_with_result_status(bizz_set_charge_advance_payment, gusers.get_current_user(), customer_id,
-                                   order_number, charge_id, amount)
-
-
-@rest("/internal/shop/rest/charge/execute_manual", "post")
-@returns(unicode)
-@arguments(customer_id=(int, long), order_number=unicode, charge_id=(int, long), paid=bool)
-def rest_manual_payment(customer_id, order_number, charge_id, paid):
-    audit_log(customer_id, u"Execute charge manual.")
-    current_user = gusers.get_current_user()
-    try:
-        manual_payment(current_user, customer_id, order_number, charge_id, paid)
-        return ""
-    except PaymentFailedException, pfe:
-        return pfe.message
-
-
-@rest("/internal/shop/rest/charge/cancel", "post")
-@returns(ReturnStatusTO)
-@arguments(customer_id=(int, long), order_number=unicode, charge_id=(int, long))
-def rest_cancel_charge(customer_id, order_number, charge_id):
-    audit_log(customer_id, u'Cancel charge')
-    try:
-        cancel_charge(customer_id, order_number, charge_id)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, exception:
-        return ReturnStatusTO.create(False, exception.message)
-
-
-@rest("/internal/shop/rest/order/sign", "post")
-@returns(SignOrderReturnStatusTO)
-@arguments(customer_id=(int, long), order_number=unicode, signature=unicode)
-def rest_sign_order(customer_id, order_number, signature):
-    has_admin_permissions = is_admin(gusers.get_current_user())
-    try:
-        r = sign_order(customer_id, order_number, signature)
-        if r is None:
-            customer, charge = None, None
-        else:
-            customer, charge = r
-
-        return SignOrderReturnStatusTO.create(customer=customer, charge=charge, has_admin_permissions=has_admin_permissions)
-    except BusinessException, be:
-        return SignOrderReturnStatusTO.create(False, be.message, has_admin_permissions=has_admin_permissions)
-
-
-@rest('/internal/shop/rest/charge/finish_on_site_payment', 'post')
-@returns(ReturnStatusTO)
-@arguments(customer_id=(int, long), charge_reference=unicode)
-def rest_finish_on_site_payment(customer_id, charge_reference):
-    try:
-        finish_on_site_payment(gusers.get_current_user(), customer_id, charge_reference)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, be:
-        return ReturnStatusTO.create(False, be.message)
+    return ModulesReturnStatusTO.create(success=False, modules=_get_default_modules(), errormsg=None)
 
 
 def check_only_one_city_service(customer_id, service):
@@ -1105,7 +418,7 @@ def check_only_one_city_service(customer_id, service):
         community = get_community(service.community_id)
         customer = Customer.get_by_id(customer_id)  # type: Customer
         customers = Customer.list_enabled_by_organization_type_in_community(service.community_id, OrganizationType.CITY) \
-            .fetch(None)  # type: List[Customer]]
+            .fetch(None)  # type: List[Customer]
         settings = {s.service_user.email(): s for s in
                     db.get([SolutionSettings.create_key(c.service_user) for c in customers if c.service_email])}
         for other_customer in customers:  # type: Customer
@@ -1140,13 +453,11 @@ def save_service(customer_id, service):
 @returns(CustomerServiceTO)
 @arguments(customer_id=long)
 def get_service(customer_id):
-    audit_log(customer_id, u"Get service")
     return _get_service(customer_id, gusers.get_current_user())
 
 
 def _get_service(customer_id, current_user):
     customer = Customer.get_by_id(customer_id)  # type: Customer
-    azzert(user_has_permissions_to_team(current_user, customer.team_id))
     service_user = users.User(customer.service_email)
 
     settings = get_solution_settings(service_user)
@@ -1164,10 +475,7 @@ def _get_service(customer_id, current_user):
 @returns(JobReturnStatusTO)
 @arguments(customer_id=(long, int), email=unicode)
 def change_service_email(customer_id, email):
-    audit_log(customer_id, u"Change service e-mail")
-
     customer = Customer.get_by_id(customer_id)
-    azzert(user_has_permissions_to_team(gusers.get_current_user(), customer.team_id))
     logging.info('Changing customer.user_email from "%s" to "%s"', customer.user_email, email)
 
     to_user = users.User(email)
@@ -1190,11 +498,7 @@ def change_service_email(customer_id, email):
 @returns(ReturnStatusTO)
 @arguments(customer_id=(long, int), name=unicode)
 def add_location(customer_id, name):
-    current_user = gusers.get_current_user()
-    azzert(is_admin(current_user) or is_team_admin(current_user))
-    audit_log(customer_id, u"Add location")
     customer = Customer.get_by_id(customer_id)
-    azzert(user_has_permissions_to_team(current_user, customer.team_id))
     create_new_location(customer.service_user, name, broadcast_to_users=[gusers.get_current_user()])
     return ReturnStatusTO.create()
 
@@ -1253,7 +557,7 @@ class LoyaltySlidesHandler(BizzManagerHandler):
         path = os.path.join(os.path.dirname(__file__), 'html', 'loyalty_slides.html')
         context = get_shop_context(slides=[LoyaltySlideTO.fromSolutionLoyaltySlideObject(c, include_apps=True)
                                            for c in get_shop_loyalty_slides()],
-                                   current_user_apps=_get_current_user_apps())
+                                   current_user_apps=_get_apps())
         self.response.out.write(template.render(path, context))
 
 
@@ -1266,7 +570,7 @@ class LoyaltySlidesNewOrderHandler(BizzManagerHandler):
         path = os.path.join(os.path.dirname(__file__), 'html', 'loyalty_slides_new_order.html')
         context = get_shop_context(slides=[LoyaltySlideNewOrderTO.fromSlideObject(c)
                                            for c in get_shop_loyalty_slides_new_order()],
-                                   current_user_apps=_get_current_user_apps())
+                                   current_user_apps=_get_apps())
         self.response.out.write(template.render(path, context))
 
 
@@ -1427,17 +731,6 @@ def log_error(description, errorMessage, timestamp, user_agent):
     return logErrorBizz(request, gusers.get_current_user(), session=users.get_current_session())
 
 
-@rest("/internal/shop/orders/load_all", "get")
-@returns(OrderAndInvoiceTO)
-@arguments(customer_id=(int, long))
-def load_unsigned_orders_by_customer(customer_id):
-    # Loads the signed/unsigned orders and the invoices from a single customer.
-    customer_key = Customer.create_key(customer_id)
-    orders = Order.list(customer_key)
-    invoices = get_invoices(customer_key)
-    return OrderAndInvoiceTO.create(orders, invoices)
-
-
 @rest("/internal/shop/rest/apps/all", "get")
 @returns([SimpleAppTO])
 @arguments()
@@ -1445,27 +738,11 @@ def load_all_apps():
     return [SimpleAppTO.from_model(a) for a in get_apps([App.APP_TYPE_CITY_APP], only_visible=False)]
 
 
-@rest('/internal/shop/rest/products', 'get', silent_result=True, type=REST_TYPE_TO)
-@returns([ProductTO])
-@arguments(language=unicode)
-def get_product_translations(language):
-    guser = gusers.get_current_user()
-    return [ProductTO.create(p, language) for p in list_products(google_user=guser)]
-
-
 @rest("/internal/shop/rest/customers/generate_qr_codes", "get")
 @returns(ReturnStatusTO)
 @arguments(app_id=unicode, amount=(int, long), mode=unicode)
 def rest_generate_qr_codes(app_id, amount, mode):
     return wrap_with_result_status(generate_unassigned_qr_codes_zip_for_app, app_id, amount, mode)
-
-
-@rest("/internal/shop/customer/charges", "get")
-@returns(CustomerChargesTO)
-@arguments(paid=bool, cursor=unicode)
-def rest_get_customer_charges(paid=False, cursor=None):
-    user = gusers.get_current_user()
-    return get_customer_charges(user, paid, cursor=cursor)
 
 
 @rest('/internal/shop/customers/import/sheet', 'post')

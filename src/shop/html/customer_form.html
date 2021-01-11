@@ -11,18 +11,12 @@
             <label for="search_customer_name" class="span2" style="line-height: 30px;">Search Customer</label>
             <input type="text"  placeholder="Customer name" id="search_customer_name" class="customer_select"
                    autocomplete="off" style="width: 65%;">
-
-            <label class="checkbox" style="margin-left: 10px;">
-		      <input id="show_all_customers" name="show_all_customers" value="1" type="checkbox"> Search all teams
-		    </label>
         </form>
         <div class="tabs-left">
             <ul class="nav nav-tabs " id="tab-nav-container">
                 <li><a href="#" data-target="#tab-details">Details</a></li>
                 <li class="can_edit_only"><a href="#" data-target="#tab-contacts">Contacts</a></li>
-                <li class="can_edit_only"><a href="#" data-target="#tab-new-order">New order</a></li>
                 <li class="can_edit_only"><a href="#" data-target="#tab-service">Service</a></li>
-                <li class="can_edit_only"><a href="#" data-target="#tab-orders">Orders</a></li>
             </ul>
             <div class="tab-content">
                 <div class="tab-pane active" id="tab-details">
@@ -118,14 +112,6 @@
                     </div>
                     <div class="hide" id="other-customer-info">
                         <div>
-	                        <strong>Team:</strong> <span id="team-name"></span>
-			                <select id="team-select" class="team-select">
-			                </select>
-                        </div>
-                        <div>
-	                        <strong>Managed by:</strong> <span id="managed-by"></span>
-                        </div>
-                        <div>
                             <strong>User email: </strong><span id="user-email"></span>
                         </div>
                         <div>
@@ -138,19 +124,7 @@
                             <b>Facebook: </b><span id="customer-facebook"></span>
                         </div>
                         <div>
-                            <b>Subscription type: </b><span id="subscription-type"></span>
-                        </div>
-                        <div id="has-loyalty-status">
-                            <b>Has terminal: </b><i class="fa fa-tablet"></i> <span id="loyalty-status"></span>
-                        </div>
-                        <div>
                             <b>Created on: </b><span id="customer-creation-time"></span>
-                        </div>
-                        <div id="service-disable-pending" style="color: orange;font-weight: bold;">
-                            Service will be disabled when subscription ends on <span
-                                id="service-cancelling-on-date"></span> for reason "<span
-                                id="service-disable-pending-reason"></span>" (since <span
-                                id="service-disable-pending-time"></span>)
                         </div>
                         <div id="service-status" style="color: #ff0000;font-weight: bold;">
                             Service disabled on <span id="service-disabled-at"></span> for reason "<span
@@ -159,16 +133,6 @@
                     </div>
               </div>
                 <div class="tab-pane" id="tab-contacts">
-                    <svg class="circular">
-                        <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10" />
-                    </svg>
-                </div>
-                <div class="tab-pane" id="tab-new-order">
-                    <svg class="circular">
-                        <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10" />
-                    </svg>
-                </div>
-                <div class="tab-pane" id="tab-orders">
                     <svg class="circular">
                         <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10" />
                     </svg>
@@ -184,8 +148,6 @@
         <a class="pull-right btn btn-primary search-customer-only details-only can_edit_only" id="button_save_customer">Save</a>
         <a class="pull-right btn btn-primary new-customer-only" id="button_add_customer">Add customer</a>
         <a class="pull-right btn btn-info contacts-only" id="button_new_contact" style="display:none">Add contact</a>
-        <a class="pull-right btn btn-danger orders-only" id="button_cancel_subscription">Cancel subscription</a>
-        <a class="pull-right btn btn-warning orders-only" id="button_set_next_charge_date">Adjust next charge date</a>
         <div class="btn-group dropup search-customer-only migrating-only" style="text-align: left;">
             <a class="btn btn-warning dropdown-toggle" data-toggle="dropdown" href="#">
                 Migrating... <span class="caret"></span>
@@ -200,7 +162,5 @@
            class="btn btn-success pull-left existing-service-only service-only history-only"><i class="fa fa-dashboard"></i> Dashboard</a>
         <a id="button_change_service_email" href="#" class="btn btn-info pull-left existing-service-only service-only"><i class="fa fa-envelope"></i> Change email</a>
         <a id="button_add_location" href="#" class="btn btn-info pull-left existing-service-only service-only"><i class="fa fa-map-marker"></i> Add location</a>
-        <a class="pull-left btn btn-primary new-order-only" id="button_add_order_item">Add product</a>
-        <a class="pull-right btn btn-success new-order-only" id="button_create_new_order">Create order</a>
     </div>
 </div>

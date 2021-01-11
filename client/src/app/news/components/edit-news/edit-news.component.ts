@@ -21,6 +21,7 @@ import { Loadable } from '../../../shared/loadable/loadable';
 import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
 import { GENDER_OPTIONS, NEWS_MEDIA_TYPE_OPTIONS } from '../../consts';
 import { CreateNews, NewsActionButtonType, NewsCommunity, NewsOptions, UINewsActionButton } from '../../news';
+import { CreateBudgetChargeComponent } from '../create-budget-charge/create-budget-charge.component';
 import {
   NewsAppMapPickerDialogComponent,
   NewsAppMapPickerDialogData,
@@ -238,8 +239,8 @@ export class EditNewsComponent implements OnChanges {
     this.newsItem = { ...this.newsItem, community_ids: communities };
   }
 
-  openShop() {
-    window.open('/flex/#/shop', '_blank');
+  openChargeDialog() {
+    this._matDialog.open<CreateBudgetChargeComponent, null, { confirm: boolean; vat: string }>(CreateBudgetChargeComponent);
   }
 
   toggleTargetAudience() {

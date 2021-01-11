@@ -16,10 +16,8 @@
 # @@license_version:1.7@@
 
 import oca_unittest
-from rogerthat.models import App
 from rogerthat.rpc import users
 from shop.bizz import create_or_update_customer, create_contact
-from shop.models import RegioManagerTeam
 from solutions.common.bizz import OrganizationType, SolutionModule
 from solutions.common.restapi.services import rest_put_service
 from solutions.flex.bizz import create_flex_service
@@ -42,7 +40,6 @@ class AssociationsTestCase(oca_unittest.TestCase):
                                 organization_type=OrganizationType.CITY,
                                 community_id=community.id)
         # Create city customer
-        shop_user = users.User(u'regiomanager-test@example.com')
         vat = u''
         name = u'Town Lochristi'
         address1 = u'Dorp - West 52'
@@ -52,10 +49,9 @@ class AssociationsTestCase(oca_unittest.TestCase):
         country = u'BE'
         language = u'nl'
         organization_type = OrganizationType.CITY
-        team_id = RegioManagerTeam.all().get().id
-        city_customer = create_or_update_customer(shop_user, None, vat, name, address1, address2, zip_code, city,
+        city_customer = create_or_update_customer(None, vat, name, address1, address2, zip_code, city,
                                                   country, language, organization_type,
-                                                  team_id=team_id, community_id=community.id)
+                                                  community_id=community.id)
         city_customer.service_email = city_customer.user_email = r.login
         city_customer.put()
 
