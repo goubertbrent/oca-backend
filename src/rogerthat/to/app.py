@@ -198,7 +198,7 @@ class AppSettingsTO(object):
 
     def __init__(self, wifi_only_downloads=None, background_fetch_timestamps=None, oauth=None,
                  birthday_message_enabled=False, birthday_message=None, tos_enabled=True,
-                 ios_firebase_project_id=None, ios_apns_key_id=ios_apns_key_id):
+                 ios_firebase_project_id=None, ios_apns_key_id=None):
         if background_fetch_timestamps is None:
             background_fetch_timestamps = []
         self.wifi_only_downloads = wifi_only_downloads
