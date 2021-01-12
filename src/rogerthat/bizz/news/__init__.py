@@ -55,7 +55,7 @@ from rogerthat.dal import put_in_chunks
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.mobile import get_mobile_key_by_account
 from rogerthat.dal.profile import get_user_profile, get_service_profile, get_service_profiles, \
-    get_service_visible_non_transactional
+    get_service_visible_non_transactional, get_profile_key
 from rogerthat.dal.service import get_service_identity, \
     get_service_identities_not_cached
 from rogerthat.exceptions.news import NewsNotFoundException, CannotUnstickNewsException, TooManyNewsButtonsException, \
@@ -714,11 +714,25 @@ def get_group_services(app_user, group_id, key, cursor):
 
     service_identity_users = [users.User(item.id()) for item in items]
     service_users = [get_service_user_from_service_identity_user(u) for u in service_identity_users]
-    service_profiles = {prof.service_user: prof for prof in get_service_profiles(service_users)}
-    sis = get_service_identities_not_cached(service_identity_users)
+    service_profiles_unfiltered = db.get([get_profile_key(u) for u in service_users])
+    service_profiles = {}
+    for p in service_profiles_unfiltered:
+        if not p:
+            continue
+        if not isinstance(p, ServiceProfile):
+            continue
+        service_profiles[p.service_user] = p
+    sis = db.get([ServiceIdentity.keyFromUser(service_identity_user) for service_identity_user in service_identity_users])
     base_url = get_server_settings().baseUrl
-    for si in sis:
+    for service_identity_user, si in zip(service_identity_users, sis):
+        if not si:
+            logging.debug("get_group_services si not found for %s", service_identity_user)
+            NewsSettingsUserService.create_key(app_user, group_id, service_identity_user).delete()
+            continue
         service_profile = service_profiles.get(si.service_user)
+        if not service_profile:
+            logging.debug("get_group_services sp not found for %s", si.service_user)
+            continue
         r.services.append(NewsSenderTO.from_service_models(base_url, service_profile, si))
 
     if has_more:
