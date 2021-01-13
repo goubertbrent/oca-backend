@@ -15,19 +15,19 @@
 #
 # @@license_version:1.7@@
 
+import base64
+import csv
+import datetime
 import hashlib
 import json
+import logging
 import urllib
 import urlparse
 from collections import OrderedDict
 from functools import partial
 from types import NoneType
 
-import base64
 import cloudstorage
-import csv
-import datetime
-import logging
 from babel.dates import format_datetime, get_timezone, format_date
 from google.appengine.api import urlfetch
 from google.appengine.ext import deferred, db, ndb
@@ -62,7 +62,6 @@ from rogerthat.utils import bizz_check, now, channel, generate_random_key, send_
 from rogerthat.utils.crypto import encrypt, decrypt, sha256_hex
 from rogerthat.utils.transactions import run_in_transaction, run_in_xg_transaction, run_after_transaction
 from shop import SHOP_JINJA_ENVIRONMENT
-from shop.business.i18n import shop_translate
 from shop.constants import OFFICIALLY_SUPPORTED_LANGUAGES
 from shop.exceptions import BusinessException, CustomerNotFoundException, ContactNotFoundException, \
     InvalidEmailFormatException, EmptyValueException, \
@@ -467,7 +466,7 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, community_id,
             # from settings customSigninPaths for now
             login_url = settings.get_signin_url()
             parsed_login_url = urlparse.urlparse(login_url)
-            action = shop_translate(customer.language, 'password_reset')
+            action = common_translate(customer.language, 'password_reset')
             reset_password_link = password = None
             if not user_exists:
                 reset_password_route = '/customers/setpassword'
@@ -491,7 +490,7 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, community_id,
 
             subject = '%s - %s' % (common_translate(customer.language, 'our-city-app'),
                                    common_translate(customer.language, 'login_information'))
-            from_email = '%s <%s>' % (community.name, shop_translate(customer.language, 'oca_info_email_address'))
+            from_email = '%s <%s>' % (community.name, common_translate(customer.language, 'oca_info_email_address'))
 
             send_mail(from_email, user_email, subject, text_body, html=html_body)
 
@@ -920,7 +919,7 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token,
     for other_signup in CustomerSignup.list_pending_by_customer_email(user_email):
         # check if the same information has been used in a pending signup
         if signup.is_same_signup(other_signup):
-            message = shop_translate(customer.language, 'signup_same_information_used')
+            message = common_translate(customer.language, 'signup_same_information_used')
             raise HttpBadRequestException(message)
 
     signup.timestamp = now()
@@ -1098,7 +1097,7 @@ def add_service_admin(service_user, owner_user_email, base_url):
                                common_translate(user_profile.language,
                                                 'permission_granted_to_service'))
         app = get_app_by_id(user_profile.app_id)
-        from_email = '%s <%s>' % (app.name, shop_translate(user_profile.language, 'oca_info_email_address'))
+        from_email = '%s <%s>' % (app.name, common_translate(user_profile.language, 'oca_info_email_address'))
         send_mail(from_email, user_profile.user.email(), subject, text_body, html=html_body)
 
 

@@ -20,7 +20,7 @@ import logging
 from jinja2 import nodes
 from jinja2.ext import Extension
 
-from shop.business.i18n import shop_translate
+from solutions import translate
 
 
 class TranslateExtension(Extension):
@@ -39,7 +39,7 @@ class TranslateExtension(Extension):
                 arg_pieces = arg.split('=', 1)
                 kwargs[arg_pieces[0]] = arg_pieces[1]
 
-            translation = shop_translate(language, key, **kwargs)
+            translation = translate(language, key, **kwargs)
             if "_html" in kwargs:
                 translation = translation.replace('\n', '<br>')
             return translation

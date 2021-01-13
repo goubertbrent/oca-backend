@@ -15,14 +15,14 @@
 #
 # @@license_version:1.7@@
 
-import json
-import os
-import urllib
-
 import binascii
 import datetime
+import json
 import logging
+import os
 import time
+import urllib
+
 import webapp2
 from babel import Locale
 from google.appengine.api import search, users as gusers
@@ -61,7 +61,6 @@ from shop import SHOP_JINJA_ENVIRONMENT
 from shop.bizz import create_customer_signup, complete_customer_signup, get_organization_types, \
     update_customer_consents, get_customer_signup, validate_customer_url_data, \
     get_customer_consents
-from shop.business.i18n import shop_translate
 from shop.business.permissions import is_admin
 from shop.constants import OFFICIALLY_SUPPORTED_LANGUAGES
 from shop.models import Customer
@@ -106,11 +105,11 @@ class CustomerMapHandler(webapp2.RequestHandler):
         settings = get_server_settings()
         lang = get_languages_from_request(self.request)[0]
         translations = {
-            'merchants': shop_translate(lang, 'merchants'),
-            'merchants_with_terminal': shop_translate(lang, 'merchants_with_terminal'),
-            'community_services': shop_translate(lang, 'community_services'),
-            'care': shop_translate(lang, 'care'),
-            'associations': shop_translate(lang, 'associations'),
+            'merchants': translate(lang, 'merchants'),
+            'merchants_with_terminal': translate(lang, 'merchants_with_terminal'),
+            'community_services': translate(lang, 'community_services'),
+            'care': translate(lang, 'care'),
+            'associations': translate(lang, 'associations'),
         }
         params = {
             'maps_key': settings.googleMapsKey,
@@ -218,7 +217,7 @@ class PublicPageHandler(webapp2.RequestHandler):
         return get_languages_from_request(self.request)[0]
 
     def translate(self, key, **kwargs):
-        return shop_translate(self.language, key, **kwargs)
+        return translate(self.language, key, **kwargs)
 
     def render(self, template_name, **params):
         if not params.get('language'):

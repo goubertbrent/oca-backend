@@ -147,7 +147,6 @@ TRANSLATION_MAPPING = {
         'broadcast-map-explanation',
         'broadcast-regionally',
         'broadcast-regionally-description',
-        'broadcast-schedule-too-far-in-future',
         'budget',
         'care',
         'category',

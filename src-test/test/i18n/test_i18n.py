@@ -22,7 +22,6 @@ import sys
 
 import oca_unittest
 from rogerthat.translations import DEFAULT_LANGUAGE
-from shop.translations import shop_translations
 from solutions import translations
 
 PATH_END_DEV = os.path.join('src-test', 'test', 'i18n')
@@ -37,10 +36,6 @@ class I18nTest(oca_unittest.TestCase):
     def test_sln_placeholders(self):
         from rogerthat_tests.i18n.test_i18n import Test as RogerthatI18nTest
         RogerthatI18nTest._test_placeholder(self, translations)
-
-    def test_shop_placeholders(self):
-        from rogerthat_tests.i18n.test_i18n import Test as RogerthatI18nTest
-        RogerthatI18nTest._test_placeholder(self, shop_translations)
 
 
     def get_src_dir(self):
