@@ -36,7 +36,8 @@ $(function() {
 
         params = {
             'key': $('#section_agenda .sln-uit-events-3-key input').val(),
-            'postal_codes': $('#section_agenda .sln-uit-events-3-postal-codes').data('postal_codes')
+            'postal_codes': $('#section_agenda .sln-uit-events-3-postal-codes').data('postal_codes'),
+            'creators': $('#section_agenda .sln-uit-events-3-creators').data('creators')
         };
 
         if (allOK) {
@@ -87,12 +88,13 @@ $(function() {
             success: function(data) {
             	checkUitdatabankSettings();
 
-                $("#section_agenda .sln-uit-events-3").hide();
-
+                $("#section_agenda .sln-uit-events-3").hide();				
               	var postal_codes = data.params ? data.params.postal_codes : [];
+              	var creators = (data.params && data.params.creators) ? data.params.creators : [];
                 $("#section_agenda .sln-uit-events-3").show();
                 $("#section_agenda .sln-uit-events-3-key input").val(data.params ? data.params.key : "");
                 $("#section_agenda .sln-uit-events-3-postal-codes").data('postal_codes', postal_codes);
+                $("#section_agenda .sln-uit-events-3-creators").data('creators', creators);
                 renderPostalCodes(postal_codes);
             },
             error: sln.showAjaxError
@@ -131,6 +133,40 @@ $(function() {
             var elem = $('.sln-uit-events-3-postal-codes');
             elem.data('postal_codes').push(value);
             renderPostalCodes(elem.data('postal_codes'));
+            saveUitdatabankSettings();
+
+        }, CommonTranslations.ADD, CommonTranslations.SAVE, CommonTranslations.ENTER_DOT_DOT_DOT, null, null, null);
+    });
+    
+    var deleteCreator = function() {
+        var region = $(this).attr('region');
+        var htmlElement = $('.sln-uit-events-3-creators');
+        var index = htmlElement.data('creators').indexOf(region);
+        if (index >= 0) {
+            htmlElement.data('creators').splice(index, 1);
+            renderCreators(htmlElement.data('creators'));
+            saveUitdatabankSettings();
+        }
+    };
+
+    var renderCreators = function(creators) {
+        var htmlElement = $('.sln-uit-events-3-creators table tbody');
+        htmlElement.empty();
+        var html = $.tmpl(templates.events_uitcalendar_settings, {
+            regions: creators
+        });
+        htmlElement.append(html);
+        htmlElement.find('button[action="deleteRegion"]').click(deleteCreator);
+    };
+    
+    $('#sln-uit-events-3-add-creators').click(function() {
+        sln.input(function(value) {
+            if (!value.trim())
+                return false;
+
+            var elem = $('.sln-uit-events-3-creators');
+            elem.data('creators').push(value);
+            renderCreators(elem.data('creators'));
             saveUitdatabankSettings();
 
         }, CommonTranslations.ADD, CommonTranslations.SAVE, CommonTranslations.ENTER_DOT_DOT_DOT, null, null, null);

@@ -113,7 +113,7 @@ def _populate_uit_events(sln_settings, uitdatabank_settings, external_id, uitdat
     if DEBUG:
         logging.debug("detail result: %s", detail_result)
 
-    return _populate_uit_events_v3(sln_settings, external_id, detail_result, uitdatabank_actors, community_id)
+    return _populate_uit_events_v3(sln_settings, uitdatabank_settings, external_id, detail_result, uitdatabank_actors, community_id)
 
 
 def filtered_join(sep, parts):
@@ -162,8 +162,8 @@ def get_organizer_events(community_id, external_id, organizer_settings):
     return events
 
 
-def _populate_uit_events_v3(sln_settings, external_url, detail_result, uitdatabank_actors, community_id):
-    # type: (SolutionSettings, str, dict, Dict[str, db.Key], int) -> List[Event]
+def _populate_uit_events_v3(sln_settings, uitdatabank_settings, external_url, detail_result, uitdatabank_actors, community_id):
+    # type: (SolutionSettings, UitdatabankSettings, str, dict, Dict[str, db.Key], int) -> List[Event]
     # https://documentatie.uitdatabank.be/content/json-ld-crud-api/latest/events.html
     lang = 'nl'
     if lang not in detail_result['languages']:
@@ -192,9 +192,10 @@ def _populate_uit_events_v3(sln_settings, external_url, detail_result, uitdataba
     })
 
     events = []
-    # Filter events by creator id. Can be empty for main services
-    if sln_settings.uitdatabank_actor_id:
-        if sln_settings.uitdatabank_actor_id == uitdatabank_created_by:
+    creators = uitdatabank_settings.params.get('creators') or []
+    if creators:
+        # Filter events by creator id. Can be empty for main services
+        if uitdatabank_created_by and uitdatabank_created_by in creators:
             events.append(event)
     else:
         events.append(event)
