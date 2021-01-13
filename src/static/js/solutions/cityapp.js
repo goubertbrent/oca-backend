@@ -96,6 +96,7 @@ $(function() {
                 $("#section_agenda .sln-uit-events-3-postal-codes").data('postal_codes', postal_codes);
                 $("#section_agenda .sln-uit-events-3-creators").data('creators', creators);
                 renderPostalCodes(postal_codes);
+                renderCreators(creators);
             },
             error: sln.showAjaxError
         });
