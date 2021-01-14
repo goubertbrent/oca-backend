@@ -90,7 +90,7 @@ def send_notification(app_user):
     if not user_profile_info or not user_profile_info.addresses:
         return
     user_profile = get_user_profile(app_user)
-    if not user_profile or not user_profile.mobiles:
+    if not user_profile or not user_profile.get_mobiles():
         return
 
     today = datetime.today().date() + relativedelta(days=1)
@@ -126,7 +126,7 @@ def send_notification(app_user):
         lang, u'%(name)s this week there are %(count)s new works, festivities or events planned around you',
         name=user_profile.name, count=count)
 
-    mobiles = db.get([get_mobile_key_by_account(mobile_detail.account) for mobile_detail in user_profile.mobiles])
+    mobiles = db.get([get_mobile_key_by_account(mobile_detail.account) for mobile_detail in user_profile.get_mobiles().values()])
     tag = GIPOD_TAG
     map_filter = GipodFilter.STARTING_THIS_WEEK
     for mobile in mobiles:

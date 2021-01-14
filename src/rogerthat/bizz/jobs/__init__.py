@@ -330,13 +330,13 @@ def get_job_offer_actions(job_offer, match, language):
 
 def send_new_jobs_for_activity_types(app_user, activity_types):
     user_profile = get_user_profile(app_user)
-    if not user_profile.mobiles:
+    if not user_profile.get_mobiles():
         return
 
     request = NewJobsRequestTO()
     request.creation_time = now()
     request.activity_types = activity_types
-    mobiles = db.get([get_mobile_key_by_account(mobile_detail.account) for mobile_detail in user_profile.mobiles])
+    mobiles = db.get([get_mobile_key_by_account(mobile_detail.account) for mobile_detail in user_profile.get_mobiles().values()])
     for mobile in mobiles:
         ios_push_id = None
         if mobile.is_ios:

@@ -332,7 +332,7 @@ def do_update_friend_request(target_user, friend, status, friend_map, helper, sk
     # type: (users.User, FriendTO, int, FriendMap, FriendHelper, List[unicode]) -> List[RpcCAPICall]
     user_profile = get_user_profile(target_user)
     service_identity_user = helper.service_identity_user
-    mobile_details = user_profile.mobiles or []
+    mobile_details = user_profile.get_mobiles().values() or []
     models = db.get([UserData.createKey(target_user, service_identity_user)] + [
         get_mobile_key_by_account(mobile_detail.account) for mobile_detail in mobile_details])
     user_data, mobiles = models[0], models[1:]

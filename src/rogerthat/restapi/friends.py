@@ -124,8 +124,8 @@ def get_full_friends_list():
 
     user_profile = get_user_profile(app_user)
     ffit.canShareLocation = False
-    if user_profile.mobiles:
-        for mob in user_profile.mobiles:
+    if user_profile.get_mobiles():
+        for mob in user_profile.get_mobiles().values():
             if mob.type_ in (Mobile.TYPE_ANDROID_FIREBASE_HTTP, Mobile.TYPE_ANDROID_HTTP,
                              Mobile.TYPE_LEGACY_IPHONE_XMPP, Mobile.TYPE_IPHONE_HTTP_APNS_KICK,
                              Mobile.TYPE_IPHONE_HTTP_XMPP_KICK, Mobile.TYPE_WINDOWS_PHONE):

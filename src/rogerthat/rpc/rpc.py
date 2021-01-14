@@ -636,14 +636,14 @@ def capi(alias, accept_sub_types=False, priority=PRIORITY_NORMAL, feature_versio
                 mobile = kwargs.get(MOBILE_ACCOUNT)
 
                 if mobile:
-                    from rogerthat.models.properties.profiles import MobileDetail
+                    from rogerthat.models.properties.profiles import MobileDetailTO
 
                     if not _should_send_capi_call_to_mobile(feature_version, mobile):
                         logging.debug(u'%s is not supported by mobile %s of user %s',
                                       alias, mobile.account, mobile.user.email())
                         return
 
-                    mobile_detail = MobileDetail()
+                    mobile_detail = MobileDetailTO()
                     mobile_detail.account = mobile.account
                     mobile_detail.type_ = mobile.type
                     mobile_detail.pushId = mobile.pushId
@@ -662,13 +662,13 @@ def capi(alias, accept_sub_types=False, priority=PRIORITY_NORMAL, feature_versio
                         if profile_info.isServiceIdentity:
                             logging.info(u"Not sending capi call to ServiceIdentity (%s)" % profile_info.user.email())
                         else:
-                            if profile_info.mobiles is None:
+                            if not profile_info.get_mobiles():
                                 logging.info(u"%s does not have mobiles registered" % profile_info.user.email())
                                 continue
 
                             mobiles = db.get([get_mobile_key_by_account(mobile_detail.account)
-                                              for mobile_detail in profile_info.mobiles])
-                            for mobile_detail, mobile in zip(profile_info.mobiles, mobiles):
+                                              for mobile_detail in profile_info.get_mobiles().values()])
+                            for mobile_detail, mobile in zip(profile_info.get_mobiles().values(), mobiles):
                                 if mobile_detail.account in skippers:
                                     logging.info(u"Skipping account %s " % mobile_detail.account)
                                     continue

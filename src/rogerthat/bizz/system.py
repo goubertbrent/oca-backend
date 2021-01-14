@@ -16,23 +16,23 @@
 # @@license_version:1.7@@
 
 import base64
+from datetime import datetime
 import hashlib
 import json
 import logging
 import os
+from random import choice
 import re
 import time
-from datetime import datetime
-from random import choice
 from types import NoneType
 
 from google.appengine.api import urlfetch
 from google.appengine.api.images import Image
 from google.appengine.ext import db, deferred, ndb
-from mcfw.imaging import generate_qr_code
 
 from mcfw.cache import cached
 from mcfw.consts import MISSING
+from mcfw.imaging import generate_qr_code
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.communities.communities import get_community
@@ -49,7 +49,7 @@ from rogerthat.dal.profile import get_avatar_by_id, get_user_profile_key, get_us
     get_service_profile
 from rogerthat.models import UserProfile, Avatar, CurrentlyForwardingLogs, Installation, InstallationLog, \
     UserProfileInfo, UserProfileInfoAddress, UserProfileInfoPhoneNumber, UserAddressType
-from rogerthat.models.properties.profiles import MobileDetails
+from rogerthat.models.properties.profiles import MobileDetailTO
 from rogerthat.pages.legal import get_current_document_version, DOC_TERMS
 from rogerthat.rpc import users
 from rogerthat.rpc.models import Mobile, RpcCAPICall, ServiceAPICallback, Session, \
@@ -70,6 +70,7 @@ from rogerthat.utils.crypto import encrypt_for_jabber_cloud, decrypt_from_jabber
 from rogerthat.utils.languages import get_iso_lang
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import run_in_xg_transaction, run_in_transaction
+
 
 try:
     from cStringIO import StringIO
@@ -192,12 +193,12 @@ def _heart_beat(current_user, current_mobile, majorVersion, minorVersion, flushB
         # type: () -> tuple[Mobile, UserProfile, bool]
         keys = (mobile_key, ms_key, get_user_profile_key(current_user))
         mobile, ms, my_profile = db.get(keys)  # type: (Mobile, MobileSettings, UserProfile)
-        if mobile.account not in my_profile.mobiles:
+        if mobile.account not in my_profile.get_mobiles():
             logging.warn('Mobile account "%s" of user %s has been unregistered', mobile.account, current_user)
             return mobile, my_profile, False
 
         if appType != MISSING:
-            mobile.type = my_profile.mobiles[mobile.account].type_ = appType
+            mobile.type = my_profile.get_mobiles()[mobile.account].type_ = appType
         if simCountry != MISSING:
             mobile.simCountry = simCountry
         if simCountryCode != MISSING:
@@ -371,9 +372,9 @@ def mark_mobile_for_delete(user, mobile_key):
         mobile, profile = db.get((mobile_key, get_user_profile_key(user)))
         _mark_mobile_for_delete(mobile)
         if profile:
-            if not profile.mobiles:
-                profile.mobiles = MobileDetails()
-            profile.mobiles.remove(mobile.account)
+            mobiles = profile.get_mobiles()
+            mobiles.pop(mobile.account, None)
+            profile.save_mobiles(mobiles)
             profile.put()
         else:
             logging.warn("No profile found for user %s", user)
@@ -398,19 +399,24 @@ def update_apple_push_device_token(mobile, token):
         mobile, profile = db.get((mobile_key, get_user_profile_key(user)))
         mobile.pushId = token
         db.put_async(mobile)
-        if not profile.mobiles:
-            profile.mobiles = MobileDetails()
-        if mobile.account in profile.mobiles:
-            profile.mobiles[mobile.account].pushId = token
+        mobiles = profile.get_mobiles()
+        if mobile.account in mobiles:
+            mobiles[mobile.account].pushId = token
         else:
-            profile.mobiles.addNew(mobile.account, mobile.type, token, get_app_id_from_app_user(user))
+            md = MobileDetailTO()
+            md.account = mobile.account
+            md.type_ = mobile.type
+            md.pushId = mobile.pushId
+            md.app_id = mobile.app_id
+            mobiles[md.account] = md
         for old_mobile in old_mobiles:
             if mobile_key != old_mobile.key():
                 if mobile.user == old_mobile.user:
                     _mark_mobile_for_delete(old_mobile)
-                    profile.mobiles.remove(old_mobile.account)
+                    mobiles.pop(old_mobile.account, None)
                 else:
                     deferred.defer(mark_mobile_for_delete, old_mobile.user, old_mobile.key(), _transactional=True)
+        profile.save_mobiles(mobiles)
         profile.put()
 
     xg_on = db.create_transaction_options(xg=True)

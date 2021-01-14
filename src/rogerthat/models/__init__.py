@@ -50,7 +50,7 @@ from rogerthat.models.properties.messaging import ButtonsProperty, MemberStatuse
     AttachmentsProperty, SpecializedList, EmbeddedAppProperty, JsFlowDefinitionTO
 from rogerthat.models.properties.oauth import OAuthSettingsProperty
 from rogerthat.models.properties.profiles import MobileDetailsProperty, \
-    MobileDetailsNdbProperty
+    MobileDetailsNdbProperty, MobileDetailTO
 from rogerthat.models.utils import get_meta, add_meta
 from rogerthat.rpc import users
 from rogerthat.rpc.models import Mobile
@@ -786,6 +786,7 @@ class NdbUserProfile(NdbProfile, ProfileInfo):
     qualifiedIdentifier = ndb.StringProperty()
     language = ndb.StringProperty(indexed=False)
     mobiles = MobileDetailsNdbProperty()
+    mobiles_json = db.TextProperty()
     ysaaa = ndb.BooleanProperty(indexed=False, default=False)
     birthdate = ndb.IntegerProperty(indexed=False)
     birth_day = ndb.IntegerProperty()  # 815 -> august 15
@@ -802,6 +803,25 @@ class NdbUserProfile(NdbProfile, ProfileInfo):
     owningServiceEmails = ndb.StringProperty(indexed=True, repeated=True)
 
     consent_push_notifications_shown = ndb.BooleanProperty(indexed=True, default=False)
+    
+    _tmp_mobiles = None
+    
+    def get_mobiles(self):
+        if self._tmp_mobiles is None:
+            data = json.loads(self.mobiles_json) if self.mobiles_json else {}
+            result = {}
+            if data:
+                for account, value in data.iteritems():
+                    result[account] = MobileDetailTO.from_dict(value)
+            elif self.mobiles:
+                for md in self.mobiles.values():
+                    result[md.account] = md
+            self._tmp_mobiles = result
+        return self._tmp_mobiles
+
+    def save_mobiles(self, data):
+        logging.debug("saving mobiles not supported in ndb")
+        raise NotImplementedError()
 
     @classmethod
     def list_by_app(cls, app_id, keys_only=False):
@@ -833,6 +853,7 @@ class UserProfile(Profile, BaseUserProfile):
     qualifiedIdentifier = db.StringProperty()
     language = db.StringProperty(indexed=False)
     mobiles = MobileDetailsProperty()
+    mobiles_json = db.TextProperty()
     ysaaa = db.BooleanProperty(indexed=False, default=False)
     birthdate = db.IntegerProperty(indexed=False)
     birth_day = db.IntegerProperty()  # 815 -> august 15
@@ -852,6 +873,28 @@ class UserProfile(Profile, BaseUserProfile):
 
     consent_push_notifications_shown = db.BooleanProperty(indexed=True, default=False)
     home_screen_id = db.StringProperty(default=u'default')
+    
+    _tmp_mobiles = None
+    
+    def get_mobiles(self):
+        if self._tmp_mobiles is None:
+            data = json.loads(self.mobiles_json) if self.mobiles_json else {}
+            result = {}
+            if data:
+                for account, value in data.iteritems():
+                    result[account] = MobileDetailTO.from_dict(value)
+            elif self.mobiles:
+                for md in self.mobiles.values():
+                    result[md.account] = md
+            self._tmp_mobiles = result
+        return self._tmp_mobiles
+
+    def save_mobiles(self, data):
+        result = {}
+        for account, value in data.iteritems():
+            result[account] = value.to_dict()
+        self.mobiles_json = json.dumps(result)
+        self._tmp_mobiles = data
 
     @classmethod
     def list_by_birth_day(cls, timestamp):

@@ -2739,7 +2739,7 @@ def set_user_data_object(service_identity_user, friend_user, data_dict, replace=
 
         full_json_dict = updated_json_dict
         # The mobile that triggered this request should not be updated.
-        mobiles_future = db.get_async([get_mobile_key_by_account(m.account) for m in user_profile.mobiles
+        mobiles_future = db.get_async([get_mobile_key_by_account(m.account) for m in user_profile.get_mobiles().values()
                                        if not current_mobile or m.account != current_mobile.account])
         if user_data:
             if replace:

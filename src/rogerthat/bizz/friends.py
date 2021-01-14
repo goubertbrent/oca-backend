@@ -410,7 +410,7 @@ def makeFriends(invitor, invitee, original_invitee, servicetag, origin, notify_i
                         has_user_data = True
                         user_profile = get_user_profile(from_)
                         mobiles = db.get([get_mobile_key_by_account(mobile_detail.account)
-                                          for mobile_detail in user_profile.mobiles])
+                                          for mobile_detail in user_profile.get_mobiles().values()])
                         to_put.extend(create_send_user_data_requests(mobiles, user_data_model, from_,
                                                                      to_profile_info.user))
                 else:
@@ -698,8 +698,8 @@ def requestLocationSharing(user, friend, message):
     friend_profile, user_profile = get_profile_infos([friend, user], expected_types=[UserProfile, UserProfile])
 
     devices = list()
-    if friend_profile.mobiles:
-        for mob in friend_profile.mobiles:
+    if friend_profile.get_mobiles():
+        for mob in friend_profile.get_mobiles().values():
             if mob.type_ in (Mobile.TYPE_ANDROID_FIREBASE_HTTP, Mobile.TYPE_ANDROID_HTTP, Mobile.TYPE_IPHONE_HTTP_APNS_KICK,
                              Mobile.TYPE_IPHONE_HTTP_XMPP_KICK, Mobile.TYPE_LEGACY_IPHONE_XMPP,
                              Mobile.TYPE_WINDOWS_PHONE):
@@ -942,7 +942,7 @@ def breakFriendShip(user1, user2, current_mobile=None):
                             from rogerthat.bizz.service import get_update_userdata_requests
                             user_data_dict = json.loads(user_data.data)
                             data_object = {k: None for k in user_data_dict.iterkeys()}
-                            mobiles = db.get([get_mobile_key_by_account(m.account) for m in user_profile.mobiles])
+                            mobiles = db.get([get_mobile_key_by_account(m.account) for m in user_profile.get_mobiles().values()])
                             rpcs = get_update_userdata_requests(mobiles, from_, to, data_object, data_object.keys())
                             to_put.extend(rpcs)
                         user_data.delete()
@@ -1302,8 +1302,8 @@ def get_service_friend_status(service_identity_user, app_user):
         result.avatar = friend_profile.avatarUrl
         result.language = friend_profile.language
         result.name = friend_profile.name
-        if friend_profile.mobiles:
-            for m in friend_profile.mobiles:
+        if friend_profile.get_mobiles():
+            for m in friend_profile.get_mobiles().values():
                 result.devices.append(Mobile.typeAsString(m.type_))
     else:
         result.name = None

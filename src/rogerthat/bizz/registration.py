@@ -16,12 +16,12 @@
 # @@license_version:1.7@@
 
 import base64
+from collections import defaultdict
 import json
 import logging
+from random import choice
 import types
 import uuid
-from collections import defaultdict
-from random import choice
 
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
@@ -54,7 +54,7 @@ from rogerthat.dal.registration import get_registration_by_mobile
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import InstallationLog, UserInteraction, ProfilePointer, App, ServiceIdentity, \
     InstallationStatus, Installation, UserConsentHistory, UserData, FacebookUserProfile
-from rogerthat.models.properties.profiles import MobileDetails
+from rogerthat.models.properties.profiles import MobileDetailTO
 from rogerthat.rpc import users
 from rogerthat.rpc.models import Mobile
 from rogerthat.rpc.rpc import logError
@@ -410,8 +410,12 @@ def finish_registration(mobile_account, mobileInfo, invitor_code, invitor_secret
         my_profile.timezone = mobile.timezone
         my_profile.timezoneDeltaGMT = mobile.timezoneDeltaGMT
 
-        my_profile.mobiles = MobileDetails()
-        my_profile.mobiles.addNew(mobile.account, mobile.type, mobile.pushId, mobile.app_id)
+        md = MobileDetailTO()
+        md.account = mobile.account
+        md.type_ = mobile.type
+        md.pushId = mobile.pushId
+        md.app_id = mobile.app_id
+        my_profile.save_mobiles({md.account: md})
 
         put_and_invalidate_cache(mobile, ms, my_profile)
 

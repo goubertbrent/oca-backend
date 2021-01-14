@@ -16,17 +16,17 @@
 # @@license_version:1.7@@
 
 import base64
+from collections import namedtuple
+from datetime import datetime
 import hashlib
 import json
 import logging
 import re
 import time
+from types import NoneType, BooleanType
 import urllib2
 import uuid
 import zlib
-from collections import namedtuple
-from datetime import datetime
-from types import NoneType, BooleanType
 
 from google.appengine.api import app_identity, images, search
 from google.appengine.ext import db, deferred, ndb
@@ -66,7 +66,7 @@ from rogerthat.models.properties.forms import Form, RangeSlider, SingleSlider, M
 from rogerthat.models.properties.friend import FriendDetailTO
 from rogerthat.models.properties.messaging import Buttons, Button, MemberStatuses, MemberStatus, Attachments, \
     Attachment, MessageEmbeddedApp
-from rogerthat.models.properties.profiles import MobileDetails
+from rogerthat.models.properties.profiles import MobileDetailTO
 from rogerthat.rpc import users
 from rogerthat.rpc.models import RpcCAPICall, ServiceAPICallback, Mobile
 from rogerthat.rpc.rpc import mapping, logError, DO_NOT_SAVE_RPCCALL_OBJECTS, CAPI_KEYWORD_ARG_PRIORITY, \
@@ -101,6 +101,7 @@ from rogerthat.utils.iOS import construct_push_notification
 from rogerthat.utils.service import get_service_identity_tuple, get_service_user_from_service_identity_user, \
     remove_slash_default, create_service_identity_user, get_identity_from_service_identity_user, add_slash_default
 from rogerthat.utils.transactions import on_trans_committed, run_in_transaction
+
 
 try:
     from cStringIO import StringIO
@@ -4571,7 +4572,7 @@ def _verify_transfer(user, transfer_result_key):
                         sender_name = get_app_by_id(get_app_id_from_app_user(user)).name
                     else:
                         sender_name = profile_infos[transfer_result.service_identity_user].name
-                    send_apple_push_message(push_message, sender_name, profile_infos[user].mobiles)
+                    send_apple_push_message(push_message, sender_name, profile_infos[user].get_mobiles().values())
 
                 return True, True, transfer_result
             else:
@@ -4594,9 +4595,9 @@ def _verify_transfer(user, transfer_result_key):
 
 
 @returns()
-@arguments(push_message=unicode, sender_name=unicode, mobiles=MobileDetails)
+@arguments(push_message=unicode, sender_name=unicode, mobiles=[MobileDetailTO])
 def send_apple_push_message(push_message, sender_name, mobiles):
-    # type: (str, str, list[MobileDetail]) -> None
+    # type: (str, str, list[MobileDetailTO]) -> None
     sender_name = _ellipsize_for_json(sender_name, 30, cut_on_spaces=False)
 
     for mobile_detail in mobiles:

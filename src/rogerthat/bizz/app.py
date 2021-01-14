@@ -249,8 +249,8 @@ def _app_settings_updated(app_id):
 @arguments(user_profile=UserProfile, app_id=unicode)
 def push_app_settings_to_user(user_profile, app_id):
     app_settings = get_app_settings(app_id)
-    if user_profile.mobiles:
-        mobiles = db.get([Mobile.create_key(mobile_detail.account) for mobile_detail in user_profile.mobiles])
+    if user_profile.get_mobiles():
+        mobiles = db.get([Mobile.create_key(mobile_detail.account) for mobile_detail in user_profile.get_mobiles().values()])
         for mobile in mobiles:
             mobile_settings = get_mobile_settings_cached(mobile)
             mobile_settings.version += 1

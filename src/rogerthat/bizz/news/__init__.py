@@ -1443,7 +1443,7 @@ def create_notification(app_user, group_id=None, news_id=None, location_match=Fa
     user_profile = get_user_profile(app_user)
     if not user_profile:
         return
-    if not user_profile.mobiles:
+    if not user_profile.get_mobiles():
         return
     lang = user_profile.language
     news_item = None
@@ -1496,7 +1496,7 @@ def create_notification(app_user, group_id=None, news_id=None, location_match=Fa
             short_message = news_item.title
             long_message = news_item.message
 
-    mobiles = db.get([get_mobile_key_by_account(mobile_detail.account) for mobile_detail in user_profile.mobiles])
+    mobiles = db.get([get_mobile_key_by_account(mobile_detail.account) for mobile_detail in user_profile.get_mobiles().values()])
     # Don't send these to client
     for mobile in mobiles:
         kwargs = {DO_NOT_SAVE_RPCCALL_OBJECTS: True, CAPI_KEYWORD_ARG_PRIORITY: PRIORITY_HIGH}

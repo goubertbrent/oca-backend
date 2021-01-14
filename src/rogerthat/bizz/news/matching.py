@@ -268,7 +268,7 @@ def should_match_location(ni_lat, ni_lon, ni_distance, my_lat, my_lon, my_distan
 
 def calculate_and_update_badge_count(app_user, group_ids):
     user_profile = get_user_profile(app_user)
-    if not user_profile or not user_profile.mobiles:
+    if not user_profile or not user_profile.get_mobiles():
         logging.debug('Not updating badge count: no user profile or mobiles for user %s', app_user)
         return
     keys = [NewsGroup.create_key(group_id) for group_id in group_ids] + [NewsSettingsUser.create_key(app_user)]
@@ -277,7 +277,7 @@ def calculate_and_update_badge_count(app_user, group_ids):
     if not news_settings_user:
         return
     news_groups = models  # type: List[NewsGroup]
-    mobiles = db.get([get_mobile_key_by_account(mobile_detail.account) for mobile_detail in user_profile.mobiles])
+    mobiles = db.get([get_mobile_key_by_account(mobile_detail.account) for mobile_detail in user_profile.get_mobiles().values()])
     to_put = []
     for news_group in news_groups:
         details = news_settings_user.get_group_by_id(news_group.group_id)
@@ -291,10 +291,10 @@ def update_badge_count_user(app_user, group_or_id, badge_count, mobiles=None, sa
     from rogerthat.bizz.news import update_badge_count_response_handler
     if not mobiles:
         user_profile = get_user_profile(app_user)
-        if not user_profile or not user_profile.mobiles:
+        if not user_profile or not user_profile.get_mobiles():
             logging.debug('Not updating badge count: no user profile or mobiles for user %s', app_user)
             return []
-        mobiles = db.get([get_mobile_key_by_account(mobile_detail.account) for mobile_detail in user_profile.mobiles])
+        mobiles = db.get([get_mobile_key_by_account(mobile_detail.account) for mobile_detail in user_profile.get_mobiles().values()])
     if isinstance(group_or_id, NewsGroup):
         ng = group_or_id
     else:

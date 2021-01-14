@@ -136,7 +136,7 @@ def test_form(service_user, form_id, testers):
     tag = None
     message = localize(prof.defaultLanguage, 'forms.click_button_to_test')
     for user_profile in get_profile_infos(testers):
-        mobiles = db.get([get_mobile_key_by_account(mobile_detail.account) for mobile_detail in user_profile.mobiles])
+        mobiles = db.get([get_mobile_key_by_account(mobile_detail.account) for mobile_detail in user_profile.get_mobiles().values()])
         has_other = False
         android_mobile = None
         for mobile in mobiles:

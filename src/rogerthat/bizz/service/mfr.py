@@ -271,7 +271,7 @@ def start_local_flow(service_identity_user, thread_key, xml, members, tag=None, 
             flow_definition, brandings, attachments = js_flow_dict[target_language]
 
         force_skip_attachments_download = False
-        mobiles = profile_infos[app_user].mobiles
+        mobiles = profile_infos[app_user].get_mobiles().values()
         if push_message:
             for mobile_detail in mobiles:
                 if mobile_detail.type_ == Mobile.TYPE_IPHONE_HTTP_APNS_KICK and mobile_detail.pushId:

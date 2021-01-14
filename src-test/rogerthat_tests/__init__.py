@@ -28,7 +28,7 @@ def register_tst_mobile(email):
     from rogerthat.rpc.models import Mobile
     from rogerthat.rpc import users
     from rogerthat.dal.profile import get_user_profile
-    from rogerthat.models.properties.profiles import MobileDetails
+    from rogerthat.models.properties.profiles import MobileDetailTO
     account = unicode(uuid.uuid4()) + u"@mc-tracker.com"
     m = Mobile(key_name=account)
     m.id = unicode(uuid.uuid4())
@@ -39,9 +39,14 @@ def register_tst_mobile(email):
     m.type = Mobile.TYPE_ANDROID_HTTP
     m.put()
     p = get_user_profile(m.user)
-    if not p.mobiles:
-        p.mobiles = MobileDetails()
-        p.mobiles.addNew(account, Mobile.TYPE_ANDROID_HTTP, None, u"rogerthat")
+    mobiles = p.get_mobiles()
+    if not mobiles:
+        md = MobileDetailTO()
+        md.account = account
+        md.type_ = Mobile.TYPE_ANDROID_HTTP
+        md.pushId = None
+        md.app_id = u"rogerthat"
+        p.save_mobiles({md.account: md})
     p.put()
     return m
 

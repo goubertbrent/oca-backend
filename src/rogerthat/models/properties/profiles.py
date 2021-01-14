@@ -32,7 +32,7 @@ except ImportError:
     from StringIO import StringIO
 
 
-class MobileDetail(object):
+class MobileDetailTO(TO):
     account = unicode_property('1')
     type_ = long_property('2')
     pushId = unicode_property('3')  # Apple Push or Google Cloud Messaging id
@@ -48,7 +48,7 @@ def _serialize_mobile_detail(stream, md):
 
 def _deserialize_mobile_detail(stream, version):
     from rogerthat.models import App
-    md = MobileDetail()
+    md = MobileDetailTO()
     md.account = ds_unicode(stream)
     md.type_ = ds_long(stream)
     md.pushId = ds_unicode(stream)
@@ -68,13 +68,13 @@ class MobileDetails(object):
         self._table = dict()
 
     def append(self, md):
-        if not md or not isinstance(md, MobileDetail):
+        if not md or not isinstance(md, MobileDetailTO):
             raise ValueError
         self._table[md.account] = md
         return md
 
     def addNew(self, account, type_, pushId, app_id):
-        md = MobileDetail()
+        md = MobileDetailTO()
         md.account = account
         md.type_ = type_
         md.pushId = pushId
@@ -134,8 +134,10 @@ class MobileDetailsProperty(db.UnindexedProperty, CustomProperty):
     # For writing to datastore.
     def get_value_for_datastore(self, model_instance):
         stream = StringIO()
-        _serialize_mobile_details(stream, super(MobileDetailsProperty,
-                                                self).get_value_for_datastore(model_instance))
+        super_value = super(MobileDetailsProperty, self).get_value_for_datastore(model_instance)
+        if not super_value:
+            return None
+        _serialize_mobile_details(stream, super_value)
         return db.Blob(stream.getvalue())
 
     # For reading from datastore.

@@ -138,10 +138,10 @@ def send_new_jobs_notification(app_user, count, job_id):
 def _send_new_job_notification(app_user, count, item):
     # type: (users.User, int, JobOfferTO) -> None
     user_profile = get_user_profile(app_user)
-    if not user_profile.mobiles:
+    if not user_profile.get_mobiles():
         return
 
-    mobiles = db.get([get_mobile_key_by_account(mobile_detail.account) for mobile_detail in user_profile.mobiles])
+    mobiles = db.get([get_mobile_key_by_account(mobile_detail.account) for mobile_detail in user_profile.get_mobiles().values()])
     for mobile in mobiles:
         kwargs = {}
         if item:

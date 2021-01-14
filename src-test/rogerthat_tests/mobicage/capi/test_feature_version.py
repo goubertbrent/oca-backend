@@ -20,7 +20,7 @@ from rogerthat.bizz.profile import create_user_profile
 from rogerthat.bizz.system import update_app_asset_response
 from rogerthat.capi.system import updateAppAsset
 from rogerthat.dal.mobile import get_mobile_settings_cached
-from rogerthat.models.properties.profiles import MobileDetails
+from rogerthat.models.properties.profiles import MobileDetailTO
 from rogerthat.rpc import users
 from rogerthat.rpc.models import Mobile
 from rogerthat.rpc.rpc import logError
@@ -39,8 +39,12 @@ class Test(mc_unittest.TestCase):
 
         user_profile = create_user_profile(app_user, 'geert', language='en')
         mobile = users.get_current_mobile()
-        user_profile.mobiles = MobileDetails()
-        user_profile.mobiles.addNew(mobile.account, Mobile.TYPE_ANDROID_HTTP, None, u"rogerthat")
+        md = MobileDetailTO()
+        md.account = mobile.account
+        md.type_ = Mobile.TYPE_ANDROID_HTTP
+        md.pushId = None
+        md.app_id = u"rogerthat"
+        user_profile.save_mobiles({md.account: md})
         user_profile.put()
 
         ms = get_mobile_settings_cached(mobile)

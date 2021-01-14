@@ -104,7 +104,7 @@ def getFriend(request):
     user = users.get_current_user()
     user_profile = get_user_profile(user)
     models = db.get([FriendMap.create_key(user)] +
-                    [get_mobile_key_by_account(mobile_detail.account) for mobile_detail in user_profile.mobiles])
+                    [get_mobile_key_by_account(mobile_detail.account) for mobile_detail in user_profile.get_mobiles().values()])
     friend_map, mobiles = models[0] or FriendMap.create(user), models[1:]
 
     response = GetFriendResponseTO()

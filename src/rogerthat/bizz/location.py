@@ -268,7 +268,7 @@ def get_friend_location(app_user, friend, target=0):
     if not friend_detail.sharesLocation:
         return
     friend_profile = get_user_profile(friend)
-    if not friend_profile.mobiles:
+    if not friend_profile.get_mobiles():
         return
     request = GetLocationRequestTO()
     request.friend = get_human_user_from_app_user(app_user).email()
