@@ -41,8 +41,9 @@ def _worker(messasge_keys):
         should_save = False
         if not message.buttons_json:
             data_buttons = {}
-            for button in message.buttons.values():
-                data_buttons[button.id] = button
+            if message.buttons:
+                for button in message.buttons.values():
+                    data_buttons[button.id] = button
             message.save_buttons(data_buttons)
             message.buttons = None
             should_save = True
@@ -57,16 +58,18 @@ def _worker(messasge_keys):
             
         if not message.attachments_json:
             data_attachments = {}
-            for attachment in message.attachments.values():
-                data_attachments[attachment.index] = attachment
+            if message.attachments:
+                for attachment in message.attachments.values():
+                    data_attachments[attachment.index] = attachment
             message.save_attachments(data_attachments)
             message.attachments = None
             should_save = True
             
         if not message.member_statuses_json:
             data_member_statuses = {}
-            for ms in message.memberStatusses.values():
-                data_member_statuses[ms.index] = ms
+            if message.memberStatusses:
+                for ms in message.memberStatusses.values():
+                    data_member_statuses[ms.index] = ms
             message.save_member_statuses(data_member_statuses)
             message.memberStatusses = None
             should_save = True
