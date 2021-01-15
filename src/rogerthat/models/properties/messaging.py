@@ -31,7 +31,7 @@ except ImportError:
     import StringIO
 
 
-class Button(object):
+class MessageButtonTO(TO):
     id = unicode_property('1')  # @ReservedAssignment
     index = long_property('2')
     caption = unicode_property('3')
@@ -49,7 +49,7 @@ class Button(object):
 
     @staticmethod
     def rogerthat_button():
-        btn = Button()
+        btn = MessageButtonTO()
         btn.caption = u'Rogerthat'
         return btn
 
@@ -64,7 +64,7 @@ def _serialize_button(stream, b):
 
 
 def _deserialize_button(stream, version):
-    b = Button()
+    b = MessageButtonTO()
     b.id = ds_unicode(stream)
     b.index = ds_long(stream)
     b.caption = ds_unicode(stream)
@@ -146,7 +146,10 @@ class ButtonsProperty(db.UnindexedProperty):
     # For writing to datastore.
     def get_value_for_datastore(self, model_instance):
         stream = StringIO.StringIO()
-        _serialize_buttons(stream, super(ButtonsProperty, self).get_value_for_datastore(model_instance))
+        super_value = super(ButtonsProperty, self).get_value_for_datastore(model_instance)
+        if not super_value:
+            return None
+        _serialize_buttons(stream, super_value)
         return db.Blob(stream.getvalue())
 
     # For reading from datastore.
@@ -164,7 +167,7 @@ class ButtonsProperty(db.UnindexedProperty):
         return not value
 
 
-class MessageEmbeddedApp(TO):
+class MessageEmbeddedAppTO(TO):
     context = unicode_property('context')
     description = unicode_property('description', default=None)
     id = unicode_property('id')
@@ -174,7 +177,7 @@ class MessageEmbeddedApp(TO):
 
 
 def _serialize_message_embedded_app(stream, obj):
-    # type: (StringIO.StringIO, MessageEmbeddedApp) -> None
+    # type: (StringIO.StringIO, MessageEmbeddedAppTO) -> None
     s_long(stream, 1)  # version
     s_unicode(stream, obj.context)
     s_unicode(stream, obj.description)
@@ -185,9 +188,9 @@ def _serialize_message_embedded_app(stream, obj):
 
 
 def _deserialize_message_embedded_app(stream):
-    # type: (StringIO.StringIO) -> MessageEmbeddedApp
+    # type: (StringIO.StringIO) -> MessageEmbeddedAppTO
     ds_long(stream)  # version
-    obj = MessageEmbeddedApp()
+    obj = MessageEmbeddedAppTO()
     obj.context = ds_unicode(stream)
     obj.description = ds_unicode(stream)
     obj.id = ds_unicode(stream)
@@ -198,21 +201,21 @@ def _deserialize_message_embedded_app(stream):
 
 
 class EmbeddedAppProperty(db.UnindexedProperty):
-    data_type = MessageEmbeddedApp
+    data_type = MessageEmbeddedAppTO
 
     def get_value_for_datastore(self, model_instance):
         stream = StringIO.StringIO()
-        prop = super(EmbeddedAppProperty, self).get_value_for_datastore(model_instance)
-        if not prop:
+        super_value = super(EmbeddedAppProperty, self).get_value_for_datastore(model_instance)
+        if not super_value:
             return None
-        _serialize_message_embedded_app(stream, prop)
+        _serialize_message_embedded_app(stream, super_value)
         return db.Blob(stream.getvalue())
 
     def make_value_from_datastore(self, value):
         return _deserialize_message_embedded_app(StringIO.StringIO(value)) if value else None
 
 
-class MemberStatus(object):
+class MessageMemberStatusTO(TO):
     STATUS_RECEIVED = 1
     STATUS_ACKED = 2
     STATUS_READ = 4
@@ -243,7 +246,7 @@ def _serialize_member_status(stream, r):
 
 
 def _deserialize_member_status(stream, version):
-    r = MemberStatus()
+    r = MessageMemberStatusTO()
     r.status = ds_long(stream)
     r.received_timestamp = ds_long(stream)
     r.acked_timestamp = ds_long(stream)
@@ -293,8 +296,10 @@ class MemberStatusesProperty(db.UnindexedProperty):
     # For writing to datastore.
     def get_value_for_datastore(self, model_instance):
         stream = StringIO.StringIO()
-        _serialize_member_statuses(stream, super(MemberStatusesProperty,
-                                                 self).get_value_for_datastore(model_instance))
+        super_value = super(MemberStatusesProperty, self).get_value_for_datastore(model_instance)
+        if not super_value:
+            return None
+        _serialize_member_statuses(stream, super_value)
         return db.Blob(stream.getvalue())
 
     # For reading from datastore.
@@ -318,7 +323,7 @@ class Thumbnail(TO):
     width = long_property('width')
 
 
-class Attachment(TO):
+class MessageAttachmentTO(TO):
     index = long_property('1')
     content_type = unicode_property('2')
     download_url = unicode_property('3')
@@ -337,7 +342,7 @@ def _serialize_attachment(stream, a):
 
 
 def _deserialize_attachment(stream, version):
-    a = Attachment()
+    a = MessageAttachmentTO()
     a.index = ds_long(stream)
     a.content_type = ds_unicode(stream)
     a.download_url = ds_unicode(stream)
@@ -398,7 +403,10 @@ class AttachmentsProperty(db.UnindexedProperty):
     # For writing to datastore.
     def get_value_for_datastore(self, model_instance):
         stream = StringIO.StringIO()
-        _serialize_attachments(stream, super(AttachmentsProperty, self).get_value_for_datastore(model_instance))
+        super_value = super(AttachmentsProperty, self).get_value_for_datastore(model_instance)
+        if not super_value:
+            return None
+        _serialize_attachments(stream, super_value)
         return db.Blob(stream.getvalue())
 
     # For reading from datastore.

@@ -49,6 +49,11 @@ class TO(object):
             if isinstance(v, str):
                 v = v.decode('utf-8')
             setattr(self, k, v)
+            
+    def __eq__(self, other):
+        if type(self) != type(other):
+            return False
+        return self.__dict__ == other.__dict__
 
     def to_dict(self, include=None, exclude=None):
         # type: (list[basestring], list[basestring]) -> dict[str, object]

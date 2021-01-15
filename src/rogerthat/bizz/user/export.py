@@ -244,7 +244,7 @@ class ExportUserMessagePipeline(WorkloadPipeline):
                 'buttons': [],
                 'attachments': []
             }
-            for b in sorted(m.buttons or [], key=lambda x: x.index):
+            for b in sorted(m.get_buttons().values() or [], key=lambda x: x.index):
                 bd = {
                     'id': b.id,
                     'caption': b.caption

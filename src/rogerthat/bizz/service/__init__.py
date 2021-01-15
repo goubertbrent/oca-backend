@@ -1095,8 +1095,7 @@ def ack_service_in_trouble(message):
     azzert(message.tag == SERVICE_IN_TROUBLE_TAG)
     service_user = message.troubled_service_user
     admin_user = message.troubled_admin_user
-    if message.memberStatusses[message.members.index(admin_user)].button_index == message.buttons[
-            DISABLE_SERVICE_TROUBLE_ID].index:
+    if message.get_member_statuses()[message.members.index(admin_user)].button_index == message.get_button_by_id(DISABLE_SERVICE_TROUBLE_ID).index:
         try_or_defer(_disable_svc, service_user, admin_user)
     else:
         logging.info('Admin user %s does not disable troubled service %s' % (admin_user.email(), service_user.email()))

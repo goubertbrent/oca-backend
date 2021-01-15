@@ -33,7 +33,7 @@ from mcfw.rpc import returns, arguments
 from rogerthat.bizz.job.send_unread_messages import CleanupGoogleCloudStorageFiles
 from rogerthat.consts import MIGRATION_QUEUE, DEBUG, PIPELINE_BUCKET
 from rogerthat.models import Message
-from rogerthat.models.properties.messaging import MemberStatus
+from rogerthat.models.properties.messaging import MessageMemberStatusTO
 from rogerthat.settings import get_server_settings
 from rogerthat.utils import is_flag_set, guid, send_mail
 from rogerthat.utils.app import get_app_user_tuple_by_email
@@ -127,12 +127,12 @@ def mapper(message):
         if member == message.sender:
             continue
 
-        ms = message.memberStatusses[i]
+        ms = message.get_member_statuses()[i]
 
-        received = is_flag_set(MemberStatus.STATUS_RECEIVED, ms.status) \
+        received = is_flag_set(MessageMemberStatusTO.STATUS_RECEIVED, ms.status) \
             and min_time <= ms.received_timestamp <= max_time
-        read = received and is_flag_set(MemberStatus.STATUS_READ, ms.status)
-        acked = is_flag_set(MemberStatus.STATUS_ACKED, ms.status) and min_time <= ms.acked_timestamp <= max_time
+        read = received and is_flag_set(MessageMemberStatusTO.STATUS_READ, ms.status)
+        acked = is_flag_set(MessageMemberStatusTO.STATUS_ACKED, ms.status) and min_time <= ms.acked_timestamp <= max_time
 
         stats = Stats(total=1, received=int(received), read=int(read), acked=int(acked))
         index = get_interval_index(message.creationTimestamp, min_time, interval)

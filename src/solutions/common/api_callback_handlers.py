@@ -268,9 +268,9 @@ def common_new_chat_message(parent_message_key, message_key, sender, message, an
 @arguments(service_user=users.User, service_identity=unicode, tag=unicode, user_details=[UserDetailsTO], status=int,
            answer_id=unicode)
 def messaging_update_inbox_forwaring_reply(service_user, service_identity, tag, user_details, status, answer_id):
-    from rogerthat.models.properties.messaging import MemberStatus
+    from rogerthat.models.properties.messaging import MessageMemberStatusTO
 
-    if not is_flag_set(MemberStatus.STATUS_ACKED, status):
+    if not is_flag_set(MessageMemberStatusTO.STATUS_ACKED, status):
         return
 
     info_dict_str = tag[len(POKE_TAG_INBOX_FORWARDING_REPLY):]

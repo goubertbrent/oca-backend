@@ -35,7 +35,7 @@ from rogerthat.dal import parent_key_unsafe
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.models import Message, ServiceInteractionDef
 from rogerthat.models.news import NewsItem, MediaType
-from rogerthat.models.properties.forms import FormResult, Form
+from rogerthat.models.properties.forms import FormResult, MessageFormTO
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import messaging, system
@@ -441,7 +441,7 @@ def inbox_forwarding_reply_pressed(service_user, status, answer_id, received_tim
 def reply_on_inbox_forwarding(service_user, status, form_result, answer_id, member, message_key, tag,
                               received_timestamp, acked_timestamp, parent_message_key, result_key,
                               service_identity, user_details):
-    if answer_id != Form.POSITIVE:
+    if answer_id != MessageFormTO.POSITIVE:
         return None
 
     info = json.loads(tag[len(POKE_TAG_INBOX_FORWARDING_REPLY_TEXT_BOX):])

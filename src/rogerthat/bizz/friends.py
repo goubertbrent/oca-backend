@@ -600,9 +600,9 @@ def ackInvitation(message):
     origin = getattr(message, "origin", ORIGIN_USER_INVITE)
     servicetag = getattr(message, "servicetag", None)
 
-    btn_index = message.memberStatusses[message.members.index(invitee)].button_index
+    btn_index = message.get_member_statuses()[message.members.index(invitee)].button_index
 
-    if btn_index != message.buttons[ACCEPT_ID].index:
+    if btn_index != message.get_button_by_id(ACCEPT_ID).index:
         if is_service_identity_user(invitor):
             svc_user, identifier = get_service_identity_tuple(add_slash_default(invitor))  # for old invites by services
             invitor_profile = get_service_profile(svc_user)
@@ -732,7 +732,7 @@ def ackRequestLocationSharing(message):
     azzert(message.tag == REQUEST_LOCATION_SHARING)
     user, friend = message.invitor, message.invitee
     user_profile, friend_profile = get_profile_infos([user, friend], expected_types=[UserProfile, UserProfile])
-    if message.memberStatusses[message.members.index(message.invitee)].button_index != message.buttons[ACCEPT_ID].index:
+    if message.get_member_statuses()[message.members.index(message.invitee)].button_index != message.get_button_by_id(ACCEPT_ID).index:
         msg = localize(
             user_profile.language, "%(name)s declined your request to track his/her location.", name=friend_profile.name)
         dashboardNotification(user, msg)
@@ -860,7 +860,7 @@ def ack_share_service(message):
     invitee = message.invitee
     # If the invitee accepts the recommendation, then we somehow reverse roles, and the invitee invites the service
     # This means that the invitee is now an invitor
-    if message.memberStatusses[message.members.index(invitee)].button_index == message.buttons[ACCEPT_ID].index:
+    if message.get_member_statuses()[message.members.index(invitee)].button_index == message.get_button_by_id(ACCEPT_ID).index:
         invite(invitee, service_identity_user.email(), None, None,
                None, ORIGIN_USER_RECOMMENDED, get_app_id_from_app_user(invitee))
 
@@ -1330,7 +1330,7 @@ def ack_invitation_by_secret_failed(message):
     azzert(message.tag == FRIEND_ACCEPT_FAILED)
     invitor = message.invitor
     invitee = message.invitee
-    if message.memberStatusses[message.members.index(invitor)].button_index == message.buttons[INVITE_ID].index:
+    if message.get_member_statuses()[message.members.index(invitor)].button_index == message.get_button_by_id(INVITE_ID).index:
         invite(invitor, invitee.email(), None, None,
                message.service_tag, origin=message.origin, app_id=get_app_id_from_app_user(invitor))
         logging.info("Mr %s accepted offer" % invitor.email())

@@ -16,7 +16,7 @@
 # @@license_version:1.7@@
 
 from mcfw.properties import unicode_property, long_property, typed_property
-from rogerthat.models.properties.forms import FormResult, Form
+from rogerthat.models.properties.forms import FormResult, MessageFormTO
 from rogerthat.to import TO
 
 
@@ -51,7 +51,7 @@ class FormFlowStepTO(BaseFlowStepTO):
     form_type = unicode_property('53')
 
     def get_value(self):
-        if self.answer_id == Form.POSITIVE:
+        if self.answer_id == MessageFormTO.POSITIVE:
             return self.form_result.result.get_value()
         else:
             return None

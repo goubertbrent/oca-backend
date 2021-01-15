@@ -31,10 +31,10 @@ from rogerthat.bizz.messaging import InvalidWidgetValueException, ValueTooLongEx
     DateSelectValuesShouldBeMultiplesOfMinuteInterval, InvalidValueInDateSelectWithModeDate, \
     InvalidValueInDateSelectWithModeTime
 from rogerthat.models import FormMessage
-from rogerthat.models.properties.forms import Widget, Form, AutoComplete, Choice, RangeSlider, TextLine, TextBlock, \
+from rogerthat.models.properties.forms import Widget, MessageFormTO, AutoComplete, Choice, RangeSlider, TextLine, TextBlock, \
     SingleSelect, MultiSelect, SingleSlider, FormResult, UnicodeWidgetResult, UnicodeListWidgetResult, FloatWidgetResult, \
     FloatListWidgetResult, DateSelect, PhotoUpload, KeyboardType, GPSLocation, FriendSelect, Sign
-from rogerthat.models.properties.messaging import Button, Buttons, MemberStatuses, MemberStatus, Attachments
+from rogerthat.models.properties.messaging import MessageMemberStatusTO, MessageButtonTO
 from rogerthat.rpc import users
 from rogerthat.to import WIDGET_MAPPING
 from rogerthat.to.messaging.forms import FormMessageTO, RangeSliderTO, SingleSliderTO, MultiSelectTO, ChoiceTO, \
@@ -45,25 +45,26 @@ from rogerthat.utils import now, guid
 class TestForms(mc_unittest.TestCase):
 
     def _getBaseFormMessage(self, msg):
-        pos_btn = Button()
+        pos_btn = MessageButtonTO()
         pos_btn.action = None
         pos_btn.caption = u"Submit"
         pos_btn.id = u"positive"
         pos_btn.index = 0
         pos_btn.ui_flags = 0
 
-        neg_btn = Button()
+        neg_btn = MessageButtonTO()
         neg_btn.action = None
         neg_btn.caption = u"Cancel"
         neg_btn.id = u"negative"
         neg_btn.index = 1
         neg_btn.ui_flags = 0
 
-        buttons = Buttons()
-        buttons.add(pos_btn)
-        buttons.add(neg_btn)
+        buttons = {}
+        buttons[pos_btn.id] = pos_btn
+        buttons[neg_btn.id] = neg_btn
 
-        ms = MemberStatus()
+        member_statuses = {}
+        ms = MessageMemberStatusTO()
         ms.acked_timestamp = 0
         ms.button_index = -1
         ms.custom_reply = None
@@ -71,11 +72,9 @@ class TestForms(mc_unittest.TestCase):
         ms.form_result = None
         ms.index = 0
         ms.received_timestamp = now()
-        ms.status = MemberStatus.STATUS_RECEIVED
+        ms.status = MessageMemberStatusTO.STATUS_RECEIVED
         ms.ack_device = None
-
-        memberStatuses = MemberStatuses()
-        memberStatuses.add(ms)
+        member_statuses[ms.index] = ms
 
         m = FormMessage()
         m.sender = users.User(email=u"sender@rogerth.at")
@@ -84,14 +83,14 @@ class TestForms(mc_unittest.TestCase):
         m.alert_flags = 2
         m.branding = None
         m.message = msg
-        m.buttons = buttons
-        m.memberStatusses = memberStatuses
+        m.save_buttons(buttons)
+        m.save_member_statuses(member_statuses)
         m.creationTimestamp = now()
         m.generation = 1
         m.tag = u"tag 123"
         m.timestamp = now()
 
-        m.attachments = Attachments()
+        m.attachments_json = None
 
         return m
 
@@ -103,13 +102,13 @@ class TestForms(mc_unittest.TestCase):
         widget.value = u"Skoda"
         widget.keyboard_type = random.choice(KeyboardType.all())
 
-        form = Form()
+        form = MessageFormTO()
         form.type = Widget.TYPE_TEXT_LINE
         form.widget = widget
         form.javascript_validation = u"function run(result){return true;}"
 
         m = self._getBaseFormMessage(u"Enter the brand of your car")
-        m.form = form
+        m.save_form(form)
         return m, form, widget
 
 
@@ -119,8 +118,8 @@ class TestForms(mc_unittest.TestCase):
 
         m2 = db.get(m.key())
         self.assert_(m2)
-        self.assertEquals(m2.form.type, form.type)
-        self.assertEquals(m2.form.widget.value, widget.value)
+        self.assertEquals(m2.get_form().type, form.type)
+        self.assertEquals(m2.get_form().widget.value, widget.value)
 
 
     def _getTextBlockForm(self):
@@ -130,13 +129,13 @@ class TestForms(mc_unittest.TestCase):
         widget.value = u"Comments Comments Comments Comments Comments Comments"
         widget.keyboard_type = random.choice(KeyboardType.all())
 
-        form = Form()
+        form = MessageFormTO()
         form.type = Widget.TYPE_TEXT_BLOCK
         form.widget = widget
         form.javascript_validation = u"function run(result){return true;}"
 
         m = self._getBaseFormMessage(u"Please enter comments about your order")
-        m.form = form
+        m.save_form(form)
         return m, form, widget
 
 
@@ -146,8 +145,8 @@ class TestForms(mc_unittest.TestCase):
 
         m2 = db.get(m.key())
         self.assert_(m2)
-        self.assertEquals(m2.form.type, form.type)
-        self.assertEquals(m2.form.widget.value, widget.value)
+        self.assertEquals(m2.get_form().type, form.type)
+        self.assertEquals(m2.get_form().widget.value, widget.value)
 
 
     def _getAutoCompleteForm(self):
@@ -158,13 +157,13 @@ class TestForms(mc_unittest.TestCase):
         widget.value = u"Skoda"
         widget.keyboard_type = random.choice(KeyboardType.all())
 
-        form = Form()
+        form = MessageFormTO()
         form.type = Widget.TYPE_AUTO_COMPLETE
         form.widget = widget
         form.javascript_validation = u"function run(result){return true;}"
 
         m = self._getBaseFormMessage(u"Enter the brand of your car")
-        m.form = form
+        m.save_form(form)
         return m, form, widget
 
 
@@ -174,9 +173,9 @@ class TestForms(mc_unittest.TestCase):
 
         m2 = db.get(m.key())
         self.assert_(m2)
-        self.assertEquals(m2.form.type, form.type)
-        self.assertEquals(m2.form.widget.value, widget.value)
-        self.assert_(m2.form.widget.suggestions)
+        self.assertEquals(m2.get_form().type, form.type)
+        self.assertEquals(m2.get_form().widget.value, widget.value)
+        self.assert_(m2.get_form().widget.suggestions)
 
 
     def _getSingleSelectForm(self):
@@ -188,13 +187,13 @@ class TestForms(mc_unittest.TestCase):
         widget.choices.append(Choice(label=u"Volkswagen", value=u"3"))
         widget.value = u"2"
 
-        form = Form()
+        form = MessageFormTO()
         form.type = Widget.TYPE_SINGLE_SELECT
         form.widget = widget
         form.javascript_validation = u"function run(result){return true;}"
 
         m = self._getBaseFormMessage(u"Select the brand of your car")
-        m.form = form
+        m.save_form(form)
         return m, form, widget
 
 
@@ -204,9 +203,9 @@ class TestForms(mc_unittest.TestCase):
 
         m2 = db.get(m.key())
         self.assert_(m2)
-        self.assertEquals(m2.form.type, form.type)
-        self.assertEquals(m2.form.widget.value, widget.value)
-        self.assert_(m2.form.widget.choices)
+        self.assertEquals(m2.get_form().type, form.type)
+        self.assertEquals(m2.get_form().widget.value, widget.value)
+        self.assert_(m2.get_form().widget.choices)
 
 
     def _getMultiSelectForm(self):
@@ -220,13 +219,13 @@ class TestForms(mc_unittest.TestCase):
         widget.choices.append(Choice(label=u"Scirocco", value=u"5"))
         widget.values = [u"3", u"6"]
 
-        form = Form()
+        form = MessageFormTO()
         form.type = Widget.TYPE_MULTI_SELECT
         form.widget = widget
         form.javascript_validation = u"function run(result){return true;}"
 
         m = self._getBaseFormMessage(u"Select your favorite Volkswagen cars")
-        m.form = form
+        m.save_form(form)
         return m, form, widget
 
 
@@ -236,9 +235,9 @@ class TestForms(mc_unittest.TestCase):
 
         m2 = db.get(m.key())
         self.assert_(m2)
-        self.assertEquals(m2.form.type, form.type)
-        self.assertEquals(m2.form.widget.values, widget.values)
-        self.assert_(m2.form.widget.choices)
+        self.assertEquals(m2.get_form().type, form.type)
+        self.assertEquals(m2.get_form().widget.values, widget.values)
+        self.assert_(m2.get_form().widget.choices)
 
 
     def _getDateSelectForm(self):
@@ -254,14 +253,13 @@ class TestForms(mc_unittest.TestCase):
         widget.mode = DateSelect.MODE_DATE_TIME
         widget.unit = u"<value/>"
 
-        form = Form()
+        form = MessageFormTO()
         form.type = Widget.TYPE_DATE_SELECT
         form.widget = widget
         form.javascript_validation = u"function run(result){return true;}"
 
         m = self._getBaseFormMessage(u"Select a date")
-        m.form = form
-
+        m.save_form(form)
         return m, form, widget
 
 
@@ -271,12 +269,12 @@ class TestForms(mc_unittest.TestCase):
 
         m2 = db.get(m.key())
         self.assert_(m2)
-        self.assertEquals(m2.form.type, form.type)
-        self.assertEquals(m2.form.widget.unit, widget.unit)
-        self.assertEquals(m2.form.widget.mode, widget.mode)
-        self.assertEquals(m2.form.widget.max_date, widget.max_date)
-        self.assertEquals(m2.form.widget.min_date, widget.min_date)
-        self.assertEquals(m2.form.widget.date, widget.date)
+        self.assertEquals(m2.get_form().type, form.type)
+        self.assertEquals(m2.get_form().widget.unit, widget.unit)
+        self.assertEquals(m2.get_form().widget.mode, widget.mode)
+        self.assertEquals(m2.get_form().widget.max_date, widget.max_date)
+        self.assertEquals(m2.get_form().widget.min_date, widget.min_date)
+        self.assertEquals(m2.get_form().widget.date, widget.date)
 
 
     def _getFriendSelectForm(self):
@@ -284,14 +282,13 @@ class TestForms(mc_unittest.TestCase):
         widget.selection_required = True
         widget.multi_select = False
 
-        form = Form()
+        form = MessageFormTO()
         form.type = Widget.TYPE_FRIEND_SELECT
         form.widget = widget
         form.javascript_validation = u"function run(result){return true;}"
 
         m = self._getBaseFormMessage(u"Select a friend")
-        m.form = form
-
+        m.save_form(form)
         return m, form, widget
 
 
@@ -301,9 +298,9 @@ class TestForms(mc_unittest.TestCase):
 
         m2 = db.get(m.key())
         self.assert_(m2)
-        self.assertEquals(m2.form.type, form.type)
-        self.assertEquals(m2.form.widget.selection_required, widget.selection_required)
-        self.assertEquals(m2.form.widget.multi_select, widget.multi_select)
+        self.assertEquals(m2.get_form().type, form.type)
+        self.assertEquals(m2.get_form().widget.selection_required, widget.selection_required)
+        self.assertEquals(m2.get_form().widget.multi_select, widget.multi_select)
 
 
     def _getSingleSliderForm(self):
@@ -315,13 +312,13 @@ class TestForms(mc_unittest.TestCase):
         widget.unit = u"<value/> EUR"
         widget.value = 70
 
-        form = Form()
+        form = MessageFormTO()
         form.type = Widget.TYPE_SINGLE_SLIDER
         form.widget = widget
         form.javascript_validation = u"function run(result){return true;}"
 
         m = self._getBaseFormMessage(u"Enter price")
-        m.form = form
+        m.save_form(form)
         return m, form, widget
 
 
@@ -331,8 +328,8 @@ class TestForms(mc_unittest.TestCase):
 
         m2 = db.get(m.key())
         self.assert_(m2)
-        self.assertEquals(m2.form.type, form.type)
-        self.assertEquals(m2.form.widget.value, widget.value)
+        self.assertEquals(m2.get_form().type, form.type)
+        self.assertEquals(m2.get_form().widget.value, widget.value)
 
 
     def _getRangeSliderForm(self):
@@ -345,13 +342,13 @@ class TestForms(mc_unittest.TestCase):
         widget.step = 2
         widget.unit = u"<low_value/> - <high_value/> EUR"
 
-        form = Form()
+        form = MessageFormTO()
         form.type = Widget.TYPE_RANGE_SLIDER
         form.widget = widget
         form.javascript_validation = u"function run(result){return true;}"
 
         m = self._getBaseFormMessage(u"Enter price range")
-        m.form = form
+        m.save_form(form)
         return m, form, widget
 
 
@@ -361,9 +358,9 @@ class TestForms(mc_unittest.TestCase):
 
         m2 = db.get(m.key())
         self.assert_(m2)
-        self.assertEquals(m2.form.type, form.type)
-        self.assertEquals(m2.form.widget.high_value, widget.high_value)
-        self.assertEquals(m2.form.widget.low_value, widget.low_value)
+        self.assertEquals(m2.get_form().type, form.type)
+        self.assertEquals(m2.get_form().widget.high_value, widget.high_value)
+        self.assertEquals(m2.get_form().widget.low_value, widget.low_value)
 
 
     def _getPhotoUploadForm(self):
@@ -373,14 +370,13 @@ class TestForms(mc_unittest.TestCase):
         widget.camera = True
         widget.ratio = u"200x200"
 
-        form = Form()
+        form = MessageFormTO()
         form.type = Widget.TYPE_PHOTO_UPLOAD
         form.widget = widget
         form.javascript_validation = None
 
         m = self._getBaseFormMessage(u"Upload a photo")
-        m.form = form
-
+        m.save_form(form)
         return m, form, widget
 
 
@@ -390,24 +386,23 @@ class TestForms(mc_unittest.TestCase):
 
         m2 = db.get(m.key())
         self.assert_(m2)
-        self.assertEquals(m2.form.type, form.type)
-        self.assertEquals(m2.form.widget.quality, widget.quality)
-        self.assertEquals(m2.form.widget.gallery, widget.gallery)
-        self.assertEquals(m2.form.widget.camera, widget.camera)
-        self.assertEquals(m2.form.widget.ratio, widget.ratio)
+        self.assertEquals(m2.get_form().type, form.type)
+        self.assertEquals(m2.get_form().widget.quality, widget.quality)
+        self.assertEquals(m2.get_form().widget.gallery, widget.gallery)
+        self.assertEquals(m2.get_form().widget.camera, widget.camera)
+        self.assertEquals(m2.get_form().widget.ratio, widget.ratio)
 
     def _getGpsLocationForm(self):
         widget = GPSLocation()
         widget.gps = True
 
-        form = Form()
+        form = MessageFormTO()
         form.type = Widget.TYPE_GPS_LOCATION
         form.widget = widget
         form.javascript_validation = None
 
         m = self._getBaseFormMessage(u"Submit your location")
-        m.form = form
-
+        m.save_form(form)
         return m, form, widget
 
     def testGpsLocationForm(self):
@@ -416,8 +411,8 @@ class TestForms(mc_unittest.TestCase):
 
         m2 = db.get(m.key())
         self.assert_(m2)
-        self.assertEquals(m2.form.type, form.type)
-        self.assertEquals(m2.form.widget.gps, widget.gps)
+        self.assertEquals(m2.get_form().type, form.type)
+        self.assertEquals(m2.get_form().widget.gps, widget.gps)
 
     def _getSignForm(self):
         widget = Sign()
@@ -427,14 +422,13 @@ class TestForms(mc_unittest.TestCase):
         widget.key_name = u'rogerthat'
         widget.index = None
 
-        form = Form()
+        form = MessageFormTO()
         form.type = Widget.TYPE_SIGN
         form.widget = widget
         form.javascript_validation = None
 
         m = self._getBaseFormMessage(u"Sign the document")
-        m.form = form
-
+        m.save_form(form)
         return m, form, widget
 
     def testSignForm(self):
@@ -443,9 +437,9 @@ class TestForms(mc_unittest.TestCase):
 
         m2 = db.get(m.key())
         self.assert_(m2)
-        self.assertEquals(m2.form.type, form.type)
-        self.assertEquals(m2.form.widget.payload, widget.payload)
-        self.assertEquals(m2.form.widget.caption, widget.caption)
+        self.assertEquals(m2.get_form().type, form.type)
+        self.assertEquals(m2.get_form().widget.payload, widget.payload)
+        self.assertEquals(m2.get_form().widget.caption, widget.caption)
 
 
     def _getBaseFormMessageTO(self, msg):
@@ -901,8 +895,8 @@ class TestForms(mc_unittest.TestCase):
         fr.type = r.TYPE
         fr.result = r
 
-        ms = fm.memberStatusses[0]
-        ms.button_index = fm.buttons[Form.POSITIVE].index
+        ms = fm.get_member_statuses()[0]
+        ms.button_index = fm.get_button_by_id(MessageFormTO.POSITIVE).index
         ms.dismissed = False
         ms.form_result = fr
         ms.received_timestamp = now()
@@ -923,8 +917,8 @@ class TestForms(mc_unittest.TestCase):
         fr.type = r.TYPE
         fr.result = r
 
-        ms = fm.memberStatusses[0]
-        ms.button_index = fm.buttons[Form.POSITIVE].index
+        ms = fm.get_member_statuses()[0]
+        ms.button_index = fm.get_button_by_id(MessageFormTO.POSITIVE).index
         ms.dismissed = False
         ms.form_result = fr
         ms.received_timestamp = now()
@@ -945,8 +939,8 @@ class TestForms(mc_unittest.TestCase):
         fr.type = r.TYPE
         fr.result = r
 
-        ms = fm.memberStatusses[0]
-        ms.button_index = fm.buttons[Form.POSITIVE].index
+        ms = fm.get_member_statuses()[0]
+        ms.button_index = fm.get_button_by_id(MessageFormTO.POSITIVE).index
         ms.dismissed = False
         ms.form_result = fr
         ms.received_timestamp = now()
@@ -967,8 +961,8 @@ class TestForms(mc_unittest.TestCase):
         fr.type = r.TYPE
         fr.result = r
 
-        ms = fm.memberStatusses[0]
-        ms.button_index = fm.buttons[Form.POSITIVE].index
+        ms = fm.get_member_statuses()[0]
+        ms.button_index = fm.get_button_by_id(MessageFormTO.POSITIVE).index
         ms.dismissed = False
         ms.form_result = fr
         ms.received_timestamp = now()
@@ -989,9 +983,11 @@ class TestForms(mc_unittest.TestCase):
 
         # With confirmation
         fm, _, _ = self._getTextLineForm()
-        for btn in fm.buttons:
+        buttons = fm.get_buttons()
+        for _, btn in buttons.iteritems():
             btn.action = "confirm://test_%s" % btn.id
+        fm.save_buttons(buttons)
         db.put(fm)
         fmTO = FormMessageTO.fromFormMessage(fm)
-        self.assertEqual(fmTO.form.positive_confirmation, "test_%s" % Form.POSITIVE)
-        self.assertEqual(fmTO.form.negative_confirmation, "test_%s" % Form.NEGATIVE)
+        self.assertEqual(fmTO.form.positive_confirmation, "test_%s" % MessageFormTO.POSITIVE)
+        self.assertEqual(fmTO.form.negative_confirmation, "test_%s" % MessageFormTO.NEGATIVE)

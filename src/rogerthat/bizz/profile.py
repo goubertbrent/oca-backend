@@ -494,8 +494,8 @@ def _send_message_to_inform_user_about_a_new_join_step_2(fb_friend_user, new_use
 @arguments(message=Message)
 def ack_facebook_invite(message):
     azzert(message.tag == INVITE_FACEBOOK_FRIEND)
-    memberStatus = message.memberStatusses[message.members.index(message.invitor)]
-    if not memberStatus.dismissed and message.buttons[memberStatus.button_index].id == INVITE_ID:
+    memberStatus = message.get_member_statuses()[message.members.index(message.invitor)]
+    if not memberStatus.dismissed and message.get_button_by_index(memberStatus.button_index).id == INVITE_ID:
         profile = get_user_profile(message.invitee)
         if profile:
             invite(message.invitor, message.invitee.email(), None, profile.language, None, None,

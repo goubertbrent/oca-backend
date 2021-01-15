@@ -43,9 +43,9 @@ from rogerthat.dal.messaging import get_transfer_chunks, get_transfer_result
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.models import APIKey, Message, ServiceIdentity, ChatWriterMembers, \
     ChatAdminMembers
-from rogerthat.models.properties.forms import Form, KeyboardType
-from rogerthat.models.properties.messaging import MemberStatus, Buttons, MemberStatuses, _serialize_attachments, \
-    _deserialize_attachments, Attachments
+from rogerthat.models.properties.forms import MessageFormTO, KeyboardType
+from rogerthat.models.properties.messaging import MessageMemberStatusTO, _serialize_attachments, _deserialize_attachments,\
+    MessageAttachmentTO
 from rogerthat.restapi.web import load_web
 from rogerthat.rpc import users
 from rogerthat.rpc.http import process
@@ -62,6 +62,7 @@ from rogerthat.to.service import ServiceIdentityDetailsTO
 from rogerthat.utils import now, is_flag_set
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat_tests import register_tst_mobile, set_current_user, set_current_mobile
+
 
 JSON_WIDGET_MAPPING = {
     TextLineTO.TYPE: ['"value": null, "place_holder": "Name", "max_chars": 100',
@@ -335,7 +336,7 @@ class Test(mc_unittest.TestCase):
         req = FORM_RESULT_REQUEST_STR % {"f": "com.mobicage.api.messaging.%s" % widget_descr.submit_form_call.__name__, \
                                          "ci":ci, "t":now(), "fm_key":fm_key, "pm_key":pm_key and ('"%s"' % pm_key) or "null", \
                                          "result":positive_button_pressed and JSON_RESULT_MAPPING[widget_descr.result_type] or "null", \
-                                         "button_id":positive_button_pressed and Form.POSITIVE or Form.NEGATIVE}
+                                         "button_id":positive_button_pressed and MessageFormTO.POSITIVE or MessageFormTO.NEGATIVE}
         answer_response_str = process(req)
         answer_response = json.loads(answer_response_str)
         resp = None
@@ -560,7 +561,7 @@ class Test(mc_unittest.TestCase):
         message.alert_flags = Message.ALERT_FLAG_VIBRATE
         message.childMessages = list()
         message.branding = None
-        message.buttons = Buttons()
+        message.buttons_json = None
         message.creationTimestamp = now()
         message.dismiss_button_ui_flags = 0
         message.flags = 31
@@ -570,9 +571,9 @@ class Test(mc_unittest.TestCase):
         message.tag = None
         message.timeout = 0
         message.timestamp = message.creationTimestamp
-        message.memberStatusses = MemberStatuses()
+        member_statuses = {}
         for i in xrange(len(message.members)):
-            ms = MemberStatus()
+            ms = MessageMemberStatusTO()
             ms.status = 0
             ms.received_timestamp = 0
             ms.acked_timestamp = 0
@@ -582,8 +583,9 @@ class Test(mc_unittest.TestCase):
             ms.custom_reply = None
             ms.form_result = None
             ms.ack_device = None
-            message.memberStatusses.add(ms)
-        message.attachments = Attachments()
+            member_statuses[ms.index] = ms
+        message.save_member_statuses(member_statuses)
+        message.attachments_json = None
 
     def testGeneratePushJSON(self):
         self.set_datastore_hr_probability(1)
@@ -759,15 +761,14 @@ Hyundai BeLux
         # check properties
         attachmentTOs = _validate_attachments([a1, a2, a3])
         _add_attachments(attachmentTOs, msg)
+        
+        expected_dict = {
+            0: MessageAttachmentTO(index=0, name=u'blabla', download_url=u'http://www.rogerthat.net/wp-content/uploads/2012/12/home-bg.jpg', content_type=u'image/jpeg', thumbnail=None, size=4096),
+            1: MessageAttachmentTO(index=1, name=u'blabla', download_url=u'http://www.rogerthat.net/wp-content/uploads/data/rogerthat_brochure.pdf', content_type=u'application/pdf', thumbnail=None, size=8192),
+            2: MessageAttachmentTO(index=2, name=u'blabla3', download_url=u'http://techslides.com/demos/sample-videos/small.mp4', content_type=u'video/mp4', thumbnail=None, size=383631)
+        }
+        self.assertEqual(expected_dict, msg.get_attachments())
 
-        # check serialization
-        stream = StringIO.StringIO()
-        _serialize_attachments(stream, msg.attachments)
-        stream.seek(0)
-        deserialized = _deserialize_attachments(stream)
-        for a in deserialized.values():
-            self.assertEqual(a.content_type, attachmentTOs[a.index].content_type)
-            self.assertEqual(a.download_url, attachmentTOs[a.index].download_url)
 
     def testInvalidAttachments(self):
         # validate missing attachments

@@ -21,7 +21,7 @@ from mcfw.properties import unicode_property, long_property, unicode_list_proper
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.models import Message, App
 from rogerthat.models.properties.forms import FormResult
-from rogerthat.models.properties.messaging import MessageEmbeddedApp, Thumbnail
+from rogerthat.models.properties.messaging import MessageEmbeddedAppTO, Thumbnail
 from rogerthat.rpc import users
 from rogerthat.to import MESSAGE_TYPE_TO_MAPPING, ROOT_MESSAGE_TYPE_TO_MAPPING, BaseButtonTO, TO, convert_to_unicode
 from rogerthat.to.service import UserDetailsTO
@@ -96,7 +96,7 @@ class MemberStatusUpdateRequestTO(object):
 
     @staticmethod
     def fromMessageAndMember(message, user):
-        ms = message.memberStatusses[message.members.index(user)]
+        ms = message.get_member_statuses()[message.members.index(user)]
         request = MemberStatusUpdateRequestTO()
         request.message = message.mkey
         request.parent_message = message.pkey
@@ -104,7 +104,7 @@ class MemberStatusUpdateRequestTO(object):
         request.status = ms.status
         request.received_timestamp = ms.received_timestamp
         request.acked_timestamp = ms.acked_timestamp
-        request.button_id = None if ms.button_index < 0 else message.buttons[ms.button_index].id
+        request.button_id = None if ms.button_index < 0 else message.get_button_by_index(ms.button_index).id
         request.custom_reply = ms.custom_reply
         request.flags = message.flags
         return request
@@ -125,7 +125,7 @@ class SendMessageRequestTO(object):
     attachments = typed_property('8', AttachmentTO, True, default=list())
     priority = long_property('9')
     key = unicode_property('10')
-    embedded_app = typed_property('embedded_app', MessageEmbeddedApp, default=None)
+    embedded_app = typed_property('embedded_app', MessageEmbeddedAppTO, default=None)
 
 
 class SendMessageResponseTO(object):
@@ -168,7 +168,7 @@ class MemberStatusTO(object):
         ms.member = remove_app_id(remove_slash_default(message.members[memberStatus.index], warn=True)).email()
         ms.acked_timestamp = memberStatus.acked_timestamp
         if memberStatus.button_index != -1:
-            ms.button_id = message.buttons[memberStatus.button_index].id
+            ms.button_id = message.get_button_by_index(memberStatus.button_index).id
         else:
             ms.button_id = None
         ms.custom_reply = memberStatus.custom_reply
@@ -245,7 +245,7 @@ class MessageTO(BaseMessageTO):
     timeout = long_property('52')
     buttons = typed_property('53', ButtonTO, True)
     dismiss_button_ui_flags = long_property('54', default=0)
-    embedded_app = typed_property('embedded_app', MessageEmbeddedApp, default=None)
+    embedded_app = typed_property('embedded_app', MessageEmbeddedAppTO, default=None)
 
     @staticmethod
     def fromMessage(message, member=None):
@@ -255,7 +255,7 @@ class MessageTO(BaseMessageTO):
         m.timeout = message.timeout
         m.dismiss_button_ui_flags = message.dismiss_button_ui_flags or 0
         m.buttons = []
-        for b in sorted(message.buttons, key=lambda x: x.index):
+        for b in sorted(message.get_buttons().values(), key=lambda x: x.index):
             button = ButtonTO()
             button.id = b.id
             button.caption = b.caption
@@ -264,12 +264,12 @@ class MessageTO(BaseMessageTO):
             button.color = b.color
             m.buttons.append(button)
         m.members = []
-        for mem in message.memberStatusses:
+        for mem in message.get_member_statuses().values():
             current_member = remove_app_id(remove_slash_default(message.members[mem.index]))
             if current_member != message.sender and member and member != current_member:
                 continue
             m.members.append(MemberStatusTO.fromMessageMemberStatus(message, mem))
-        m.embedded_app = message.embedded_app
+        m.embedded_app = message.get_embedded_app()
         return m
 
 
@@ -324,7 +324,7 @@ class UpdateMessageRequestTO(object):
                                                                        "If '', then the client should go back to the default behavior.")
     thread_text_color = unicode_property('11', default=None, doc=u"If None, then this field was not updated. "
                                                                  "If '', then the client should go back to the default behavior.")
-    embedded_app = typed_property('embedded_app', MessageEmbeddedApp, default=None)
+    embedded_app = typed_property('embedded_app', MessageEmbeddedAppTO, default=None)
 
     @classmethod
     def create(cls, parent_message_key, message_key, last_child_message, flags=MISSING, existence=MISSING, message=None,
@@ -361,7 +361,7 @@ class UpdateMessageResponseTO(object):
 class UpdateMessageEmbeddedAppRequestTO(TO):
     parent_message_key = unicode_property('parent_message_key')
     message_key = unicode_property('message_key')
-    embedded_app = typed_property('embedded_app', MessageEmbeddedApp)
+    embedded_app = typed_property('embedded_app', MessageEmbeddedAppTO)
 
 
 class UpdateMessageEmbeddedAppResponseTO(UpdateMessageEmbeddedAppRequestTO):
@@ -387,7 +387,7 @@ class LockMessageResponseTO(object):
     def fromMessage(message):
         lmr = LockMessageResponseTO()
         lmr.members = list()
-        for mem in message.memberStatusses:
+        for mem in message.get_member_statuses().values():
             lmr.members.append(MemberStatusTO.fromMessageMemberStatus(message, mem))
         return lmr
 
@@ -405,7 +405,7 @@ class MessageLockedRequestTO(object):
         pk = message.parent_key()
         mlr.parent_message_key = pk.name() if pk else None
         mlr.members = list()
-        for mem in message.memberStatusses:
+        for mem in message.get_member_statuses().values():
             mlr.members.append(MemberStatusTO.fromMessageMemberStatus(message, mem))
         return mlr
 

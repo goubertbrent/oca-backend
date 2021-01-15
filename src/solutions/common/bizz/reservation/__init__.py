@@ -28,7 +28,7 @@ from mcfw.rpc import returns, arguments, serialize_complex_value
 import pytz
 from rogerthat.dal import put_and_invalidate_cache, parent_key_unsafe
 from rogerthat.models import Message
-from rogerthat.models.properties.forms import Form, FormResult
+from rogerthat.models.properties.forms import MessageFormTO, FormResult
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import system, messaging
@@ -344,7 +344,7 @@ def my_reservations_detail_updated(service_user, status, answer_id, received_tim
 def my_reservations_edit_comment_updated(service_user, status, form_result, answer_id, member, message_key, tag,
                                          received_timestamp, acked_timestamp, parent_message_key, result_key,
                                          service_identity, user_details):
-    if answer_id != Form.POSITIVE:
+    if answer_id != MessageFormTO.POSITIVE:
         return None
 
     from solutions.common.bizz.messaging import MESSAGE_TAG_MY_RESERVATIONS_EDIT_COMMENT, send_inbox_forwarders_message
@@ -402,7 +402,7 @@ def my_reservations_edit_comment_updated(service_user, status, form_result, answ
 def my_reservations_edit_people_updated(service_user, status, form_result, answer_id, member, message_key, tag,
                                          received_timestamp, acked_timestamp, parent_message_key, result_key,
                                          service_identity, user_details):
-    if answer_id != Form.POSITIVE:
+    if answer_id != MessageFormTO.POSITIVE:
         return None
 
     from solutions.common.bizz.messaging import MESSAGE_TAG_MY_RESERVATIONS_EDIT_PEOPLE, send_inbox_forwarders_message

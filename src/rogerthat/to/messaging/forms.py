@@ -22,7 +22,7 @@ from mcfw.consts import MISSING
 from mcfw.properties import azzert, unicode_property, long_property, typed_property, unicode_list_property, get_members
 from mcfw.utils import Enum
 from rogerthat.models.properties.forms import Widget, TextLine, TextBlock, AutoComplete, SingleSelect, MultiSelect, \
-    Choice, Form, SingleSlider, RangeSlider, WidgetResult, UnicodeWidgetResult, UnicodeListWidgetResult, \
+    Choice, MessageFormTO, SingleSlider, RangeSlider, WidgetResult, UnicodeWidgetResult, UnicodeListWidgetResult, \
     LongWidgetResult, LongListWidgetResult, FloatWidgetResult, FloatListWidgetResult, DateSelect, PhotoUpload, \
     GPSLocation, LocationWidgetResult, MyDigiPass, MyDigiPassWidgetResult, AdvancedOrderWidgetResult, AdvancedOrder, \
     AdvancedOrderItem, AdvancedOrderCategory, FriendSelect, Sign, TextWidget, SignWidgetResult, Oauth, Pay, \
@@ -37,8 +37,8 @@ def _replace(replace_empty_values_by_missing, value):
 
 
 class FormTO(object):
-    POSITIVE = Form.POSITIVE
-    NEGATIVE = Form.NEGATIVE
+    POSITIVE = MessageFormTO.POSITIVE
+    NEGATIVE = MessageFormTO.NEGATIVE
     type = unicode_property('1')  # @ReservedAssignment
     widget = typed_property('2', Widget, False, subtype_attr_name="type", subtype_mapping=WIDGET_TO_MAPPING)
     positive_button = unicode_property('3')
@@ -51,27 +51,27 @@ class FormTO(object):
 
     @staticmethod
     def fromFormMessage(formMessage):
-        w_descr = WIDGET_MAPPING[formMessage.form.type]
+        w_descr = WIDGET_MAPPING[formMessage.get_form().type]
         to = w_descr.form_to_type()
-        to.type = formMessage.form.type
+        to.type = formMessage.get_form().type
         form_result = None
-        for memberStatus in formMessage.memberStatusses:
+        for memberStatus in formMessage.get_member_statuses().values():
             if formMessage.members[memberStatus.index] != formMessage.sender and memberStatus.form_result is not None:
                 form_result = memberStatus.form_result.result
                 break
 
-        to.widget = w_descr.to_type.fromWidget(formMessage.form.widget, form_result)
-        to.javascript_validation = formMessage.form.javascript_validation
-        for btn in formMessage.buttons:
+        to.widget = w_descr.to_type.fromWidget(formMessage.get_form().widget, form_result)
+        to.javascript_validation = formMessage.get_form().javascript_validation
+        for btn in formMessage.get_buttons().values():
             confirmation = None
             if btn.action:
                 scheme, _, _, _, _, _ = urllib2.urlparse.urlparse(btn.action)
                 confirmation = btn.action[len("%s://" % scheme):]
-            if btn.id == Form.POSITIVE:
+            if btn.id == MessageFormTO.POSITIVE:
                 to.positive_button = btn.caption
                 to.positive_button_ui_flags = btn.ui_flags
                 to.positive_confirmation = confirmation
-            elif btn.id == Form.NEGATIVE:
+            elif btn.id == MessageFormTO.NEGATIVE:
                 to.negative_button = btn.caption
                 to.negative_button_ui_flags = btn.ui_flags
                 to.negative_confirmation = confirmation
@@ -84,13 +84,13 @@ class FormMessageTO(BaseMessageTO):
 
     @staticmethod
     def fromFormMessage(formMessage):
-        w_descr = WIDGET_MAPPING[formMessage.form.type]
+        w_descr = WIDGET_MAPPING[formMessage.get_form().type]
         to = BaseMessageTO._populateTO(
-            formMessage, w_descr.fm_to_type(), formMessage.members[formMessage.memberStatusses[0].index])
+            formMessage, w_descr.fm_to_type(), formMessage.members[formMessage.get_member_statuses()[0].index])
         to.form = w_descr.form_to_type.fromFormMessage(formMessage)
         if getattr(to.form.widget, 'unit', None):
             to.form.widget.unit = to.form.widget.unit.replace("%", "%%")
-        to.member = MemberStatusTO.fromMessageMemberStatus(formMessage, formMessage.memberStatusses[0])
+        to.member = MemberStatusTO.fromMessageMemberStatus(formMessage, formMessage.get_member_statuses()[0])
         return to
 
 
@@ -101,7 +101,7 @@ class WebFormMessageTO(MessageTO):
     def fromMessage(fm, thread_size=0):
         wfmTO = WebFormMessageTO()
         wfmTO.__dict__.update(MessageTO.fromMessage(fm, None).__dict__)
-        wfmTO.form = WIDGET_MAPPING[fm.form.type].form_to_type.fromFormMessage(fm)
+        wfmTO.form = WIDGET_MAPPING[fm.get_form().type].form_to_type.fromFormMessage(fm)
         wfmTO.thread_size = thread_size
         return wfmTO
 
@@ -1097,11 +1097,11 @@ class UpdateFormRequestTO(object):
 
     @staticmethod
     def fromMessageAndMember(fm, user):
-        ms = fm.memberStatusses[fm.members.index(user)]
-        req = WIDGET_MAPPING[fm.form.type].form_updated_req_to_type()
+        ms = fm.get_member_statuses()[fm.members.index(user)]
+        req = WIDGET_MAPPING[fm.get_form().type].form_updated_req_to_type()
         req.message_key = fm.mkey
         req.parent_message_key = fm.pkey
-        req.button_id = None if ms.button_index < 0 else fm.buttons[ms.button_index].id
+        req.button_id = None if ms.button_index < 0 else fm.get_button_by_index(ms.button_index).id
         req.acked_timestamp = ms.acked_timestamp
         req.received_timestamp = ms.received_timestamp
         if ms.form_result and ms.form_result.result:

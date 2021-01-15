@@ -696,14 +696,14 @@ def serialize_form(stream, f):
 
 def deserialize_form(stream):
     version = ds_long(stream)  # version
-    f = Form()
+    f = MessageFormTO()
     f.type = ds_unicode(stream)
     f.widget = WIDGET_MAPPING[f.type].model_deserialize(stream)
     f.javascript_validation = ds_unicode(stream) if version >= 2 else None
     return f
 
 
-class Form(object):
+class MessageFormTO(TO):
     POSITIVE = u"positive"
     NEGATIVE = u"negative"
     type = unicode_property('1')  # @ReservedAssignment
@@ -713,11 +713,14 @@ class Form(object):
 
 class FormProperty(db.UnindexedProperty):
 
-    data_type = Form
+    data_type = MessageFormTO
 
     def get_value_for_datastore(self, model_instance):
         stream = StringIO.StringIO()
-        serialize_form(stream, super(FormProperty, self).get_value_for_datastore(model_instance))
+        super_value = super(FormProperty, self).get_value_for_datastore(model_instance)
+        if not super_value:
+            return None
+        serialize_form(stream, super_value)
         return db.Blob(stream.getvalue())
 
     def make_value_from_datastore(self, value):

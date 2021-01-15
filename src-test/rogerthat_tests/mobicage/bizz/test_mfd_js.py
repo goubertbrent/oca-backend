@@ -24,7 +24,8 @@ from rogerthat.bizz.profile import create_service_profile, create_user_profile
 from rogerthat.bizz.service.mfd import MFD_FORM_MODULES, message_flow_design_to_xml
 from rogerthat.bizz.service.mfd.mfd_javascript import generate_js_flow
 from rogerthat.dal.messaging import get_message
-from rogerthat.models.properties.forms import FormResult, UnicodeWidgetResult, FloatListWidgetResult, Form
+from rogerthat.models.properties.forms import UnicodeWidgetResult, FloatListWidgetResult, MessageFormTO,\
+    FormResult
 from rogerthat.rpc import users
 from rogerthat.to.friends import FRIEND_TYPE_SERVICE
 from rogerthat.to.messaging import MessageTO
@@ -35,6 +36,7 @@ from rogerthat.to.messaging.jsmfr import NewFlowMessageRequestTO, MessageFlowMem
 from rogerthat.utils.service import add_slash_default
 from rogerthat_tests import set_current_user
 from rogerthat_tests.mobicage.bizz.test_mfd import MFDUtil
+
 
 service_user = users.User(u's1@foo.com')
 human_user = users.User(u'bart@example.com')
@@ -161,7 +163,7 @@ class Test(mc_unittest.TestCase):
                 'key': u'key',
                 'member': {
                     'acked_timestamp': 12345,
-                    'button_id': Form.POSITIVE,
+                    'button_id': MessageFormTO.POSITIVE,
                     'custom_reply': None,
                     'member': human_user.email(),
                     'received_timestamp': 12345,
@@ -221,7 +223,7 @@ class Test(mc_unittest.TestCase):
                 'key': u'key',
                 'member': {
                     'acked_timestamp': 12345,
-                    'button_id': Form.POSITIVE,
+                    'button_id': MessageFormTO.POSITIVE,
                     'custom_reply': None,
                     'member': human_user.email(),
                     'received_timestamp': 12345,
@@ -248,7 +250,7 @@ class Test(mc_unittest.TestCase):
         self.assertIsInstance(r.form_result.result, FloatListWidgetResult)
         newFlowMessage(r)
         m = get_message(r.message.key, r.message.parent_key)
-        ms = m.memberStatusses[m.members.index(human_user)]
+        ms = m.get_member_statuses()[m.members.index(human_user)]
         self.assertEqual(ms.status, 7)
         self.assertEqual(ms.form_result.result.values, [0, 7])
 

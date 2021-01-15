@@ -43,11 +43,12 @@ from rogerthat.consts import IOS_APPSTORE_WEB_URI_FORMAT, \
 from rogerthat.models.common import NdbModel
 from rogerthat.models.properties import CompressedIntegerList
 from rogerthat.models.properties.app import AutoConnectedServicesProperty, AutoConnectedService
-from rogerthat.models.properties.forms import FormProperty
+from rogerthat.models.properties.forms import FormProperty, MessageFormTO
 from rogerthat.models.properties.friend import FriendDetailsProperty, FriendDetailTO
 from rogerthat.models.properties.keyvalue import KeyValueProperty, KVStore
 from rogerthat.models.properties.messaging import ButtonsProperty, MemberStatusesProperty, JsFlowDefinitionsProperty, \
-    AttachmentsProperty, SpecializedList, EmbeddedAppProperty, JsFlowDefinitionTO
+    AttachmentsProperty, SpecializedList, EmbeddedAppProperty, MessageButtonTO,\
+    MessageEmbeddedAppTO, MessageAttachmentTO, MessageMemberStatusTO, JsFlowDefinitionTO
 from rogerthat.models.properties.oauth import OAuthSettingsProperty
 from rogerthat.models.properties.profiles import MobileDetailsProperty, \
     MobileDetailsNdbProperty, MobileDetailTO
@@ -2373,7 +2374,9 @@ class Message(db.Expando, polymodel.PolyModel):
     branding = db.StringProperty(indexed=False)
     message = db.TextProperty()
     buttons = ButtonsProperty()
+    buttons_json = db.TextProperty()
     memberStatusses = MemberStatusesProperty()
+    member_statuses_json = db.TextProperty()
     creationTimestamp = db.IntegerProperty()
     generation = db.IntegerProperty(indexed=False)
     childMessages = db.ListProperty(db.Key, indexed=False)
@@ -2383,6 +2386,7 @@ class Message(db.Expando, polymodel.PolyModel):
     member_status_index = db.StringListProperty()
     sender_type = db.IntegerProperty()
     attachments = AttachmentsProperty()
+    attachments_json = db.TextProperty()
     service_api_updates = db.UserProperty(indexed=False)
     thread_avatar_hash = db.StringProperty(indexed=False)  # -------|
     thread_background_color = db.StringProperty(indexed=False)  # --| Equal for all messages in the thread
@@ -2392,6 +2396,103 @@ class Message(db.Expando, polymodel.PolyModel):
     default_sticky = db.BooleanProperty(indexed=False)  # ----------| Only on parent message
     step_id = db.StringProperty(indexed=False)  # used for FlowStatistics
     embedded_app = EmbeddedAppProperty()
+    embedded_app_json = db.TextProperty()
+    
+    _tmp_buttons = None
+    _tmp_embedded_app = None
+    _tmp_attachments = None
+    _tmp_member_statuses = None
+    
+    def get_buttons(self):
+        if self._tmp_buttons is None:
+            data = json.loads(self.buttons_json) if self.buttons_json else {}
+            result = {}
+            if data:
+                for button_id, value in data.iteritems():
+                    result[button_id] = MessageButtonTO.from_dict(value)
+            elif self.buttons:
+                for button in self.buttons.values():
+                    result[button.id] = button
+            self._tmp_buttons = result
+        return self._tmp_buttons
+
+    def save_buttons(self, data):
+        result = {}
+        for button_id, value in data.iteritems():
+            result[button_id] = value.to_dict()
+        self.buttons_json = json.dumps(result)
+        self._tmp_buttons = data
+        
+    def get_button_by_id(self, button_id):
+        data = self.get_buttons()
+        if button_id in data:
+            return data[button_id]
+        raise KeyError()
+    
+    def get_button_by_index(self, index):
+        data = self.get_buttons()
+        for button in data.values():
+            if button.index == index:
+                return button
+        raise KeyError()
+    
+    def get_embedded_app(self):
+        if self._tmp_embedded_app is None:
+            data = json.loads(self.embedded_app_json) if self.embedded_app_json else {}
+            result = None
+            if data:
+                result = MessageEmbeddedAppTO.from_dict(data)
+            elif self.embedded_app:
+                result = self.embedded_app
+            self._tmp_embedded_app = result
+        return self._tmp_embedded_app
+
+    def save_embedded_app(self, data):
+        self.embedded_app_json = json.dumps(data.to_dict()) if data else None
+        self._tmp_embedded_app = data
+        
+    def get_attachments(self):
+        if self._tmp_attachments is None:
+            data = json.loads(self.attachments_json) if self.attachments_json else {}
+            result = {}
+            if data:
+                for value in data.values():
+                    attachment = MessageAttachmentTO.from_dict(value)
+                    result[attachment.index] = attachment
+            elif self.attachments:
+                for attachment in self.attachments.values():
+                    result[attachment.index] = attachment
+            self._tmp_attachments = result
+        return self._tmp_attachments
+
+    def save_attachments(self, data):
+        result = {}
+        for index, value in data.iteritems():
+            result[index] = value.to_dict()
+        self.attachments_json = json.dumps(result)
+        self._tmp_attachments = data
+
+    def get_member_statuses(self):
+        if self._tmp_member_statuses is None:
+            data = json.loads(self.member_statuses_json) if self.member_statuses_json else {}
+            result = {}
+            if data:
+                for value in data.values():
+                    ms = MessageMemberStatusTO.from_dict(value)
+                    result[ms.index] = ms
+            elif self.memberStatusses:
+                for ms in self.memberStatusses.values():
+                    result[ms.index] = ms
+            self._tmp_member_statuses = result
+        return self._tmp_member_statuses
+
+    def save_member_statuses(self, data):
+        result = {}
+        for index, value in data.iteritems():
+            result[index] = value.to_dict()
+        self.member_statuses_json = json.dumps(result)
+        self._tmp_member_statuses = data
+
 
     @property
     def sharedMembers(self):
@@ -2481,6 +2582,24 @@ class LocationMessage(ndb.Model):
 class FormMessage(Message):
     TYPE = Message.TYPE_FORM_MESSAGE
     form = FormProperty()
+    form_json = db.TextProperty()
+    
+    _tmp_form = None
+    
+    def get_form(self):
+        if self._tmp_form is None:
+            data = json.loads(self.form_json) if self.form_json else {}
+            result = {}
+            if data:
+                result = MessageFormTO.from_dict(data)
+            elif self.form:
+                result = self.form
+            self._tmp_form = result
+        return self._tmp_form
+
+    def save_form(self, data):
+        self.form_json = json.dumps(data.to_dict()) if data else None
+        self._tmp_form = data
 
 
 class SmartphoneChoice(db.Model):

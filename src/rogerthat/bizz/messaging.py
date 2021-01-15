@@ -58,14 +58,13 @@ from rogerthat.models import Message, FormMessage, ServiceProfile, UserProfile, 
     AbstractChatJob, App, FlowStatistics, ServiceIdentity, ChatAdminMembers
 from rogerthat.models.apps import EmbeddedApplicationType
 from rogerthat.models.payment import PaymentProvider
-from rogerthat.models.properties.forms import Form, RangeSlider, SingleSlider, MultiSelect, SingleSelect, \
+from rogerthat.models.properties.forms import MessageFormTO, RangeSlider, SingleSlider, MultiSelect, SingleSelect, \
     AutoComplete, TextBlock, TextLine, Choice, WidgetResult, FormResult, UnicodeWidgetResult, UnicodeListWidgetResult, \
     LongWidgetResult, LongListWidgetResult, FloatWidgetResult, FloatListWidgetResult, DateSelect, PhotoUpload, \
     GPSLocation, LocationWidgetResult, MyDigiPass, MdpScope, MyDigiPassWidgetResult, AdvancedOrder, \
     AdvancedOrderCategory, FriendSelect, KeyboardType, Sign, TextWidget, Oauth, Pay, OpenIdScope, OpenId
 from rogerthat.models.properties.friend import FriendDetailTO
-from rogerthat.models.properties.messaging import Buttons, Button, MemberStatuses, MemberStatus, Attachments, \
-    Attachment, MessageEmbeddedApp
+from rogerthat.models.properties.messaging import MessageButtonTO, MessageMemberStatusTO, MessageAttachmentTO, MessageEmbeddedAppTO
 from rogerthat.models.properties.profiles import MobileDetailTO
 from rogerthat.rpc import users
 from rogerthat.rpc.models import RpcCAPICall, ServiceAPICallback, Mobile
@@ -704,8 +703,9 @@ def sendForm(sender_user_possibly_with_slash_default, parent_key, member, messag
         fm.message = message
         fm.creationTimestamp = maintenant
         fm.generation = 1
-        fm.memberStatusses = MemberStatuses()
-        ms = MemberStatus()
+        fm.memberStatusses = None
+        member_statuses = {}
+        ms = MessageMemberStatusTO()
         ms.index = 0
         ms.custom_reply = None
         ms.dismissed = False
@@ -713,7 +713,7 @@ def sendForm(sender_user_possibly_with_slash_default, parent_key, member, messag
             ms.status = forced_member_status.status
             ms.received_timestamp = forced_member_status.received_timestamp
             ms.acked_timestamp = forced_member_status.acked_timestamp
-            ms.button_index = fm.buttons[forced_member_status.button_id].index
+            ms.button_index = fm.get_button_by_id(forced_member_status.button_id).index
             ms.form_result = forced_form_result if forced_form_result and forced_form_result.result else None
             ms.ack_device = u"mobile" if get_current_mobile() else u"web"
         else:
@@ -723,7 +723,8 @@ def sendForm(sender_user_possibly_with_slash_default, parent_key, member, messag
             ms.button_index = -1
             ms.form_result = None
             ms.ack_device = None
-        fm.memberStatusses.add(ms)
+        member_statuses[ms.index] = ms
+        fm.save_member_statuses(member_statuses)
         fm.branding = branding
         fm.tag = tag
         fm.alert_flags = alert_flags
@@ -735,12 +736,12 @@ def sendForm(sender_user_possibly_with_slash_default, parent_key, member, messag
         for mem in fm.members:
             fm.member_status_index.append(mem.email())
         if forced_member_status:
-            if is_flag_set(MemberStatus.STATUS_RECEIVED, forced_member_status.status):
+            if is_flag_set(MessageMemberStatusTO.STATUS_RECEIVED, forced_member_status.status):
                 fm.removeStatusIndex(member, Message.MEMBER_INDEX_STATUS_NOT_RECEIVED)
-            if is_flag_set(MemberStatus.STATUS_READ, forced_member_status.status) \
-                    or is_flag_set(MemberStatus.STATUS_ACKED, forced_member_status.status):
+            if is_flag_set(MessageMemberStatusTO.STATUS_READ, forced_member_status.status) \
+                    or is_flag_set(MessageMemberStatusTO.STATUS_ACKED, forced_member_status.status):
                 fm.removeStatusIndex(member, Message.MEMBER_INDEX_STATUS_SHOW_IN_INBOX)
-            if is_flag_set(MemberStatus.STATUS_DELETED, forced_member_status.status):
+            if is_flag_set(MessageMemberStatusTO.STATUS_DELETED, forced_member_status.status):
                 fm.removeStatusIndex(member, Message.MEMBER_INDEX_STATUS_NOT_DELETED)
         fm.step_id = step_id
         _add_attachments(attachments, fm)
@@ -768,13 +769,13 @@ def sendForm(sender_user_possibly_with_slash_default, parent_key, member, messag
 
     thread_size = 1 + (len(parent_message.childMessages) if parent_message else 0)
 
-    req = WIDGET_MAPPING[fm.form.type].new_req_to_type()
-    req.form_message = WIDGET_MAPPING[fm.form.type].fm_to_type.fromFormMessage(fm)
+    req = WIDGET_MAPPING[fm.get_form().type].new_req_to_type()
+    req.form_message = WIDGET_MAPPING[fm.get_form().type].fm_to_type.fromFormMessage(fm)
     req.form_message.thread_size = thread_size
     req.form_message.context = context
     try:
         if previous_thread_message:
-            previous_thread_message_member_status = previous_thread_message.memberStatusses[
+            previous_thread_message_member_status = previous_thread_message.get_member_statuses()[
                 previous_thread_message.members.index(member)]
         else:
             previous_thread_message_member_status = None
@@ -803,7 +804,7 @@ def sendForm(sender_user_possibly_with_slash_default, parent_key, member, messag
         if current_mobile:
             kwargs[SKIP_ACCOUNTS] = [current_mobile.account]
 
-    ctxs = WIDGET_MAPPING[fm.form.type].new_form_call(new_message_response_handler, logError, member, **kwargs)
+    ctxs = WIDGET_MAPPING[fm.get_form().type].new_form_call(new_message_response_handler, logError, member, **kwargs)
     for ctx in ctxs:
         ctx.message = fm.key()
         context_list.append(ctx)
@@ -873,7 +874,7 @@ def _send_message_as_group_chat(sender_user, members, flags, timeout, message, a
            attachments=[AttachmentTO], check_friends=bool, check_friends_of=users.User,
            thread_avatar=str, thread_background_color=unicode, thread_text_color=unicode, priority=int,
            default_priority=(int, long), default_sticky=bool, step_id=unicode, default_alert_flags=int,
-           embedded_app=MessageEmbeddedApp, skip_sender=bool)
+           embedded_app=MessageEmbeddedAppTO, skip_sender=bool)
 def sendMessage(sender_user_possibly_with_slash_default, members, flags, timeout, parent_key, message, answers,
                 sender_answer, branding, tag, dismiss_button_ui_flags=0, context=None, key=None, is_mfr=False,
                 forced_member_status=None, allow_reserved_tag=False, attachments=None,
@@ -1051,7 +1052,7 @@ def sendMessage(sender_user_possibly_with_slash_default, members, flags, timeout
                 member_users = [parent_message.sender, sender_user_without_slash_default]
                 m.members = list(member_users)
             if parent_message.sender in parent_message.members and \
-                    not parent_message.members.index(parent_message.sender) in parent_message.memberStatusses:
+                    not parent_message.members.index(parent_message.sender) in parent_message.get_member_statuses():
                 logging.info("Removing " + str(sender_user_without_slash_default) +
                              " from members list " + str(member_users))
                 member_users.remove(sender_user_without_slash_default)
@@ -1182,16 +1183,17 @@ def sendMessage(sender_user_possibly_with_slash_default, members, flags, timeout
         m.alert_flags = _alert_flags
         _addButtons(answers, m)
         _add_attachments(attachments, m)
-        m.memberStatusses = MemberStatuses()
+        m.memberStatusses = None
+        member_statuses = {}
         if not is_chat:
             for index in xrange(len(member_users)):
-                ms = MemberStatus()
+                ms = MessageMemberStatusTO()
                 if forced_member_status and forced_member_status.member == member_users[index].email():
                     ms.status = forced_member_status.status
                     ms.received_timestamp = forced_member_status.received_timestamp
                     ms.acked_timestamp = forced_member_status.acked_timestamp
                     ms.dismissed = forced_member_status.button_id is None
-                    ms.button_index = -1 if ms.dismissed else m.buttons[forced_member_status.button_id].index
+                    ms.button_index = -1 if ms.dismissed else m.get_button_by_id(forced_member_status.button_id).index
                     ms.custom_reply = forced_member_status.custom_reply
                     ms.ack_device = u"mobile" if get_current_mobile() else u"web"
                 else:
@@ -1204,14 +1206,14 @@ def sendMessage(sender_user_possibly_with_slash_default, members, flags, timeout
                     ms.ack_device = None
                 ms.index = index
                 ms.form_result = None
-                m.memberStatusses.add(ms)
+                member_statuses[ms.index] = ms
             if sender_answer:
                 index = member_users.index(sender_user_without_slash_default)
-                ms = m.memberStatusses[index]
-                ms.status = MemberStatus.STATUS_RECEIVED | MemberStatus.STATUS_ACKED
+                ms = member_statuses[index]
+                ms.status = MessageMemberStatusTO.STATUS_RECEIVED | MessageMemberStatusTO.STATUS_ACKED
                 ms.received_timestamp = maintenant
                 ms.acked_timestamp = maintenant
-                ms.button_index = m.buttons[sender_answer].index
+                ms.button_index = m.get_button_by_id(sender_answer).index
             if sender_type == FriendDetailTO.TYPE_SERVICE:
                 mems = list(m.members)
                 mems.remove(sender_user_without_slash_default)
@@ -1223,14 +1225,15 @@ def sendMessage(sender_user_possibly_with_slash_default, members, flags, timeout
             m.removeStatusIndex(m.sender, Message.MEMBER_INDEX_STATUS_NOT_RECEIVED)
             if forced_member_status:
                 member_user = users.User(forced_member_status.member)
-                if is_flag_set(MemberStatus.STATUS_RECEIVED, forced_member_status.status):
+                if is_flag_set(MessageMemberStatusTO.STATUS_RECEIVED, forced_member_status.status):
                     m.removeStatusIndex(member_user, Message.MEMBER_INDEX_STATUS_NOT_RECEIVED)
-                if is_flag_set(MemberStatus.STATUS_READ, forced_member_status.status) \
-                        or is_flag_set(MemberStatus.STATUS_ACKED, forced_member_status.status):
+                if is_flag_set(MessageMemberStatusTO.STATUS_READ, forced_member_status.status) \
+                        or is_flag_set(MessageMemberStatusTO.STATUS_ACKED, forced_member_status.status):
                     m.removeStatusIndex(member_user, Message.MEMBER_INDEX_STATUS_SHOW_IN_INBOX)
-                if is_flag_set(MemberStatus.STATUS_DELETED, forced_member_status.status):
+                if is_flag_set(MessageMemberStatusTO.STATUS_DELETED, forced_member_status.status):
                     m.removeStatusIndex(member_user, Message.MEMBER_INDEX_STATUS_NOT_DELETED)
-        m.embedded_app = embedded_app
+        m.save_embedded_app(embedded_app)
+        m.save_member_statuses(member_statuses)
         put = [m]
         if parent_key:
             put.append(parent_message)
@@ -1348,7 +1351,7 @@ def _create_new_message_request(m, parent_message, context, alert_flags, member=
 
 
 def update_message_embedded_app(parent_message_key_str, message_key_str, embedded_app):
-    # type: (unicode, unicode, MessageEmbeddedApp) -> Message
+    # type: (unicode, unicode, MessageEmbeddedAppTO) -> Message
     message_key = get_message_key(message_key_str, parent_message_key_str)
     if parent_message_key_str:
         parent_message_key = get_message_key(parent_message_key_str, None)
@@ -1357,15 +1360,17 @@ def update_message_embedded_app(parent_message_key_str, message_key_str, embedde
         parent_message = message = db.get(message_key)
     allowed_updated_properties = ['title', 'description', 'image_url']
     must_update = False
+    message_embedded_app = message.get_embedded_app()
     for prop in allowed_updated_properties:
         val = getattr(embedded_app, prop)
-        if val is not MISSING and val != getattr(message.embedded_app, prop):
-            setattr(message.embedded_app, prop, val)
+        if val is not MISSING and val != getattr(message_embedded_app, prop):
+            setattr(message_embedded_app, prop, val)
             must_update = True
-    if not message.embedded_app.result and embedded_app.result is not MISSING:
-        message.embedded_app.result = embedded_app.result
+    if not message_embedded_app.result and embedded_app.result is not MISSING:
+        message_embedded_app.result = embedded_app.result
         must_update = True
     if must_update:
+        message.save_embedded_app(message_embedded_app)
         message.put()
         last_child_message = None if not parent_message.childMessages else parent_message.childMessages[-1].name()
         _send_update_message(parent_message.members, message, last_child_message)
@@ -1382,7 +1387,7 @@ def _send_update_message(recipients, message, last_child_message):
                                             flags=message.flags,
                                             last_child_message=last_child_message,
                                             message=message.message,
-                                            embedded_app=message.embedded_app,
+                                            embedded_app=message.get_embedded_app(),
                                             existence=1)
     context_list = []
     for recipient in recipients:
@@ -1403,7 +1408,7 @@ def _update_new_message_request_and_create_capi_call(recipient, m, parent_messag
     if not is_chat:
         # Silence message in a flow use case ran from the web
         try:
-            previous_thread_message_member_status = previous_thread_message.memberStatusses[
+            previous_thread_message_member_status = previous_thread_message.get_member_statuses()[
                 previous_thread_message.members.index(recipient)] if previous_thread_message else None
             if request.message.alert_flags < Message.ALERT_FLAG_RING_5 \
                 and ((previous_thread_message_member_status
@@ -1498,8 +1503,10 @@ def _remove_message_for_all_members(message_key, parent_message_key, context):
             message = get_message(message_key, parent_message_key)
         else:
             message = parent_message
-        for ms in message.memberStatusses:
-            ms.status |= MemberStatus.STATUS_DELETED
+        member_statuses = message.get_member_statuses()
+        for ms in member_statuses:
+            ms.status |= MessageMemberStatusTO.STATUS_DELETED
+        message.save_member_statuses(member_statuses)
         for member in message.members:
             message.removeStatusIndex(
                 member, (Message.MEMBER_INDEX_STATUS_NOT_DELETED, Message.MEMBER_INDEX_STATUS_SHOW_IN_INBOX))
@@ -2004,13 +2011,15 @@ def _markMessagesAsRead(user, parent_message_key, message_keys, mobile):
             if not m:
                 logging.warning("Could not find message with key %s!" % datastore_key.name())
                 continue
+            member_statuses = m.get_member_statuses()
             try:
-                ms = m.memberStatusses[m.members.index(user)]
+                ms = member_statuses[m.members.index(user)]
             except:
                 logging.exception("user %s not found in message %s", user, m.mkey)
                 continue
-            was_already_read = is_flag_set(MemberStatus.STATUS_READ, ms.status)
-            ms.status |= MemberStatus.STATUS_READ
+            was_already_read = is_flag_set(MessageMemberStatusTO.STATUS_READ, ms.status)
+            ms.status |= MessageMemberStatusTO.STATUS_READ
+            m.save_member_statuses(member_statuses)
             m.removeStatusIndex(user, Message.MEMBER_INDEX_STATUS_SHOW_IN_INBOX)
             if m.step_id and not was_already_read:
                 # assuming that the length of the message_keys is 1 in this case,
@@ -2053,6 +2062,7 @@ def lockMessage(service_user_or_app_user, message_key, message_parent_key, dirty
             raise MessageLockedException()
         message.flags |= Message.FLAG_LOCKED
 
+        member_statuses = message.get_member_statuses()
         for member in message.members:
             if member == message.sender:
                 continue
@@ -2060,13 +2070,14 @@ def lockMessage(service_user_or_app_user, message_key, message_parent_key, dirty
                 message.removeStatusIndex(member, Message.MEMBER_INDEX_STATUS_SHOW_IN_INBOX)
             elif dirty_behavior == DirtyBehavior.MAKE_DIRTY:
                 message.addStatusIndex(member, Message.MEMBER_INDEX_STATUS_SHOW_IN_INBOX)
-                ms = message.memberStatusses[message.members.index(member)]
-                ms.status &= ~MemberStatus.STATUS_READ
+                ms = member_statuses[message.members.index(member)]
+                ms.status &= ~MessageMemberStatusTO.STATUS_READ
             else:  # DirtyBehavior.NORMAL -- add SHOW_IN_INBOX when message was not ACKED
-                ms = message.memberStatusses[message.members.index(member)]
-                if (ms.status & MemberStatus.STATUS_ACKED) != MemberStatus.STATUS_ACKED:
+                ms = member_statuses[message.members.index(member)]
+                if (ms.status & MessageMemberStatusTO.STATUS_ACKED) != MessageMemberStatusTO.STATUS_ACKED:
                     message.addStatusIndex(member, Message.MEMBER_INDEX_STATUS_SHOW_IN_INBOX)
-                    ms.status &= ~MemberStatus.STATUS_READ
+                    ms.status &= ~MessageMemberStatusTO.STATUS_READ
+        message.save_member_statuses(member_statuses)
         message.generation += 1
         message.put()
         return message
@@ -2532,12 +2543,14 @@ def service_delete_conversation(service_identity_user, parent_message_key, membe
 
 @returns(NoneType)
 @arguments(user=users.User, parent_message_key=unicode, force=bool, delete_status=int)
-def delete_conversation(user, parent_message_key, force=False, delete_status=MemberStatus.STATUS_DELETED):
+def delete_conversation(user, parent_message_key, force=False, delete_status=MessageMemberStatusTO.STATUS_DELETED):
     def _update_member_status(msg):
         if not user in msg.members:
             raise ResponseReceivedFromNonMemberException("user '%s' not found in message '%s'" % (user, msg.mkey))
-        ms = msg.memberStatusses[msg.members.index(user)]
+        member_statuses = msg.get_member_statuses()
+        ms = member_statuses[msg.members.index(user)]
         ms.status |= delete_status
+        msg.save_member_statuses(member_statuses)
         msg.removeStatusIndex(
             user, (Message.MEMBER_INDEX_STATUS_NOT_DELETED, Message.MEMBER_INDEX_STATUS_SHOW_IN_INBOX))
 
@@ -2571,7 +2584,7 @@ def delete_conversation(user, parent_message_key, force=False, delete_status=Mem
         return
     xg_on = db.create_transaction_options(xg=True)
     parent_message = db.run_in_transaction_options(xg_on, run)
-    if delete_status == MemberStatus.STATUS_DELETED and (parent_message or force):
+    if delete_status == MessageMemberStatusTO.STATUS_DELETED and (parent_message or force):
         _send_deleted(user, parent_message_key)
 
 
@@ -2617,8 +2630,10 @@ def recover_conversation(user, parent_message, exclude_children, _run_in_transac
     def _update_member_status(msg):
         if not user in msg.members:
             raise ResponseReceivedFromNonMemberException("user '%s' not found in message '%s'" % (user, msg.mkey))
-        ms = msg.memberStatusses[msg.members.index(user)]
-        ms.status &= ~MemberStatus.STATUS_DELETED
+        member_statuses = msg.get_member_statuses()
+        ms = member_statuses[msg.members.index(user)]
+        ms.status &= ~MessageMemberStatusTO.STATUS_DELETED
+        msg.save_member_statuses(member_statuses)
         msg.addStatusIndex(user, (Message.MEMBER_INDEX_STATUS_NOT_DELETED))
 
     def run():
@@ -2649,14 +2664,14 @@ def _resend_message(user, mobile, message, puts, send_status_updates=False):
         request.message = MessageTO.fromMessage(message, None if message.sharedMembers else user)
         request.message.alert_flags = Message.ALERT_FLAG_SILENT
         if not is_chat:
-            ms = message.memberStatusses[message.members.index(user)]
+            ms = message.get_member_statuses()[message.members.index(user)]
         ctxs = newMessage(new_message_response_handler, logError, user, request=request, **kwargs)
         for ctx in ctxs:
             ctx.is_chat = is_chat
             ctx.message = message.key()
         puts.extend(ctxs)
 
-        if not is_chat and send_status_updates and is_flag_set(MemberStatus.STATUS_ACKED, ms.status):
+        if not is_chat and send_status_updates and is_flag_set(MessageMemberStatusTO.STATUS_ACKED, ms.status):
             # making sure that client dirty and needs_my_answer flags are correct for old clients
             status_request = MemberStatusUpdateRequestTO.fromMessageAndMember(message, user)
             ctxs = updateMessageMemberStatus(
@@ -2664,17 +2679,17 @@ def _resend_message(user, mobile, message, puts, send_status_updates=False):
             puts.extend(ctxs)
 
     def _send_form_message(fm, puts):
-        w_descr = WIDGET_MAPPING[fm.form.type]
+        w_descr = WIDGET_MAPPING[fm.get_form().type]
         request = w_descr.new_req_to_type()
         request.form_message = w_descr.fm_to_type.fromFormMessage(fm)
         request.form_message.alert_flags = Message.ALERT_FLAG_SILENT
-        ms = fm.memberStatusses[fm.members.index(user)]
+        ms = fm.get_member_statuses()[fm.members.index(user)]
         ctxs = w_descr.new_form_call(new_message_response_handler, logError, user, request=request, **kwargs)
         for ctx in ctxs:
             ctx.message = fm.key()
         puts.extend(ctxs)
 
-        if send_status_updates and (ms.status & MemberStatus.STATUS_ACKED) == MemberStatus.STATUS_ACKED:
+        if send_status_updates and (ms.status & MessageMemberStatusTO.STATUS_ACKED) == MessageMemberStatusTO.STATUS_ACKED:
             # making sure that client dirty and needs_my_answer flags are correct for old clients
             status_request = w_descr.form_updated_req_to_type.fromMessageAndMember(message, user)
             ctxs = w_descr.form_updated_call(
@@ -2709,8 +2724,8 @@ def get_conversation(user, parent_message_key, offset=None):
                 logging.warn("%s requested a message thread, but is not in the members list. Doing nothing.",
                              user.email())
                 return False
-            ms = parent_message.memberStatusses[parent_message.members.index(user)]
-            if is_flag_set(MemberStatus.STATUS_ACCOUNT_DELETED, ms.status):
+            ms = parent_message.get_member_statuses()[parent_message.members.index(user)]
+            if is_flag_set(MessageMemberStatusTO.STATUS_ACCOUNT_DELETED, ms.status):
                 logging.warn("%s requested a message thread, but an account with the same email address was previously"
                              " deleted. Doing nothing.", user.email())
                 return False
@@ -2790,14 +2805,14 @@ def _arrange_messages(user, messages):
 @arguments(user=users.User, parent_message=Message, child_messages=[Message])
 def _is_flow_completed(user, parent_message, child_messages):
     last_thread_message = child_messages[-1] if child_messages else parent_message
-    ms = last_thread_message.memberStatusses[last_thread_message.members.index(user)]
-    if (ms.status & MemberStatus.STATUS_ACKED) == 0:
+    ms = last_thread_message.get_member_statuses()[last_thread_message.members.index(user)]
+    if (ms.status & MessageMemberStatusTO.STATUS_ACKED) == 0:
         return False
 
     if ms.button_index == -1:
         ui_flags = last_thread_message.dismiss_button_ui_flags
     else:
-        ui_flags = last_thread_message.buttons[ms.button_index].ui_flags
+        ui_flags = last_thread_message.get_button_by_index(ms.button_index).ui_flags
 
     return (ui_flags & Message.UI_FLAG_EXPECT_NEXT_WAIT_5) == 0
 
@@ -2820,8 +2835,8 @@ def send_messages_after_registration(mobile_key):
                 and _is_flow_completed(user, parent_message, child_messages.get(parent_message.key)):
             parent_messages.remove(parent_message)
         else:
-            ms = parent_message.memberStatusses[parent_message.members.index(user)]
-            if ms.status & (MemberStatus.STATUS_DELETED | MemberStatus.STATUS_ACCOUNT_DELETED) != 0:
+            ms = parent_message.get_member_statuses()[parent_message.members.index(user)]
+            if ms.status & (MessageMemberStatusTO.STATUS_DELETED | MessageMemberStatusTO.STATUS_ACCOUNT_DELETED) != 0:
                 # message was deleted, or account was deleted
                 parent_messages.remove(parent_message)
 
@@ -2887,7 +2902,7 @@ def send_message_flow_results_email(message_flow_name, emails, email_admins, ste
                     # indent the display_value
                     step.display_value = "\n\t".join([""] + step.display_value.splitlines() + [""])
             if step.step_type == FormFlowStepTO.TYPE \
-                    and step.answer_id == Form.POSITIVE \
+                    and step.answer_id == MessageFormTO.POSITIVE \
                     and step.form_result.type == MyDigiPassWidgetResult.TYPE \
                     and step.form_result.result.eid_photo:
                 attachments.append(('eid_photo_%s.jpg' % (i + 1),
@@ -2977,12 +2992,12 @@ def process_mfr_email_reply_rogerthat_reply(message):
         logging.warn("FlowResultMailFollowUp not found with hash %s" % message.follow_up_id)
         return
 
-    ms = message.memberStatusses[message.members.index(mfr_fu.member)]
+    ms = message.get_member_statuses()[message.members.index(mfr_fu.member)]
     btn_index = ms.button_index
     if btn_index == -1:
         return
     if isinstance(message, FormMessage):
-        if btn_index == message.buttons[Form.POSITIVE].index:
+        if btn_index == message.get_button_by_id(MessageFormTO.POSITIVE).index:
             from_ = "Rogerthat <%s.followup@%s.appspotmail.com>" % (
                 message.follow_up_id, app_identity.get_application_id())
             utils.send_mail(from_, mfr_fu.addresses, "RE: %s" % mfr_fu.subject, ms.form_result.result.value)
@@ -3100,8 +3115,8 @@ def message_received(user, message_key, timestamp):
         parent_key = message.parent_key()
         if parent_key:
             parent_message = Message.get(parent_key)
-            ms = parent_message.memberStatusses[parent_message.members.index(user)]
-            if ms and ms.status & MemberStatus.STATUS_DELETED == MemberStatus.STATUS_DELETED:
+            ms = parent_message.get_member_statuses()[parent_message.members.index(user)]
+            if ms and ms.status & MessageMemberStatusTO.STATUS_DELETED == MessageMemberStatusTO.STATUS_DELETED:
                 try:
                     puts = recover_conversation(user, parent_message, [message_key], _run_in_transaction=False)
                     if puts:
@@ -3111,12 +3126,14 @@ def message_received(user, message_key, timestamp):
                                       (parent_message.mkey, user.email()))
         else:
             parent_message = None
-
-        ms = message.memberStatusses[message.members.index(user)]
-        if not ms or ms.status & MemberStatus.STATUS_RECEIVED == MemberStatus.STATUS_RECEIVED:
+        
+        member_statuses = message.get_member_statuses()
+        ms = member_statuses[message.members.index(user)]
+        if not ms or ms.status & MessageMemberStatusTO.STATUS_RECEIVED == MessageMemberStatusTO.STATUS_RECEIVED:
             return
-        ms.status |= MemberStatus.STATUS_RECEIVED
+        ms.status |= MessageMemberStatusTO.STATUS_RECEIVED
         ms.received_timestamp = timestamp
+        message.save_member_statuses(member_statuses)
         message.removeStatusIndex(user, Message.MEMBER_INDEX_STATUS_NOT_RECEIVED)
         message.put()
 
@@ -3617,14 +3634,14 @@ def _ack_message(message_key, message_parent_key, responder, timestamp, button_i
     if message.flags & Message.FLAG_LOCKED == Message.FLAG_LOCKED:
         raise MessageLockedException()
 
+    member_statuses = message.get_member_statuses()
     is_chat = is_flag_set(Message.FLAG_DYNAMIC_CHAT, message.flags)
     if is_chat and responder not in message.members:
-        ms = MemberStatus()
-        if not message.memberStatusses:
-            message.memberStatusses = MemberStatuses()
+        ms = MessageMemberStatusTO()
+        if not member_statuses:
             ms.index = 0
         else:
-            ms.index = len(message.memberStatusses.values())
+            ms.index = len(member_statuses)
         ms.custom_reply = None
         ms.dismissed = False
         ms.status = 0
@@ -3633,7 +3650,7 @@ def _ack_message(message_key, message_parent_key, responder, timestamp, button_i
         ms.button_index = -1
         ms.form_result = None
         ms.ack_device = None
-        message.memberStatusses.add(ms)
+        member_statuses[ms.index] = ms
         message.members.append(responder)
 
     locked = False
@@ -3642,11 +3659,11 @@ def _ack_message(message_key, message_parent_key, responder, timestamp, button_i
             message.flags |= Message.FLAG_LOCKED
             locked = True
 
-    ms = message.memberStatusses[message.members.index(responder)]
+    ms = member_statuses[message.members.index(responder)]
     added_flow_statuses = list()
-    for ms_status, flow_status in ((MemberStatus.STATUS_ACKED, FlowStatistics.STATUS_ACKED),
-                                   (MemberStatus.STATUS_RECEIVED, FlowStatistics.STATUS_RECEIVED),
-                                   (MemberStatus.STATUS_READ, FlowStatistics.STATUS_READ)):
+    for ms_status, flow_status in ((MessageMemberStatusTO.STATUS_ACKED, FlowStatistics.STATUS_ACKED),
+                                   (MessageMemberStatusTO.STATUS_RECEIVED, FlowStatistics.STATUS_RECEIVED),
+                                   (MessageMemberStatusTO.STATUS_READ, FlowStatistics.STATUS_READ)):
         if not is_flag_set(ms_status, ms.status):
             ms.status |= ms_status
             added_flow_statuses.append(flow_status)
@@ -3664,7 +3681,7 @@ def _ack_message(message_key, message_parent_key, responder, timestamp, button_i
         ms.button_index = -1
     else:
         if button_id:
-            button_index = message.buttons[button_id].index
+            button_index = message.get_button_by_id(button_id).index
             if button_index == ms.button_index and not is_form:
                 return False  # nothing happened
             ms.button_index = button_index
@@ -3673,6 +3690,7 @@ def _ack_message(message_key, message_parent_key, responder, timestamp, button_i
                 return False
             ms.custom_reply = custom_reply
         ms.dismissed = False
+    message.save_member_statuses(member_statuses)
     message.generation += 1
     if message.flags & Message.FLAG_AUTO_LOCK == Message.FLAG_AUTO_LOCK:
         message.flags |= Message.FLAG_LOCKED
@@ -3684,7 +3702,6 @@ def _ack_message(message_key, message_parent_key, responder, timestamp, button_i
     if message.step_id:
         parent_message = get_message(message_parent_key, None) if message_parent_key else None
         bump_flow_statistics_for_message_update(responder, added_flow_statuses, message, parent_message, button_id)
-
     return message, ms, locked
 
 
@@ -3711,31 +3728,37 @@ def _validate_attachments(attachmentTOs):
 
 def _add_attachments(attachmentTOs, message):
     # type: (list[AttachmentTO], Message) -> None
-    message.attachments = Attachments()
+    message.attachments = None
+    attachments = {}
     for i, a in enumerate(attachmentTOs):
-        attachment = Attachment()
+        attachment = MessageAttachmentTO()
         attachment.index = i
         attachment.content_type = a.content_type
         attachment.download_url = a.download_url
         attachment.name = a.name
         attachment.size = a.size
         attachment.thumbnail = a.thumbnail
-        message.attachments.add(attachment)
+        attachments[attachment.index] = attachment
+
+    message.save_attachments(attachments)
 
 
 def _addButtons(buttons, message):
-    message.buttons = Buttons()
+    message.buttons = None
     button_index = 0
+    button_dict = {}
     for b in buttons:
-        button = Button()
+        button = MessageButtonTO()
         button.id = unicode(b.id)
         button.index = button_index
         button.caption = b.caption
         button.action = b.action
         button.ui_flags = b.ui_flags
         button.color = b.color
-        message.buttons.add(button)
+        button_dict[button.id] = button
         button_index += 1
+
+    message.save_buttons(button_dict)
 
 
 def convert_unicode_widget_result(wrTO):
@@ -3936,29 +3959,32 @@ def convert_pay(widgetTO):
 
 
 def _add_form(formTO, fm):
-    pos_btn = Button()
+    pos_btn = MessageButtonTO()
     pos_btn.action = u"confirm://%s" % formTO.positive_confirmation if formTO.positive_confirmation else None
     pos_btn.caption = formTO.positive_button
     pos_btn.ui_flags = formTO.positive_button_ui_flags
-    pos_btn.id = Form.POSITIVE
+    pos_btn.id = MessageFormTO.POSITIVE
     pos_btn.index = 0
 
-    neg_btn = Button()
+    neg_btn = MessageButtonTO()
     neg_btn.action = u"confirm://%s" % formTO.negative_confirmation if formTO.negative_confirmation else None
     neg_btn.caption = formTO.negative_button
     neg_btn.ui_flags = formTO.negative_button_ui_flags
-    neg_btn.id = Form.NEGATIVE
+    neg_btn.id = MessageFormTO.NEGATIVE
     neg_btn.index = 1
 
-    fm.buttons = Buttons()
-    fm.buttons.add(pos_btn)
-    fm.buttons.add(neg_btn)
+    
+    buttons = {}
+    buttons[pos_btn.id] = pos_btn
+    buttons[neg_btn.id] = neg_btn
+    fm.save_buttons(buttons)
 
-    form = Form()
+    form = MessageFormTO()
     form.type = formTO.type
     form.widget = WIDGET_MAPPING[formTO.type].to_model_conversion(formTO.widget)
     form.javascript_validation = formTO.javascript_validation
-    fm.form = form
+    fm.form = None
+    fm.save_form(form)
 
 
 def _send_form_updated(responder, message, parent_message_key, ms, button_id):
@@ -3996,7 +4022,7 @@ def _send_form_updated(responder, message, parent_message_key, ms, button_id):
         form_ack_call.put()
 
     # Send updates to web/phone
-    w_descr = WIDGET_MAPPING[message.form.type]
+    w_descr = WIDGET_MAPPING[message.get_form().type]
     req = w_descr.form_updated_req_to_type.fromMessageAndMember(message, responder)
 
     current_mobile = users.get_current_mobile()
@@ -4042,12 +4068,12 @@ def _send_updates(user, message, ms, force_push_to_sender, service_api_code):
     request = MemberStatusUpdateRequestTO.fromMessageAndMember(message, user)
 
     button_text = _ellipsize_for_json(
-        message.buttons[ms.button_index].caption, 30, cut_on_spaces=False) if request.button_id else None
+        message.get_button_by_index(ms.button_index).caption, 30, cut_on_spaces=False) if request.button_id else None
 
     # create list of recipients
     current_mobile = users.get_current_mobile()
     if is_flag_set(Message.FLAG_DYNAMIC_CHAT, message.flags):
-        if is_flag_set(MemberStatus.STATUS_ACKED, ms.status) and message.buttons and len(message.buttons) > 0:
+        if is_flag_set(MessageMemberStatusTO.STATUS_ACKED, ms.status) and message.get_buttons() and len(message.get_buttons()) > 0:
             members = _get_chat_members_for_update(message)
         else:
             members = list()
@@ -4106,7 +4132,7 @@ def _send_updates(user, message, ms, force_push_to_sender, service_api_code):
         priority = PRIORITY_HIGH if force_push_to_sender and (
             (message.sender == member and user != message.sender) or message.sender == user) and ms.button_index >= 0 else PRIORITY_NORMAL
         kwargs = {CAPI_KEYWORD_ARG_PRIORITY: priority}
-        if ms.status & MemberStatus.STATUS_ACKED == MemberStatus.STATUS_ACKED and priority == PRIORITY_HIGH:
+        if ms.status & MessageMemberStatusTO.STATUS_ACKED == MessageMemberStatusTO.STATUS_ACKED and priority == PRIORITY_HIGH:
             user_profile = get_user_profile(user)
             from_ = _ellipsize_for_json(user_profile.name or user.email(), 30, cut_on_spaces=False)
             mezz = message.message
@@ -4350,12 +4376,12 @@ def _validate_form(formTO, service_user, app_user):
     if formTO.positive_button_ui_flags == MISSING:
         formTO.positive_button_ui_flags = 0
     else:
-        _validate_button_ui_flags(formTO.positive_button_ui_flags, Form.POSITIVE)
+        _validate_button_ui_flags(formTO.positive_button_ui_flags, MessageFormTO.POSITIVE)
 
     if formTO.negative_button_ui_flags == MISSING:
         formTO.negative_button_ui_flags = 0
     else:
-        _validate_button_ui_flags(formTO.negative_button_ui_flags, Form.NEGATIVE)
+        _validate_button_ui_flags(formTO.negative_button_ui_flags, MessageFormTO.NEGATIVE)
 
     if formTO.javascript_validation == MISSING:
         formTO.javascript_validation = None
@@ -4664,14 +4690,14 @@ def _get_flow_stats_breadcrumbs(parent_message_datastore_key, child_message_data
         messages = Message.get(parent_message.childMessages)
 
     def append_breadcrumb(message):
-        azzert(len(message.memberStatusses) == 1)
-        ms = message.memberStatusses[0]
-        if message.step_id and is_flag_set(MemberStatus.STATUS_ACKED, ms.status):
+        azzert(len(message.get_member_statuses()) == 1)
+        ms = message.get_member_statuses()[0]
+        if message.step_id and is_flag_set(MessageMemberStatusTO.STATUS_ACKED, ms.status):
             breadcrumbs.append(message.step_id)
             if ms.button_index == -1:
                 breadcrumbs.append('')
             else:
-                breadcrumbs.append(message.buttons[ms.button_index].id)
+                breadcrumbs.append(message.get_button_by_index(ms.button_index).id)
 
     append_breadcrumb(parent_message)
     map(append_breadcrumb, messages)
@@ -4705,11 +4731,11 @@ def bump_flow_statistics_by_member_status(app_user, service_identity_user, tag, 
     statuses = [FlowStatistics.STATUS_SENT]
     current_btn_id = None
     if member_status:
-        if is_flag_set(MemberStatus.STATUS_RECEIVED, member_status.status):
+        if is_flag_set(MessageMemberStatusTO.STATUS_RECEIVED, member_status.status):
             statuses.append(FlowStatistics.STATUS_RECEIVED)
-        if is_flag_set(MemberStatus.STATUS_READ, member_status.status):
+        if is_flag_set(MessageMemberStatusTO.STATUS_READ, member_status.status):
             statuses.append(FlowStatistics.STATUS_READ)
-        if is_flag_set(MemberStatus.STATUS_ACKED, member_status.status):
+        if is_flag_set(MessageMemberStatusTO.STATUS_ACKED, member_status.status):
             statuses.append(FlowStatistics.STATUS_ACKED)
             current_btn_id = member_status.button_id
 

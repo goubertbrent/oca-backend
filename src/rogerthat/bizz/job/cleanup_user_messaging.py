@@ -25,7 +25,7 @@ from rogerthat.bizz.messaging import delete_conversation
 from rogerthat.consts import MIGRATION_QUEUE
 from rogerthat.dal.messaging import get_messages_query
 from rogerthat.models import ChatMembers
-from rogerthat.models.properties.messaging import MemberStatus
+from rogerthat.models.properties.messaging import MessageMemberStatusTO
 from rogerthat.rpc import users
 
 
@@ -40,7 +40,7 @@ def _qry_messages(app_user):
 
 
 def _worker_messages(message, app_user):
-    delete_conversation(app_user, message.mkey, False, MemberStatus.STATUS_ACCOUNT_DELETED)
+    delete_conversation(app_user, message.mkey, False, MessageMemberStatusTO.STATUS_ACCOUNT_DELETED)
 
 
 def _qry_chats(app_user):
