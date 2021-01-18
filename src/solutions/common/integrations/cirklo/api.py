@@ -265,7 +265,7 @@ def api_vouchers_save_cirklo_settings(data):
     elif data.signup_name_fr:
         city.signup_names = SignupLanguageProperty(nl=data.signup_name_fr,
                                                    fr=data.signup_name_fr)
-    og_info = city.app_info.to_dict()
+    og_info = city.app_info and city.app_info.to_dict()
     info = CirkloAppInfo(enabled=data.app_info.enabled,
                          title=data.app_info.title,
                          buttons=data.app_info.buttons)
