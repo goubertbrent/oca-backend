@@ -66,18 +66,6 @@ export class CommunityFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.formGroup = this.formBuilder.group<CreateCommunity>({
-      auto_connected_services: [[]],
-      country: [''],
-      name: ['', Validators.required],
-      default_app: ['', Validators.required],
-      embedded_apps: [[]],
-      main_service: [''],
-      demo: [false],
-      signup_enabled: [false],
-      features: [[AppFeature.NEWS_VIDEO, AppFeature.JOBS]],
-      customization_features: [[]],
-    });
     if (this._community) {
       // Since the formGroup might not have been initialized the moment the community was set,
       // set it here as well to ensure that the form is hydrated.

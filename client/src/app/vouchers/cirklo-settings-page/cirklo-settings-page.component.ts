@@ -3,7 +3,7 @@ import { FormBuilder, FormControl, Validators } from '@angular/forms';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { MatSlideToggle, MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { select, Store } from '@ngrx/store';
-import { SimpleDialogComponent, SimpleDialogData } from '@oca/web-shared';
+import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '@oca/web-shared';
 import { IFormArray, IFormBuilder, IFormGroup } from '@rxweb/types';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil, withLatestFrom } from 'rxjs/operators';
@@ -229,5 +229,23 @@ export class CirkloSettingsPageComponent implements OnInit, OnDestroy {
     });
     this.createTranslationFormControls(Object.keys(button.labels), labels);
     return group;
+  }
+
+  removeButton(index: number) {
+    const btn = this.buttonsArray.at(index);
+    const url = btn.value!.url;
+    this.matDialog.open<SimpleDialogComponent, SimpleDialogData, SimpleDialogResult>(SimpleDialogComponent, {
+      data: {
+        title: 'Confirm deletion',
+        message: `Delete button ${url}?`,
+        ok: 'Yes',
+        cancel: 'Cancel',
+      },
+    }).afterClosed().subscribe(result => {
+      if (result?.submitted) {
+        this.buttonsArray.removeAt(index);
+        this.changeDetectorRef.markForCheck();
+      }
+    });
   }
 }
