@@ -223,7 +223,8 @@ def get_logo_url_for_city_ids(city_ids):
 @returns(unicode)
 @arguments(service_email=unicode)
 def get_city_id_by_service_email(service_email):
-    return CirkloCity.get_by_service_email(service_email).city_id
+    cirklo_city = CirkloCity.get_by_service_email(service_email)
+    return cirklo_city.city_id if cirklo_city else None
 
 
 def get_vouchers(service_user, app_user):
