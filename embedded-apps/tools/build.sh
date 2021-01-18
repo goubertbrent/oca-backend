@@ -10,7 +10,7 @@ if [ -z "${project}" ]; then
     break
   done
 fi
-set -eux
+set -eu
 npm run ng build -- --prod --project "${project}"
 rm -f "${project}".zip
 dist_dir=${current_dir}/../dist
@@ -22,3 +22,5 @@ zip_path=${current_dir}/../"${project}".zip
 rm -f "$zip_path"
 zip -qr "$zip_path" .
 cd -
+real_zip_path=$(realpath "$zip_path")
+echo "Generated embedded app zip: ${real_zip_path}"

@@ -57,6 +57,12 @@ class SignupMails(NdbModel):
         return model
 
 
+class CirkloAppInfo(NdbModel):
+    enabled = ndb.BooleanProperty(indexed=False)
+    title = ndb.JsonProperty()
+    buttons = ndb.JsonProperty()
+
+
 class CirkloCity(NdbModel):
     service_user_email = ndb.StringProperty()
     logo_url = ndb.TextProperty()
@@ -67,6 +73,7 @@ class CirkloCity(NdbModel):
     # TODO remove after migration
     signup_mails = ndb.LocalStructuredProperty(OldSignupMails)  # type: OldSignupMails
     signup_mail = ndb.StructuredProperty(SignupMails)  # type: SignupMails
+    app_info = ndb.StructuredProperty(CirkloAppInfo)  # type: CirkloAppInfo
 
     @property
     def city_id(self):

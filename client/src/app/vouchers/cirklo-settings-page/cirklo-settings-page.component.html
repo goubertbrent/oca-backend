@@ -3,6 +3,9 @@
     <mat-icon>arrow_back</mat-icon>
   </a>
   <h1 class="flex-grow">{{ 'oca.cirklo_light' | translate }}</h1>
+  <button type="button" mat-icon-button [disabled]="cirkloSettingsLoading$ | async" (click)="save()">
+    <mat-icon>save</mat-icon>
+  </button>
 </mat-toolbar>
 <mat-progress-bar *ngIf="cirkloSettingsLoading$ | async" mode="indeterminate"></mat-progress-bar>
 <form (ngSubmit)="save()" [formGroup]="formGroup" class="settings-form">
@@ -62,5 +65,51 @@
       </ng-container>
     </ng-container>
   </ng-container>
-  <button [disabled]="cirkloSettingsLoading$ | async" mat-stroked-button>{{ 'oca.Save' | translate }}</button>
+  <ng-container formGroupName="app_info">
+    <h3>App: Buy voucher page</h3>
+    <mat-slide-toggle formControlName="enabled">'Buy voucher' page enabled
+    </mat-slide-toggle>
+    <ng-container *ngIf="appInfoForm.controls.enabled.value">
+      <h4>Title</h4>
+      <ng-container formGroupName="title">
+        <mat-form-field *ngFor="let item of appInfoForm.controls.title.controls | keyvalue" class="full-width">
+          <mat-label>Title ({{ item.key }})</mat-label>
+          <textarea [formControl]="item.value" matInput matTextareaAutosize required></textarea>
+          <mat-hint>Will be rendered as <a href="https://commonmark.org/help/">markdown</a></mat-hint>
+          <button (click)="removeLanguage(appInfoForm.controls.title, item.key)" mat-icon-button matSuffix
+                  type="button">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </mat-form-field>
+        <button (click)="addLanguageForm(appInfoForm.controls.title)"
+                mat-stroked-button
+                type="button">Add language for title
+        </button>
+      </ng-container>
+      <ng-container formArrayName="buttons">
+        <h4>Buttons</h4>
+        <ng-container *ngFor="let button of buttonsArray.controls; let index = index" [formGroupName]="index">
+          <mat-form-field class="full-width">
+            <mat-label>Button url</mat-label>
+            <input formControlName="url" matInput required type="url">
+          </mat-form-field>
+          <mat-form-field *ngFor="let control of button.controls.labels.controls | keyvalue" class="full-width"
+                          formGroupName="labels">
+            <mat-label>Button label ({{ control.key }})</mat-label>
+            <input [formControl]="control.value" matInput required>
+            <button (click)="removeLanguage(button.controls.labels, control.key)" mat-icon-button matSuffix
+                    type="button">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </mat-form-field>
+          <button (click)="addLanguageForm(button.controls.labels)"
+                  mat-stroked-button
+                  type="button">Add language for button
+          </button>
+        </ng-container>
+        <button (click)="addAppInfoButton()" mat-stroked-button type="button">Add action button</button>
+      </ng-container>
+    </ng-container>
+  </ng-container>
+  <button [disabled]="cirkloSettingsLoading$ | async" mat-stroked-button color="primary">{{ 'oca.Save' | translate }}</button>
 </form>

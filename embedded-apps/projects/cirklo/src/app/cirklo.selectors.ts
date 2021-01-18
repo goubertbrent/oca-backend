@@ -1,6 +1,7 @@
 import { createFeatureSelector, createSelector } from '@ngrx/store';
+import { getServiceData } from '@oca/rogerthat';
 import { CallStateType } from '@oca/shared';
-import { CirkloMerchant, CirkloVouchersList } from './cirklo';
+import { CirkloInfo, CirkloMerchant, CirkloVouchersList } from './cirklo';
 import { cirkloFeatureKey, CirkloState } from './cirklo.reducer';
 
 export const selectCirkloState = createFeatureSelector<CirkloState>(cirkloFeatureKey);
@@ -20,3 +21,10 @@ export const getMerchantsCursor = createSelector(selectCirkloState, s => s.merch
 export const areMerchantsLoading = createSelector(selectCirkloState, s => s.merchants.state === CallStateType.LOADING);
 export const hasMoreMerchants = createSelector(selectCirkloState, s => s.merchants.result?.more ?? true);
 export const getMerchant = createSelector(getMerchants, (s: CirkloMerchant[], merchantId: string) => s.find(m => m.id === merchantId));
+
+
+interface ServiceData {
+  cirkloInfo?: CirkloInfo;
+}
+
+export const getCirkloInfo = createSelector(getServiceData, (s: ServiceData) => s.cirkloInfo);

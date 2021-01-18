@@ -15,10 +15,10 @@ export const SUPPORTED_LOCALES: string[] = ['en-GB', 'en-US', 'nl'];
 export const SUPPORTED_LANGUAGES = ['en', 'nl'];
 export const DEFAULT_LANGUAGE = 'en';
 
-export function getLanguage(language: string) {
+export function getLanguage(language: string, supportedLanguages = SUPPORTED_LANGUAGES) {
   language = language.replace('_', '-');
   const split = language.split('-');
-  for (const lang of SUPPORTED_LANGUAGES) {
+  for (const lang of supportedLanguages) {
     if (lang.startsWith(language) || split[ 0 ] === lang) {
       return lang;
     }

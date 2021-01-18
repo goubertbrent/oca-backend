@@ -17,22 +17,22 @@
 
 from __future__ import unicode_literals
 
-import base64
 import json
-import logging
 import os
-import time
 import urllib
-from contextlib import closing
-from datetime import timedelta, datetime
 from types import NoneType
-from zipfile import ZipFile, ZIP_DEFLATED
 
+import base64
 import jinja2
+import logging
+import time
 from babel import dates
 from babel.dates import format_timedelta, get_next_timezone_transition, format_time
 from babel.numbers import format_currency
+from contextlib import closing
+from datetime import timedelta, datetime
 from google.appengine.ext import db, deferred, ndb
+from zipfile import ZipFile, ZIP_DEFLATED
 
 import solutions
 from mcfw.properties import azzert
@@ -85,6 +85,8 @@ from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.dal.repair import get_solution_repair_settings
 from solutions.common.dal.reservations import get_restaurant_profile, get_restaurant_settings
 from solutions.common.handlers import JINJA_ENVIRONMENT
+from solutions.common.integrations.cirklo.cirklo import get_city_id_by_service_email
+from solutions.common.integrations.cirklo.models import CirkloCity
 from solutions.common.integrations.jcc.jcc_appointments import get_jcc_settings
 from solutions.common.integrations.qmatic.qmatic import get_qmatic_settings
 from solutions.common.models import SolutionMainBranding, SolutionSettings, SolutionBrandingSettings, \
@@ -537,6 +539,25 @@ def get_app_data_sandwich_bar(sln_settings, service_identity):
             'leap_time': sandwich_settings.leap_time * sandwich_settings.leap_time_type,
             'leap_time_enabled': sandwich_settings.leap_time_enabled
         }
+    }
+
+
+@returns(dict)
+@arguments(sln_settings=SolutionSettings, service_identity=unicode)
+def get_app_data_cirklo(sln_settings, service_identity):
+    city_id = get_city_id_by_service_email(sln_settings.service_user.email())
+    if city_id:
+        city = CirkloCity.create_key(city_id).get()  # type: CirkloCity
+        if city.app_info and city.app_info.enabled:
+            return {
+                'cirkloInfo': {
+                    'logo': city.logo_url,
+                    'title': city.app_info.title,
+                    'buttons': city.app_info.buttons,
+                }
+            }
+    return {
+        'cirkloInfo': None
     }
 
 
@@ -1826,7 +1847,8 @@ MODULES_GET_APP_DATA_FUNCS = {
     SolutionModule.NEWS: get_app_data_broadcast,
     SolutionModule.GROUP_PURCHASE: get_app_data_group_purchase,
     SolutionModule.LOYALTY: get_app_data_loyalty,
-    SolutionModule.SANDWICH_BAR: get_app_data_sandwich_bar
+    SolutionModule.SANDWICH_BAR: get_app_data_sandwich_bar,
+    SolutionModule.CIRKLO_VOUCHERS: get_app_data_cirklo,
 }
 
 

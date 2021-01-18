@@ -62,7 +62,18 @@ const rogerthat = {
       settings: {
         logo_url: 'https://storage.googleapis.com/oca-files/image-library/logo/community-service.jpg',
         avatar_url: 'https://storage.googleapis.com/oca-files/image-library/avatar/community-service.jpg',
-      }
+      },
+      cirkloInfo: {
+        logo: 'https://pbs.twimg.com/profile_images/618047344932577281/42i8HgbM_400x400.jpg',
+        title: {
+          en: '# Buy your voucher now',
+          nl: '# Koop nu je cadeaubon',
+        },
+        buttons: [
+          { url: 'https://google.com', labels: { en: 'First button', nl: 'Eerste knop' } },
+          { url: 'https://maps.google.com', labels: { en: 'Second button', nl: 'Tweede knop' } },
+        ],
+      },
     },
   },
   menuItem: {

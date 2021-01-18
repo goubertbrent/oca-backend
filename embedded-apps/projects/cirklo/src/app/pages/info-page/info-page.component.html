@@ -1,15 +1,26 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>{{ 'app.cirklo.info' | translate }}</ion-title>
+    <ion-title>{{ 'app.cirklo.buy_voucher' | translate }}</ion-title>
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/vouchers"></ion-back-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 <ion-content>
-  <div class="info-header">
-    <ion-icon class="info-cirklo-icon" src="/assets/icon/cirklo_light_white_filled.svg"></ion-icon>
-    <h2 class="info-title">{{ 'app.cirklo.cirklo_info_title' | translate }}</h2>
+<ion-card class="fake-voucher">
+  <div class="gradient-container">
+    <img [src]="logoUrl$ | async" alt="Logo" class="voucher-logo">
   </div>
-  <div [innerHTML]="'app.cirklo.cirklo_info_text' | translate | markdown" class="info-description"></div>
+  <div [innerHTML]="infoText$ | async | markdown" class="info-description"></div>
+  <div class="buttons-list">
+    <ion-button *ngFor="let button of buttons$ | async"
+                [href]="button.url"
+                class="info-button"
+                target="_blank"
+                type="button">
+      <ion-icon name="add" slot="start"></ion-icon>
+      <ion-label>{{ button.label }}</ion-label>
+    </ion-button>
+  </div>
+</ion-card>
 </ion-content>

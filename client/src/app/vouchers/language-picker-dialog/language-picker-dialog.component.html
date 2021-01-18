@@ -1,0 +1,12 @@
+<h3 mat-dialog-title>Pick a language</h3>
+<mat-dialog-content>
+  <mat-form-field>
+    <mat-select [formControl]="formControl">
+      <mat-option *ngFor="let language of languages" [value]="language.code">{{ language.name }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+</mat-dialog-content>
+<mat-dialog-actions>
+  <button mat-button mat-dialog-close>Cancel</button>
+  <button (click)="submit()" color="primary" mat-button>Select language</button>
+</mat-dialog-actions>

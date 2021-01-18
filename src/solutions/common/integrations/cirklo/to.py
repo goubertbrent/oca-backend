@@ -146,6 +146,12 @@ class SignupMailsTO(TO):
     denied = typed_property('denied', SignupLanguagePropertyTO)
 
 
+class CirkloAppInfoTO(TO):
+    enabled = bool_property('enabled')
+    title = typed_property('title', dict)
+    buttons = typed_property('buttons', dict, True)
+
+
 class CirkloCityTO(TO):
     city_id = unicode_property('city_id', default=None)
     logo_url = unicode_property('logo_url', default=None)
@@ -154,6 +160,7 @@ class CirkloCityTO(TO):
     signup_name_nl = unicode_property('signup_name_nl', default=None)
     signup_name_fr = unicode_property('signup_name_fr', default=None)
     signup_mail = typed_property('signup_mail', SignupMailsTO)  # type: SignupMailsTO
+    app_info = typed_property('app_info', CirkloAppInfoTO)  # type: CirkloAppInfoTO
 
     @classmethod
     def from_model(cls, model):
@@ -172,4 +179,19 @@ class CirkloCityTO(TO):
         if model.signup_mail:
             to.signup_mail.accepted = SignupLanguagePropertyTO.from_model(model.signup_mail.accepted)
             to.signup_mail.denied = SignupLanguagePropertyTO.from_model(model.signup_mail.denied)
+        if model.app_info:
+            app_info = CirkloAppInfoTO()
+            app_info.enabled = model.app_info.enabled
+            app_info.title = model.app_info.title
+            app_info.buttons = model.app_info.buttons
+            to.app_info = app_info
+        else:
+            to.app_info = CirkloAppInfoTO()
+            to.app_info.enabled = False
+            to.app_info.title = {
+                'en': '# Order your voucher now 🛍️',
+                'nl': '# Koop nu je cadeaubon 🛍️',
+                'fr': '# Achetez maintenant votre chèque-cadeau 🛍️',
+            }
+            to.app_info.buttons = []
         return to

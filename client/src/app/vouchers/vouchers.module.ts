@@ -26,6 +26,7 @@ import { VouchersPageComponent } from './vouchers-page/vouchers-page.component';
 import { WhitelistDialogComponent } from './vouchers-page/whitelist-dialog.component';
 import { VouchersEffects } from './vouchers.effects';
 import { vouchersFeatureKey, vouchersReducer } from './vouchers.reducer';
+import { LanguagePickerDialogComponent } from './language-picker-dialog/language-picker-dialog.component';
 
 const routes: Routes = [
   { path: '', component: VouchersPageComponent },
@@ -34,7 +35,7 @@ const routes: Routes = [
 
 
 @NgModule({
-  declarations: [VouchersPageComponent, CirkloSettingsPageComponent, WhitelistDialogComponent],
+  declarations: [VouchersPageComponent, CirkloSettingsPageComponent, WhitelistDialogComponent, LanguagePickerDialogComponent],
   imports: [
     CommonModule,
     EffectsModule.forFeature([VouchersEffects]),

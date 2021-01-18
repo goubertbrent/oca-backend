@@ -27,6 +27,21 @@ export interface SignupMails {
   denied: SignupLanguageProperty | null;
 }
 
+export interface CirkloAppInfoButton {
+  url: string;
+  labels: {
+    [ key: string ]: string;
+  };
+}
+
+export interface CirkloAppInfo {
+  enabled: boolean;
+  title: {
+    [ key: string ]: string;
+  };
+  buttons: CirkloAppInfoButton[];
+}
+
 export interface CirkloSettings {
   city_id: string | null;
   logo_url: string | null;
@@ -35,6 +50,7 @@ export interface CirkloSettings {
   signup_name_nl: string | null;
   signup_name_fr: string | null;
   signup_mail: SignupMails | null;
+  app_info: CirkloAppInfo;
 }
 
 export interface CirkloCity {

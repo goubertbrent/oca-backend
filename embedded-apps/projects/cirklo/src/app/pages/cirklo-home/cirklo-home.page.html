@@ -1,6 +1,6 @@
-<ion-tabs (ionTabsDidChange)="setTitle($event)">
+<ion-tabs>
   <ion-tab-bar slot="bottom">
-    <ion-tab-button *ngFor="let tab of tabs" [tab]="tab.route">
+    <ion-tab-button *ngFor="let tab of tabs$ | async" [tab]="tab.route">
       <ion-icon [name]="tab.iconName" [src]="tab.iconSrc" size="large"></ion-icon>
       <ion-label>{{ tab.label | translate }}</ion-label>
     </ion-tab-button>

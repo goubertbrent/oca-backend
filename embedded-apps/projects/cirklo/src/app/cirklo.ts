@@ -74,3 +74,18 @@ export interface CirkloMerchantsList {
   cursor: string | null;
   more: boolean;
 }
+
+export interface CirkloButton {
+  url: string;
+  labels: {
+    [ key: string ]: string;
+  };
+}
+
+export interface CirkloInfo {
+  logo: string;
+  title: {
+    [ key: string ]: string;
+  };
+  buttons: CirkloButton[];
+}

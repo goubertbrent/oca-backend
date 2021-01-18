@@ -1,13 +1,16 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { FormBuilder, Validators } from '@angular/forms';
+import { FormBuilder, FormControl, Validators } from '@angular/forms';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { MatSlideToggle, MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { select, Store } from '@ngrx/store';
-import { IFormBuilder, IFormGroup } from '@rxweb/types';
+import { SimpleDialogComponent, SimpleDialogData } from '@oca/web-shared';
+import { IFormArray, IFormBuilder, IFormGroup } from '@rxweb/types';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil, withLatestFrom } from 'rxjs/operators';
+import { CirkloButton } from '../../../../../embedded-apps/projects/cirklo/src/app/cirklo';
 import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../shared/upload-file';
-import { CirkloCity, CirkloSettings, SignupLanguageProperty, SignupMails } from '../vouchers';
+import { LanguagePickerDialogComponent } from '../language-picker-dialog/language-picker-dialog.component';
+import { CirkloAppInfo, CirkloAppInfoButton, CirkloCity, CirkloSettings, SignupLanguageProperty, SignupMails } from '../vouchers';
 import { GetCirkloCities, GetCirkloSettingsAction, SaveCirkloSettingsAction } from '../vouchers.actions';
 import { areCirkloSettingsLoading, getCirkloCities, getCirkloSettings } from '../vouchers.selectors';
 
@@ -25,12 +28,14 @@ export class CirkloSettingsPageComponent implements OnInit, OnDestroy {
   cirkloSettingsLoading$: Observable<boolean>;
   cirkloCities$: Observable<CirkloCity[]>;
   destroyed$ = new Subject();
+  fb: IFormBuilder;
 
   constructor(private store: Store,
               private matDialog: MatDialog,
               private changeDetectorRef: ChangeDetectorRef,
               formBuilder: FormBuilder) {
     const fb = formBuilder as IFormBuilder;
+    this.fb = fb;
     this.formGroup = fb.group<CirkloSettings>({
       city_id: fb.control(null, Validators.required),
       logo_url: fb.control(null),
@@ -48,7 +53,20 @@ export class CirkloSettingsPageComponent implements OnInit, OnDestroy {
           fr: fb.control(null),
         }),
       }),
+      app_info: fb.group<CirkloAppInfo>({
+        enabled: fb.control(false),
+        title: fb.group({}),
+        buttons: fb.array<CirkloAppInfoButton>([]),
+      }),
     });
+  }
+
+  get appInfoForm() {
+    return this.formGroup.controls.app_info as IFormGroup<CirkloAppInfo>;
+  }
+
+  get buttonsArray() {
+    return this.appInfoForm.controls.buttons as IFormArray<CirkloButton>;
   }
 
   ngOnInit(): void {
@@ -59,6 +77,7 @@ export class CirkloSettingsPageComponent implements OnInit, OnDestroy {
       let staging = false;
       if (settings) {
         staging = settings.city_id?.startsWith('staging-') ?? false;
+        this.createAppInfoForm(settings.app_info);
         this.formGroup.setValue(settings);
       }
       this.stagingToggle.checked = staging;
@@ -138,8 +157,77 @@ export class CirkloSettingsPageComponent implements OnInit, OnDestroy {
     return this.matDialog.open<UploadFileDialogComponent, UploadFileDialogConfig, UploadedFileResult>(UploadFileDialogComponent, config);
   }
 
+  addLanguageForm(formGroup: IFormGroup<{ [ key: string ]: string }>) {
+    this.matDialog.open<LanguagePickerDialogComponent, unknown, string>(LanguagePickerDialogComponent)
+      .afterClosed()
+      .subscribe(newLanguage => {
+        if (newLanguage) {
+          const ogValue = formGroup.value!;
+          const languages = new Set(Object.keys(formGroup.controls));
+          languages.add(newLanguage);
+          this.createTranslationFormControls(Array.from(languages), formGroup);
+          formGroup.patchValue(ogValue);
+          this.changeDetectorRef.markForCheck();
+        }
+      });
+  }
+
   changeStaging($event: MatSlideToggleChange) {
     this.store.dispatch(GetCirkloCities({ staging: $event.checked }));
     this.formGroup.controls.city_id.setValue(null);
+  }
+
+  addAppInfoButton() {
+    const btn = this.createInfoButtonForm({
+      url: 'https://cirklo-light.com',
+      labels: { en: 'Buy voucher', nl: 'Bon kopen', fr: 'Acheter coupon' },
+    });
+    this.buttonsArray.push(btn);
+  }
+
+  removeLanguage(formGroup: IFormGroup<{ [ key: string ]: string }>, language: string) {
+    if (language === 'en') {
+      this.matDialog.open<SimpleDialogComponent, SimpleDialogData>(SimpleDialogComponent, {
+        data: {
+          title: 'Error',
+          message: 'The English translation cannot be removed.',
+          ok: 'Ok',
+        },
+      });
+    } else {
+      formGroup.removeControl(language);
+    }
+  }
+
+  private createTranslationFormControls(keys: string[], formGroup: IFormGroup<{ [ key: string ]: string }>) {
+    for (const key in formGroup.controls) {
+      if (!(key in keys)) {
+        formGroup.removeControl(key);
+      }
+    }
+    for (const key of keys) {
+      if (!(key in formGroup.controls)) {
+        formGroup.addControl(key, new FormControl(null, Validators.required));
+      }
+    }
+  }
+
+  private createAppInfoForm(appInfo: CirkloAppInfo) {
+    const titleGroup = this.appInfoForm.controls.title as IFormGroup<{ [ key: string ]: string }>;
+    this.createTranslationFormControls(Object.keys(appInfo.title), titleGroup);
+    this.buttonsArray.clear();
+    for (const button of appInfo.buttons) {
+      this.buttonsArray.push(this.createInfoButtonForm(button));
+    }
+  }
+
+  private createInfoButtonForm(button: CirkloAppInfoButton) {
+    const labels = this.fb.group<{ [ key: string ]: string }>({});
+    const group = this.fb.group<CirkloAppInfoButton>({
+      url: this.fb.control(button.url),
+      labels,
+    });
+    this.createTranslationFormControls(Object.keys(button.labels), labels);
+    return group;
   }
 }

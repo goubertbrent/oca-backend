@@ -40,14 +40,14 @@ from rogerthat.utils import parse_date
 from rogerthat.utils.service import create_service_identity_user
 from shop.models import Customer
 from solutions import translate
-from solutions.common.bizz import SolutionModule
+from solutions.common.bizz import SolutionModule, broadcast_updates_pending
 from solutions.common.bizz.campaignmonitor import send_smart_email_without_check
 from solutions.common.consts import OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings
 from solutions.common.integrations.cirklo.cirklo import get_city_id_by_service_email, whitelist_merchant, \
     list_whitelisted_merchants, list_cirklo_cities
 from solutions.common.integrations.cirklo.models import CirkloCity, CirkloMerchant, SignupLanguageProperty, \
-    SignupMails
+    SignupMails, CirkloAppInfo
 from solutions.common.integrations.cirklo.to import CirkloCityTO, CirkloVoucherListTO, CirkloVoucherServiceTO, \
     WhitelistVoucherServiceTO
 from solutions.common.restapi.services import _check_is_city
@@ -265,7 +265,16 @@ def api_vouchers_save_cirklo_settings(data):
     elif data.signup_name_fr:
         city.signup_names = SignupLanguageProperty(nl=data.signup_name_fr,
                                                    fr=data.signup_name_fr)
-
+    og_info = city.app_info.to_dict()
+    info = CirkloAppInfo(enabled=data.app_info.enabled,
+                         title=data.app_info.title,
+                         buttons=data.app_info.buttons)
+    if info.to_dict() != og_info:
+        city.app_info = info
+        sln_settings = get_solution_settings(service_user)
+        sln_settings.updates_pending = True
+        sln_settings.put()
+        broadcast_updates_pending(sln_settings)
     city.put()
     return CirkloCityTO.from_model(city)
 
