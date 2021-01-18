@@ -2755,7 +2755,7 @@ def set_user_data_object(service_identity_user, friend_user, data_dict, replace=
             else:
                 full_json_dict = json.loads(user_data.data)
                 full_json_dict.update(updated_json_dict)
-                
+
         else:
             user_data = UserData(key=user_data_key,
                                  data=None,
@@ -2855,7 +2855,7 @@ def set_app_data(service_identity_user, data_string):
 
         if si.serviceData:
             si.serviceData.clear()
-        
+
         old_json_data.update(json_dict)
         full_json_dict = {k: v for k, v in old_json_data.iteritems() if v is not None}
         si.appData = json.dumps(full_json_dict)
