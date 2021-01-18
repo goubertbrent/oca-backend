@@ -2680,7 +2680,7 @@ def get_update_userdata_requests(mobiles, target_user, service_identity_user, fu
            full_json_dict=dict, updated_keys=[unicode])
 def _send_set_user_data(mobiles, target_user, service_identity_user, type_, full_json_dict, updated_keys):
     # type: (list[Mobile], users.User, users.User, unicode, dict, list[unicode]) -> list[RpcCAPICall]
-    updated_json_dict = {k: full_json_dict.get(k) for k in updated_keys}
+#     updated_json_dict = {k: full_json_dict.get(k) for k in updated_keys}
     capi_calls = []
     for mobile in mobiles:
         service_email = remove_slash_default(service_identity_user).email()
@@ -2691,9 +2691,11 @@ def _send_set_user_data(mobiles, target_user, service_identity_user, type_, full
         request.data = None
         request.type = type_
         request.keys = request.values = []
-        if mobile_supports_feature(mobile, Features.SPLIT_USER_DATA):
-            request.data = json.dumps(updated_json_dict).decode("utf8")
-        elif UpdateUserDataRequestTO.DATA_TYPE_USER == type_:
+        # temporary disable split updating (updated_keys where not always correct (deleted items))
+#         if mobile_supports_feature(mobile, Features.SPLIT_USER_DATA):
+#             request.data = json.dumps(updated_json_dict).decode("utf8")
+
+        if UpdateUserDataRequestTO.DATA_TYPE_USER == type_:
             request.user_data = json.dumps(full_json_dict).decode("utf8")
         else:
             request.app_data = json.dumps(full_json_dict).decode("utf8")
