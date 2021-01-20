@@ -33,7 +33,7 @@ class CleanupWebSessionsHandler(RequestHandler):
         while has_results:
             results, start_cursor, has_results = WebClientSession \
                 .list_timed_out(expire_date) \
-                .fetch_page(1000, start_cursor=start_cursor)
+                .fetch_page(1000, start_cursor=start_cursor, keys_only=True)
             total += len(results)
             ndb.delete_multi(results)
         logging.info('Deleted %s expired web sessions', total)
