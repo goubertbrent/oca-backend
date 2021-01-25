@@ -28,12 +28,12 @@ import { FormValidator, FormValidatorType, ValidatorType } from '../../interface
 })
 export class FormFieldComponent {
   @Input() set value(value: FormComponent) {
-    this.setComponent(value);
+    this.setComponent(value, false);
   }
 
   set component(value: FormComponent) {
     if (value !== this._component) {
-      this.setComponent(value);
+      this.setComponent(value, true);
       this.changed();
     }
   }
@@ -142,13 +142,13 @@ export class FormFieldComponent {
     this.changed();
   }
 
-  private setComponent(value: FormComponent) {
-    const previousType = this._component && this._component.type;
+  private setComponent(value: FormComponent, manualChange: boolean) {
+    const previousType = this._component?.type;
     this._component = value;
     this.showDescription = this._shouldShowDescription(this._component);
     if (value && (previousType !== value.type)) {
       this.componentType = COMPONENT_TYPES.find(c => c.value === this._component.type) as ComponentTypeItem;
-      this.onComponentChange(this._component.type);
+      this.onComponentChange(this._component.type, manualChange);
       this.init();
     }
   }
@@ -180,7 +180,7 @@ export class FormFieldComponent {
     }
   }
 
-  private onComponentChange(type: FormComponentType) {
+  private onComponentChange(type: FormComponentType, clearValidators: boolean) {
     let comp = { ...this.component };
     comp.type = type;
     this.showDescription = this._shouldShowDescription(comp);
@@ -188,11 +188,13 @@ export class FormFieldComponent {
       if (!comp.id) {
         comp.id = comp.title as string;
       }
-      if (comp.validators) {
-        // Remove all validators except required
-        comp.validators = comp.validators.filter(v => v.type === FormValidatorType.REQUIRED);
-      } else {
-        comp.validators = [];
+      if (clearValidators) {
+        if (comp.validators) {
+          // Remove all validators except required
+          comp.validators = comp.validators.filter(v => v.type === FormValidatorType.REQUIRED);
+        } else {
+          comp.validators = [];
+        }
       }
       switch (comp.type) {
         case FormComponentType.TEXT_INPUT:

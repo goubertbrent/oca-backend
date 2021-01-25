@@ -24,6 +24,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
+import { CovalentTextEditorModule } from '@covalent/text-editor';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
@@ -126,6 +127,7 @@ import { TOPDeskOptionalFieldMappingComponent } from './integrations/topdesk-opt
     MatProgressBarModule,
     MatExpansionModule,
     TimeInputModule,
+    CovalentTextEditorModule,
   ],
   providers: [
     { provide: MatStepperIntl, useClass: MatStepperIntlImpl, deps: [TranslateService] },
