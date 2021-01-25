@@ -17,24 +17,24 @@
 
 from __future__ import unicode_literals
 
-import json
-import os
-import urllib
-from types import NoneType
-
 import base64
-import jinja2
+from contextlib import closing
+from datetime import timedelta, datetime
+import json
 import logging
+import os
 import time
+from types import NoneType
+import urllib
+from zipfile import ZipFile, ZIP_DEFLATED
+
+from google.appengine.ext import db, deferred, ndb
+import jinja2
+
 from babel import dates
 from babel.dates import format_timedelta, get_next_timezone_transition, format_time
 from babel.numbers import format_currency
-from contextlib import closing
-from datetime import timedelta, datetime
-from google.appengine.ext import db, deferred, ndb
-from zipfile import ZipFile, ZIP_DEFLATED
-
-import solutions
+from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.bizz.communities.communities import get_community, connect_auto_connected_service
@@ -56,6 +56,7 @@ from rogerthat.to.qr import QRDetailsTO
 from rogerthat.utils import now, is_flag_set, xml_escape
 from rogerthat.utils.transactions import on_trans_committed
 from solutions import translate as common_translate
+import solutions
 from solutions.common.bizz import timezone_offset, render_common_content, SolutionModule, \
     get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, put_branding, \
     OCAEmbeddedApps, OrganizationType, get_coords_and_label_of_service_menu_item
@@ -106,6 +107,7 @@ from solutions.common.to import MenuTO, SolutionGroupPurchaseTO, TimestampTO
 from solutions.common.to.loyalty import LoyaltyRevenueDiscountSettingsTO, LoyaltyStampsSettingsTO
 from solutions.common.utils import is_default_service_identity
 from solutions.jinja_extensions import TranslateExtension
+
 
 try:
     from cStringIO import StringIO
@@ -1229,7 +1231,7 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
                 if item.unit == item.custom_unit:
                     item.price_unit_str = solutions.translate_unit_symbol(lang, UNIT_KG)
 
-            if item.image_id:
+            if item.image_id and item.image_id is not MISSING:
                 item.image_url = get_item_image_url(item.image_id, server_settings)
             else:
                 item.image_url = None

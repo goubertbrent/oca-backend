@@ -20,21 +20,27 @@ import os
 
 from google.appengine.ext import db
 
+from mcfw.consts import MISSING
 import oca_unittest
 from rogerthat.bizz.service import create_service
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.profile import get_user_profile
 from rogerthat.models import ServiceProfile
 from rogerthat.rpc import users
+from rogerthat.settings import get_server_settings
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import get_epoch_from_datetime
+from solutions.common.bizz.menu import get_item_image_url
 from solutions.common.bizz.reservation import availability_and_shift, STATUS_AVAILABLE, STATUS_TOO_MANY_PEOPLE, \
     cancel_reservation, move_reservation, edit_reservation
-from solutions.common.models import SolutionSettings, SolutionMainBranding
+from solutions.common.models import SolutionSettings, SolutionMainBranding,\
+    RestaurantMenu
 from solutions.common.models.reservation import RestaurantReservation, RestaurantSettings
 from solutions.common.models.reservation.properties import ShiftTO
+from solutions.common.to import MenuTO
 from solutions.flex import SOLUTION_FLEX
+
 
 try:
     from cStringIO import StringIO
@@ -139,3 +145,23 @@ class Test(oca_unittest.TestCase):
 
         cancel_reservation(service_user, reservationOkKey, notified=False)
         move_reservation(service_user, None, reservationOkKey, u'shift-lunch')
+
+        menu_settings = RestaurantMenu(key=RestaurantMenu.create_key(solutionSettings.service_user, solutionSettings.solution))
+        menu_settings.categories_json = u'{"a46472d3-4ba6-a583-e527-7a7046a867e0":{"index":0,"name":"Tuinonderhoud","predescription":"Snoeiwerken","items":[{"name":"haag snoeien","price":3900,"custom_unit":5,"step":1,"visible_in":3,"has_price":true,"id":"c6696ba4-de8b-436d-bfa4-61628f8adee3","unit":5,"description":""}],"postdescription":null,"id":"a46472d3-4ba6-a583-e527-7a7046a867e0"}}'
+        menu_settings.predescription = u'Dit is de uitleiding van jouw menu'
+        menu_settings.postdescription = u'Dit is de inleiding van jouw menu'
+        menu_settings.name = None
+        menu_settings.is_default = False
+        menu_settings.put()
+
+        server_settings = get_server_settings()
+        menu = MenuTO.fromMenuObject(RestaurantMenu.get(RestaurantMenu.create_key(solutionSettings.service_user, solutionSettings.solution)))
+        for cat in menu.categories:
+            cat.has_visible = False
+            cat.has_visible_with_pay = False
+            for item in cat.items:
+                if item.image_id and item.image_id is not MISSING:
+                    item.image_url = get_item_image_url(item.image_id, server_settings)
+                else:
+                    item.image_url = None
+                self.assertEqual(None, item.image_url)
