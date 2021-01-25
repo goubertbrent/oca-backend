@@ -21,8 +21,13 @@ import io
 import logging
 import threading
 
+from google.appengine.api.images import TOP_LEFT, BadRequestError, ANCHOR_TYPES,\
+    composite
+from google.appengine.api.images.images_service_pb import CompositeImageOptions
+
 from PIL import Image
-from google.appengine.api.images import composite, TOP_LEFT
+from rogerthat.consts import DEBUG
+
 
 generate_image_rlock = threading.RLock()
 
@@ -94,15 +99,123 @@ def generate_qr_code(content, overlay, color, sample_overlay, svg=False):
         png_bytes = recolor_png(png_bytes, (0, 0, 0), tuple(color))
 
         if overlay:
-            layers = [(png_bytes, 0, 0, 1.0, TOP_LEFT), (overlay, 0, 0, 1.0, TOP_LEFT)]
+            layers = [(png_bytes, 0, 0, 1.0, TOP_LEFT),
+                      (overlay, 0, 0, 1.0, TOP_LEFT)]
             if sample_overlay:
                 layers.append((sample_overlay, 0, 0, 1.0, TOP_LEFT))
+            if DEBUG:
+                return composite_debug(layers, 348, 343)
             return composite(layers, 348, 343)
         else:
             layers = [(png_bytes, 0, 0, 1.0, TOP_LEFT)]
             if sample_overlay:
                 layers.append((sample_overlay, 0, 0, 1.0, TOP_LEFT))
+            if DEBUG:
+                return composite_debug(layers, 348, 343, color=4294967295)
             return composite(layers, 330, 330, color=4294967295)
+
+def _ArgbToRgbaTuple(argb):
+    """Convert from a single ARGB value to a tuple containing RGBA.
+
+    Args:
+        argb: Signed 32 bit integer containing an ARGB value.
+
+    Returns:
+        RGBA tuple.
+    """
+
+    unsigned_argb = argb % 0x100000000
+    return ((unsigned_argb >> 16) & 0xFF,
+            (unsigned_argb >> 8) & 0xFF,
+            unsigned_argb & 0xFF,
+            (unsigned_argb >> 24) & 0xFF)
+
+
+def _BackendPremultiplication(color):
+    """Apply premultiplication and unpremultiplication to match production.
+
+    Args:
+        color: color tuple as returned by _ArgbToRgbaTuple.
+
+    Returns:
+        RGBA tuple.
+    """
+
+    alpha = color[3]
+    rgb = color[0:3]
+    multiplied = [(x * (alpha + 1)) >> 8 for x in rgb]
+    if alpha:
+        alpha_inverse = 0xffffff / alpha
+        unmultiplied = [(x * alpha_inverse) >> 16 for x in multiplied]
+    else:
+        unmultiplied = [0] * 3
+    return tuple(unmultiplied + [alpha])
+
+
+def composite_debug(inputs, width, height, color=0):
+    MAX_COMPOSITES_PER_REQUEST = 16
+
+    if (not isinstance(width, (int, long)) or not isinstance(height, (int, long)) or not isinstance(color, (int, long))):
+        raise TypeError("Width, height and color must be integers.")
+
+    if not inputs:
+        raise BadRequestError("Must provide at least one input")
+    if len(inputs) > MAX_COMPOSITES_PER_REQUEST:
+        raise BadRequestError("A maximum of %d composition operations can be performed in a single request" % MAX_COMPOSITES_PER_REQUEST)
+
+    if width <= 0 or height <= 0:
+        raise BadRequestError("Width and height must be > 0.")
+    if width > 4000 or height > 4000:
+        raise BadRequestError("Width and height must be <= 4000.")
+
+    if color > 0xffffffff or color < 0:
+        raise BadRequestError("Invalid color")
+
+    if color >= 0x80000000:
+        color -= 0x100000000
+
+    color = _ArgbToRgbaTuple(color)
+    color = _BackendPremultiplication(color)
+
+    canvas = Image.new('RGBA', (width, height), color)
+
+    for (image, x, y, opacity, anchor) in inputs:
+        if not image:
+            raise BadRequestError("Each input must include an image")
+        if (not isinstance(x, (int, long)) or not isinstance(y, (int, long)) or not isinstance(opacity, (float))):
+            raise TypeError("x_offset, y_offset must be integers and opacity must be a float")
+        if x > 4000 or x < -4000:
+            raise BadRequestError("xOffsets must be in range [-4000, 4000]")
+        if y > 4000 or y < -4000:
+            raise BadRequestError("yOffsets must be in range [-4000, 4000]")
+        if opacity < 0 or opacity > 1:
+            raise BadRequestError("Opacity must be in the range 0.0 to 1.0")
+        if anchor not in ANCHOR_TYPES:
+            raise BadRequestError("Anchor type '%s' not in recognized set %s" % (anchor, ANCHOR_TYPES))
+
+        source = Image.open(StringIO(image))
+
+        options = CompositeImageOptions()
+        options.set_x_offset(x)
+        options.set_y_offset(y)
+        options.set_opacity(opacity)
+        options.set_anchor(anchor)
+
+        x_anchor = (options.anchor() % 3) * 0.5
+        y_anchor = (options.anchor() / 3) * 0.5
+        x_offset = int(options.x_offset() + x_anchor * (width - source.size[0]))
+        y_offset = int(options.y_offset() + y_anchor * (height - source.size[1]))
+        if source.mode == 'RGBA':
+            canvas.paste(source, (x_offset, y_offset), source)
+        else:
+            # Fix here: alpha must be an integer (and not a float)
+            alpha = int(options.opacity() * 255)
+            mask = Image.new('L', source.size, alpha)
+            canvas.paste(source, (x_offset, y_offset), mask)
+
+    out = StringIO()
+    canvas.save(out, 'png')
+    return out.getvalue()
 
 
 def get_png_size(png_bytes):

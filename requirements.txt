@@ -4,32 +4,28 @@ GoogleAppEnginePipeline==1.9.22.1
 Pillow==4.0.0
 PyPDF2==1.23
 PyYAML==5.3.1
-babel==1.3
-dnspython==1.11.1
+babel==2.9.0
 functools32==3.2.3-2
-futures==3.2.0
+futures==3.3.0
 git+git://github.com/ojii/pymaging-png.git#egg=pymaging-png
 git+git://github.com/ojii/pymaging.git#egg=pymaging
-google-api-python-client==1.10.0
+google-api-python-client==1.12.8
 graphy==1.0
 html2text==2019.8.11
 html5lib==0.999
 icalendar==3.5
 lxml==3.7.3
 oauth2client==4.1.3
-ply==3.4
+dnspython==1.16.0
 pydkim==0.3
-python-dateutil==2.6.0
+python-dateutil==2.8.1
 python-jose==3.0.1
-pytz==2020.4
+pytz==2020.5
 qrcode==5.3
-reportlab==3.1.44
 requests-toolbelt==0.9.1
-requests==2.22.0
-simplejson==3.10.0
+requests==2.25.1
 six==1.15.0
 slimit==0.7.4
-wsgiref==0.1.2
 xhtml2pdf==0.0.6
 xlrd==1.0.0
 xlwt==0.7.4
@@ -37,14 +33,16 @@ sendgrid==5.2.1
 influxdb==5.0.0
 createsend==5.0.0
 https://github.com/our-city-app/log-offload/archive/master.zip
-typing==3.6.6
+typing==3.7.4.3
 pycrypto==2.6.1
-Markdown==3.0.1
-beautifulsoup4==4.7.1
+# newest version for python 2
+Markdown==3.1.1
+beautifulsoup4==4.9.3
 facebook-sdk==3.1.0
+# newest version for python 2
 zeep==3.4.0
 autopep8==1.5.4
 PyRSS2Gen==1.1
 hyper==0.7.0
 # For open-api client
-certifi == 2020.6.20
+certifi==2020.12.5

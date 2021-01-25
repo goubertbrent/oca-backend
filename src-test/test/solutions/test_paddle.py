@@ -56,18 +56,18 @@ vrijdag
 
 Afwijkende openingstijden
 
-25/12/19 Kerstmis — Gesloten
-26/12/19 2e Kerstdag — Gesloten
-31/12/19 Oudejaar
+25/12/2019 Kerstmis — Gesloten
+26/12/2019 2e Kerstdag — Gesloten
+31/12/2019 Oudejaar
 dinsdag
 08:30 — 12:00 Enkel in de voormiddag open
 14:00 — 16:00 Uitzonderlijk gesloten
-1/01/20 Nieuwjaar — Gesloten
-13/04/20 Paasmaandag — Gesloten
-1/05/20 Dag van de Arbeid — Gesloten
-21/05/20 — 22/05/20 O.L.H. Hemelvaart + brugdag — Gesloten
-1/06/20 Pinkstermaandag — Gesloten
-1/07/20 — 30/08/20 Zomervakantie - afwijkende openingsuren op maandag
+1/01/2020 Nieuwjaar — Gesloten
+13/04/2020 Paasmaandag — Gesloten
+1/05/2020 Dag van de Arbeid — Gesloten
+21/05/2020 — 22/05/2020 O.L.H. Hemelvaart + brugdag — Gesloten
+1/06/2020 Pinkstermaandag — Gesloten
+1/07/2020 — 30/08/2020 Zomervakantie - afwijkende openingsuren op maandag
 maandag
 08:30 — 12:00
 14:00 — 16:30
@@ -87,15 +87,15 @@ donderdag
 vrijdag
 08:30 — 12:00
 14:00 — 16:00 Enkel telefonisch
-21/07/20 Nationale feestdag — Gesloten
-15/08/20 O.L.V. Hemelvaart — Gesloten
-25/09/20 Uitzonderlijk  gesloten in de namiddag
+21/07/2020 Nationale feestdag — Gesloten
+15/08/2020 O.L.V. Hemelvaart — Gesloten
+25/09/2020 Uitzonderlijk  gesloten in de namiddag
 vrijdag
 08:30 — 12:00 Enkel in de voormiddag open
 14:00 — 16:00 Uitzonderlijk gesloten
-1/11/20 Allerheiligen — Gesloten
-11/11/20 Wapenstilstand — Gesloten
-24/12/20 Kerstavond
+1/11/2020 Allerheiligen — Gesloten
+11/11/2020 Wapenstilstand — Gesloten
+24/12/2020 Kerstavond
 maandag
 08:00 — 12:00 Enkel in de voormiddag open
 14:00 — 18:30 Uitzonderlijk gesloten
@@ -103,8 +103,8 @@ maandag
 donderdag
 08:30 — 12:00
 14:00 — 16:00 Uitzonderlijk gesloten
-25/12/20 Kerstdag — Gesloten
-31/12/20 Oudejaar
+25/12/2020 Kerstdag — Gesloten
+31/12/2020 Oudejaar
 maandag
 08:30 — 12:00 Enkel in de voormiddag open
 14:00 — 18:30 Uitzonderlijk gesloten
@@ -112,7 +112,7 @@ maandag
 donderdag
 08:00 — 12:00
 14:00 — 16:00 Uitzonderlijk gesloten
-1/01/21 Nieuwjaar — Gesloten"""
+1/01/2021 Nieuwjaar — Gesloten"""
         data = PaddleOrganizationUnitDetails.from_dict(paddle_data)
         opening_hours = OpeningHours(key=OpeningHours.create_key(users.User('test@example.com'), '1'),
                                      type=OpeningHours.TYPE_TEXTUAL)

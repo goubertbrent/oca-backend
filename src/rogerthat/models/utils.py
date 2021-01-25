@@ -17,7 +17,6 @@
 
 import sys
 
-import yaml
 from google.appengine.ext import db, ndb
 
 from mcfw.consts import MISSING
@@ -162,6 +161,7 @@ def model_to_yaml(model):
 @returns(db.Model)
 @arguments(model=db.Model, stream=unicode)
 def populate_model_by_yaml(model, stream):
+    import yaml
     d = yaml.load(stream)
     bizz_check(d, "Empty yaml")
     missing_properties = [propname for propname in model.properties() if propname not in d]
