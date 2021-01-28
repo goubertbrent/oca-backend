@@ -189,9 +189,9 @@ class CirkloCityTO(TO):
             to.app_info = CirkloAppInfoTO()
             to.app_info.enabled = False
             to.app_info.title = {
-                'en': '# Order your voucher now 🛍️',
-                'nl': '# Koop nu je cadeaubon 🛍️',
-                'fr': '# Achetez maintenant votre chèque-cadeau 🛍️',
+                'en': '## Order your voucher now 🛍️',
+                'nl': '## Koop nu je cadeaubon 🛍️',
+                'fr': '## Achetez maintenant votre chèque-cadeau 🛍️',
             }
             to.app_info.buttons = []
         return to
