@@ -93,7 +93,7 @@ from solutions.common.dal import get_solution_settings, get_static_content_list,
 from solutions.common.dal.appointment import get_solution_appointment_settings
 from solutions.common.dal.repair import get_solution_repair_orders, get_solution_repair_settings
 from solutions.common.integrations.jcc.jcc_appointments import get_jcc_settings, save_jcc_settings
-from solutions.common.integrations.qmatic.qmatic import get_qmatic_settings, save_qmatic_settings
+from solutions.common.integrations.qmatic.qmatic import get_qmatic_settings, save_qmatic_settings, QMaticSettingsTO
 from solutions.common.localizer import translations
 from solutions.common.models import SolutionBrandingSettings, SolutionSettings, SolutionInboxMessage, \
     SolutionRssScraperSettings
@@ -1415,17 +1415,17 @@ def rest_save_branding_settings(branding_settings):
 
 
 @rest('/common/q-matic', 'get')
-@returns(dict)
+@returns(QMaticSettingsTO)
 @arguments()
 def rest_get_qmatic_settings():
-    return get_qmatic_settings(users.get_current_user()).to_dict()
+    return QMaticSettingsTO.from_model(get_qmatic_settings(users.get_current_user()))
 
 
 @rest('/common/q-matic', 'put')
-@returns(dict)
-@arguments(data=dict)
+@returns(QMaticSettingsTO)
+@arguments(data=QMaticSettingsTO)
 def rest_save_qmatic_settings(data):
-    return save_qmatic_settings(users.get_current_user(), data['url'], data['auth_token']).to_dict()
+    return QMaticSettingsTO.from_model(save_qmatic_settings(users.get_current_user(), data))
 
 
 @rest('/common/jcc-appointments', 'get')

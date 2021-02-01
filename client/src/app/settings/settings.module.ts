@@ -40,6 +40,7 @@ import { ServiceSyncedValueEditorComponent } from './service-info/service-synced
 import { SyncedValuesPreviewComponent } from './service-info/synced-values-preview/synced-values-preview.component';
 import { SettingsEffects } from './settings.effects';
 import { settingsReducer } from './settings.reducer';
+ import { QMaticSettingsComponent } from './q-matic/qmatic-settings/qmatic-settings.component';
 
 
 const routes: Routes = [
@@ -47,6 +48,7 @@ const routes: Routes = [
   { path: 'opening-hours', component: OpeningHoursSettingsPageComponent },
   { path: 'service-info', component: ServiceInfoPageComponent },
   { path: 'privacy', component: PrivacySettingsPageComponent },
+  { path: 'q-matic', component: QMaticSettingsComponent },
 ];
 
 @NgModule({
@@ -62,6 +64,7 @@ const routes: Routes = [
     SyncedValuesPreviewComponent,
     OpeningHoursPeriodsEditorComponent,
     PrivacySettingsPageComponent,
+    QMaticSettingsComponent,
   ],
   imports: [
     CommonModule,

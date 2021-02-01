@@ -76,6 +76,12 @@ export function qmaticReducer(state = initialQMaticState, action: QMaticActions)
         };
       }
       break;
+    case QMaticActionTypes.GET_SETTINGS:
+      return { ...state, settings: stateLoading(initialQMaticState.settings.result) };
+    case QMaticActionTypes.GET_SETTINGS_SUCCESS:
+      return { ...state, settings: stateSuccess(action.payload) };
+    case QMaticActionTypes.GET_SETTINGS_FAILED:
+      return { ...state, settings: stateError(action.error, state.settings.result) };
   }
   return state;
 }

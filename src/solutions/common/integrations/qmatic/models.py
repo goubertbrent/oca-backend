@@ -23,9 +23,10 @@ from rogerthat.rpc import users
 
 
 class QMaticSettings(NdbModel):
-    url = ndb.StringProperty()
-    auth_token = ndb.StringProperty()
+    url = ndb.TextProperty()
+    auth_token = ndb.TextProperty()
     enabled = ndb.BooleanProperty(default=False)
+    required_fields = ndb.TextProperty(repeated=True)
 
     @property
     def service_user(self):

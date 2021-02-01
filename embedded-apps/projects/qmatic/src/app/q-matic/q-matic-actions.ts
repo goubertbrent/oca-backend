@@ -6,7 +6,7 @@ import {
   ListBranches,
   ListDates,
   ListServices,
-  ListTimes,
+  ListTimes, QmaticClientSettings,
   QMaticCustomer,
 } from './appointments';
 
@@ -38,6 +38,9 @@ export const enum QMaticActionTypes {
   CREATE_ICAL = '[q-matic] Create iCal file',
   CREATE_ICAL_SUCCESS = '[q-matic] Create iCal file complete',
   CREATE_ICAL_FAILED = '[q-matic] Create iCal file failed',
+  GET_SETTINGS = '[q-matic] Get settings',
+  GET_SETTINGS_SUCCESS = '[q-matic] Get settings complete',
+  GET_SETTINGS_FAILED = '[q-matic] Get settings failed',
 }
 
 export class GetAppointmentsAction implements Action {
@@ -224,6 +227,24 @@ export class CreateIcalFailedAction implements Action {
   }
 }
 
+export class GetSettingsAction implements Action {
+  readonly type = QMaticActionTypes.GET_SETTINGS;
+}
+
+export class GetSettingsSuccessAction implements Action {
+  readonly type = QMaticActionTypes.GET_SETTINGS_SUCCESS;
+
+  constructor(public payload: QmaticClientSettings) {
+  }
+}
+
+export class GetSettingsFailedAction implements Action {
+  readonly type = QMaticActionTypes.GET_SETTINGS_FAILED;
+
+  constructor(public error: string) {
+  }
+}
+
 export type QMaticActions = GetAppointmentsAction
   | GetAppointmentsSuccessAction
   | GetAppointmentsFailedAction
@@ -250,5 +271,8 @@ export type QMaticActions = GetAppointmentsAction
   | CancelAppointmentFailedAction
   | CreateIcalAction
   | CreateIcalSuccessAction
-  | CreateIcalFailedAction;
+  | CreateIcalFailedAction
+  | GetSettingsAction
+  | GetSettingsSuccessAction
+  | GetSettingsFailedAction;
 

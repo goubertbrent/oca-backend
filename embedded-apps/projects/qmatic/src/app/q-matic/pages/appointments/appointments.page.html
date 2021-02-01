@@ -17,8 +17,8 @@
                          [appointment]="appointment"
                          [past]="false">
     </qm-appointment-card>
-    <div *ngIf="showNoResults$ | async" class="ion-padding no-results">
-      <p>{{ 'app.qm.no_upcoming_appointments_yet' | translate }}</p>
+    <div class="ion-padding appointment-list-header">
+      <p *ngIf="showNoResults$ | async">{{ 'app.qm.no_upcoming_appointments_yet' | translate }}</p>
       <ion-button routerLink="/new-appointment">
         {{ 'app.qm.create_appointment' | translate }}
       </ion-button>
@@ -34,9 +34,4 @@
   <div *ngIf="isLoading$ | async" class="qm-spinner-container">
     <ion-spinner></ion-spinner>
   </div>
-  <ion-fab horizontal="end" slot="fixed" vertical="bottom">
-    <ion-fab-button routerLink="/new-appointment">
-      <ion-icon name="add"></ion-icon>
-    </ion-fab-button>
-  </ion-fab>
 </ion-content>

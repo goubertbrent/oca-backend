@@ -1,4 +1,5 @@
 {
+  "oca.required_fields": "Required fields",
   "%(app_name)s has 1 new message for you": "%(app_name)s has 1 new message for you",
   "(Click to change)": "(Click to change)",
   "(No title)": "(No title)",
@@ -1456,7 +1457,7 @@
   "publish_news_item_later": "Publish message later",
   "publish_now": "Publish now",
   "publishing-dot-dot-dot": "Publishing…",
-  "q-matic-info": "The Q-matic integration makes it possible to create appointments in the app.",
+  "oca.q-matic-info": "The Q-matic integration makes it possible to create appointments in the app.",
   "qanda": "Q & A",
   "qanda-my-questions": "My questions",
   "qanda-new-question": "Ask new question",

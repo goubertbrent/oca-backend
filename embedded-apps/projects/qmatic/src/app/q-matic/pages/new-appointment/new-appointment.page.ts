@@ -2,9 +2,16 @@ import { ChangeDetectionStrategy, Component, OnInit, ViewEncapsulation } from '@
 import { select, Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { QMState } from '../../../reducers';
-import { getDateString, QMaticBranch, QMaticService } from '../../appointments';
-import { GetBranchesAction, GetDatesAction, GetServicesAction, GetTimesAction, ReserveDateAction } from '../../q-matic-actions';
-import { getBranches, getDates, getServices, getTimes, isLoadingNewAppointmentInfo } from '../../q-matic.state';
+import { getDateString, QMaticBranch, QmaticClientSettings, QMaticService } from '../../appointments';
+import {
+  GetBranchesAction,
+  GetDatesAction,
+  GetServicesAction,
+  GetSettingsAction,
+  GetTimesAction,
+  ReserveDateAction,
+} from '../../q-matic-actions';
+import { getBranches, getClientSettings, getDates, getServices, getTimes, isLoadingNewAppointmentInfo } from '../../q-matic.state';
 import { NewAppointmentForm } from './create-appointment/create-appointment.component';
 
 @Component({
@@ -18,6 +25,7 @@ export class NewAppointmentPage implements OnInit {
   dates$: Observable<Date[]>;
   times$: Observable<string[]>;
   isLoading$: Observable<boolean>;
+  settings$: Observable<QmaticClientSettings | null>;
 
   constructor(private store: Store<QMState>) {
   }
@@ -27,8 +35,10 @@ export class NewAppointmentPage implements OnInit {
     this.branches$ = this.store.pipe(select(getBranches));
     this.dates$ = this.store.pipe(select(getDates));
     this.times$ = this.store.pipe(select(getTimes));
+    this.settings$ = this.store.pipe(select(getClientSettings));
     this.isLoading$ = this.store.pipe(select(isLoadingNewAppointmentInfo));
     this.store.dispatch(new GetServicesAction());
+    this.store.dispatch(new GetSettingsAction());
   }
 
   serviceChanged(service: string) {

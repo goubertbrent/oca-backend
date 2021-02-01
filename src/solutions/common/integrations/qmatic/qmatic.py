@@ -33,11 +33,13 @@ from icalendar import Calendar, Event, vCalAddress, vText
 from typing import Union
 
 from mcfw.exceptions import HttpBadRequestException
+from mcfw.properties import unicode_property, unicode_list_property
 from mcfw.rpc import returns, arguments
 from models import QMaticSettings, QMaticUser
 from rogerthat.bizz.app import get_app
 from rogerthat.consts import DEBUG
 from rogerthat.rpc import users
+from rogerthat.to import TO
 from rogerthat.to.service import SendApiCallCallbackResultTO, UserDetailsTO
 from rogerthat.utils import send_mail
 from rogerthat.utils.app import get_app_id_from_app_user, get_human_user_from_app_user
@@ -54,8 +56,15 @@ API_METHOD_RESERVE = 'integrations.qmatic.reserve'
 API_METHOD_CONFIRM = 'integrations.qmatic.confirm'
 API_METHOD_DELETE = 'integrations.qmatic.delete'
 API_METHOD_CREATE_ICAL = 'integrations.qmatic.create_ical'
+API_METHOD_GET_SETTINGS = 'integrations.qmatic.settings'
 
 URL_PREFIX = '/calendar-backend/public/api/v1'
+
+
+class QMaticSettingsTO(TO):
+    url = unicode_property('url', default=None)
+    auth_token = unicode_property('auth_token', default=None)
+    required_fields = unicode_list_property('required_fields', default=[])
 
 
 class TranslatedException(Exception):
@@ -84,19 +93,22 @@ def set_updates_pending(service_user):
     broadcast_updates_pending(sln_settings)
 
 
-def save_qmatic_settings(service_user, url, auth_token):
+def save_qmatic_settings(service_user, data):
+    # type: (users.User, QMaticSettingsTO) -> QMaticSettings
     settings = get_qmatic_settings(service_user)
-    settings.url = url.strip()
-    settings.auth_token = auth_token.strip()
+    settings.url = data.url.strip()
+    settings.auth_token = data.auth_token.strip()
+    settings.required_fields = data.required_fields
     try:
-        if url and auth_token:
+        if data.url and data.auth_token:
             if get_services(settings).status_code == 200:
                 if not settings.enabled:
                     settings.enabled = True
                     set_updates_pending(service_user)
                 settings.put()
             else:
-                raise HttpBadRequestException('errors.invalid_qmatic_credentials')
+                msg = common_translate(get_solution_settings(service_user).main_language, 'errors.invalid_qmatic_credentials')
+                raise HttpBadRequestException(msg)
         else:
             if settings.enabled:
                 settings.enabled = False
@@ -163,6 +175,8 @@ def handle_method(service_user, email, method, params, tag, service_identity, us
             result = delete_appointment(settings, app_user, **jsondata)
         elif API_METHOD_CREATE_ICAL == method:
             result = create_ical(settings, app_user, **jsondata)
+        elif API_METHOD_GET_SETTINGS == method:
+            result = get_client_settings(settings)
         else:
             raise Exception('Qmatic method not found')
 
@@ -373,6 +387,11 @@ def create_ical(qmatic_settings, app_user, appointment_id):
     send_mail(from_, to_email, subject, body, html=html, attachments=[ical_attachment])
     msg = common_translate(sln_settings.main_language, 'an_email_has_been_sent_with_appointment_event')
     return {'message': msg}
+
+
+def get_client_settings(config):
+    # type: (QMaticSettings) -> dict
+    return {'required_fields': config.required_fields}
 
 
 def _get_qmatic_user(app_user):

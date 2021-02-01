@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { createEffect, ofType } from '@ngrx/effects';
 import { of } from 'rxjs';
-import { delay, switchMap, tap } from 'rxjs/operators';
+import { delay, map, switchMap, tap } from 'rxjs/operators';
+import { QMaticRequiredField } from '../appointments';
 import {
   CancelAppointmentAction,
   CancelAppointmentSuccessAction,
@@ -15,6 +16,7 @@ import {
   GetDatesSuccessAction,
   GetServicesAction,
   GetServicesSuccessAction,
+  GetSettingsSuccessAction,
   GetTimesAction,
   GetTimesSuccessAction,
   QMaticActionTypes,
@@ -91,4 +93,8 @@ export class QMaticTestEffects extends QMaticEffects {
     ofType<CancelAppointmentAction>(QMaticActionTypes.CANCEL_APPOINTMENT),
     switchMap(action => of(new CancelAppointmentSuccessAction(action.payload)),
     )));
+
+  getSettings$ = createEffect(() => of({}).pipe(
+    map(() => new GetSettingsSuccessAction({ required_fields: [QMaticRequiredField.PHONE_NUMBER, QMaticRequiredField.EMAIL] })),
+  ));
 }

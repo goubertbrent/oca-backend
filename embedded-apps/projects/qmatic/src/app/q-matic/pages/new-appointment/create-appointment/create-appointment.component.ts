@@ -8,7 +8,14 @@ import { IFormBuilder, IFormGroup } from '@rxweb/types';
 import { IonicSelectableComponent } from 'ionic-selectable';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { getDateString, QMaticBranch, QMaticCustomer, QMaticService } from '../../../appointments';
+import {
+  getDateString,
+  QMaticBranch,
+  QmaticClientSettings,
+  QMaticCustomer,
+  QMaticRequiredField,
+  QMaticService,
+} from '../../../appointments';
 
 export interface NewAppointmentForm {
   service: QMaticService | null;
@@ -39,9 +46,7 @@ export class CreateAppointmentComponent implements OnDestroy {
   @Output() branchSelected = new EventEmitter<{ service: string; branch: string }>();
   @Output() dateSelected = new EventEmitter<{ service: string; branch: string; date: string; }>();
   @Output() confirmAppointment = new EventEmitter<NewAppointmentForm>();
-
   formGroup: IFormGroup<NewAppointmentForm>;
-
   showValidationError = false;
   private destroyed$ = new Subject();
   private autoOpened = {
@@ -67,8 +72,8 @@ export class CreateAppointmentComponent implements OnDestroy {
       customer: fb.group<Partial<QMaticCustomer>>({
         firstName: fb.control(rogerthat.user.firstName || rogerthat.user.name.split(' ')[ 0 ], Validators.required),
         lastName: fb.control(this.getLastName(), Validators.required),
-        email: fb.control(rogerthat.user.account, Validators.required),
-        phone: fb.control(null, Validators.required),
+        email: fb.control(rogerthat.user.account),
+        phone: fb.control(null),
       }),
     });
     this.formGroup.controls.service.valueChanges.pipe(takeUntil(this.destroyed$)).subscribe(v => {
@@ -93,6 +98,18 @@ export class CreateAppointmentComponent implements OnDestroy {
         });
       }
     });
+  }
+
+  @Input() set settings(value: QmaticClientSettings | null) {
+    if (value) {
+      const controls = this.customerForm.controls;
+      if (value.required_fields.includes(QMaticRequiredField.PHONE_NUMBER)) {
+        controls.phone!.setValidators(Validators.required);
+      }
+      if (value.required_fields.includes(QMaticRequiredField.EMAIL)) {
+        controls.email!.setValidators(Validators.required);
+      }
+    }
   }
 
   get times() {
@@ -153,6 +170,10 @@ export class CreateAppointmentComponent implements OnDestroy {
         this.branchSelect.open();
       }
     }
+  }
+
+  get customerForm() {
+    return (this.formGroup.controls.customer as IFormGroup<Partial<QMaticCustomer>>);
   }
 
   ngOnDestroy() {

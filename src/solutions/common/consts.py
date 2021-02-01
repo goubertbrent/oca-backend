@@ -118,6 +118,7 @@ TRANSLATION_MAPPING = {
         'RSS imports',
         'Save',
         'Search',
+        'Secret',
         'Settings',
         'Time',
         'Type',

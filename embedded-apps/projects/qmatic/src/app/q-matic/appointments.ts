@@ -1,3 +1,12 @@
+export enum QMaticRequiredField {
+  EMAIL = 'email',
+  PHONE_NUMBER = 'phone-number'
+}
+
+export interface QmaticClientSettings {
+  required_fields: QMaticRequiredField[];
+}
+
 export interface ListAppointments {
   meta: ListResultMeta;
   notifications: any[];

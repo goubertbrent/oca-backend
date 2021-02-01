@@ -87,7 +87,7 @@ $(function () {
         }
         $('#settings').find('li[section=section_' + page + ']').find('a').click();
         var dashboardDisplay = 'none';
-        if (page === 'service-info' || page === 'privacy') {
+        if (page === 'service-info' || page === 'privacy' || page === 'q-matic') {
             dashboardDisplay = 'block';
             newDashboardRouter(['settings', page]);
         } else if (page === 'branding') {
@@ -96,8 +96,6 @@ $(function () {
             renderAppSettings();
         } else if (page === 'roles') {
             renderRolesSettings();
-        } else if (page === 'q-matic') {
-            Requests.getQmaticSettings().then(renderQmaticSettings);
         } else if (page === 'jcc-appointments') {
             Requests.getJccSettings().then(renderJccSettings);
         } else if (page === 'paddle') {
@@ -1079,42 +1077,6 @@ $(function () {
                     loadSettings();
                 }
             });
-        });
-    }
-
-    function renderQmaticSettings(settings) {
-        var url = $('#qmatic_url');
-        var authToken = $('#qmatic_auth_token');
-        var saveButton = $('#btn_save_qmatic_settings');
-        url.val(settings.url);
-        authToken.val(settings.auth_token);
-        saveButton.prop('disabled', false);
-        saveButton.click(function () {
-            if (saveButton.prop('disabled')) {
-                return;
-            }
-            saveButton.prop('disabled', true);
-            var data = {
-                url: url.val(),
-                auth_token: authToken.val(),
-            };
-            Requests.saveQmaticSettings(data, {showError: false})
-                .then(function () {
-                    saveButton.prop('disabled', false);
-                })
-                .catch(function (err) {
-                    saveButton.prop('disabled', false);
-                    if (err.responseJSON.error) {
-                        saveButton.prop('disabled', false);
-                        if (err.responseJSON.error === 'errors.invalid_qmatic_credentials') {
-                            sln.alert(T('errors.invalid_qmatic_credentials'));
-                        } else {
-                            sln.alert(err.responseJSON.error);
-                        }
-                    } else {
-                        sln.showAjaxError();
-                    }
-                });
         });
     }
 

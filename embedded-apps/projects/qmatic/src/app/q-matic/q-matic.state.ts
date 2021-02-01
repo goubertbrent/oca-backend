@@ -1,6 +1,6 @@
 import { createFeatureSelector, createSelector } from '@ngrx/store';
 import { CallStateType, initialStateResult, ResultState } from '@oca/shared';
-import { Appointment, ListAppointments, ListBranches, ListDates, ListServices, ListTimes } from './appointments';
+import { Appointment, ListAppointments, ListBranches, ListDates, ListServices, ListTimes, QmaticClientSettings } from './appointments';
 
 export const Q_MATIC_FEATURE = 'qmatic';
 
@@ -11,6 +11,7 @@ export interface QMaticState {
   dates: ResultState<ListDates>;
   times: ResultState<ListTimes>;
   reservedAppointment: ResultState<Appointment>;
+  settings: ResultState<QmaticClientSettings>;
 }
 
 const getQMaticState = createFeatureSelector<QMaticState>(Q_MATIC_FEATURE);
@@ -22,6 +23,7 @@ export const initialQMaticState: QMaticState = {
   dates: initialStateResult,
   times: initialStateResult,
   reservedAppointment: initialStateResult,
+  settings: initialStateResult,
 };
 
 export const getAppointments = createSelector(getQMaticState, s => s.appointments);
@@ -53,3 +55,4 @@ export const getTimes = createSelector(getQMaticState, s => s.times.state === Ca
 export const getReservedAppointment = createSelector(getQMaticState, s => s.reservedAppointment);
 export const isLoadingNewAppointmentInfo = createSelector(getQMaticState, s =>
   [s.services, s.branches, s.dates, s.times, s.reservedAppointment].some(status => status.state === CallStateType.LOADING));
+export const getClientSettings = createSelector(getQMaticState, s => s.settings.result);

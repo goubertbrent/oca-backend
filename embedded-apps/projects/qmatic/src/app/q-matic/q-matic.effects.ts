@@ -6,10 +6,10 @@ import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { RogerthatService } from '@oca/rogerthat';
 import { of } from 'rxjs';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { catchError, map, switchMap, take, tap } from 'rxjs/operators';
 import { ErrorService } from '../error.service';
 import { QMState } from '../reducers';
-import { Appointment, ListAppointments, ListBranches, ListDates, ListServices, ListTimes } from './appointments';
+import { Appointment, ListAppointments, ListBranches, ListDates, ListServices, ListTimes, QmaticClientSettings } from './appointments';
 import {
   CancelAppointmentAction,
   CancelAppointmentFailedAction,
@@ -32,6 +32,9 @@ import {
   GetServicesAction,
   GetServicesFailedAction,
   GetServicesSuccessAction,
+  GetSettingsAction,
+  GetSettingsFailedAction,
+  GetSettingsSuccessAction,
   GetTimesAction,
   GetTimesFailedAction,
   GetTimesSuccessAction,
@@ -52,6 +55,7 @@ export const ApiCalls = {
   CONFIRM: 'integrations.qmatic.confirm',
   DELETE: 'integrations.qmatic.delete',
   CREATE_ICAL: 'integrations.qmatic.create_ical',
+  GET_SETTINGS: 'integrations.qmatic.settings',
 };
 
 @Injectable()
@@ -150,14 +154,25 @@ export class QMaticEffects {
 
    createIcal$ = createEffect(() => this.actions$.pipe(
     ofType<CreateIcalAction>(QMaticActionTypes.CREATE_ICAL),
-    switchMap(action => this.rogerthatService.apiCall<{ message: string }>(ApiCalls.CREATE_ICAL, action.payload).pipe(
-      map(result => new CreateIcalSuccessAction(result)),
-      tap(result => {
-        this.showDialog(result.payload.message);
-      }),
+     switchMap(action => this.rogerthatService.apiCall<{ message: string }>(ApiCalls.CREATE_ICAL, action.payload).pipe(
+       map(result => new CreateIcalSuccessAction(result)),
+       tap(result => {
+         this.showDialog(result.payload.message);
+       }),
+       catchError(err => {
+         this.errorService.showErrorDialog(action, err);
+         return of(new CreateIcalFailedAction(err));
+       })),
+     )));
+
+  getSettings$ = createEffect(() => this.actions$.pipe(
+    ofType<GetSettingsAction>(QMaticActionTypes.GET_SETTINGS),
+    take(1),
+    switchMap(action => this.rogerthatService.apiCall<QmaticClientSettings>(ApiCalls.GET_SETTINGS).pipe(
+      map(result => new GetSettingsSuccessAction(result)),
       catchError(err => {
         this.errorService.showErrorDialog(action, err);
-        return of(new CreateIcalFailedAction(err));
+        return of(new GetSettingsFailedAction(err));
       })),
     )));
 

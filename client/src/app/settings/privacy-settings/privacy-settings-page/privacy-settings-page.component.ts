@@ -27,7 +27,7 @@ export class PrivacySettingsPageComponent implements OnInit {
   settingToggled(item: PrivacySettings, $event: MatSlideToggleChange) {
     const setting = { ...item, enabled: $event.checked };
     for (const group of this.settingsGroups){
-      if(group.items.includes(item)) {
+      if (group.items.includes(item)) {
         group.items = updateItem(group.items, setting, 'type');
       }
     }
