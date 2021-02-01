@@ -756,6 +756,7 @@ API_METHOD_MAPPING = {
     API_METHOD_SOLUTION_COUPON_RESOLVE: solution_coupon_resolve,
     qmatic.API_METHOD_APPOINTMENTS: qmatic.handle_method,
     qmatic.API_METHOD_SERVICES: qmatic.handle_method,
+    qmatic.API_METHOD_GET_SETTINGS: qmatic.handle_method,
     qmatic.API_METHOD_BRANCHES: qmatic.handle_method,
     qmatic.API_METHOD_DATES: qmatic.handle_method,
     qmatic.API_METHOD_TIMES: qmatic.handle_method,
