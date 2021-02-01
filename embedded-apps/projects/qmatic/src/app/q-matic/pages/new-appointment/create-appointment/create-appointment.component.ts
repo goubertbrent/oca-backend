@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnDestroy, Output, ViewChild } from '@angular/core';
-import { FormBuilder, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormControl, Validators } from '@angular/forms';
 import { MatDatepicker } from '@angular/material/datepicker';
 import { IonSelect } from '@ionic/angular';
 import { TranslateService } from '@ngx-translate/core';
@@ -25,6 +25,11 @@ export interface NewAppointmentForm {
   title: string;
   notes: string;
   customer: Partial<QMaticCustomer>;
+}
+
+function makeRequired(formControl: AbstractControl){
+  formControl.setValidators(Validators.required);
+  formControl.updateValueAndValidity({emitEvent: false});
 }
 
 @Component({
@@ -104,10 +109,10 @@ export class CreateAppointmentComponent implements OnDestroy {
     if (value) {
       const controls = this.customerForm.controls;
       if (value.required_fields.includes(QMaticRequiredField.PHONE_NUMBER)) {
-        controls.phone!.setValidators(Validators.required);
+        makeRequired(controls.phone!);
       }
       if (value.required_fields.includes(QMaticRequiredField.EMAIL)) {
-        controls.email!.setValidators(Validators.required);
+        makeRequired(controls.email!);
       }
     }
   }

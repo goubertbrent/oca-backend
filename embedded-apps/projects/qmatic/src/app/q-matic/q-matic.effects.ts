@@ -2,11 +2,11 @@ import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { AlertController } from '@ionic/angular';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
-import { Store } from '@ngrx/store';
+import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { RogerthatService } from '@oca/rogerthat';
 import { of } from 'rxjs';
-import { catchError, map, switchMap, take, tap } from 'rxjs/operators';
+import { catchError, map, skipWhile, switchMap, take, tap, withLatestFrom } from 'rxjs/operators';
 import { ErrorService } from '../error.service';
 import { QMState } from '../reducers';
 import { Appointment, ListAppointments, ListBranches, ListDates, ListServices, ListTimes, QmaticClientSettings } from './appointments';
@@ -44,6 +44,7 @@ import {
   ReserveDateFailedAction,
   ReserveDateSuccessAction,
 } from './q-matic-actions';
+import { getClientSettings } from './q-matic.state';
 
 export const ApiCalls = {
   APPOINTMENTS: 'integrations.qmatic.appointments',
@@ -167,8 +168,9 @@ export class QMaticEffects {
 
   getSettings$ = createEffect(() => this.actions$.pipe(
     ofType<GetSettingsAction>(QMaticActionTypes.GET_SETTINGS),
-    take(1),
-    switchMap(action => this.rogerthatService.apiCall<QmaticClientSettings>(ApiCalls.GET_SETTINGS).pipe(
+    withLatestFrom(this.store.pipe(select(getClientSettings))),
+    skipWhile(([, settings]) => settings !== null),
+    switchMap(([action]) => this.rogerthatService.apiCall<QmaticClientSettings>(ApiCalls.GET_SETTINGS).pipe(
       map(result => new GetSettingsSuccessAction(result)),
       catchError(err => {
         this.errorService.showErrorDialog(action, err);
