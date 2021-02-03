@@ -8,7 +8,7 @@ import { combineLatest, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { QMState } from '../../../reducers';
 import { Appointment, ListAppointments } from '../../appointments';
-import { CancelAppointmentAction, CreateIcalAction, GetAppointmentsAction } from '../../q-matic-actions';
+import { CancelAppointmentAction, GetAppointmentsAction } from '../../q-matic-actions';
 import { getAppointments, getAppointmentsList } from '../../q-matic.state';
 
 @Component({
@@ -54,9 +54,5 @@ export class AppointmentsPage implements OnInit {
       ],
     });
     await alert.present();
-  }
-
-  addToCalendar(appointment: Appointment<Date>) {
-    this.store.dispatch(new CreateIcalAction({ appointment_id: appointment.publicId }));
   }
 }

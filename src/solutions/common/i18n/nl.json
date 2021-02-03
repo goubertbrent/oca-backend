@@ -1,4 +1,8 @@
 {
+  "appointment_booked": "Afspraak geboekt",
+  "appointment_cancelled": "Afspraak geannuleerd",
+  "qmatic_appointment_booked_text": "Beste,\nDe volgende afspraak werd geboekt via de %(app_name)s app:",
+  "qmatic_appointment_cancelled_text": "Beste,\nDe volgende afspraak is geannuleerd:",
   "%(app_name)s has 1 new message for you": "%(app_name)s heeft 1 nieuw bericht voor u",
   "(Click to change)": "(Klik om te veranderen)",
   "(No title)": "(Geen titel)",

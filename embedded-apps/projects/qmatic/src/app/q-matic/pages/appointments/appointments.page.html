@@ -17,8 +17,7 @@
     </ion-button>
   </div>
   <ng-container *ngIf="appointments$ | async as appointments">
-    <qm-appointment-card (addToCalendarClicked)="addToCalendar($event)"
-                         (cancelClicked)="cancelAppointment($event)"
+    <qm-appointment-card (cancelClicked)="cancelAppointment($event)"
                          *ngFor="let appointment of appointments.upcoming"
                          [appointment]="appointment"
                          [past]="false">

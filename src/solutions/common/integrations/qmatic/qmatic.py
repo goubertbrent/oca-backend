@@ -19,16 +19,17 @@ from __future__ import unicode_literals
 
 import hashlib
 import json
-import logging
-import uuid
-from base64 import b64encode
-from datetime import datetime
 
 import cloudstorage
 import dateutil
 import html2text
+import logging
+import uuid
 from babel.dates import format_date, format_time
+from base64 import b64encode
+from datetime import datetime
 from google.appengine.api import urlfetch
+from google.appengine.ext.deferred import deferred
 from icalendar import Calendar, Event, vCalAddress, vText
 from typing import Union
 
@@ -135,7 +136,7 @@ def do_request(settings, relative_url, method=urlfetch.GET, payload=None):
         logging.debug(url)
     result = urlfetch.fetch(url, payload, method, headers, deadline=30, follow_redirects=False)
     if DEBUG:
-        logging.debug(result.content)
+        logging.debug('%d %s', result.status_code, result.content)
     return result
 
 
@@ -276,7 +277,11 @@ def confirm_reservation(qmatic_settings, app_user, reservation_id, data):
         qmatic_user.qmatic_id = str(uuid.uuid4())
         qmatic_user.put()
     data['customer']['externalId'] = qmatic_user.qmatic_id
-    return do_request(qmatic_settings, url, urlfetch.POST, data)
+    result = do_request(qmatic_settings, url, urlfetch.POST, data)
+    if result.status_code == 200:
+        appointment = json.loads(result.content)
+        deferred.defer(_send_appointment_email, qmatic_settings.service_user, app_user, appointment)
+    return result
 
 
 def delete_appointment(qmatic_settings, app_user, appointment_id):
@@ -285,17 +290,21 @@ def delete_appointment(qmatic_settings, app_user, appointment_id):
     qmatic_user = _get_qmatic_user(app_user)
     result = get_appointment(qmatic_settings, appointment_id)
     try:
-        appointment = json.loads(result.content)
+        result_json = json.loads(result.content)
     except Exception as e:
         logging.warning(e, exc_info=True)
         return result
     can_delete = any(customer['externalId'] == qmatic_user.qmatic_id
-                     for customer in appointment['appointment']['customers'])
+                     for customer in result_json['appointment']['customers'])
     if not can_delete:
         logging.warning('%s tried to delete appointment to which he has no access: %s', app_user, appointment_id)
         raise TranslatedException('no_permission_to_appointment')
     else:
-        return do_request(qmatic_settings, url, urlfetch.DELETE)
+        delete_result = do_request(qmatic_settings, url, urlfetch.DELETE)
+        if delete_result.status_code in (200, 204):
+            deferred.defer(_send_appointment_email, qmatic_settings.service_user, app_user, result_json['appointment'],
+                           cancelled=True)
+        return delete_result
 
 
 def get_appointment(qmatic_settings, appointment_id):
@@ -303,22 +312,17 @@ def get_appointment(qmatic_settings, appointment_id):
     return do_request(qmatic_settings, url)
 
 
-def create_ical(qmatic_settings, app_user, appointment_id):
-    # type: (QMaticSettings, users.User, str) -> dict
-    result = get_appointment(qmatic_settings, appointment_id)
-    if result.status_code != 200:
-        return result
-    sln_settings = get_solution_settings(qmatic_settings.service_user)
-    appointment = json.loads(result.content)['appointment']
+def _create_ical(appointment, cancelled):
     cal = Calendar()
     cal.add('prodid', '-//Our City App//calendar//')
     cal.add('version', '2.0')
     cal.add('CALSCALE', 'GREGORIAN')
     cal.add('method', 'REQUEST')
     event = Event()
-    event.add('uid', appointment_id)
+    event.add('uid', appointment['publicId'])
     event.add('summary', appointment['title'])
     event.add('description', appointment['notes'] or '')
+    event.add('STATUS', 'CANCELLED' if cancelled else 'CONFIRMED')
     location = ''
     if appointment['branch']:
         parts = [
@@ -341,21 +345,29 @@ def create_ical(qmatic_settings, app_user, appointment_id):
     event.add('dtstamp', datetime.utcnow())
     event.add('created', datetime.utcfromtimestamp(appointment['created'] / 1000))
     event.add('updated', datetime.utcfromtimestamp(appointment['updated'] / 1000))
+    event.add('last-modified', datetime.utcfromtimestamp(appointment['updated'] / 1000))
     organizer = vCalAddress('MAILTO:%s' % organizer_email)
     organizer.params['cn'] = vText(organizer_name)
     event.add('organizer', organizer)
     cal.add_component(event)
+    return cal, start_date, organizer_email, location
 
+
+def _send_appointment_email(service_user, app_user, appointment, cancelled=False):
+    sln_settings = get_solution_settings(service_user)
+    cal, start_date, organizer_email, location = _create_ical(appointment, cancelled)
+    # Replace stuff that causes icalendar file validators to be happy
+    ical_content = cal.to_ical().replace(';TZID=UTC;VALUE=DATE-TIME', '')
+    logging.debug('Created ical:\n%s', ical_content)
     to_email = organizer_email or get_human_user_from_app_user(app_user).email()
     app_id = get_app_id_from_app_user(app_user)
     app = get_app(app_id)
     from_ = '%s <%s>' % (app.name, app.dashboard_email_address)
-    ical_attachment = ('%s.ics' % appointment['title'] or 'Event', b64encode(cal.to_ical()))
+    ical_attachment = ('%s.ics' % appointment['title'] or 'Event', b64encode(ical_content))
     lang = sln_settings.main_language
     when_date = format_date(start_date, format='full', locale=sln_settings.locale)
     when_time = format_time(start_date, format='short', locale=sln_settings.locale, tzinfo=sln_settings.tz_info)
     when = '%s %s' % (when_date, when_time)
-    subject = '%s %s: %s' % (common_translate(lang, 'appointment'), when, appointment['title'])
     body = None
     html = None
     for service in appointment['services']:
@@ -372,6 +384,8 @@ def create_ical(qmatic_settings, app_user, appointment_id):
                 logging.debug(e, exc_info=True)
     if not body:
         body_lines = [
+            common_translate(lang, 'qmatic_appointment_cancelled_text') if cancelled else
+            common_translate(lang, 'qmatic_appointment_booked_text', app_name=app.name),
             appointment['title'],
             '',
             '%s: %s' % (common_translate(lang, 'when'), when),
@@ -383,9 +397,20 @@ def create_ical(qmatic_settings, app_user, appointment_id):
             body_lines.append('%s: %s' % (common_translate(lang, 'Note'), appointment['notes']))
         body = '\n'.join(body_lines)
 
-    # TODO shouldn't allow this more than 3 times to avoid spam
+    status_str = common_translate(lang, 'appointment_cancelled' if cancelled else 'appointment_booked')
+    subject = '%s: %s - %s' % (status_str, when, appointment['title'])
     send_mail(from_, to_email, subject, body, html=html, attachments=[ical_attachment])
-    msg = common_translate(sln_settings.main_language, 'an_email_has_been_sent_with_appointment_event')
+
+
+# TODO: to be removed after embedded app 'qmatic' has been updated
+def create_ical(qmatic_settings, app_user, appointment_id):
+    # type: (QMaticSettings, users.User, str) -> dict
+    result = get_appointment(qmatic_settings, appointment_id)
+    if result.status_code != 200:
+        return result
+    appointment = json.loads(result.content)['appointment']
+    _send_appointment_email(qmatic_settings.service_user, app_user, appointment, cancelled=False)
+    msg = common_translate('nl', 'an_email_has_been_sent_with_appointment_event')
     return {'message': msg}
 
 

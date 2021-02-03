@@ -17,9 +17,6 @@ import {
   ConfirmAppointmentAction,
   ConfirmAppointmentFailedAction,
   ConfirmAppointmentSuccessAction,
-  CreateIcalAction,
-  CreateIcalFailedAction,
-  CreateIcalSuccessAction,
   GetAppointmentsAction,
   GetAppointmentsFailedAction,
   GetAppointmentsSuccessAction,
@@ -55,7 +52,6 @@ export const ApiCalls = {
   RESERVE: 'integrations.qmatic.reserve',
   CONFIRM: 'integrations.qmatic.confirm',
   DELETE: 'integrations.qmatic.delete',
-  CREATE_ICAL: 'integrations.qmatic.create_ical',
   GET_SETTINGS: 'integrations.qmatic.settings',
 };
 
@@ -152,19 +148,6 @@ export class QMaticEffects {
         return of(new CancelAppointmentFailedAction(err));
       })),
     )));
-
-   createIcal$ = createEffect(() => this.actions$.pipe(
-    ofType<CreateIcalAction>(QMaticActionTypes.CREATE_ICAL),
-     switchMap(action => this.rogerthatService.apiCall<{ message: string }>(ApiCalls.CREATE_ICAL, action.payload).pipe(
-       map(result => new CreateIcalSuccessAction(result)),
-       tap(result => {
-         this.showDialog(result.payload.message);
-       }),
-       catchError(err => {
-         this.errorService.showErrorDialog(action, err);
-         return of(new CreateIcalFailedAction(err));
-       })),
-     )));
 
   getSettings$ = createEffect(() => this.actions$.pipe(
     ofType<GetSettingsAction>(QMaticActionTypes.GET_SETTINGS),

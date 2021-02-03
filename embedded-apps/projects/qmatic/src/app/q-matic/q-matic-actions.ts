@@ -206,27 +206,6 @@ export class CancelAppointmentFailedAction implements Action {
   }
 }
 
-export class CreateIcalAction implements Action {
-  readonly type = QMaticActionTypes.CREATE_ICAL;
-
-  constructor(public payload: { appointment_id: string }) {
-  }
-}
-
-export class CreateIcalSuccessAction implements Action {
-  readonly type = QMaticActionTypes.CREATE_ICAL_SUCCESS;
-
-  constructor(public payload: { message: string }) {
-  }
-}
-
-export class CreateIcalFailedAction implements Action {
-  readonly type = QMaticActionTypes.CREATE_ICAL_FAILED;
-
-  constructor(public error: string) {
-  }
-}
-
 export class GetSettingsAction implements Action {
   readonly type = QMaticActionTypes.GET_SETTINGS;
 }
@@ -269,9 +248,6 @@ export type QMaticActions = GetAppointmentsAction
   | CancelAppointmentAction
   | CancelAppointmentSuccessAction
   | CancelAppointmentFailedAction
-  | CreateIcalAction
-  | CreateIcalSuccessAction
-  | CreateIcalFailedAction
   | GetSettingsAction
   | GetSettingsSuccessAction
   | GetSettingsFailedAction;

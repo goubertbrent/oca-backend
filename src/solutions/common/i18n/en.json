@@ -1,4 +1,8 @@
 {
+  "appointment_booked": "Appointment booked",
+  "appointment_cancelled": "Appointment cancelled",
+  "qmatic_appointment_booked_text": "Dear,\nThe following appointment has been booked via the %(app_name)s app:",
+  "qmatic_appointment_cancelled_text": "Dear,\nThe following appointment has been cancelled:",
   "oca.required_fields": "Required fields",
   "%(app_name)s has 1 new message for you": "%(app_name)s has 1 new message for you",
   "(Click to change)": "(Click to change)",

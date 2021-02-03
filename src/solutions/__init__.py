@@ -33,7 +33,7 @@ def get_supported_languages():
 
 
 def translate(language, key, suppress_warning=False, _duplicate_backslashes=False, **kwargs):
-    # type: (basestring, basestring, bool, bool, dict) -> str
+    # type: (basestring, basestring, bool, bool, **basestring) -> str
     language = (language or DEFAULT_LANGUAGE).replace('-', '_')
     if language not in translations:
         if '_' in language:
