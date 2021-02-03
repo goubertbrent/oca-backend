@@ -35,7 +35,7 @@ def update_community_map_settings(community_id, data):
     # type: (int, CommunityMapSettingsTO) -> CommunityMapSettings
     settings = get_community_map_settings(community_id)
     settings.center = GeoPt(data.center.lat, data.center.lon)
-    settings.distance = data.distance
+    settings.distance = min(data.distance, 2000)
     layers = MapLayers()
     # Save each non-empty layer to datastore.
     for layer_name in [GIPOD_TAG, POI_TAG, REPORTS_TAG, SERVICES_TAG]:

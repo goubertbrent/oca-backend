@@ -32,13 +32,13 @@ def get_map_response(map_settings, layer_tag, user_profile_info, filters, add_ad
 
     buttons = []
     layer_settings = map_settings.layers.get_settings_for_tag(layer_tag)
-    if layer_settings.filters:
+    if layer_settings and layer_settings.filters:
         filters = [f for f in filters if f.key in layer_settings.filters]
-    if layer_settings.default_filter:
+    if layer_settings and layer_settings.default_filter:
         results = [f for f in filters if f.key == layer_settings.default_filter]
         if results:
             defaults.filter = results[0].key
-    if layer_settings.buttons:
+    if layer_settings and layer_settings.buttons:
         buttons = layer_settings.buttons
         for button in buttons:
             if button.action.startswith('smi://'):

@@ -214,7 +214,7 @@ class CommunityMapSettings(NdbModel):
     def get_default(cls, community_id):
         return cls(key=cls.create_key(community_id),
                    center=GeoPt(50.9298839, 3.6246589),
-                   distance=3000,
+                   distance=2000,
                    layers=MapLayers())
 
     @classmethod
