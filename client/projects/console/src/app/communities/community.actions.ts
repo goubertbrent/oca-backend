@@ -1,6 +1,6 @@
 import { createAction, props } from '@ngrx/store';
 import { CommunityGeoFence } from '@oca/web-shared';
-import { Community, CreateCommunity } from './community/communities';
+import { Community, CommunityMapSettings, CreateCommunity } from './community/communities';
 import { HomeScreen } from './homescreen/models';
 
 export const loadCommunities = createAction(
@@ -164,5 +164,35 @@ export const updateGeoFenceSuccess = createAction(
 
 export const updateGeoFenceFailure = createAction(
   '[Community] Update GeoFence Failure',
+  props<{ error: string }>(),
+);
+
+export const getMapSettings = createAction(
+  '[Community] Get MapSettings',
+  props<{ communityId: number }>(),
+);
+
+export const getMapSettingsSuccess = createAction(
+  '[Community] Get MapSettings success',
+  props<{ data: CommunityMapSettings }>(),
+);
+
+export const getMapSettingsFailure = createAction(
+  '[Community] Get MapSettings Failure',
+  props<{ error: string }>(),
+);
+
+export const updateMapSettings = createAction(
+  '[Community] Update MapSettings',
+  props<{ communityId: number; data: CommunityMapSettings }>(),
+);
+
+export const updateMapSettingsSuccess = createAction(
+  '[Community] Update MapSettings success',
+  props<{ data: CommunityMapSettings }>(),
+);
+
+export const updateMapSettingsFailure = createAction(
+  '[Community] Update MapSettings Failure',
   props<{ error: string }>(),
 );

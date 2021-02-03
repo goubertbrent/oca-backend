@@ -1,7 +1,5 @@
-import { AgmCoreModule } from '@agm/core';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { CommonModule } from '@angular/common';
-import { HttpClientJsonpModule } from '@angular/common/http';
 import { NgModule } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { GoogleMapsModule } from '@angular/google-maps';
@@ -34,6 +32,9 @@ import { CommunityFormComponent } from './community/community-form/community-for
 import { CreateCommunityComponent } from './community/create-community/create-community.component';
 import { EditAutoConnectedServiceDialogComponent } from './community/edit-acs-dialog/edit-acs-dialog.component';
 import { EditCommunityComponent } from './community/edit-community/edit-community.component';
+import { GeoFenceSettingsPageComponent } from './community/geo-fence-settings-page/geo-fence-settings-page.component';
+import { GeoLocationFormComponent } from './community/geo-location-form/geo-location-form.component';
+import { MapSettingsPageComponent } from './community/map-settings-page/map-settings-page.component';
 import { AddTranslationDialogComponent } from './homescreen/add-translation-dialog/add-translation-dialog.component';
 import { AppActionEditorComponent } from './homescreen/app-action-editor/app-action-editor.component';
 import { EditListItemTemplateComponent } from './homescreen/edit-list-item-template/edit-list-item-template.component';
@@ -41,14 +42,13 @@ import { HomeScreenBottomNavigationComponent } from './homescreen/home-screen-bo
 import { HomeScreenBottomSheetComponent } from './homescreen/home-screen-bottom-sheet/home-screen-bottom-sheet.component';
 import { HomeScreenFormComponent } from './homescreen/home-screen-form/home-screen-form.component';
 import { HomeScreenPageComponent } from './homescreen/home-screen-page/home-screen-page.component';
+import { HomeScreenTranslationSelectComponent } from './homescreen/home-screen-translation-select/home-screen-translation-select.component';
 import { HomeScreenTranslationsEditorComponent } from './homescreen/home-screen-translations-editor/home-screen-translations-editor.component';
+import { IconSelectorComponent } from './homescreen/icon-selector/icon-selector.component';
+import { LinkItemTemplateContentEditorComponent } from './homescreen/link-item-template-content-editor/link-item-template-content-editor.component';
 import { NewsGroupFormComponent } from './news/news-group-form/news-group-form.component';
 import { NewsGroupComponent } from './news/news-group/news-group.component';
 import { NewsSettingsComponent } from './news/news-setings/news-settings.component';
-import { IconSelectorComponent } from './homescreen/icon-selector/icon-selector.component';
-import { LinkItemTemplateContentEditorComponent } from './homescreen/link-item-template-content-editor/link-item-template-content-editor.component';
-import { HomeScreenTranslationSelectComponent } from './homescreen/home-screen-translation-select/home-screen-translation-select.component';
-import { GeoFenceSettingsPageComponent } from './community/geo-fence-settings-page/geo-fence-settings-page.component';
 
 const routes: Routes = [
   { path: '', component: CommunitiesListComponent },
@@ -74,6 +74,11 @@ const routes: Routes = [
         path: 'home-screen/:homeScreenId',
         component: HomeScreenPageComponent,
         data: { label: 'rcc.homescreen' },
+      },
+      {
+        path: 'map-settings',
+        component: MapSettingsPageComponent,
+        data: { label: 'rcc.map_settings' },
       },
       {
         path: 'geo-fence',
@@ -108,6 +113,8 @@ const routes: Routes = [
     LinkItemTemplateContentEditorComponent,
     HomeScreenTranslationSelectComponent,
     GeoFenceSettingsPageComponent,
+    MapSettingsPageComponent,
+    GeoLocationFormComponent,
   ],
   imports: [
     RouterModule.forChild(routes),

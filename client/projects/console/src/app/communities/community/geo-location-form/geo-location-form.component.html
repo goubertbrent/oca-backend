@@ -1,0 +1,16 @@
+<mat-form-field class="search-field">
+  <mat-label>Search location...</mat-label>
+  <input [formControl]="searchControl" matInput type="search">
+</mat-form-field>
+<google-map *ngIf="mapLoaded$ | async"
+            [center]="mapPosition"
+            [width]="null"
+            [zoom]="12"
+            class="location-map">
+  <map-circle #circle="mapCircle"
+              (centerChanged)="changeGeometry(circle)"
+              (radiusChanged)="changeRadius(circle)"
+              [center]="mapPosition"
+              [options]="circleOptions"
+              [radius]="radius"></map-circle>
+</google-map>

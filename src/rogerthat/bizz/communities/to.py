@@ -18,8 +18,10 @@ from typing import List
 
 from mcfw.properties import unicode_property, long_property, bool_property, typed_property, unicode_list_property, \
     long_list_property
+from rogerthat.bizz.communities.models import MapLayerSettings
 from rogerthat.to import TO
 from rogerthat.to.jobs import LatLonTO
+from rogerthat.to.maps import MapButtonTO
 
 
 class AutoConnectedServiceTO(TO):
@@ -68,3 +70,43 @@ class CommunityGeoFenceTO(TO):
             defaults=CommunityLocationTO.from_model(m.defaults) if m.defaults else None,
             geometry=GeoFenceGeometryTO.from_model(m.geometry) if m.geometry else None,
         )
+
+
+class MapLayerSettingsTO(TO):
+    filters = unicode_list_property('filters', default=[])
+    default_filter = unicode_property('default_filter', default=None)
+    buttons = typed_property('buttons', MapButtonTO, True, default=[])  # type: List[MapButtonTO]
+
+    @classmethod
+    def from_model(cls, m):
+        return super(MapLayerSettingsTO, cls).from_model(m or MapLayerSettings())
+
+
+class MapLayersTO(TO):
+    gipod = typed_property('gipod', MapLayerSettingsTO)  # type: MapLayerSettingsTO
+    poi = typed_property('poi', MapLayerSettingsTO)  # type: MapLayerSettingsTO
+    reports = typed_property('reports', MapLayerSettingsTO)  # type: MapLayerSettingsTO
+    services = typed_property('services', MapLayerSettingsTO)  # type: MapLayerSettingsTO
+
+    @classmethod
+    def from_model(cls, m):
+        to = cls()
+        to.gipod = MapLayerSettingsTO.from_model(m.gipod)
+        to.poi = MapLayerSettingsTO.from_model(m.poi)
+        to.reports = MapLayerSettingsTO.from_model(m.reports)
+        to.services = MapLayerSettingsTO.from_model(m.services)
+        return to
+
+
+class CommunityMapSettingsTO(TO):
+    center = typed_property('center', LatLonTO)
+    distance = long_property('distance')
+    layers = typed_property('layers', MapLayersTO)
+
+    @classmethod
+    def from_model(cls, m):
+        to = cls()
+        to.center = LatLonTO.from_model(m.center) if m.center else None
+        to.distance = m.distance
+        to.layers = MapLayersTO.from_model(m.layers)
+        return to

@@ -20,10 +20,10 @@ from __future__ import unicode_literals
 import hashlib
 import itertools
 import json
-import logging
-import time
 import urllib
 
+import logging
+import time
 from google.appengine.api import urlfetch
 from google.appengine.ext import ndb, db
 from google.appengine.ext.ndb.query import Cursor
@@ -31,6 +31,7 @@ from typing import List, Optional, Tuple
 
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
+from rogerthat.bizz.communities.models import CommunityMapSettings
 from rogerthat.bizz.elasticsearch import delete_index, create_index, es_request, delete_doc, index_doc, \
     execute_bulk_request
 from rogerthat.bizz.maps.services.places import get_place_details, PlaceDetails, get_place_type_keys
@@ -43,7 +44,7 @@ from rogerthat.dal.service import get_service_menu_items
 from rogerthat.models import UserProfileInfo, OpeningHours, ServiceIdentity, \
     ServiceTranslation, ServiceRole, UserProfile, App, AppServiceFilter, ServiceProfile
 from rogerthat.models.elasticsearch import ElasticsearchSettings
-from rogerthat.models.maps import MapConfig, MapSavedItem, MapService, \
+from rogerthat.models.maps import MapSavedItem, MapService, \
     MapServiceListItem, MapServiceMediaItem
 from rogerthat.models.news import NewsItem
 from rogerthat.models.settings import ServiceInfo, ServiceLocation
@@ -131,12 +132,14 @@ def get_tags_app(app):
 @returns(GetMapResponseTO)
 @arguments(app_user=users.User)
 def get_map(app_user):
-    language = get_user_profile(app_user).language
-    app_id = get_app_id_from_app_user(app_user)
-    models = ndb.get_multi([MapConfig.create_key(app_id, SERVICES_TAG),
+    user_profile = get_user_profile(app_user)
+    language = user_profile.language
+    community_id = user_profile.community_id
+    models = ndb.get_multi([CommunityMapSettings.create_key(community_id),
                             UserProfileInfo.create_key(app_user)])
-    map_config, user_profile_info = models  # type: MapConfig,  UserProfileInfo
-    response = get_map_response(map_config, user_profile_info, [], add_addresses=False)
+    map_config, user_profile_info = models  # type: CommunityMapSettings,  UserProfileInfo
+    map_config = map_config or CommunityMapSettings.get_default(community_id)
+    response = get_map_response(map_config, SERVICES_TAG, user_profile_info, [], add_addresses=False)
     response.functionalities = [MapFunctionality.CURRENT_LOCATION,
                                 MapFunctionality.SEARCH,
                                 MapFunctionality.SAVE]

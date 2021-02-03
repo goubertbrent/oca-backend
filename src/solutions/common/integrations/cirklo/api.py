@@ -15,11 +15,10 @@
 #
 # @@license_version:1.7@@
 
-import logging
-from datetime import datetime
-
 import cloudstorage
+import logging
 from babel.dates import format_datetime
+from datetime import datetime
 from google.appengine.ext import ndb, deferred, db
 from typing import List
 from xlwt import Worksheet, Workbook, XFStyle
@@ -311,7 +310,7 @@ def api_export_cirklo_services():
         sheet.write(row, 3, service.phone_number)
         sheet.write(row, 4, parse_date(service.creation_date), date_format)
         sheet.write(row, 5, translate(language, 'Yes') if service.merchant_registered else translate(language, 'No'))
-        
+
     date = format_datetime(datetime.now(), format='medium', locale='en_GB')
     gcs_path = '/%s/tmp/cirklo/export-cirklo-%s.xls' % (OCA_FILES_BUCKET, date.replace(' ', '-'))
     content_type = 'application/vnd.ms-excel'

@@ -6,26 +6,35 @@ import {
   createCommunityFailure,
   createCommunitySuccess,
   deleteCommunitySuccess,
-  loadCommunities,
-  loadCommunitiesFailure,
-  loadCommunitiesSuccess,
+  getGeoFence,
+  getGeoFenceFailure,
+  getGeoFenceSuccess,
   getHomeScreen,
   getHomeScreenFailure,
   getHomeScreenSuccess,
+  getMapSettings,
+  getMapSettingsFailure,
+  getMapSettingsSuccess,
+  loadCommunities,
+  loadCommunitiesFailure,
+  loadCommunitiesSuccess,
   loadCommunity,
   loadCommunityFailure,
   loadCommunitySuccess,
   updateCommunity,
   updateCommunityFailure,
   updateCommunitySuccess,
+  updateGeoFence,
+  updateGeoFenceFailure,
+  updateGeoFenceSuccess,
   updateHomeScreen,
   updateHomeScreenFailure,
   updateHomeScreenSuccess,
-  getGeoFence,
-  getGeoFenceSuccess,
-  getGeoFenceFailure, updateGeoFence, updateGeoFenceSuccess, updateGeoFenceFailure,
+  updateMapSettings,
+  updateMapSettingsFailure,
+  updateMapSettingsSuccess,
 } from './community.actions';
-import { Community } from './community/communities';
+import { Community, CommunityMapSettings } from './community/communities';
 import { HomeScreen } from './homescreen/models';
 
 
@@ -36,6 +45,7 @@ export interface CommunitiesState {
   community: ResultState<Community>;
   homeScreen: ResultState<HomeScreen>;
   geoFence: ResultState<CommunityGeoFence>;
+  mapSettings: ResultState<CommunityMapSettings>;
 }
 
 export const initialState: CommunitiesState = {
@@ -43,6 +53,7 @@ export const initialState: CommunitiesState = {
   community: initialStateResult,
   homeScreen: initialStateResult,
   geoFence: initialStateResult,
+  mapSettings: initialStateResult,
 };
 
 export const communitiesReducer = createReducer(
@@ -75,4 +86,10 @@ export const communitiesReducer = createReducer(
   on(updateGeoFence, (state, action) => ({ ...state, geoFence: stateLoading(action.data) })),
   on(updateGeoFenceSuccess, (state, { data }) => ({ ...state, geoFence: stateSuccess(data) })),
   on(updateGeoFenceFailure, (state, { error }) => ({ ...state, geoFence: stateError(error, state.geoFence.result) })),
+  on(getMapSettings, (state) => ({ ...state, mapSettings: stateLoading(state.mapSettings.result) })),
+  on(getMapSettingsSuccess, (state, { data }) => ({ ...state, mapSettings: stateSuccess(data) })),
+  on(getMapSettingsFailure, (state, { error }) => ({ ...state, mapSettings: stateError(error, state.mapSettings.result) })),
+  on(updateMapSettings, (state, action) => ({ ...state, mapSettings: stateLoading(action.data) })),
+  on(updateMapSettingsSuccess, (state, { data }) => ({ ...state, mapSettings: stateSuccess(data) })),
+  on(updateMapSettingsFailure, (state, { error }) => ({ ...state, mapSettings: stateError(error, state.mapSettings.result) })),
 );

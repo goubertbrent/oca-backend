@@ -19,21 +19,10 @@
   </ng-container>
   <p>Move the circle to the region that roughly matches the current community.
     Points of interest will only be able to be created inside this circle.</p>
-  <mat-form-field>
-    <mat-label>Search place...</mat-label>
-    <input matInput type="search" [formControl]="searchControl">
-  </mat-form-field>
-  <google-map *ngIf="(mapLoaded$ | async) && mapPosition"
-              [center]="mapPosition"
-              [width]="null"
-              [zoom]="12"
-              class="geo-fence-map">
-    <map-circle #circle="mapCircle"
-                (centerChanged)="changeGeometry(circle)"
-                (radiusChanged)="changeRadius(circle)"
-                [center]="mapPosition"
-                [options]="circleOptions"
-                [radius]="formGroup.controls.geometry.value.max_distance"></map-circle>
-  </google-map>
+  <rcc-geo-location-form (centerChanged)="formGroup.controls.geometry.patchValue({center: $event})"
+                         (radiusChanged)="formGroup.controls.geometry.patchValue({max_distance: $event})"
+                         [center]="formGroup.controls.geometry.value?.center"
+                         [country]="formGroup.controls.country.value"
+                         [radius]="formGroup.controls.geometry.value?.max_distance"></rcc-geo-location-form>
   <button class="save-btn" mat-stroked-button>Save</button>
 </form>

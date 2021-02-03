@@ -23,6 +23,7 @@ from google.appengine.ext import ndb
 from typing import Optional, List
 
 from mcfw.rpc import returns, arguments
+from rogerthat.bizz.communities.models import CommunityMapSettings
 from rogerthat.bizz.maps.poi.models import PointOfInterest
 from rogerthat.bizz.maps.poi.search import _suggest_poi, search_poi
 from rogerthat.bizz.maps.services import get_place_details, get_clean_language_code, ORGANIZATION_TYPE_SEARCH_PREFIX, \
@@ -32,7 +33,6 @@ from rogerthat.bizz.opening_hours import get_opening_hours_lines
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_user_profile
 from rogerthat.models import UserProfileInfo, OpeningHours
-from rogerthat.models.maps import MapConfig
 from rogerthat.models.news import MediaType
 from rogerthat.rpc import users
 from rogerthat.to import GeoPointTO
@@ -52,12 +52,13 @@ POI_TAG = 'poi'
 @returns(GetMapResponseTO)
 @arguments(app_user=users.User)
 def get_map(app_user):
-    language = get_user_profile(app_user).language
-    app_id = get_app_id_from_app_user(app_user)
-    models = ndb.get_multi([MapConfig.create_key(app_id, POI_TAG),
-                            UserProfileInfo.create_key(app_user)])
-    map_config, user_profile_info = models  # type: MapConfig,  UserProfileInfo
-    response = get_map_response(map_config, user_profile_info, [], add_addresses=False)
+    user_profile = get_user_profile(app_user)
+    language = user_profile.language
+    community_id = user_profile.community_id
+    models = ndb.get_multi([CommunityMapSettings.create_key(community_id), UserProfileInfo.create_key(app_user)])
+    map_config, user_profile_info = models  # type: CommunityMapSettings, UserProfileInfo
+    map_config = map_config or CommunityMapSettings.get_default(community_id)
+    response = get_map_response(map_config, POI_TAG, user_profile_info, [], add_addresses=False)
     response.functionalities = [MapFunctionality.CURRENT_LOCATION,
                                 MapFunctionality.SEARCH]
 

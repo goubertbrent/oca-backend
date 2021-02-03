@@ -1,0 +1,14 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.search-field {
+  max-width: 400px;
+}
+
+.location-map {
+  width: 100%;
+}

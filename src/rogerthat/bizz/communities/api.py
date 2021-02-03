@@ -23,8 +23,9 @@ from rogerthat.bizz.communities.geo_fence import get_geo_fence, update_geo_fence
 from rogerthat.bizz.communities.homescreen.homescreen import get_temporary_home_screen, save_temporary_home_screen, \
     publish_home_screen, get_home_screen_translations, test_home_screen
 from rogerthat.bizz.communities.homescreen.to import TestHomeScreenTO
+from rogerthat.bizz.communities.maps import update_community_map_settings, get_community_map_settings
 from rogerthat.bizz.communities.news import get_news_settings, upload_news_background_image, update_news_stream
-from rogerthat.bizz.communities.to import CommunityTO, BaseCommunityTO, CommunityGeoFenceTO
+from rogerthat.bizz.communities.to import CommunityTO, BaseCommunityTO, CommunityGeoFenceTO, CommunityMapSettingsTO
 from rogerthat.to.news import NewsSettingsTO, NewsGroupConfigTO, NewsSettingsWithGroupsTO
 
 
@@ -137,6 +138,22 @@ def api_get_geo_fence(community_id):
 def api_update_geo_fence(community_id, data):
     # type: (int, CommunityGeoFenceTO) -> CommunityGeoFenceTO
     return CommunityGeoFenceTO.from_model(update_geo_fence(community_id, data))
+
+
+@rest('/console-api/communities/<community_id:\d+>/map-settings', 'get', type=REST_TYPE_TO)
+@returns(CommunityMapSettingsTO)
+@arguments(community_id=(int, long))
+def api_get_map_settings(community_id):
+    # type: (int) -> CommunityMapSettingsTO
+    return CommunityMapSettingsTO.from_model(get_community_map_settings(community_id))
+
+
+@rest('/console-api/communities/<community_id:\d+>/map-settings', 'put', type=REST_TYPE_TO)
+@returns(CommunityMapSettingsTO)
+@arguments(community_id=(int, long), data=CommunityMapSettingsTO)
+def api_update_map_settings(community_id, data):
+    # type: (int, CommunityMapSettingsTO) -> CommunityMapSettingsTO
+    return CommunityMapSettingsTO.from_model(update_community_map_settings(community_id, data))
 
 
 @rest('/console-api/home-screen-translations', 'get')

@@ -38,6 +38,12 @@ import {
   updateGeoFenceSuccess,
   updateGeoFenceFailure,
   getGeoFenceFailure,
+  getMapSettingsSuccess,
+  updateMapSettings,
+  getMapSettingsFailure,
+  getMapSettings,
+  updateMapSettingsSuccess,
+  updateMapSettingsFailure,
 } from './community.actions';
 import { CommunityService } from './community.service';
 
@@ -125,6 +131,21 @@ export class CommunitiesEffects {
       map(data => updateGeoFenceSuccess({data})),
       tap(() => this.matSnackbar.open('Geofence updated', undefined, { duration: 5000 })),
       catchError(err => this.errorService.handleError(action, updateGeoFenceFailure, err)),
+    ))));
+
+  getMapSettings$ = createEffect(() => this.actions$.pipe(
+    ofType(getMapSettings),
+    switchMap(action => this.communityService.getMapSettings(action.communityId).pipe(
+      map(data => getMapSettingsSuccess({data})),
+      catchError(err => this.errorService.handleError(action, getMapSettingsFailure, err)),
+    ))));
+
+  updateMapSettings$ = createEffect(() => this.actions$.pipe(
+    ofType(updateMapSettings),
+    switchMap(action => this.communityService.updateMapSettings(action.communityId, action.data).pipe(
+      map(data => updateMapSettingsSuccess({data})),
+      tap(() => this.matSnackbar.open('Map settings updated', undefined, { duration: 5000 })),
+      catchError(err => this.errorService.handleError(action, updateMapSettingsFailure, err)),
     ))));
 
   constructor(private actions$: Actions,

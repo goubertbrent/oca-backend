@@ -25,6 +25,10 @@ export class CommunityDetailComponent implements OnInit {
     icon: 'home',
     route: 'home-screen',
   }, {
+    label: 'rcc.map_settings',
+    icon: 'map',
+    route: 'map-settings',
+  }, {
     label: 'rcc.geo_fence',
     icon: 'fence',
     route: 'geo-fence',
