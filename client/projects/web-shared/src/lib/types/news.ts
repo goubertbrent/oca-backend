@@ -14,7 +14,9 @@ export const enum Gender {
 
 export enum MediaType {
   IMAGE = 'image',
-  YOUTUBE_VIDEO = 'video_youtube',
+  IMAGE_360 = 'image_360',
+  VIDEO_YOUTUBE = 'video_youtube',
+  PDF = 'pdf',
 }
 
 export interface NewsSender {
@@ -38,6 +40,7 @@ export interface NewsActionButton extends BaseButton {
 export interface BaseMedia {
   type: MediaType;
   content: string;
+  thumbnail_url: string | null;
 }
 
 export interface Media extends BaseMedia {

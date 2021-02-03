@@ -1,5 +1,14 @@
+<div class="hours-header">
+  <h3>{{ 'oca.opening-hours' | translate }}</h3>
+  <button (click)="manualSave()"
+          [matTooltip]="'oca.Save' | translate"
+          class="save-button"
+          mat-stroked-button
+          type="button">
+    <mat-icon>save</mat-icon>
+  </button>
+</div>
+<mat-progress-bar *ngIf="isLoading$ | async" mode="indeterminate"></mat-progress-bar>
 <oca-opening-hours (hoursChanged)="autoSave($event)"
-                   (saved)="onOpeningHoursSaved($event)"
                    *ngIf="openingHours$ | async as hours"
-                   [isLoading]="isLoading$ | async"
                    [openingHours]="hours"></oca-opening-hours>

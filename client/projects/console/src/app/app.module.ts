@@ -1,5 +1,5 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { HttpClientModule } from '@angular/common/http';
+import { HttpClientJsonpModule, HttpClientModule } from '@angular/common/http';
 import { Injectable, NgModule } from '@angular/core';
 import { FlexLayoutModule, SERVER_TOKEN } from '@angular/flex-layout';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -161,6 +161,7 @@ export class MissingTranslationWarnHandler implements MissingTranslationHandler 
     FormsModule,
     ReactiveFormsModule,
     HttpClientModule,
+    HttpClientJsonpModule,
     TranslateModule.forRoot({
       defaultLanguage: 'en',
       useDefaultLang: true,

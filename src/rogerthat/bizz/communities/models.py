@@ -15,13 +15,15 @@
 #
 # @@license_version:1.5@@
 from __future__ import unicode_literals
+
 from google.appengine.ext import ndb
-from typing import List
 
 from mcfw.utils import Enum
 from rogerthat.models import NdbModel
 from rogerthat.rpc import users
-from rogerthat.utils.service import add_slash_default
+from rogerthat.utils.service import add_slash_default,\
+    create_service_identity_user
+from typing import List
 
 
 class CommunityAutoConnectedService(NdbModel):
@@ -52,6 +54,7 @@ class AppFeatures(Enum):
     NEWS_REGIONAL = 'news_regional'
     # Allows merchants to enable/disable the 'loyalty' feature in their dashboard
     LOYALTY = 'loyalty'
+
 
 # These are features that are only enabled for a few communities
 class CustomizationFeatures(Enum):
@@ -149,6 +152,27 @@ class CommunityUserStats(NdbModel):
     @property
     def community_id(self):
         return self.key.integer_id()
+
+    @classmethod
+    def create_key(cls, community_id):
+        return ndb.Key(cls, community_id)
+
+
+class CommunityLocation(NdbModel):
+    locality = ndb.StringProperty()
+    postal_code = ndb.StringProperty()
+
+
+class GeoFenceGeometry(NdbModel):
+    center = ndb.GeoPtProperty(required=True)  # type: GeoPt
+    max_distance = ndb.IntegerProperty()
+
+
+class CommunityGeoFence(NdbModel):
+    country = ndb.StringProperty(required=True)
+    # Defaults used when creating a new point of interest
+    defaults = ndb.StructuredProperty(CommunityLocation, indexed=False)
+    geometry = ndb.StructuredProperty(GeoFenceGeometry, indexed=False)  # type: GeoFenceGeometry
 
     @classmethod
     def create_key(cls, community_id):

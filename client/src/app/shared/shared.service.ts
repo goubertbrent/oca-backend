@@ -1,7 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { CommunityGeoFence } from '@oca/web-shared';
+import { map } from 'rxjs/operators';
 import { Budget } from './billing/billing';
-import { BrandingSettings, GlobalConfig, SolutionSettings } from './interfaces/oca';
+import { BrandingSettings, Country, GlobalConfig, PlaceType, SolutionSettings } from './interfaces/oca';
 
 @Injectable({ providedIn: 'root' })
 export class SharedService {
@@ -46,5 +49,19 @@ export class SharedService {
 
   updateLogo(logo_url: string) {
     return this.http.put<BrandingSettings>('/common/settings/logo', { logo_url });
+  }
+
+  getCountries(): Observable<Country[]> {
+    return this.http.get<{ countries: [string, string][] }>('/common/countries').pipe(
+      map(results => results.countries.map(([code, name]) => ({ code, name }))),
+    );
+  }
+
+  getAvailablePlaceTypes() {
+    return this.http.get<{ results: PlaceType[] }>('/common/available-place-types');
+  }
+
+  getGeoFence(){
+    return this.http.get<CommunityGeoFence>(`/common/community/geo-fence`);
   }
 }

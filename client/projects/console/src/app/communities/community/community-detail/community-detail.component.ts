@@ -24,6 +24,10 @@ export class CommunityDetailComponent implements OnInit {
     label: 'rcc.home_screen',
     icon: 'home',
     route: 'home-screen',
+  }, {
+    label: 'rcc.geo_fence',
+    icon: 'fence',
+    route: 'geo-fence',
   }];
   title$: Observable<SidebarTitle>;
 

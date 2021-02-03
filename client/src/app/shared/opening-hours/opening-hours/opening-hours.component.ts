@@ -4,8 +4,8 @@ import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { TranslateService } from '@ngx-translate/core';
 import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '@oca/web-shared';
-import { OpeningHourException, OpeningHours, OpeningHourType, OpeningPeriod } from '../../../shared/interfaces/oca';
-import { HoursPipe } from '../../pipes/hours.pipe';
+import { OpeningHourException, ServiceOpeningHours, OpeningHourType, OpeningPeriod } from '../../interfaces/oca';
+import { HoursPipe } from '../hours.pipe';
 
 @Component({
   selector: 'oca-opening-hours',
@@ -14,10 +14,8 @@ import { HoursPipe } from '../../pipes/hours.pipe';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OpeningHoursComponent {
-  @Input() openingHours: OpeningHours;
-  @Input() isLoading: boolean;
-  @Output() saved = new EventEmitter<OpeningHours>();
-  @Output() hoursChanged = new EventEmitter<OpeningHours>();
+  @Input() openingHours: ServiceOpeningHours;
+  @Output() hoursChanged = new EventEmitter<ServiceOpeningHours>();
 
   constructor(private hoursPipe: HoursPipe,
               private datePipe: DatePipe,
@@ -63,7 +61,7 @@ export class OpeningHoursComponent {
     this.setChanged({ ...this.openingHours, periods, type: OpeningHourType.STRUCTURED });
   }
 
-  private setChanged(openingHours: OpeningHours) {
+  setChanged(openingHours: ServiceOpeningHours) {
     this.openingHours = openingHours;
     this.hoursChanged.next(this.openingHours);
   }

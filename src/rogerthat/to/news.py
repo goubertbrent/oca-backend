@@ -190,6 +190,7 @@ class NewsTargetAudienceTO(object):
 class BaseMediaTO(TO):
     type = unicode_property('type')
     content = unicode_property('content')
+    thumbnail_url = unicode_property('thumbnail_url', default=None)
 
 
 class SizeTO(TO):

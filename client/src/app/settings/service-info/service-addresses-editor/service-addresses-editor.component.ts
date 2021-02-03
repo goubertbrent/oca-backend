@@ -16,8 +16,9 @@ import { TranslateService } from '@ngx-translate/core';
 import { SimpleDialogComponent, SimpleDialogData } from '@oca/web-shared';
 import { ReplaySubject, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, map, skip, take, takeUntil } from 'rxjs/operators';
+import { Country } from '../../../shared/interfaces/oca';
 import { markAllControlsAsDirty } from '../../../shared/util';
-import { Country, ServiceAddress } from '../service-info';
+import { ServiceAddress } from '../service-info';
 
 
 @Component({

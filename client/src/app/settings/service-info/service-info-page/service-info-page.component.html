@@ -110,8 +110,9 @@
   </mat-form-field>
   <h3>{{ 'oca.media' | translate }}</h3>
   <p>{{ 'oca.service_media_info' | translate }}</p>
-  <oca-service-media-editor [placeholderUrl]="DEFAULT_AVATAR_URL"
-                            formControlName="cover_media"></oca-service-media-editor>
+  <oca-media-list-editor [placeholderUrl]="DEFAULT_AVATAR_URL"
+                         [uploadFileDialogConfig]="uploadFileDialogConfig"
+                         formControlName="media"></oca-media-list-editor>
   <mat-accordion class="info-accordion" hideToggle>
     <mat-expansion-panel>
       <mat-expansion-panel-header>

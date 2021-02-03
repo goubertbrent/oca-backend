@@ -29,7 +29,7 @@ from typing import List, Tuple, Dict
 from mcfw.consts import MISSING
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.utils import Enum
-from rogerthat.bizz.maps.services import OPENING_HOURS_ORANGE_COLOR, OPENING_HOURS_RED_COLOR
+from rogerthat.bizz.opening_hours import OPENING_HOURS_RED_COLOR, OPENING_HOURS_ORANGE_COLOR
 from rogerthat.consts import DEBUG
 from rogerthat.models import OpeningHours, OpeningPeriod, OpeningHour, OpeningHourException, ServiceIdentity
 from rogerthat.models.settings import SyncedNameValue, SyncedField, ServiceInfo

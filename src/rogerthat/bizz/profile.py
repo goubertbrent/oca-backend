@@ -44,7 +44,7 @@ from rogerthat.bizz.messaging import sendMessage
 from rogerthat.bizz.session import drop_sessions_of_user
 from rogerthat.bizz.system import get_identity, identity_update_response_handler
 from rogerthat.capi.system import identityUpdate
-from rogerthat.consts import MC_DASHBOARD
+from rogerthat.consts import MC_DASHBOARD, DEBUG
 from rogerthat.dal import parent_key, put_and_invalidate_cache, app
 from rogerthat.dal.app import get_app_name_by_id, get_app_by_user, get_app_by_id
 from rogerthat.dal.friend import get_friends_map

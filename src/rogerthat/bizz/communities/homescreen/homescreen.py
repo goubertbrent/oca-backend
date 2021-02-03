@@ -25,13 +25,14 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from google.appengine.api.app_identity.app_identity import get_application_id
 from google.appengine.ext import db, ndb
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from urllib3.contrib.appengine import AppEngineManager
 
 import oca
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.rpc import parse_complex_value
-from oca import HomeScreenBottomNavigation, HomeScreenBottomSheet, \
+from oca.api.default_api import DefaultApi
+from oca.models import HomeScreenBottomNavigation, HomeScreenBottomSheet, \
     HomeScreenBottomSheetHeader, HomeScreen, HomeScreenContent, HomeScreenNavigationButton
 from rogerthat.bizz.communities.communities import get_community
 from rogerthat.consts import DEBUG
@@ -201,7 +202,7 @@ def publish_home_screen(community_id, home_screen_id, is_test=False, extra_secti
                   publish_home_screen_id)
     with oca_client:
         # Create an instance of the API class
-        api_instance = oca.DefaultApi(oca_client)
+        api_instance = DefaultApi(oca_client)
         community = get_community(community_id)
         service_user = community.main_service_user
         branding_settings = db.get(SolutionBrandingSettings.create_key(service_user))  # type: SolutionBrandingSettings
@@ -377,3 +378,9 @@ def get_home_screen_translations():
             language: localize(language, key) for language in languages
         }
     } for key in keys]
+
+
+def delete_home_screen(community_id, home_screen_id):
+    with oca_client:
+        api_instance = DefaultApi(oca_client)
+        api_instance.delete_home_screen(community_id=community_id, home_screen_id=home_screen_id)

@@ -17,6 +17,7 @@
 from typing import List
 
 from mcfw.properties import bool_property, unicode_property, typed_property, long_property
+from rogerthat.models.settings import MediaItem
 from rogerthat.to import TO, PaginatedResultTO
 from rogerthat.to.forms import DynamicFormTO, FormSectionValueTO
 from solutions.common.models.forms import OcaForm
@@ -72,7 +73,43 @@ class FormStatisticsTO(TO):
     statistics = typed_property('statistics', dict)
 
 
-class GcsFileTO(TO):
+class GalleryFileTO(TO):
     url = unicode_property('url')
+    thumbnail_url = unicode_property('thumbnail_url', default=None)
     content_type = unicode_property('content_type')
     size = long_property('size')
+    type = unicode_property('type')
+
+
+class UploadedFileTO(GalleryFileTO):
+    id = unicode_property('reference')  # UploadedFile.key.urlsafe()
+    title = unicode_property('title', default=None)
+
+    @classmethod
+    def from_model(cls, m):
+        return cls(
+            id=m.key.urlsafe(),
+            url=m.url,
+            thumbnail_url=m.thumbnail_url,
+            content_type=m.content_type,
+            size=m.size or -1,
+            title=m.title,
+            type=m.type
+        )
+
+
+class MediaItemTO(TO):
+    type = unicode_property('type')
+    content = unicode_property('content')
+    thumbnail_url = unicode_property('thumbnail_url', default=None)
+    file_reference = unicode_property('file_reference')
+
+    @classmethod
+    def from_media_item(cls, m):
+        # type: (MediaItem) -> MediaItemTO
+        return cls(
+            type=m.type,
+            content=m.content,
+            thumbnail_url=m.thumbnail_url,
+            file_reference=m.file_reference.urlsafe() if m.file_reference else None
+        )

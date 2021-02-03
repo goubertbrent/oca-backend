@@ -4,6 +4,21 @@ from oca.db.communities import get_homescreen_ref
 from oca.models.home_screen import HomeScreen  # noqa: E501
 
 
+def delete_home_screen(community_id, home_screen_id):  # noqa: E501
+    """Delete this home screen
+
+     # noqa: E501
+
+    :param community_id: The id of the community to which this home screen belongs
+    :type community_id: int
+    :param home_screen_id: The id of the home screen
+    :type home_screen_id: str
+
+    :rtype: None
+    """
+    get_homescreen_ref(community_id, home_screen_id).delete()
+
+
 def update_home_screen(community_id, home_screen_id, home_screen=None):  # noqa: E501
     """Saves the home screen for a community
 

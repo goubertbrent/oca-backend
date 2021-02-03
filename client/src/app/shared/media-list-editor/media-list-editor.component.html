@@ -1,0 +1,65 @@
+<div (cdkDropListDropped)="itemDropped($event)"
+     cdkDropList
+     cdkDropListOrientation="horizontal"
+     [cdkDropListDisabled]="disabled"
+     class="media-list">
+  <div *ngIf="placeholderUrl" class="media-item add-media-item">
+    <img [src]="placeholderUrl" alt="Placeholder" class="media-image">
+    <button [disabled]="disabled" [matMenuTriggerFor]="mediaTypeMenu" class="add-button" color="primary" mat-mini-fab
+            type="button">
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+  <div *ngFor="let mediaItem of mediaItems" cdkDrag class="media-item">
+    <ng-container [ngSwitch]="mediaItem.type">
+      <ng-container *ngSwitchCase="MediaType.VIDEO_YOUTUBE">
+        <a [href]="'https://youtu.be/' + mediaItem.content" target="_blank">
+          <img [src]="'https://img.youtube.com/vi/' +  mediaItem.content + '/hqdefault.jpg'"
+               alt="Video thumbnail"
+               class="media-image">
+          <img alt="YouTube" class="youtube-play-btn" src="/static/images/youtube_social_icon_red.png">
+        </a>
+      </ng-container>
+      <ng-container *ngSwitchCase="MediaType.IMAGE">
+        <img [src]="mediaItem.thumbnail_url || mediaItem.content" alt="Image" class="media-image">
+      </ng-container>
+      <ng-container *ngSwitchCase="MediaType.IMAGE_360">
+        <a [href]="mediaItem.content" target="_blank">
+          <img [src]="mediaItem.thumbnail_url" alt="360 Image" class="media-image">
+        </a>
+      </ng-container>
+    </ng-container>
+    <button (click)="removeMedia(mediaItem)" [disabled]="disabled" class="btn-media-delete" mat-mini-fab type="button">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+</div>
+<button *ngIf="!newMedia"
+        [disabled]="disabled"
+        [matMenuTriggerFor]="mediaTypeMenu"
+        mat-stroked-button
+        type="button">
+  {{ 'oca.add_media' | translate }}
+</button>
+<mat-menu #mediaTypeMenu="matMenu">
+  <button (click)="mediaSelector.showFileSelectDialog(MediaType.IMAGE)" mat-menu-item type="button">
+    <mat-icon>image</mat-icon>
+    {{ 'oca.add_image' | translate }}
+  </button>
+  <button (click)="mediaSelector.showFileSelectDialog(MediaType.IMAGE_360)" mat-menu-item type="button">
+    <mat-icon>image</mat-icon>
+    {{ 'oca.add_360_image' | translate }}
+  </button>
+  <button (click)="addYoutubeVideo()" mat-menu-item type="button">
+    <mat-icon>play_arrow</mat-icon>
+    {{ 'oca.add_youtube_video' | translate }}
+  </button>
+</mat-menu>
+<oca-media-selector (ngModelChange)="addMediaItem($event)"
+                    [allowedMediaTypes]="allowedMediaTypes"
+                    [ngModelOptions]="{standalone: true}"
+                    [disabled]="disabled"
+                    #mediaSelector
+                    [class.hide-selector]="newMedia === null"
+                    [uploadFileDialogConfig]="uploadFileDialogConfig"
+                    [ngModel]="newMedia"></oca-media-selector>

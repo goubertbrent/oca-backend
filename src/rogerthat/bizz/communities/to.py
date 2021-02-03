@@ -19,6 +19,7 @@ from typing import List
 from mcfw.properties import unicode_property, long_property, bool_property, typed_property, unicode_list_property, \
     long_list_property
 from rogerthat.to import TO
+from rogerthat.to.jobs import LatLonTO
 
 
 class AutoConnectedServiceTO(TO):
@@ -43,3 +44,27 @@ class BaseCommunityTO(TO):
 
 class CommunityTO(BaseCommunityTO):
     id = long_property('id')
+
+
+class CommunityLocationTO(TO):
+    locality = unicode_property('locality')
+    postal_code = unicode_property('postal_code')
+
+
+class GeoFenceGeometryTO(TO):
+    center = typed_property('center', LatLonTO)
+    max_distance = long_property('max_distance')
+
+
+class CommunityGeoFenceTO(TO):
+    country = unicode_property('country')
+    defaults = typed_property('defaults', CommunityLocationTO, default=None)
+    geometry = typed_property('geometry', GeoFenceGeometryTO, default=None)
+
+    @classmethod
+    def from_model(cls, m):
+        return cls(
+            country=m.country,
+            defaults=CommunityLocationTO.from_model(m.defaults) if m.defaults else None,
+            geometry=GeoFenceGeometryTO.from_model(m.geometry) if m.geometry else None,
+        )

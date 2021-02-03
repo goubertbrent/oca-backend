@@ -24,7 +24,7 @@
       <excludeFolder url="file://$MODULE_DIR$/src/lib" />
       <excludeFolder url="file://$MODULE_DIR$/src/static/client" />
       <excludeFolder url="file://$MODULE_DIR$/src/static/console" />
-      <excludeFolder url="file://$MODULE_DIR$/embedded-apps/tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/services" />
     </content>
     <orderEntry type="jdk" jdkName="Python 2.7 (oca-backend)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

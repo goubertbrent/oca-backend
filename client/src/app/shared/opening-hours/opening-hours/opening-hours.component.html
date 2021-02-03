@@ -1,14 +1,3 @@
-<div class="hours-header">
-  <h3>{{ 'oca.opening-hours' | translate }}</h3>
-  <button (click)="saved.emit(openingHours)"
-          [matTooltip]="'oca.Save' | translate"
-          class="save-button"
-          mat-stroked-button
-          type="button">
-    <mat-icon>save</mat-icon>
-  </button>
-</div>
-<mat-progress-bar *ngIf="isLoading" mode="indeterminate"></mat-progress-bar>
 <mat-tab-group *ngIf="openingHours.type === 'textual' || openingHours.type === 'structured'">
   <mat-tab [label]="'oca.opening-hours' | translate">
     <ng-container *ngIf="openingHours.type === 'textual'">

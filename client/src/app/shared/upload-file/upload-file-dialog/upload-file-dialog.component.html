@@ -27,7 +27,8 @@
       <div *ngFor="let image of images$ | async" class="uploaded-image">
         <div class="image-container">
           <div matRipple>
-            <img (click)="filePicked(image)" [src]="image.url">
+            <img (click)="filePicked(image)" [src]="image.thumbnail_url || image.url">
+            <span *ngIf="image.title as title">{{ title }}</span>
           </div>
         </div>
       </div>
@@ -37,7 +38,7 @@
         <div *ngFor="let image of galleryImages$ | async" class="uploaded-image">
           <div class="image-container">
             <div matRipple>
-              <img (click)="filePicked(image)" [src]="image.url">
+              <img (click)="filePicked(image)" [src]="image.thumbnail_url || image.url">
             </div>
           </div>
         </div>

@@ -1,0 +1,39 @@
+<mat-toolbar>
+  <a mat-icon-button routerLink="/communities">
+    <mat-icon>arrow_back</mat-icon>
+  </a>
+  <h1 class="flex-grow">Geo fence</h1>
+</mat-toolbar>
+<form (ngSubmit)="save()" [formGroup]="formGroup" class="geo-fence-form">
+  <ng-container formGroupName="defaults">
+    <h2>Defaults</h2>
+    <p>These values are the defaults when creating a new point of interest</p>
+    <mat-form-field class="field">
+      <mat-label>Locality</mat-label>
+      <input formControlName="locality" matInput required>
+    </mat-form-field>
+    <mat-form-field class="field">
+      <mat-label>Postal code</mat-label>
+      <input formControlName="postal_code" matInput required>
+    </mat-form-field>
+  </ng-container>
+  <p>Move the circle to the region that roughly matches the current community.
+    Points of interest will only be able to be created inside this circle.</p>
+  <mat-form-field>
+    <mat-label>Search place...</mat-label>
+    <input matInput type="search" [formControl]="searchControl">
+  </mat-form-field>
+  <google-map *ngIf="(mapLoaded$ | async) && mapPosition"
+              [center]="mapPosition"
+              [width]="null"
+              [zoom]="12"
+              class="geo-fence-map">
+    <map-circle #circle="mapCircle"
+                (centerChanged)="changeGeometry(circle)"
+                (radiusChanged)="changeRadius(circle)"
+                [center]="mapPosition"
+                [options]="circleOptions"
+                [radius]="formGroup.controls.geometry.value.max_distance"></map-circle>
+  </google-map>
+  <button class="save-btn" mat-stroked-button>Save</button>
+</form>

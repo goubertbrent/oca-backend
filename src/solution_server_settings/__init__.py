@@ -53,18 +53,9 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
                                      doc='User email that will be used to create new groups/add users to the group',
                                      order=6)
 
-    shop_reply_to_email = add_meta(db.StringProperty(indexed=False),
-                                   doc="The email address that is used as reply-to in all e-mails.",
-                                   order=301)
     shop_export_email = add_meta(db.StringProperty(indexed=False),
                                  doc="The email address that is used to send all the e-mails regarding exports",
                                  order=303)
-    shop_no_reply_email = add_meta(db.StringProperty(indexed=False),
-                                   doc="The email address that is used as reply-to in all no-reply e-mails.",
-                                   order=304)
-    shop_customer_extention_emails = add_meta(db.StringListProperty(indexed=False),
-                                              doc="The email addresses that will receive an email with customers that need extention",
-                                              order=306)
     shop_bizz_admin_emails = add_meta(db.StringListProperty(indexed=False),
                                       doc="The email addresses that have admin access to the shop dashboard",
                                       order=307)
@@ -72,9 +63,6 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     solution_qanda_info_receivers = add_meta(db.StringListProperty(indexed=False),
                                              doc="The email addresses that will receive an e-mail when a question has been asked",
                                              order=603)
-    solution_service_auto_connect_emails = add_meta(db.StringListProperty(indexed=False),
-                                             doc="The email addresses that will be auto connected to new services",
-                                             order=604)
     solution_sync_calendar_events_client_id = add_meta(db.StringProperty(indexed=False),
                                             doc="Client id to sync calendar events",
                                             order=607)

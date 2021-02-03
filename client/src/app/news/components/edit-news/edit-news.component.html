@@ -42,13 +42,14 @@
             <mat-card-header>
               <mat-card-title>{{ 'oca.media' | translate }}</mat-card-title>
               <mat-card-subtitle>
-                {{ (newsItem.media?.type === MediaType.YOUTUBE_VIDEO ? 'oca.news_video_explanation' : 'oca.news_image_explanation') | translate }}
+                {{ (newsItem.media?.type === MediaType.VIDEO_YOUTUBE ? 'oca.news_video_explanation' : 'oca.news_image_explanation') | translate }}
               </mat-card-subtitle>
             </mat-card-header>
             <mat-card-content>
               <oca-media-selector (ngModelChange)="setMedia($event)"
                                   [(ngModel)]="newsItem.media"
                                   [allowedMediaTypes]="options?.media_types"
+                                  [uploadFileDialogConfig]="uploadFileDialogConfig"
                                   [logoUrl]="brandingSettings?.logo_url" name="media"></oca-media-selector>
             </mat-card-content>
           </mat-card>

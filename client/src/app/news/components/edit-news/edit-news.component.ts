@@ -15,7 +15,7 @@ import { MatSelect, MatSelectChange } from '@angular/material/select';
 import { TranslateService } from '@ngx-translate/core';
 import { BaseMedia, Gender, MediaType, NewsActionButton, NewsGroupType, NewsLocation, NewsTargetAudience } from '@oca/web-shared';
 import { EASYMDE_OPTIONS } from '../../../../environments/config';
-import { DEFAULT_AVATAR_URL } from '../../../consts';
+import { AVATAR_PLACEHOLDER } from '../../../consts';
 import { BrandingSettings } from '../../../shared/interfaces/oca';
 import { Loadable } from '../../../shared/loadable/loadable';
 import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
@@ -55,7 +55,7 @@ export class EditNewsComponent implements OnChanges {
   };
   actionButton: UINewsActionButton | null = null;
   EASYMDE_OPTIONS = EASYMDE_OPTIONS;
-  DEFAULT_AVATAR_URL = DEFAULT_AVATAR_URL;
+  DEFAULT_AVATAR_URL = AVATAR_PLACEHOLDER;
   NewsActionButtonType = NewsActionButtonType;
   GENDERS = GENDER_OPTIONS;
   NEWS_MEDIA_TYPE_OPTIONS: { label: string; value: MediaType | null }[] = [];
@@ -64,6 +64,11 @@ export class EditNewsComponent implements OnChanges {
   hasGroupVisible = false;
   showGroupInfoDetails = false;
   selectedMediaType: MediaType | null = MediaType.IMAGE;
+  uploadFileDialogConfig: Partial<UploadFileDialogConfig> = {
+    uploadPrefix: '',
+    mediaType: MediaType.IMAGE,
+    gallery: { prefix: 'logo' },
+  };
 
   constructor(private _matDialog: MatDialog,
               private _translate: TranslateService,
@@ -262,14 +267,14 @@ export class EditNewsComponent implements OnChanges {
   addAttachment() {
     const config: MatDialogConfig<UploadFileDialogConfig> = {
       data: {
-        uploadPrefix: 'news',
+        uploadPrefix: '',
         title: this._translate.instant('oca.add-attachment'),
         accept: 'image/*,application/pdf,video/mp4',
       },
     };
     this._matDialog.open(UploadFileDialogComponent, config).afterClosed().subscribe((result?: UploadedFileResult) => {
       if (result && this.actionButton) {
-        this.actionButton = { ...this.actionButton, button: { ...this.actionButton.button, action: result.getUrl() } };
+        this.actionButton = { ...this.actionButton, button: { ...this.actionButton.button, action: result.url } };
         this._changeDetectorRef.markForCheck();
       }
     });

@@ -2,9 +2,9 @@ import { WeekDay } from '@angular/common';
 import { ChangeDetectionStrategy, Component, forwardRef, Input } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatSlideToggleChange } from '@angular/material/slide-toggle';
-import { OpeningHour, OpeningPeriod } from '../../../shared/interfaces/oca';
-import { OPEN_24_HOURS_TIME } from '../../service-info/constants';
+import { OpeningPeriod } from '../../interfaces/oca';
 
+export const OPEN_24_HOURS_TIME = '0000';
 
 function isOpen24Hours(periods: OpeningPeriod[]): boolean {
   if (periods.length === 1) {
@@ -16,10 +16,6 @@ function isOpen24Hours(periods: OpeningPeriod[]): boolean {
 
 function getNextDay(time: WeekDay): WeekDay {
   return time < WeekDay.Saturday ? time + 1 : WeekDay.Sunday;
-}
-
-function hourToStr(hour: OpeningHour | null) {
-  return hour ? `${hour.day}${hour.time}` : '';
 }
 
 function parseHours(value: string): Date {

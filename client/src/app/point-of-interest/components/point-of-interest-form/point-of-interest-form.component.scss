@@ -1,0 +1,38 @@
+$field-margin: 16px;
+
+.poi-form {
+  width: 640px;
+  margin: 16px;
+}
+
+.full-field {
+  flex: 1;
+}
+
+.dual-fields {
+  display: flex;
+  margin: 4px 0;
+
+  .field {
+    flex: 1;
+
+    &:first-child {
+      margin-right: 16px;
+    }
+  }
+}
+
+.location-fields {
+  display: flex;
+  flex-direction: column;
+}
+
+.field {
+  display: block;
+  flex: 1;
+  margin: 4px 0;
+}
+
+.poi-map {
+  height: 300px;
+}

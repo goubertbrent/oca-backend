@@ -25,7 +25,7 @@ from rogerthat.to.maps import GetMapResponseTO, MapDefaultsTO, MapFilterTO
 
 
 def get_map_response(map_config, user_profile_info, filters, add_addresses=True):
-    # type: (MapConfig, UserProfileInfo, List[MapFilterTO]) -> GetMapResponseTO
+    # type: (MapConfig, UserProfileInfo, List[MapFilterTO], bool) -> GetMapResponseTO
     defaults = MapDefaultsTO(coords=GeoPointTO(lat=51.0974612, lon=3.8378242),  # todo change to OSA office
                              distance=3000,
                              max_distance=15 * 1000)

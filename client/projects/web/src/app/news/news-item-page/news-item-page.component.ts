@@ -45,7 +45,7 @@ export class NewsItemPageComponent implements OnInit, OnDestroy {
     this.newsItem$ = this.store.pipe(select(getCurrentNewsItem));
     this.newsItemError$ = this.store.pipe(select(getCurrentNewsItemError));
     this.youtubeUrl$ = this.newsItem$.pipe(
-      map(item => item?.media?.type === MediaType.YOUTUBE_VIDEO &&
+      map(item => item?.media?.type === MediaType.VIDEO_YOUTUBE &&
         this.domSanitizer.bypassSecurityTrustResourceUrl(`https://www.youtube.com/embed/${item.media.content}`)),
     );
     this.route.params.pipe(takeUntil(this.destroyed$)).subscribe(params => {

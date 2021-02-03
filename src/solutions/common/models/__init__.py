@@ -213,13 +213,7 @@ class SolutionMessage(db.Model):
 
 
 class SolutionIdentitySettings(db.Expando):
-    name = db.StringProperty(indexed=False)  # TODO: remove after migration 006
-    phone_number = db.StringProperty(indexed=False)  # TODO: remove after migration 006
-    qualified_identifier = db.StringProperty(indexed=False)  # TODO: remove after migration 006
-    description = db.TextProperty()  # TODO: remove after migration 006
-    address = db.TextProperty()  # TODO: remove after migration 006
-    location = db.GeoPtProperty(indexed=False)  # TODO: remove after migration 006
-
+    name = db.StringProperty(indexed=False)  # TODO: remove usages and use ServiceInfo model instead
     # Inbox
     inbox_forwarders = db.StringListProperty(indexed=False)
     inbox_connector_qrcode = db.StringProperty(indexed=False)
@@ -270,7 +264,6 @@ class SolutionSettings(SolutionIdentitySettings):
     bic = db.StringProperty(indexed=False)
 
     search_enabled = db.BooleanProperty(indexed=False, default=False)
-    search_enabled_check = db.BooleanProperty(indexed=False, default=True)
 
     # TODO: remove and use ServiceInfo instead
     currency = db.StringProperty(indexed=False)  # 3 letter symbol, e.g. EUR
@@ -472,7 +465,7 @@ class RestaurantMenu(db.Model):
     postdescription = db.TextProperty()
     name = db.StringProperty(indexed=False)
     is_default = db.BooleanProperty(indexed=False, default=False)
-    
+
     _tmp_categories = None
 
     @property
@@ -482,7 +475,7 @@ class RestaurantMenu(db.Model):
     @staticmethod
     def create_key(service_user, solution):
         return db.Key.from_path(RestaurantMenu.kind(), 'menu', parent=parent_key(service_user, solution))
-    
+
     def get_categories(self):
         if self._tmp_categories is None:
             data = json.loads(self.categories_json) if self.categories_json else {}

@@ -1,9 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { OpeningHours, PlaceType } from '../shared/interfaces/oca';
-import { Country, PrivacySettings, PrivacySettingsGroup, ServiceInfo } from './service-info/service-info';
+import { ServiceOpeningHours } from '../shared/interfaces/oca';
+import { PrivacySettings, PrivacySettingsGroup, ServiceInfo } from './service-info/service-info';
 
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
@@ -11,11 +10,11 @@ export class SettingsService {
   }
 
   getOpeningHours() {
-    return this.http.get<OpeningHours>('/common/settings/opening-hours');
+    return this.http.get<ServiceOpeningHours>('/common/settings/opening-hours');
   }
 
-  saveOpeningHours(openingHours: OpeningHours) {
-    return this.http.put<OpeningHours>('/common/settings/opening-hours', openingHours);
+  saveOpeningHours(openingHours: ServiceOpeningHours) {
+    return this.http.put<ServiceOpeningHours>('/common/settings/opening-hours', openingHours);
   }
 
   getServiceInfo(): Observable<ServiceInfo> {
@@ -24,16 +23,6 @@ export class SettingsService {
 
   updateServiceInfo(info: ServiceInfo) {
     return this.http.put<ServiceInfo>('/common/service-info', info);
-  }
-
-  getAvailablePlaceTypes() {
-    return this.http.get<{ results: PlaceType[] }>('/common/available-place-types');
-  }
-
-  getCountries(): Observable<Country[]> {
-    return this.http.get<{ countries: [string, string][] }>('/common/countries').pipe(
-      map(results => results.countries.map(([code, name]) => ({ code, name }))),
-    );
   }
 
   getPrivacySettings() {

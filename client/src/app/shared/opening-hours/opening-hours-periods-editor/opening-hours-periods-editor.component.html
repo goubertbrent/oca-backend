@@ -3,7 +3,7 @@
 </div>
 <ng-container *ngIf="!isOpen24Hours">
   <div *ngFor="let hours of periods; trackBy: trackHours;" class="periods">
-    <mat-form-field>
+    <mat-form-field class="time-form-field">
       <mat-label>{{ 'oca.opening_time' | translate }}</mat-label>
       <oca-time-input (ngModelChange)="setOpenTime(hours, $event)"
                       [disabled]="disabled"
@@ -13,7 +13,7 @@
       </oca-time-input>
     </mat-form-field>
     <span class="hours-divider">—</span>
-    <mat-form-field>
+    <mat-form-field class="time-form-field">
       <mat-label>{{ 'oca.closing_time' | translate }}</mat-label>
       <oca-time-input (ngModelChange)="setCloseTime(hours, $event)"
                       [disabled]="disabled"

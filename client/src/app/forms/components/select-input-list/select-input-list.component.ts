@@ -16,6 +16,7 @@ import {
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { TranslateService } from '@ngx-translate/core';
+import { MediaType } from '@oca/web-shared';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { withLatestFrom } from 'rxjs/operators';
 import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
@@ -147,8 +148,8 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
   editImage(value: Value, index: number) {
     const config: MatDialogConfig<UploadFileDialogConfig> = {
       data: {
-        fileType: 'image',
-        uploadPrefix: 'forms',
+        mediaType: MediaType.IMAGE,
+        uploadPrefix: '',
         reference: { type: 'form', id: this.formId },
         croppedCanvasOptions: { maxWidth: 720 },
         title: this._translate.instant('oca.insert_image'),
@@ -156,7 +157,7 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
     };
     this._matDialog.open(UploadFileDialogComponent, config).afterClosed().subscribe((result?: UploadedFileResult) => {
       if (result) {
-        this.values[ index ] = { ...value, image_url: result.getUrl() };
+        this.values[ index ] = { ...value, image_url: result.url };
         this.onChange(this.values);
       }
     });

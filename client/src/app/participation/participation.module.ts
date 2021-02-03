@@ -15,6 +15,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterModule, Routes } from '@angular/router';
+import { CovalentTextEditorModule } from '@covalent/text-editor';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
 import { ERROR_HANDLING_TRANLATIONS_PROVIDER } from '../../environments/config';
@@ -64,6 +65,7 @@ const routes: Routes = [
     MatTableModule,
     MatSortModule,
     MatPaginatorModule,
+    CovalentTextEditorModule,
   ],
   exports: [],
   declarations: [

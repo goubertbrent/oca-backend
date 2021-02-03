@@ -5,7 +5,7 @@ import ViewMode = Cropper.ViewMode;
 export interface ImageCropperResult {
   imageData: Cropper.ImageData;
   cropData: Cropper.CropBoxData;
-  blob: Blob | null;
+  blob: Blob;
   dataUrl: string | null;
 }
 
@@ -46,22 +46,20 @@ export class ImageCropperComponent {
     this.cropper = new Cropper(this.image.nativeElement, this.cropperOptions);
   }
 
-  getCroppedImage(imageType: 'image/png' | 'image/jpeg', type: 'blob' | 'base64', quality: number,
+  getCroppedImage(imageType: 'image/png' | 'image/jpeg', quality: number,
                   options?: Cropper.GetCroppedCanvasOptions): Promise<ImageCropperResult> {
     const imageData = this.cropper.getImageData();
     const cropData = this.cropper.getCropBoxData();
     const canvas = this.cropper.getCroppedCanvas(options);
-    const data: ImageCropperResult = { imageData, cropData, blob: null, dataUrl: null };
+    const data: Omit<ImageCropperResult, 'blob'> = { imageData, cropData, dataUrl: null };
 
     return new Promise(resolve => {
-      if (type === 'base64') {
-        resolve({ ...data, dataUrl: canvas.toDataURL(imageType, quality) });
-      } else if ('toBlob' in canvas) {
-        canvas.toBlob(blob => resolve({ ...data, blob }), imageType, quality);
+      if ('toBlob' in canvas) {
+        canvas.toBlob(blob => resolve({ ...data, blob: blob! }), imageType, quality);
       } else {
           // Welcome to Edge.
           // TypeScript thinks `canvas` is 'never', so it needs casting.
-          const dataUrl = (canvas as HTMLCanvasElement).toDataURL(type, quality);
+          const dataUrl = (canvas as HTMLCanvasElement).toDataURL('blob', quality);
           const result = /data:([^;]+);base64,(.*)$/.exec(dataUrl);
 
           if (!result) {

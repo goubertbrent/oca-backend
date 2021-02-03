@@ -20,8 +20,8 @@ from typing import List
 from mcfw.properties import typed_property, unicode_property, bool_property, unicode_list_property, long_property
 from rogerthat.models.settings import ServiceInfo
 from rogerthat.to import TO
-from rogerthat.to.news import BaseMediaTO
 from solutions.common.to import LatLonTO
+from solutions.common.to.forms import MediaItemTO
 
 
 class SyncedNameTO(TO):
@@ -43,11 +43,6 @@ class ServiceAddressTO(SyncedNameTO):
     street_number = unicode_property('street_number')
 
 
-class MapServiceMediaItemTO(TO):
-    role_ids = unicode_list_property('role_ids')
-    item = typed_property('item', BaseMediaTO)  # type: BaseMediaTO
-
-
 class SyncedFieldTO(TO):
     key = unicode_property('key')
     provider = unicode_property('provider')
@@ -55,7 +50,7 @@ class SyncedFieldTO(TO):
 
 class ServiceInfoTO(TO):
     addresses = typed_property('addresses', ServiceAddressTO, True)  # type: List[ServiceAddressTO]
-    cover_media = typed_property('cover_media', MapServiceMediaItemTO, True)  # type: List[MapServiceMediaItemTO]
+    media = typed_property('media', MediaItemTO, True)  # type: List[MediaItemTO]
     currency = unicode_property('currency')
     description = unicode_property('description')
     email_addresses = typed_property('email_addresses', SyncedNameValueTO, True)  # type: List[SyncedNameValueTO]
@@ -75,7 +70,7 @@ class ServiceInfoTO(TO):
         # to = super(ServiceInfoTO, cls).from_model(m)
         to = cls()
         to.addresses = [ServiceAddressTO.from_model(address) for address in m.addresses]
-        to.cover_media = [MapServiceMediaItemTO.from_model(media_item) for media_item in m.cover_media]
+        to.media = [MediaItemTO.from_media_item(item) for item in m.media]
         to.currency = m.currency
         to.description = m.description
         to.email_addresses = [SyncedNameValueTO.from_model(value) for value in m.email_addresses]

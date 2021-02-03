@@ -20,6 +20,7 @@ from __future__ import unicode_literals
 from urllib import quote
 
 import cloudstorage
+from cloudstorage.storage_api import _StorageApi
 from google.appengine.api.blobstore import blobstore
 
 from rogerthat.consts import DEBUG, ROGERTHAT_ATTACHMENTS_BUCKET
@@ -59,7 +60,7 @@ def get_serving_url(filename):
     full_path = '%s/%s' % (path, quote(file_name))
     if DEBUG:
         return '%s/_ah/gcs%s' % (get_server_settings().baseUrl, full_path)
-    return 'https://storage.googleapis.com%s' % full_path
+    return _StorageApi.api_url + full_path
 
 
 def get_blobstore_cloudstorage_path(blob_key):

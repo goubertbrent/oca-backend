@@ -268,8 +268,8 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
             return WarningReturnStatusTO.create(False, warningmsg=warning_msg)
 
     try:
-        put_customer_service(customer, service, skip_module_check=True, search_enabled=False,
-                             skip_email_check=True, rollback=is_new_service)
+        put_customer_service(customer, service, search_enabled=False,
+                             skip_email_check=True, rollback=is_new_service, send_login_information=True)
     except EmptyValueException as ex:
         val_name = translate(lang, ex.value_name)
         error_msg = translate(lang, 'empty_field_error', field_name=val_name)
@@ -399,9 +399,10 @@ def do_create_service(city_customer, language, force, signup, password, tos_vers
             return WarningReturnStatusTO.create(False, warningmsg=warning_msg)
         else:
             try:
-                result = put_customer_service(customer, service, skip_module_check=True, search_enabled=False,
+                result = put_customer_service(customer, service, search_enabled=False,
                                               skip_email_check=True, rollback=True, password=password,
-                                              tos_version=tos_version)
+                                              tos_version=tos_version,
+                                              send_login_information=False if tos_version else True)
                 if not tos_version:
                     deferred.defer(copy_accepted_terms_of_use, signup.key(), users.User(result.login), _countdown=5)
                 logging.debug('Service created from signup: %s, with modules of %s', signup.key(), modules)

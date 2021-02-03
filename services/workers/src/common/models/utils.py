@@ -66,7 +66,8 @@ def ndb_allocate_id(model_class, parent=None):
 
 @ndb.non_transactional()
 def ndb_allocate_ids(model_class, count, parent=None):
-    return model_class.allocate_ids(count, parent=parent)
+    start_id, end_id = model_class.allocate_ids(count, parent=parent)
+    return range(start_id, end_id + 1)
 
 
 @returns(dict)

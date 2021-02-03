@@ -19,7 +19,7 @@ import { ControlContainer, ControlValueAccessor, NG_VALUE_ACCESSOR, NgForm } fro
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { MatToolbar } from '@angular/material/toolbar';
 import { TranslateService } from '@ngx-translate/core';
-import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '@oca/web-shared';
+import { MediaType, SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '@oca/web-shared';
 import { Subscription } from 'rxjs';
 import { EASYMDE_OPTIONS } from '../../../../environments/config';
 import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
@@ -209,8 +209,8 @@ export class EditFormSectionComponent implements ControlValueAccessor, AfterView
   openHeaderImageDialog() {
     const config: MatDialogConfig<UploadFileDialogConfig> = {
       data: {
-        fileType: 'image',
-        uploadPrefix: 'forms',
+        mediaType: MediaType.IMAGE,
+        uploadPrefix: '',
         reference: { type: 'form', id: this.formId },
         title: this._translate.instant('oca.add_header_image'),
         cropOptions: { aspectRatio: 16 / 6 },
@@ -218,7 +218,7 @@ export class EditFormSectionComponent implements ControlValueAccessor, AfterView
     };
     this._matDialog.open(UploadFileDialogComponent, config).afterClosed().subscribe((result?: UploadedFileResult) => {
       if (result) {
-        this.section = { ...this.section, branding: { logo_url: result.getUrl(), avatar_url: null } };
+        this.section = { ...this.section, branding: { logo_url: result.url, avatar_url: null } };
         this._changeDetectorRef.markForCheck();
       }
     });

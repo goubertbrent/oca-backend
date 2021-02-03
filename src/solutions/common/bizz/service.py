@@ -20,7 +20,7 @@ import time
 from datetime import datetime
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
-from typing import Set
+from typing import Set, Optional
 
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz.communities.communities import get_community
@@ -105,16 +105,17 @@ def create_customer_with_service(city_customer, customer, service, name, address
                                      website, facebook_page, force=force)
 
 
-def put_customer_service(customer, service, search_enabled, skip_module_check, skip_email_check, rollback=False,
-                         password=None, tos_version=None):
-    # type: (Customer, CustomerServiceTO, bool, bool, bool, bool, unicode, long) -> ProvisionResponseTO
+def put_customer_service(customer, service, search_enabled, skip_email_check, rollback=False,
+                         password=None, tos_version=None, send_login_information=False):
+    # type: (Customer, CustomerServiceTO, bool, bool, bool, Optional[unicode], Optional[long], bool) -> ProvisionResponseTO
     """Put the service, if rollback is set, it will remove the customer in case of failure."""
     from shop.bizz import put_service
     customer_key = customer.key()
 
     def trans():
-        return put_service(customer, service, skip_module_check=skip_module_check, search_enabled=search_enabled,
-                           skip_email_check=skip_email_check, password=password, tos_version=tos_version)
+        return put_service(customer, service, search_enabled=search_enabled,
+                           skip_email_check=skip_email_check, password=password, tos_version=tos_version,
+                           send_login_information=send_login_information)
 
     try:
         return run_in_xg_transaction(trans)

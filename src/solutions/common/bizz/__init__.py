@@ -17,16 +17,16 @@
 
 from __future__ import unicode_literals
 
-import logging
 import os
-import time
 from collections import defaultdict
-from datetime import datetime
 from types import NoneType
 
+import logging
 import pytz
+import time
 from PIL.Image import Image
 from babel.dates import format_date, format_time, format_datetime, get_timezone
+from datetime import datetime
 from google.appengine.ext import db, deferred, ndb
 from google.appengine.ext.webapp import template
 from typing import List
@@ -42,16 +42,15 @@ from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.communities.models import AppFeatures
 from rogerthat.bizz.embedded_applications import send_update_all_embedded_apps
 from rogerthat.bizz.rtemail import generate_auto_login_url
-from rogerthat.bizz.service import create_service, InvalidAppIdException, RoleNotFoundException, \
+from rogerthat.bizz.service import create_service, RoleNotFoundException, \
     AvatarImageNotSquareException
 from rogerthat.consts import FAST_QUEUE, DEBUG
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_default_service_identity
-from rogerthat.models import App, ServiceRole, OpeningHours, ServiceIdentity
-from rogerthat.models.maps import MapServiceMediaItem
+from rogerthat.models import ServiceRole, OpeningHours, ServiceIdentity
 from rogerthat.models.news import MediaType
-from rogerthat.models.settings import SyncedNameValue, ServiceInfo
+from rogerthat.models.settings import SyncedNameValue, ServiceInfo, MediaItem
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException, BusinessException
 from rogerthat.rpc.users import User
@@ -64,14 +63,11 @@ from rogerthat.to.branding import BrandingTO
 from rogerthat.to.friends import ServiceMenuDetailTO, ServiceMenuItemLinkTO
 from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.to.messaging.flow import FormFlowStepTO, FLOW_STEP_MAPPING
-from rogerthat.to.news import BaseMediaTO
 from rogerthat.translations import DEFAULT_LANGUAGE
-from rogerthat.utils import generate_random_key, channel, bizz_check, now, get_current_task_name, \
-    try_or_defer
+from rogerthat.utils import generate_random_key, channel, bizz_check, now, get_current_task_name
 from rogerthat.utils.app import get_app_user_tuple
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException
 from rogerthat.utils.transactions import on_trans_committed
-from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
 from solutions.common.consts import ORDER_TYPE_ADVANCED, OUR_CITY_APP_COLOUR, OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings, get_restaurant_menu
@@ -130,6 +126,7 @@ class SolutionModule(Enum):
     JCC_APPOINTMENTS = 'jcc_appointments'
     CIRKLO_VOUCHERS = 'cirklo_vouchers'
     HOPLR = 'hoplr'
+    POINTS_OF_INTEREST = 'points_of_interest'
 
     HIDDEN_CITY_WIDE_LOTTERY = u'hidden_city_wide_lottery'
 
@@ -158,6 +155,7 @@ class SolutionModule(Enum):
         REPORTS: 'oca.reports',
         JCC_APPOINTMENTS: 'jcc-appointments',
         CIRKLO_VOUCHERS: 'oca.cirklo_light',
+        POINTS_OF_INTEREST: 'oca.points_of_interest',
     }
 
     INBOX_MODULES = (ASK_QUESTION, SANDWICH_BAR, APPOINTMENT, REPAIR, GROUP_PURCHASE, ORDER, RESTAURANT_RESERVATION,
@@ -485,7 +483,7 @@ def create_solution_service(email, name, phone_number=None,
         service_info.name = name
         service_info.currency = currency
         service_info.timezone = settings.timezone
-        service_info.cover_media = get_default_cover_media(organization_type)
+        service_info.media = get_default_media(organization_type)
         if phone_number:
             service_info.phone_numbers = [SyncedNameValue.from_value(phone_number)]
         if owner_user_email:
@@ -511,15 +509,11 @@ def create_solution_service(email, name, phone_number=None,
 
     put_and_invalidate_cache(*to_be_put)
 
-    deferred.defer(_after_service_created, new_service_user, _transactional=db.is_in_transaction(),
-                   _queue=FAST_QUEUE)
+    # TODO could execute this in the same transaction in a higher layer
+    deferred.defer(_execute_consent_actions, new_service_user, _transactional=db.is_in_transaction(),
+                   _queue=FAST_QUEUE, _countdown=10)
 
     return password, settings
-
-
-def _after_service_created(service_user):
-    try_or_defer(service_auto_connect, service_user)
-    try_or_defer(_execute_consent_actions, service_user)
 
 
 def _execute_consent_actions(service_user):
@@ -547,8 +541,8 @@ def _execute_consent_actions(service_user):
         logging.info('Created cirklo merchant: %s', cirklo_merchant)
 
 
-def get_default_cover_media(organization_type):
-    # type: (int) -> List[MapServiceMediaItem]
+def get_default_media(organization_type):
+    # type: (int) -> List[MediaItem]
     base_url = 'https://storage.googleapis.com/%s/image-library/logo/%s.jpg'
     mapping = {
         OrganizationType.CITY: 'community-service',
@@ -558,11 +552,7 @@ def get_default_cover_media(organization_type):
         OrganizationType.EMERGENCY: 'care',
     }
     url = base_url % (OCA_FILES_BUCKET, mapping[organization_type])
-    media_item = MapServiceMediaItem()
-    media_item.item = BaseMediaTO()
-    media_item.item.type = MediaType.IMAGE
-    media_item.item.content = url
-    return [media_item]
+    return [MediaItem(type=MediaType.IMAGE, content=url)]
 
 
 def _get_default_branding_settings(service_user):
@@ -767,24 +757,6 @@ def _check_embedded_apps_after_publish(service_user):
                 logging.debug('Updating embedded apps for community %d to %s', community.id, community.embedded_apps)
                 community.put()
                 deferred.defer(send_update_all_embedded_apps, community.id, _countdown=2)
-
-
-@returns()
-@arguments(service_user=users.User)
-def service_auto_connect(service_user):
-    from rogerthat.service.api.friends import invite as invite_api_call
-    from rogerthat.bizz.friends import CanNotInviteFriendException
-
-    solution_server_settings = get_solution_server_settings()
-    with users.set_user(service_user):
-        for invitee in solution_server_settings.solution_service_auto_connect_emails:
-            try:
-                invite_api_call(invitee, None, u"New Flex service created", DEFAULT_LANGUAGE, SERVICE_AUTOCONNECT_INVITE_TAG, None,
-                                App.APP_ID_ROGERTHAT)
-            except CanNotInviteFriendException:
-                logging.debug('%s is already connected with %s', invitee, service_user)
-            except InvalidAppIdException:
-                logging.debug('%s is not supported for %s', App.APP_ID_ROGERTHAT, service_user)
 
 
 @returns(unicode)

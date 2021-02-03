@@ -1,7 +1,10 @@
+import { AgmCoreModule } from '@agm/core';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { CommonModule } from '@angular/common';
+import { HttpClientJsonpModule } from '@angular/common/http';
 import { NgModule } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
+import { GoogleMapsModule } from '@angular/google-maps';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -45,6 +48,7 @@ import { NewsSettingsComponent } from './news/news-setings/news-settings.compone
 import { IconSelectorComponent } from './homescreen/icon-selector/icon-selector.component';
 import { LinkItemTemplateContentEditorComponent } from './homescreen/link-item-template-content-editor/link-item-template-content-editor.component';
 import { HomeScreenTranslationSelectComponent } from './homescreen/home-screen-translation-select/home-screen-translation-select.component';
+import { GeoFenceSettingsPageComponent } from './community/geo-fence-settings-page/geo-fence-settings-page.component';
 
 const routes: Routes = [
   { path: '', component: CommunitiesListComponent },
@@ -70,6 +74,11 @@ const routes: Routes = [
         path: 'home-screen/:homeScreenId',
         component: HomeScreenPageComponent,
         data: { label: 'rcc.homescreen' },
+      },
+      {
+        path: 'geo-fence',
+        component: GeoFenceSettingsPageComponent,
+        data: { label: 'rcc.geo_fence' },
       },
     ],
   },
@@ -98,6 +107,7 @@ const routes: Routes = [
     IconSelectorComponent,
     LinkItemTemplateContentEditorComponent,
     HomeScreenTranslationSelectComponent,
+    GeoFenceSettingsPageComponent,
   ],
   imports: [
     RouterModule.forChild(routes),
@@ -123,6 +133,7 @@ const routes: Routes = [
     MatChipsModule,
     DragDropModule,
     MatExpansionModule,
+    GoogleMapsModule,
   ],
 })
 export class CommunitiesModule {

@@ -16,24 +16,26 @@
 # @@license_version:1.5@@
 import logging
 
+from babel import Locale
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
+from typing import List, Iterable
 
-from babel import Locale
 from mcfw.cache import cached
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.communities.models import Community, CommunityAutoConnectedService
+from rogerthat.bizz.communities.models import Community, CommunityAutoConnectedService, CommunityGeoFence, \
+    CommunityUserStatsHistory, CommunityUserStats
 from rogerthat.bizz.communities.to import BaseCommunityTO
 from rogerthat.bizz.friend_helper import FriendHelper
 from rogerthat.bizz.job import hookup_with_default_services, run_job
 from rogerthat.dal.profile import get_user_profiles_by_community
-from rogerthat.models import ServiceIdentity, App, NdbUserProfile,\
+from rogerthat.models import ServiceIdentity, App, NdbUserProfile, \
     NdbServiceProfile
+from rogerthat.models.news import NewsGroup
 from rogerthat.rpc import users
 from rogerthat.to.friends import FRIEND_TYPE_SERVICE
 from rogerthat.utils.service import add_slash_default
-from typing import List, Iterable
 
 
 # Non-transactional to ensure the cache is used, even when fetched during a transaction.
@@ -62,6 +64,10 @@ def create_community(data):
 
 def delete_community(community_id, delete=False):
     from shop.models import Customer
+    from rogerthat.bizz.communities.homescreen import CommunityHomeScreen
+    from rogerthat.bizz.maps.poi import PointOfInterest
+    from rogerthat.models.news import NewsStream
+    from rogerthat.bizz.communities.homescreen import delete_home_screen, TEST_HOME_SCREEN_ID
     logging.debug('Checking if community can be deleted: %s', community_id)
     community = get_community(community_id)
     if not community:
@@ -89,12 +95,28 @@ def delete_community(community_id, delete=False):
         logging.debug('community used in customers:%s', customer_count)
         can_delete = False
 
+    if PointOfInterest.list_by_community(community_id).count(1):
+        logging.debug('community used for one or more PointOfInterest')
+        can_delete = False
+
     if not can_delete:
         raise Exception('This community is still in use and cannot be deleted')
 
     logging.debug('Its okay to delete')
     if delete:
-        community.key.delete()
+        keys = [
+            community.key,
+            CommunityGeoFence.create_key(community_id),
+            CommunityUserStatsHistory.create_key(community_id),
+            CommunityUserStats.create_key(community_id),
+            NewsStream.create_key(community_id),
+        ]
+        keys.extend(NewsGroup.list_by_community_id(community_id).fetch(keys_only=True))
+        delete_home_screen(community_id, TEST_HOME_SCREEN_ID)
+        for key in CommunityHomeScreen.list_by_community(community_id).fetch(keys_only=True):
+            delete_home_screen(community_id, key.id())
+            keys.append(keys)
+        ndb.delete_multi(keys)
 
 
 def update_community(community_id, data):

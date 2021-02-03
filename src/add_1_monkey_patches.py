@@ -326,6 +326,12 @@ def _new_deferred_defer(obj, *args, **kwargs):
     if not taskargs["target"] and taskargs["countdown"] is None: # Don't increase too high otherwise keepalive_task will break
         taskargs["target"] = get_backend_service()
     try:
+        if DEBUG:
+            logging.debug('Scheduling task on queue %s: %s.%s\n%s\n%s',
+                          queue,
+                          obj.__module__, obj.__name__,
+                          ''.join((', %s' % repr(a) for a in args)),
+                          ''.join((', %s=%s' % (k, repr(v)) for k, v in kwargs.iteritems())))
         task = taskqueue.Task(payload=pickled, **taskargs)
         return task.add(queue, transactional=transactional)
     except taskqueue.TaskTooLargeError:

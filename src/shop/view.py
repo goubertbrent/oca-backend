@@ -41,7 +41,7 @@ from rogerthat.bizz.communities.communities import get_community
 from rogerthat.bizz.gcs import upload_to_gcs
 from rogerthat.bizz.profile import create_user_profile
 from rogerthat.bizz.session import switch_to_service_identity, create_session
-from rogerthat.consts import OFFICIALLY_SUPPORTED_COUNTRIES, ROGERTHAT_ATTACHMENTS_BUCKET
+from rogerthat.consts import OFFICIALLY_SUPPORTED_COUNTRIES, ROGERTHAT_ATTACHMENTS_BUCKET, FAST_QUEUE
 from rogerthat.dal.app import get_apps, get_apps_by_type, get_app_by_id
 from rogerthat.dal.profile import get_service_profile, get_profile_info
 from rogerthat.exceptions import ServiceExpiredException
@@ -50,13 +50,13 @@ from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.settings import get_server_settings
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
-from rogerthat.utils import now
+from rogerthat.utils import now, try_or_defer
 from rogerthat.utils.channel import broadcast_via_iframe_result
 from rogerthat.utils.cookie import set_cookie
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import on_trans_committed, allow_transaction_propagation
 from shop.bizz import search_customer, create_or_update_customer, create_contact, export_customers_csv, put_service, \
-    update_contact, delete_contact, import_customer, export_cirklo_customers_csv
+    update_contact, delete_contact, import_customer, export_cirklo_customers_csv, re_index_customer
 from shop.business.permissions import is_admin
 from shop.business.qr import generate_unassigned_qr_codes_zip_for_app
 from shop.constants import OFFICIALLY_SUPPORTED_LANGUAGES, COUNTRY_DEFAULT_LANGUAGES
@@ -337,6 +337,7 @@ def put_customer(customer_id, name, address1, address2, zip_code, city, country,
         customer = create_or_update_customer(customer_id, vat, name, address1, address2,
                                              zip_code, city, country, language, organization_type, force,
                                              community_id=community_id)
+        try_or_defer(re_index_customer, customer.key(), _queue=FAST_QUEUE)
     except DuplicateCustomerNameException as ex:
         return CustomerReturnStatusTO.create(False, warning=ex.message)
     except BusinessException as be:
@@ -370,6 +371,8 @@ def new_contact(customer_id, data):
     # type: (long, ContactTO) -> ContactTO
     try:
         contact = create_contact(customer_id, data.first_name, data.last_name, data.email, data.phone_number)
+        deferred.defer(re_index_customer, contact.customer_key, _transactional=db.is_in_transaction(),
+                       _queue=FAST_QUEUE)
         return ContactTO.fromContactModel(contact)
     except BusinessException as e:
         raise HttpBadRequestException(e.message)
@@ -439,10 +442,11 @@ def save_service(customer_id, service):
         check_only_one_city_service(customer_id, service)
         xg_on = db.create_transaction_options(xg=True)
         service = allow_transaction_propagation(db.run_in_transaction_options, xg_on, put_service, customer_id, service,
-                                                broadcast_to_users=[gusers.get_current_user()])
+                                                broadcast_to_users=[gusers.get_current_user()],
+                                                send_login_information=False)
         return ProvisionReturnStatusTO.create(True, None, service)
     except BusinessException as ex:
-        logging.warn(ex, exc_info=1)
+        logging.warning(ex, exc_info=1)
         return ProvisionReturnStatusTO.create(False, ex)
     except:
         logging.error("Failed to create service", exc_info=1)

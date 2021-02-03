@@ -35,7 +35,8 @@ from rogerthat.bizz.elasticsearch import delete_index, create_index, es_request,
     execute_bulk_request
 from rogerthat.bizz.maps.services.places import get_place_details, PlaceDetails, get_place_type_keys
 from rogerthat.bizz.maps.shared import get_map_response
-from rogerthat.bizz.opening_hours import get_opening_hours_info
+from rogerthat.bizz.opening_hours import get_opening_hours_info, OPENING_HOURS_GREEN_COLOR, OPENING_HOURS_RED_COLOR, \
+    OPENING_HOURS_ORANGE_COLOR, get_opening_hours_lines, get_openinghours_color
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_user_profile, get_service_profile
 from rogerthat.dal.service import get_service_menu_items
@@ -43,9 +44,9 @@ from rogerthat.models import UserProfileInfo, OpeningHours, ServiceIdentity, \
     ServiceTranslation, ServiceRole, UserProfile, App, AppServiceFilter, ServiceProfile
 from rogerthat.models.elasticsearch import ElasticsearchSettings
 from rogerthat.models.maps import MapConfig, MapSavedItem, MapService, \
-    MapServiceListItem
+    MapServiceListItem, MapServiceMediaItem
 from rogerthat.models.news import NewsItem
-from rogerthat.models.settings import ServiceInfo, ServiceAddress
+from rogerthat.models.settings import ServiceInfo, ServiceLocation
 from rogerthat.rpc import users
 from rogerthat.to import GeoPointTO
 from rogerthat.to.maps import GetMapResponseTO, MapFunctionality, MapBaseUrlsTO, GetMapItemsResponseTO, \
@@ -58,7 +59,7 @@ from rogerthat.to.maps import GetMapResponseTO, MapFunctionality, MapBaseUrlsTO,
     GetMapSearchSuggestionsRequestTO, MapSearchSuggestionKeywordTO, \
     MapSearchSuggestionItemTO, OpeningHoursSectionItemTO, OpeningHoursTO, NewsGroupSectionTO, NewsSectionTO, \
     OpeningHoursListSectionItemTO, OpeningInfoTO
-from rogerthat.to.news import GetNewsStreamFilterTO, SizeTO
+from rogerthat.to.news import GetNewsStreamFilterTO, SizeTO, BaseMediaTO
 from rogerthat.translations import localize
 from rogerthat.utils.app import get_app_id_from_app_user
 from rogerthat.utils.service import add_slash_default, remove_slash_default, \
@@ -68,10 +69,6 @@ from rogerthat.utils.service import add_slash_default, remove_slash_default, \
 SERVICES_TAG = 'services'
 
 ORGANIZATION_TYPE_SEARCH_PREFIX = 'organization-type-'
-
-OPENING_HOURS_GREEN_COLOR = u'51bd13'
-OPENING_HOURS_RED_COLOR = u'b01717'
-OPENING_HOURS_ORANGE_COLOR = u'e69f12'
 
 
 class SearchTag(object):
@@ -103,17 +100,21 @@ class SearchTag(object):
         # type: (int) -> unicode
         return 'organization_type#%d' % organization_type
 
+    @staticmethod
+    def visible_for_end_user():
+        # type: () -> unicode
+        return 'visible'
+
+    @staticmethod
+    def poi_status(status):
+        # type: (int) -> unicode
+        return 'poi_status#%d' % status
+
 
 def get_clean_language_code(lang):
     if '_' in lang:
         return lang.split('_')[0]
     return lang
-
-
-def get_openinghours_color(color):
-    if color.startswith('#'):
-        return color
-    return u'#%s' % color
 
 
 def get_tags_app(app):
@@ -372,7 +373,10 @@ def save_map_service(service_identity_user):
     map_service.main_place_type = service_info.main_place_type
     map_service.place_types = service_info.place_types
     map_service.has_news = NewsItem.list_by_sender(service_identity_user).count(1) > 0
-    map_service.media_items = service_info.cover_media
+    map_service.media_items = [MapServiceMediaItem(item=BaseMediaTO(type=item.type,
+                                                                    content=item.content,
+                                                                    thumbnail_url=item.thumbnail_url))
+                               for item in service_info.media]
 
     if opening_hours and opening_hours.type in (OpeningHours.TYPE_TEXTUAL, OpeningHours.TYPE_NOT_RELEVANT):
         if opening_hours.text and opening_hours.text.strip():
@@ -414,11 +418,12 @@ def save_map_service(service_identity_user):
                                                                             url=v_phone_item.url))
             map_service.horizontal_items.append(horizontal_item)
 
-    for i, address in enumerate(service_info.addresses):  # type: int, ServiceAddress
+    for i, address in enumerate(service_info.addresses):  # type: int, ServiceLocation
         params = {
             'q': address.get_address_line(lang),
         }
-        geo_url = 'geo://%s,%s?%s' % (address.coordinates.lat, address.coordinates.lon, urllib.urlencode(params, doseq=True))
+        geo_url = 'geo://%s,%s?%s' % (
+            address.coordinates.lat, address.coordinates.lon, urllib.urlencode(params, doseq=True))
         if i == 0:
             map_service.address = '%s %s, %s' % (address.street, address.street_number, address.locality)
             map_service.geo_location = address.coordinates
@@ -542,10 +547,12 @@ def _get_map_item_details_to_from_ids(app_user, ids):
                         opening_hours, service_info.timezone, lang)
                     item.item.opening_hours = OpeningInfoTO(name=opening_hours.title,
                                                             title=localize(lang, 'open' if now_open else 'closed'),
-                                                            title_color=get_openinghours_color(OPENING_HOURS_GREEN_COLOR if now_open else OPENING_HOURS_RED_COLOR),
+                                                            title_color=get_openinghours_color(
+                                                                OPENING_HOURS_GREEN_COLOR if now_open else OPENING_HOURS_RED_COLOR),
                                                             subtitle=open_until,
                                                             description=extra_description,
-                                                            description_color=get_openinghours_color(OPENING_HOURS_ORANGE_COLOR),
+                                                            description_color=get_openinghours_color(
+                                                                OPENING_HOURS_ORANGE_COLOR),
                                                             weekday_text=weekday_text)
                     vertical_list_items.append(item.item)
             else:
@@ -633,24 +640,7 @@ def _convert_to_item_to(map_service, language, timezone, opening_hours):
     if opening_hours:
         opening_hours_model = opening_hours[0]
         if opening_hours_model.type == OpeningHours.TYPE_STRUCTURED:
-            now_open, open_until, extra_description, _ = get_opening_hours_info(opening_hours_model, timezone, language)
-            if now_open:
-                lines.append(MapItemLineTextTO(parts=[
-                    MapItemLineTextPartTO(color=get_openinghours_color(OPENING_HOURS_GREEN_COLOR),
-                                          text='**%s**' % localize(language, 'open')),
-                    MapItemLineTextPartTO(color=None, text=open_until),
-                ]))
-            else:
-                lines.append(MapItemLineTextTO(parts=[
-                    MapItemLineTextPartTO(color=get_openinghours_color(OPENING_HOURS_RED_COLOR),
-                                          text='**%s**' % localize(language, 'closed')),
-                    MapItemLineTextPartTO(color=None, text=open_until),
-                ]))
-            if extra_description:
-                lines.append(MapItemLineTextTO(parts=[
-                    MapItemLineTextPartTO(color=get_openinghours_color(OPENING_HOURS_ORANGE_COLOR),
-                                          text=extra_description),
-                ]))
+            lines.extend(get_opening_hours_lines(opening_hours_model, language, timezone))
 
     return MapItemTO(id=remove_slash_default(users.User(map_service.service_identity_email)).email(),
                      coords=GeoPointTO(lat=map_service.geo_location.lat,

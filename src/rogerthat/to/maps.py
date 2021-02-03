@@ -207,10 +207,10 @@ class OpeningHourExceptionTO(TO):
 
 
 class OpeningHoursTO(TO):
-    id = unicode_property('id')
+    id = unicode_property('id', default=None)
     type = unicode_property('type')
     text = unicode_property('text')
-    title = unicode_property('title')
+    title = unicode_property('title', default=None)
     periods = typed_property('periods', OpeningPeriodTO, True, default=[])  # type: List[OpeningPeriodTO]
     exceptional_opening_hours = typed_property('exceptional_opening_hours', OpeningHourExceptionTO,
                                                True, default=[])  # type: List[OpeningHourExceptionTO]

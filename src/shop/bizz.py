@@ -31,6 +31,7 @@ import cloudstorage
 from babel.dates import format_datetime, get_timezone, format_date
 from google.appengine.api import urlfetch
 from google.appengine.ext import deferred, db, ndb
+from typing import Union, Optional, List
 
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.properties import azzert
@@ -321,9 +322,6 @@ def create_or_update_customer(customer_id, vat, name, address1, address2, zip_co
     if facebook_page is not None:
         customer.facebook_page = facebook_page
     customer.put()
-
-    deferred.defer(re_index_customer, customer.key(), _transactional=is_in_transaction, _queue=FAST_QUEUE)
-
     return customer
 
 
@@ -340,12 +338,12 @@ def validate_service(service):
 
 
 @returns(ProvisionResponseTO)
-@arguments(customer_or_id=(int, long, Customer), service=CustomerServiceTO, skip_module_check=bool,
+@arguments(customer_or_id=(int, long, Customer), service=CustomerServiceTO,
            search_enabled=bool, skip_email_check=bool, broadcast_to_users=[users.User], password=unicode,
-           tos_version=(int, long, NoneType))
-def put_service(customer_or_id, service, skip_module_check=False, search_enabled=False, skip_email_check=False,
-                broadcast_to_users=None, password=None, tos_version=None):
-    # type: (Union[int, long, Customer], CustomerServiceTO, bool, bool, bool, List[users.User], unicode, Optional[Union[int, long]]) -> ProvisionResponseTO
+           tos_version=(int, long, NoneType), send_login_information=bool)
+def put_service(customer_or_id, service, search_enabled=False, skip_email_check=False,
+                broadcast_to_users=None, password=None, tos_version=None, send_login_information=False):
+    # type: (Union[int, long, Customer], CustomerServiceTO, bool, bool, bool, List[users.User], unicode, Optional[Union[int, long]], bool) -> ProvisionResponseTO
     validate_service(service)
 
     if isinstance(customer_or_id, Customer):
@@ -398,7 +396,6 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
                             tos_version=tos_version, community_id=service.community_id)
 
     r.auto_login_url = customer.auto_login_url
-    send_login_information = False if tos_version else True
     deferred.defer(_after_service_saved, customer.key(), service.email, r, redeploy, service.community_id,
                    broadcast_to_users, bool(user_existed), send_login_information=send_login_information,
                    _transactional=db.is_in_transaction(), _queue=FAST_QUEUE)
@@ -506,13 +503,11 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, community_id,
 def create_contact(customer_or_id, first_name, last_name, email_address, phone_number):
     first_name = first_name.strip()
     last_name = last_name.strip()
-    phone_number = phone_number.strip()
+    phone_number = phone_number and phone_number.strip()
     if not first_name:
         raise EmptyValueException('first_name')
     if not email_address:
         raise EmptyValueException('email_address')
-    if not phone_number:
-        raise EmptyValueException('Phone number')
     if not EMAIL_REGEX.match(email_address):
         raise InvalidEmailFormatException(email_address)
 
@@ -528,7 +523,6 @@ def create_contact(customer_or_id, first_name, last_name, email_address, phone_n
     contact.phone_number = phone_number
     contact.put()
 
-    deferred.defer(re_index_customer, customer.key(), _transactional=db.is_in_transaction(), _queue=FAST_QUEUE)
     return contact
 
 
@@ -538,13 +532,11 @@ def create_contact(customer_or_id, first_name, last_name, email_address, phone_n
 def update_contact(customer_id, contact_id, first_name, last_name, email_address, phone_number):
     first_name = first_name.strip()
     last_name = last_name.strip()
-    phone_number = phone_number.strip()
+    phone_number = phone_number and phone_number.strip()
     if not first_name:
         raise EmptyValueException('first_name')
     if not email_address:
         raise EmptyValueException('email_address')
-    if not phone_number:
-        raise EmptyValueException('Phone number')
 
     def trans():
         customer, contact = db.get([Customer.create_key(customer_id), Contact.create_key(contact_id, customer_id)])
@@ -552,12 +544,14 @@ def update_contact(customer_id, contact_id, first_name, last_name, email_address
             raise CustomerNotFoundException(customer_id)
         if not contact:
             raise ContactNotFoundException(contact_id)
+        orig_contact_dict = db.to_dict(contact)
         contact.first_name = first_name
         contact.last_name = last_name
         contact.email = email_address
         contact.phone_number = phone_number
-        contact.put()
-        deferred.defer(re_index_customer, customer.key(), _transactional=True, _queue=FAST_QUEUE)
+        if db.to_dict(contact) != orig_contact_dict:
+            contact.put()
+            deferred.defer(re_index_customer, customer.key(), _transactional=True, _queue=FAST_QUEUE)
         return contact
 
     return run_in_transaction(trans)
@@ -765,6 +759,7 @@ def put_customer_with_service(service, name, address1, address2, zip_code, city,
             is_new = True
             # create a new service. Name of the customer, contact, and service will all be the same.
             create_contact(customer, name, u'', service.email, service.phone_number)
+        # Customer gets indexed in _after_service_saved
         return customer, email_has_changed, is_new
 
     customer, email_changed, is_new_association = run_in_xg_transaction(trans1)
@@ -1142,8 +1137,8 @@ def import_customer(
             customer.id, contact.id, first_name, last_name, contact_email, contact_phone)
 
         put_customer_service(
-            customer, service, skip_module_check=True, search_enabled=False,
-            skip_email_check=True, rollback=is_new_service)
+            customer, service, search_enabled=False,
+            skip_email_check=True, rollback=is_new_service, send_login_information=False)
         # TODO: save address & currency
     except:
         # TODO: show an error or send message cannot import customer

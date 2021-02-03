@@ -20,6 +20,7 @@ import logging
 import urllib
 from math import radians, cos, sin, asin, sqrt, degrees
 
+import requests
 from google.appengine.api import urlfetch
 
 from mcfw.cache import cached
@@ -91,6 +92,34 @@ def geo_code(address, extra_params=None):
         raise GeoCodeStatusException(status)
 
     return result['results'][0]
+
+
+@cached(1)
+@returns(dict)
+@arguments(lat=float, lon=float)
+def get_timezone_from_latlon(lat, lon):
+    """See https://developers.google.com/maps/documentation/timezone/overview
+    Example:
+{
+   "dstOffset" : 0,
+   "rawOffset" : -28800,
+   "status" : "OK",
+   "timeZoneId" : "America/Los_Angeles",
+   "timeZoneName" : "Pacific Standard Time"
+}"""
+    # TODO: PY3: use offline library (e.g. https://pypi.org/project/timezonefinder)
+    # 5.00$ / 1000 calls
+    url = 'https://maps.googleapis.com/maps/api/timezone/json'
+    params = {
+        'location': u'%s,%s' % (lat, lon),
+        'key': get_server_settings().googleMapsKey
+    }
+    result = requests.get(url, params=params)
+    if result.status_code == 200:
+        return json.loads(result.content)
+    else:
+        logging.error('%s: %s', result.status_code, result.content)
+        raise Exception('Invalid response from Google Maps')
 
 
 def address_to_coordinates(address, postal_code_required=True):

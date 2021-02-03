@@ -15,8 +15,11 @@
 #
 # @@license_version:1.7@@
 
+import rogerthat.bizz.maps.poi.restapi
+import solutions.common.communities.restapi
 import solutions.common.integrations.cirklo.api as vouchers_api
 import solutions.common.jobs.api
+import solutions.common.q_and_a.restapi
 import solutions.common.restapi.billing
 import solutions.common.restapi.cityapp
 import solutions.common.restapi.discussion_groups
@@ -33,7 +36,6 @@ import solutions.common.restapi.reports
 import solutions.common.restapi.reservation
 import solutions.common.restapi.services
 import solutions.common.restapi.settings
-import solutions.common.q_and_a.restapi
 from mcfw.restapi import rest_functions
 from rogerthat.wsgi import AuthenticatedRogerthatWSGIApplication
 from solutions.common.handlers import ImageViewerHandler, SolutionMainBrandingHandler, \
@@ -83,6 +85,8 @@ modules = [
     solutions.common.q_and_a.restapi,
     solutions.common.restapi.reports,
     solutions.common.restapi.settings,
+    solutions.common.communities.restapi,
+    rogerthat.bizz.maps.poi.restapi,
     vouchers_api,
 ]
 for mod in modules:

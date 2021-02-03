@@ -1,4 +1,5 @@
-import { map } from 'rxjs/operators';
+import { Action, select, Selector, Store } from '@ngrx/store';
+import { map, take } from 'rxjs/operators';
 
 export const enum CallStateType {
   INITIAL,
@@ -64,4 +65,20 @@ export type ResultState<ResultType, ErrorType = string> =
 
 export function isStatus<T extends ResultState<any, any>>(status: CallStateType) {
   return map((value: T) => value.state === status);
+}
+
+
+/**
+ * Dispatches `action` based on the value of the result returned by `selector`
+ * Used for dispatching actions to fetch data that should only be fetched once when loading
+ * a part of the dashboard.
+ */
+export function maybeDispatchAction<T>(store: Store<T>,
+                                       selector: Selector<T, ResultState<any>>,
+                                       action: Action) {
+  store.pipe(select(selector), take(1)).subscribe(state => {
+    if ([CallStateType.INITIAL, CallStateType.ERROR].includes(state.state)) {
+      store.dispatch(action);
+    }
+  });
 }

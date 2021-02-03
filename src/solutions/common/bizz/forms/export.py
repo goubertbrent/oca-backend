@@ -28,7 +28,7 @@ from rogerthat.consts import DAY, SCHEDULED_QUEUE
 from rogerthat.rpc import users
 from rogerthat.service.api.forms import service_api
 from rogerthat.to.forms import FormSectionValueTO, FieldComponentTO, FormSectionTO, \
-    DynamicFormTO
+    DynamicFormTO, ParagraphComponentTO
 from rogerthat.utils.app import get_human_user_from_app_user
 from solutions import translate
 from solutions.common.consts import OCA_FILES_BUCKET

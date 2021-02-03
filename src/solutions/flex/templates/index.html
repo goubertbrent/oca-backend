@@ -129,9 +129,14 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                         <li menu="jobs"><a href="#/jobs">{% translate language, "jobs" %} </a></li>
     {% endif %}
     {%- if SolutionModule.CIRKLO_VOUCHERS in sln_settings.modules -%}
-                            <li menu="vouchers">
-                                <a href="#/vouchers">{% translate language, 'oca.cirklo_light' %}</a>
-                            </li>
+                        <li menu="vouchers">
+                            <a href="#/vouchers">{% translate language, 'oca.cirklo_light' %}</a>
+                        </li>
+    {%- endif -%}
+    {%- if SolutionModule.POINTS_OF_INTEREST in sln_settings.modules -%}
+                        <li menu="points-of-interest">
+                            <a href="#/point-of-interest">{% translate language, 'oca.points_of_interest' %}</a>
+                        </li>
     {%- endif -%}
 {% endif %}
 

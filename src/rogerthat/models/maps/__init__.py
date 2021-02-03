@@ -99,11 +99,6 @@ class MapServiceMediaItem(NdbModel):
     role_ids = ndb.TextProperty(repeated=True)
     item = TOProperty(BaseMediaTO)  # type: BaseMediaTO
 
-    @classmethod
-    def from_to(cls, m):
-        return cls(role_ids=m.role_ids,
-                   item=m.item)
-
 
 class MapServiceListItem(NdbModel):
     role_ids = ndb.TextProperty(repeated=True)
@@ -120,6 +115,7 @@ class MapService(NdbModel):
     # Only used for the sort order of the opening hours
     opening_hours_links = ndb.KeyProperty(repeated=True, indexed=False)  # type: List[ndb.Key]
 
+    # TODO: remove roles from media_items
     media_items = ndb.LocalStructuredProperty(MapServiceMediaItem, repeated=True)  # type: List[MapServiceMediaItem]
     horizontal_items = ndb.LocalStructuredProperty(MapServiceListItem, repeated=True)  # type: List[MapServiceListItem]
     vertical_items = ndb.LocalStructuredProperty(MapServiceListItem, repeated=True)  # type: List[MapServiceListItem]

@@ -29,8 +29,6 @@ from solutions import translate
 from solutions.common.bizz import broadcast_updates_pending
 from solutions.common.dal import get_solution_settings
 
-DAY_MAPPING = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-
 
 class HoursOverlapException(HttpBadRequestException):
     def __init__(self, message):
@@ -43,15 +41,21 @@ def get_opening_hours(service_user, service_identity):
     return key.get() or OpeningHours(key=key, type=OpeningHours.TYPE_TEXTUAL, text='')
 
 
+def populate_opening_hours(data, model):
+    # type: (OpeningHoursTO, OpeningHours) -> OpeningHours
+    model.type = data.type
+    model.text = data.text and data.text.strip()
+    model.title = data.title
+    model.periods = [OpeningPeriod.from_to(period) for period in data.periods]
+    model.exceptional_opening_hours = [OpeningHourException.from_to(exception)
+                                       for exception in data.exceptional_opening_hours]
+    return model
+
+
 def put_opening_hours(service_user, service_identity, data):
     # type: (users.User, str, OpeningHoursTO) -> OpeningHours
     opening_hours = get_opening_hours(service_user, service_identity)
-    opening_hours.type = data.type
-    opening_hours.text = data.text and data.text.strip()
-    opening_hours.title = data.title
-    opening_hours.periods = [OpeningPeriod.from_to(period) for period in data.periods]
-    opening_hours.exceptional_opening_hours = [OpeningHourException.from_to(exception)
-                                               for exception in data.exceptional_opening_hours]
+    populate_opening_hours(data, opening_hours)
     opening_hours.put()
 
     sln_settings = get_solution_settings(service_user)
@@ -61,16 +65,6 @@ def put_opening_hours(service_user, service_identity, data):
     broadcast_updates_pending(sln_settings)
     deferred.defer(maybe_publish_home_screens, service_user)
     return opening_hours
-
-
-def _get_day_int(day_str):
-    # type: (str) -> int
-    return DAY_MAPPING.index(day_str)
-
-
-def _get_day_str(day_int):
-    # type: (int) -> str
-    return DAY_MAPPING[day_int]
 
 
 def _get_open_hour_text(period, locale):

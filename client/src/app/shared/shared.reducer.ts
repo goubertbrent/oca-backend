@@ -45,6 +45,18 @@ export function sharedReducer(state: SharedState = initialSharedState, action: S
       return { ...state, globalConfig: stateLoading(initialSharedState.globalConfig.result) };
     case SharedActionTypes.GET_GLOBAL_CONFIG_COMPLETE:
       return { ...state, globalConfig: stateSuccess(action.payload) };
+    case SharedActionTypes.GET_COUNTRIES:
+      return { ...state, countries: stateLoading(initialSharedState.countries.result) };
+    case SharedActionTypes.GET_COUNTRIES_COMPLETE:
+      return { ...state, countries: stateSuccess(action.payload) };
+    case SharedActionTypes.GET_COUNTRIES_FAILED:
+      return { ...state, countries: stateError(action.error, state.countries.result) };
+    case SharedActionTypes.GET_AVAILABLE_PLACE_TYPES:
+      return { ...state, availablePlaceTypes: stateLoading(initialSharedState.availablePlaceTypes.result) };
+    case SharedActionTypes.GET_AVAILABLE_PLACE_TYPES_COMPLETE:
+      return { ...state, availablePlaceTypes: stateSuccess(action.payload) };
+    case SharedActionTypes.GET_AVAILABLE_PLACE_TYPES_FAILED:
+      return { ...state, availablePlaceTypes: stateError(action.error, state.availablePlaceTypes.result) };
   }
   return state;
 }

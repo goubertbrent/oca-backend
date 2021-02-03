@@ -20,7 +20,7 @@
     <div *ngIf="media" class="news_image">
       <ng-container [ngSwitch]="media.type">
         <img [src]="media.content" *ngSwitchCase="MediaType.IMAGE">
-        <ng-container *ngSwitchCase="MediaType.YOUTUBE_VIDEO">
+        <ng-container *ngSwitchCase="MediaType.VIDEO_YOUTUBE">
           <youtube-player [height]="203" [videoId]="media.content" [width]="360"></youtube-player>
         </ng-container>
       </ng-container>

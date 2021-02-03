@@ -427,8 +427,6 @@ $(document).ready(function () {
                         s = 'An e-mail with the account details has been sent to ' + currentCustomer.user_email + '.<br><br>';
                     }
                     showAlert(s + '<a href="' + currentCustomer.auto_login_url + '" target="_blank">LOG IN</a>', function () {
-                        // Always redirect to 'orders' tab. Also force that tab to refresh.
-                        showOrders(true);
                         currentCustomer.creating = false;
                     }, "Customer service saved");
                 });

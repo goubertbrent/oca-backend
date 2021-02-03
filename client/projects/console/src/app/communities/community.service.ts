@@ -1,5 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { CommunityGeoFence } from '@oca/web-shared';
 import { Observable, of } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { Community, CreateCommunity, SimpleApp, UpdateNewsImagePayload } from './community/communities';
@@ -74,5 +75,13 @@ export class CommunityService {
 
   testHomeScreen(communityId: number, homeScreenId: string, testUser: string) {
     return this.http.post(`/console-api/communities/${communityId}/home-screen/${homeScreenId}/test`, {test_user: testUser});
+  }
+
+  getGeoFence(communityId: number) {
+    return this.http.get<CommunityGeoFence>(`/console-api/communities/${communityId}/geo-fence`);
+  }
+
+  updateGeoFence(communityId: number, data: CommunityGeoFence) {
+    return this.http.put<CommunityGeoFence>(`/console-api/communities/${communityId}/geo-fence`, data);
   }
 }

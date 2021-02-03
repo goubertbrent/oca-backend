@@ -39,6 +39,7 @@ from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.forms import FormNotFoundException
 from rogerthat.bizz.gcs import get_serving_url
+from rogerthat.bizz.maps.poi.models import PointOfInterest
 from rogerthat.bizz.maps.services.places import get_place_types
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
@@ -46,6 +47,7 @@ from rogerthat.consts import DEBUG, SCHEDULED_QUEUE
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks, parent_ndb_key
 from rogerthat.dal.profile import get_user_profile, get_profile_key, get_service_profile
 from rogerthat.models import ServiceIdentity
+from rogerthat.models.news import MediaType
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.rpc.users import get_current_session
@@ -53,7 +55,7 @@ from rogerthat.service.api import system
 from rogerthat.settings import get_server_settings
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.to.friends import FriendListResultTO
-from rogerthat.to.messaging import AttachmentTO, BaseMemberTO
+from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils.app import get_human_user_from_app_user, sanitize_app_user, \
@@ -114,8 +116,8 @@ from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO,
     SolutionRepairSettingsTO, UrlReturnStatusTO, ImageReturnStatusTO, SolutionUserKeyLabelTO, \
     SolutionCalendarWebTO, BrandingSettingsAndMenuItemsTO, ServiceMenuItemWithCoordinatesTO, \
     ServiceMenuItemWithCoordinatesListTO, SolutionGoogleCalendarStatusTO, PictureReturnStatusTO, \
-    AppUserRolesTO, CustomerSignupTO, SolutionRssSettingsTO, UploadedImageTO, CreateEventItemTO
-from solutions.common.to.forms import GcsFileTO
+    AppUserRolesTO, CustomerSignupTO, SolutionRssSettingsTO, CreateEventItemTO
+from solutions.common.to.forms import UploadedFileTO, GalleryFileTO
 from solutions.common.to.paddle import PaddleSettingsTO, PaddleSettingsServicesTO, SimpleServiceTO
 from solutions.common.to.statistics import StatisticsResultTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
@@ -1841,13 +1843,14 @@ def rest_enable_or_disable_module(name, enabled):
 
 
 @rest('/common/files/<prefix:.*>', 'post')
-@returns(UploadedImageTO)
+@returns(UploadedFileTO)
 @arguments(prefix=unicode)
 def rest_upload_file(prefix):
     request = GenericRESTRequestHandler.getCurrentRequest()
     uploaded_file = request.POST.get('file')
     reference_type = request.POST.get('reference_type')
     ref_id = request.POST.get('reference')
+    media_type = request.POST.get('type')
     service_user = users.get_current_user()
     reference = None
     if ref_id and reference_type:
@@ -1861,42 +1864,52 @@ def rest_upload_file(prefix):
             reference = form_key
         elif reference_type == 'branding_settings':
             reference = ndb.Key.from_old_key(SolutionBrandingSettings.create_key(service_user))
+        elif reference_type == 'point_of_interest':
+            poi_id = long(ref_id)
+            reference = PointOfInterest.create_key(poi_id)
+            if not reference.get():
+                raise BusinessException('Point of interest %d not found' % poi_id)
 
-    result = upload_file(users.get_current_user(), uploaded_file, prefix, reference)
-    return UploadedImageTO.from_dict(result.to_dict(extra_properties=['url']))
+    result = upload_file(users.get_current_user(), uploaded_file, prefix, media_type, reference)
+    return UploadedFileTO.from_model(result)
 
 
 @rest('/common/files', 'get', read_only_access=True, silent_result=True)
-@returns([GcsFileTO])
-@arguments(prefix=unicode)
-def rest_list_uploaded_files(prefix=None):
-    # Only returns images for now
-    return [GcsFileTO(url=get_serving_url(i.cloudstorage_path), content_type=i.content_type, size=i.size or -1)
-            for i in list_files(users.get_current_user(), prefix) if
-            i.content_type in (AttachmentTO.CONTENT_TYPE_IMG_JPG, AttachmentTO.CONTENT_TYPE_IMG_PNG)]
+@returns([UploadedFileTO])
+@arguments(media_type=unicode, prefix=unicode, reference=(int, long, NoneType), reference_type=unicode)
+def rest_list_uploaded_files(media_type, prefix=None, reference=None, reference_type=None):
+    return [UploadedFileTO.from_model(i)
+            for i in list_files(users.get_current_user(), media_type, prefix, reference_type, reference)]
 
 
 @rest('/common/image-gallery/<prefix:[^/]+>', 'get', read_only_access=True, silent_result=True)
-@returns([GcsFileTO])
+@returns([GalleryFileTO])
 @arguments(prefix=unicode)
 def rest_list_gallery_images(prefix):
     path = '/%s/image-library/%s/' % (OCA_FILES_BUCKET, prefix)
     if DEBUG:
         return [
-            GcsFileTO(url='https://storage.googleapis.com/oca-files/image-library/%s/merchant.jpg' % prefix,
-                      content_type='image/jpeg',
-                      size=-1),
-            GcsFileTO(url='https://storage.googleapis.com/oca-files/image-library/%s/community-service.jpg' % prefix,
-                      content_type='image/jpeg',
-                      size=-1),
-            GcsFileTO(url='https://storage.googleapis.com/oca-files/image-library/%s/association.jpg' % prefix,
-                      content_type='image/jpeg',
-                      size=-1),
-            GcsFileTO(url='https://storage.googleapis.com/oca-files/image-library/%s/care.jpg' % prefix,
-                      content_type='image/jpeg',
-                      size=-1),
+            GalleryFileTO(url='https://storage.googleapis.com/oca-files/image-library/%s/merchant.jpg' % prefix,
+                          content_type='image/jpeg',
+                          type=MediaType.IMAGE,
+                          size=-1),
+            GalleryFileTO(
+                url='https://storage.googleapis.com/oca-files/image-library/%s/community-service.jpg' % prefix,
+                content_type='image/jpeg',
+                type=MediaType.IMAGE,
+                size=-1),
+            GalleryFileTO(url='https://storage.googleapis.com/oca-files/image-library/%s/association.jpg' % prefix,
+                          content_type='image/jpeg',
+                          type=MediaType.IMAGE,
+                          size=-1),
+            GalleryFileTO(url='https://storage.googleapis.com/oca-files/image-library/%s/care.jpg' % prefix,
+                          content_type='image/jpeg',
+                          type=MediaType.IMAGE,
+                          size=-1),
         ]
-    return [GcsFileTO(url=get_serving_url(f.filename), content_type=f.content_type, size=f.st_size) for f in cloudstorage.listbucket(path) if f.filename != path]
+    return [GalleryFileTO(url=get_serving_url(f.filename), content_type=f.content_type, size=f.st_size,
+                          type=MediaType.IMAGE)
+            for f in cloudstorage.listbucket(path) if f.filename != path]
 
 
 @rest('/common/i18n/<prefix:[^/]+>/<lang:[^/]+>.json', 'get', read_only_access=True, authenticated=False, silent=True,
