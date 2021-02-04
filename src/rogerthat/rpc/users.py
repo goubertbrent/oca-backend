@@ -167,7 +167,7 @@ class set_user(object):
     def _set_user(self, user, session=None, mfr=False):
         user = User(unicode(user.email())) if user else None  # Fix to make sure .email() always returns unicode
         _tlocal.set_user(user=user, session=session, mfr=mfr, xmpp_account=None, mobile=None, app_id=None)
-    
+
         if user:
             if session and session.name:
                 session_name = "%s - %s" % (user, session.name)
@@ -180,7 +180,7 @@ class set_user(object):
                     logging.info("Request identity: %s (%s) (WEB)", session_name, session.user)
             else:
                 logging.info("Request identity: %s (WEB)", session_name)
-            
+
 def set_deferred_user(user):
     _tlocal.set_user(deferred_user=user)
 

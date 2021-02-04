@@ -219,6 +219,14 @@ export interface TOPDeskBriefDescriptionMapping extends TOPDeskBaseComponentMapp
   type: TOPDeskPropertyName.BRIEF_DESCRIPTION;
 }
 
+export interface TOPDeskBranchMapping extends TOPDeskBaseComponentMapping {
+  type: TOPDeskPropertyName.BRANCH;
+}
+
+export interface TOPDeskLocationMapping extends TOPDeskBaseComponentMapping {
+  type: TOPDeskPropertyName.LOCATION;
+}
+
 export const enum OptionalFieldLocationFormat {
   LATITUDE,
   LONGITUDE,
@@ -247,6 +255,8 @@ export type TOPDeskComponentMapping =
   TOPDeskCategoryMapping
   | TOPDeskSubCategoryMapping
   | TOPDeskBriefDescriptionMapping
+  | TOPDeskBranchMapping
+  | TOPDeskLocationMapping
   | TOPDeskOptionalField1Mapping
   | TOPDeskOptionalField2Mapping;
 
