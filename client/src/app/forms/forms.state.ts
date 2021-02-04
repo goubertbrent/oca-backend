@@ -326,7 +326,8 @@ function convertResponse(formResponse: FormResponse, form: DynamicForm): MergedF
                 response = {
                   type: component.type,
                   format,
-                  date: new Date(value.year, value.month, value.day, value.hour, value.minute),
+                  // months in js start at 0 instead of 1
+                  date: new Date(value.year, value.month - 1, value.day, value.hour, value.minute),
                 };
               }
               break;

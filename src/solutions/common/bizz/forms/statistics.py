@@ -86,9 +86,10 @@ def _get_shard_data(summarized_data, sections):
                     val = component.hour * 100 + component.minute
                     _increment_value_count(component_data, val)
                 else:
-                    iso_str = datetime(year=component.year, month=component.month, day=component.day,
-                                       hour=component.hour, minute=component.minute).isoformat() + 'Z'
-                    _increment_value_count(component_data, iso_str)
+                    # without Z at the end because this was selected in the user his timezone
+                    naive_iso_str = datetime(year=component.year, month=component.month, day=component.day,
+                                             hour=component.hour, minute=component.minute).isoformat()
+                    _increment_value_count(component_data, naive_iso_str)
             elif isinstance(component, FileComponentValueTO):
                 if not isinstance(component_data, list):
                     component_data = []
@@ -204,9 +205,9 @@ def remove_submission_from_shard(shard, submission):
                     val = component.hour * 100 + component.minute
                     _decrement_value_count(component_data, val)
                 else:
-                    iso_str = datetime(year=component.year, month=component.month, day=component.day,
-                                       hour=component.hour, minute=component.minute).isoformat() + 'Z'
-                    _decrement_value_count(component_data, iso_str)
+                    naive_iso_str = datetime(year=component.year, month=component.month, day=component.day,
+                                             hour=component.hour, minute=component.minute).isoformat()
+                    _decrement_value_count(component_data, naive_iso_str)
             elif isinstance(component, FileComponentValueTO):
                 comp_stats = component.to_statistics()
                 if not isinstance(component_data, list):
