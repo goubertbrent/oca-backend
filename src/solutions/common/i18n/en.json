@@ -1,5 +1,6 @@
 {
   "oca.establishment": "Establishment",
+  "oca.api_key": "API key",
   "%(app_name)s has 1 new message for you": "%(app_name)s has 1 new message for you",
   "(Click to change)": "(Click to change)",
   "(No title)": "(No title)",

@@ -1,5 +1,6 @@
 {
   "oca.establishment": "Vestiging",
+  "oca.api_key": "API key",
   "%(app_name)s has 1 new message for you": "%(app_name)s heeft 1 nieuw bericht voor u",
   "(Click to change)": "(Klik om te veranderen)",
   "(No title)": "(Geen titel)",

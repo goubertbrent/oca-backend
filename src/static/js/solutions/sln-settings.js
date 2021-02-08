@@ -87,7 +87,7 @@ $(function () {
         }
         $('#settings').find('li[section=section_' + page + ']').find('a').click();
         var dashboardDisplay = 'none';
-        if (page === 'service-info' || page === 'privacy') {
+        if (page === 'service-info' || page === 'privacy' || page === 'timeblockr') {
             dashboardDisplay = 'block';
             newDashboardRouter(['settings', page]);
         } else if (page === 'branding') {

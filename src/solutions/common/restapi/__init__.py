@@ -96,6 +96,7 @@ from solutions.common.dal.appointment import get_solution_appointment_settings
 from solutions.common.dal.repair import get_solution_repair_orders, get_solution_repair_settings
 from solutions.common.integrations.jcc.jcc_appointments import get_jcc_settings, save_jcc_settings
 from solutions.common.integrations.qmatic.qmatic import get_qmatic_settings, save_qmatic_settings
+from solutions.common.integrations.timeblockr.settings import get_timeblockr_settings, save_timeblockr_settings
 from solutions.common.localizer import translations
 from solutions.common.models import SolutionBrandingSettings, SolutionSettings, SolutionInboxMessage, \
     SolutionRssScraperSettings
@@ -1442,6 +1443,20 @@ def rest_get_jcc_settings():
 @arguments(data=dict)
 def rest_save_jcc_settings(data):
     return save_jcc_settings(users.get_current_user(), **data).to_dict()
+
+
+@rest('/common/timeblockr', 'get')
+@returns(dict)
+@arguments()
+def rest_get_timeblockr_settings():
+    return get_timeblockr_settings(users.get_current_user()).to_dict()
+
+
+@rest('/common/timeblockr', 'put')
+@returns(dict)
+@arguments(data=dict)
+def rest_save_timeblockr_settings(data):
+    return save_timeblockr_settings(users.get_current_user(), **data).to_dict()
 
 
 @rest("/common/repair/settings/load", "get", read_only_access=True)

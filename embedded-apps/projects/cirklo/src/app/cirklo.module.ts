@@ -112,7 +112,6 @@ const routes: Routes = [
     }),
     EffectsModule.forRoot([RogerthatEffects, ...environment.ngrxEffects]),
     FormsModule,
-    IonicModule,
     RouterModule.forRoot(routes),
     TranslateModule,
     BackButtonModule,

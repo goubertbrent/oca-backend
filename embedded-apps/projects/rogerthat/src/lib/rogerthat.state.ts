@@ -3,7 +3,7 @@ import { GetNewsStreamItemsResponseTO, NewsSenderTO, QrCodeScannedContent } from
 import { CallStateType, initialStateResult, ResultState } from '@oca/shared';
 import { ServiceData, UserData } from './rogerthat';
 
-export interface RogerthatState<UserDataType = any, ServiceDataType = any> {
+export interface RogerthatState<UserDataType = UserData, ServiceDataType = ServiceData> {
   userData: UserDataType;
   serviceData: ServiceDataType;
   scannedQrCode: ResultState<QrCodeScannedContent>;

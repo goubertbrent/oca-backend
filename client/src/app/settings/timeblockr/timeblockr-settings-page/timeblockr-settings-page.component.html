@@ -1,0 +1,11 @@
+<form (ngSubmit)="saveSettings()" [formGroup]="formGroup" class="timeblockr-settings-form">
+  <mat-form-field>
+    <mat-label>{{ 'oca.Url' | translate }}</mat-label>
+    <input autocomplete="off" formControlName="url" matInput type="url" placeholder="https://api.timeblockr.com">
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>{{ 'oca.api_key' | translate }}</mat-label>
+    <input autocomplete="off" formControlName="api_key" matInput>
+  </mat-form-field>
+  <button mat-stroked-button [disabled]="loading$ | async">{{ 'oca.Save' | translate }}</button>
+</form>

@@ -437,6 +437,9 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                             {% if not is_layout_user and (SolutionModule.Q_MATIC in sln_settings.modules) %}
                                 <li section="section_q-matic"><a href="#/settings/q-matic">Q-Matic</a></li>
                             {% endif %}
+                            {% if not is_layout_user and (SolutionModule.TIMEBLOCKR in sln_settings.modules) %}
+                                <li section="section_timeblockr"><a href="#/settings/timeblockr">Timeblockr</a></li>
+                            {% endif %}
                             {% if not is_layout_user and (SolutionModule.JCC_APPOINTMENTS in sln_settings.modules) %}
                                 <li section="section_jcc-appointments"><a href="#/settings/jcc-appointments">{% translate language, 'jcc-appointments' %}</a>
                                 </li>

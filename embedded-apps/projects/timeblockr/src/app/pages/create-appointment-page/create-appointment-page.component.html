@@ -1,0 +1,23 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ 'app.timeblockr.create_appointment' | translate }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <timeblockr-create-appointment
+    (dateChanged)="onDateChanged($event)"
+    (locationChanged)="onLocationChanged($event)"
+    (productChanged)="onProductChanged($event)"
+    (timeChanged)="onTimeChanged($event)"
+    (createAppointment)="doCreateAppointment($event)"
+    [dateSlots]="dateslots$ |async"
+    [dynamicFields]="dynamicFields$ | async"
+    [isLoading]="loading$ | async"
+    [locations]="locations$ | async"
+    [products]="products$ | async"
+    [timeSlots]="timeslots$ | async"></timeblockr-create-appointment>
+</ion-content>

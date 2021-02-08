@@ -31,7 +31,7 @@ from solutions.common.bizz.messaging import POKE_TAG_EVENTS, POKE_TAG_APPOINTMEN
     POKE_TAG_GROUP_PURCHASE, POKE_TAG_MENU, POKE_TAG_REPAIR, POKE_TAG_SANDWICH_BAR, POKE_TAG_WHEN_WHERE, \
     POKE_TAG_RESERVE_PART1, POKE_TAG_MY_RESERVATIONS, POKE_TAG_ORDER, POKE_TAG_PHARMACY_ORDER, \
     POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_Q_MATIC, \
-    POKE_TAG_JCC_APPOINTMENTS, POKE_TAG_CIRKLO_VOUCHERS, POKE_TAG_HOPLR
+    POKE_TAG_JCC_APPOINTMENTS, POKE_TAG_CIRKLO_VOUCHERS, POKE_TAG_HOPLR, POKE_TAG_TIMEBLOCKR
 from solutions.common.bizz.provisioning import get_and_complete_solution_settings, \
     get_and_store_main_branding, populate_identity, provision_all_modules, get_default_language
 from solutions.common.dal import get_solution_settings
@@ -184,6 +184,13 @@ DEFAULT_COORDS = {
         }
     },
     SolutionModule.POINTS_OF_INTEREST: None,
+    SolutionModule.TIMEBLOCKR: {
+        POKE_TAG_TIMEBLOCKR: {
+            'preferred_page': 0,
+            'coords': [-1, -1, -1],
+            'priority': 5,
+        }
+    },
 }
 
 

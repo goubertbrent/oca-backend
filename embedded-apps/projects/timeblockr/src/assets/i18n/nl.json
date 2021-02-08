@@ -1,0 +1,29 @@
+{
+  "app": {
+    "timeblockr": {
+      "back": "Terug",
+      "book_appointment": "Afspraak boeken",
+      "cancel": "Annuleren",
+      "close": "Sluiten",
+      "create_appointment": "Afspraak maken",
+      "data": "Gegevens",
+      "date": "Datum",
+      "error": "Fout",
+      "invalid_email_address": "Ongeldig email-adres",
+      "invalid_value": "Ongeldige waarde",
+      "location": "Locatie",
+      "location_date_and_time": "Locatie & tijdstip",
+      "no_services_found": "Geen diensten gevonden",
+      "ok": "Ok",
+      "retry": "Opnieuw proberen",
+      "search": "Zoeken",
+      "service": "Dienst",
+      "services": "Diensten",
+      "this_field_is_required": "Dit veld is verplicht",
+      "time": "Tijd",
+      "unknown_error": "Er is een fout opgetreden, probeer het later opnieuw.",
+      "validate_and_confirm": "Controleren en bevestigen",
+      "value_too_long": "Deze waarde is te lang, gelieve ze te verkorten."
+    }
+  }
+}

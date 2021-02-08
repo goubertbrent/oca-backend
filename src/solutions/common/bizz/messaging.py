@@ -90,6 +90,7 @@ from solutions.common.integrations.hoplr import hoplr
 from solutions.common.integrations.jcc import jcc_appointments
 from solutions.common.integrations.jcc.models import JccApiMethod
 from solutions.common.integrations.qmatic import qmatic
+from solutions.common.integrations.timeblockr import timeblockr
 from solutions.common.jobs.solicitations import chat_send_job_solicitation_message, chat_disable_solicitation
 from solutions.common.migrations.trash_calendar.bizz import POKE_TAG_TRASH_CALENDAR_TRANSFER_ADDRESS, \
     trash_transfer_address_pressed
@@ -121,6 +122,7 @@ POKE_TAG_Q_MATIC = u'__sln__.q_matic'
 POKE_TAG_JCC_APPOINTMENTS = u'__sln__.jcc_appointments'
 POKE_TAG_CIRKLO_VOUCHERS = u'__sln__.cirklo'
 POKE_TAG_HOPLR = u'__sln__.hoplr'
+POKE_TAG_TIMEBLOCKR = u'__sln__.timeblockr'
 
 POKE_TAG_INBOX_FORWARDING_REPLY = u"inbox_forwarding_reply"
 POKE_TAG_INBOX_FORWARDING_REPLY_TEXT_BOX = u"inbox_forwarding_reply_text_box"
@@ -772,6 +774,9 @@ for method in cirklo.CirkloApiMethod.all():
 
 for method in hoplr.HoplrApiMethod.all():
     API_METHOD_MAPPING[method] = hoplr.handle_method
+
+for method in timeblockr.TimeblockrApiMethod.all():
+    API_METHOD_MAPPING[method] = timeblockr.handle_method
 
 FLOW_STATISTICS_MAPPING = {
     POKE_TAG_ORDER: SolutionModule.ORDER,

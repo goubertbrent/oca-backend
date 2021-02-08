@@ -90,6 +90,7 @@ class OCAEmbeddedApps(Enum):
     QMATIC = 'qmatic'
     HOPLR = 'hoplr'
     CIRKLO = 'cirklo'
+    TIMEBLOCKR = 'timeblockr'
 
 
 try:
@@ -127,6 +128,7 @@ class SolutionModule(Enum):
     CIRKLO_VOUCHERS = 'cirklo_vouchers'
     HOPLR = 'hoplr'
     POINTS_OF_INTEREST = 'points_of_interest'
+    TIMEBLOCKR = 'timeblockr'
 
     HIDDEN_CITY_WIDE_LOTTERY = u'hidden_city_wide_lottery'
 

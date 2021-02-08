@@ -26,6 +26,7 @@ import os
 import time
 from types import NoneType
 import urllib
+from typing import List
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from google.appengine.ext import db, deferred, ndb
@@ -69,7 +70,7 @@ from solutions.common.bizz.messaging import POKE_TAG_ASK_QUESTION, POKE_TAG_APPO
     POKE_TAG_RESERVE_PART1, POKE_TAG_MY_RESERVATIONS, POKE_TAG_ORDER, \
     POKE_TAG_LOYALTY_ADMIN, POKE_TAG_PHARMACY_ORDER, POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, \
     POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT, POKE_TAG_Q_MATIC, POKE_TAG_JCC_APPOINTMENTS, \
-    POKE_TAG_CIRKLO_VOUCHERS, POKE_TAG_HOPLR
+    POKE_TAG_CIRKLO_VOUCHERS, POKE_TAG_HOPLR, POKE_TAG_TIMEBLOCKR
 from solutions.common.bizz.opening_hours import opening_hours_to_text
 from solutions.common.bizz.order import ORDER_FLOW_NAME
 from solutions.common.bizz.payment import get_providers_settings
@@ -90,6 +91,7 @@ from solutions.common.integrations.cirklo.cirklo import get_city_id_by_service_e
 from solutions.common.integrations.cirklo.models import CirkloCity
 from solutions.common.integrations.jcc.jcc_appointments import get_jcc_settings
 from solutions.common.integrations.qmatic.qmatic import get_qmatic_settings
+from solutions.common.integrations.timeblockr.models import TimeblockrSettings
 from solutions.common.models import SolutionMainBranding, SolutionSettings, SolutionBrandingSettings, \
     SolutionQR, RestaurantMenu, SolutionModuleAppText
 from solutions.common.models.agenda import SolutionCalendar
@@ -144,6 +146,7 @@ POKE_TAGS = {
     SolutionModule.CIRKLO_VOUCHERS: POKE_TAG_CIRKLO_VOUCHERS,
     SolutionModule.HOPLR: POKE_TAG_HOPLR,
     SolutionModule.POINTS_OF_INTEREST: None,
+    SolutionModule.TIMEBLOCKR: POKE_TAG_TIMEBLOCKR,
 }
 
 STATIC_CONTENT_TAG_PREFIX = 'Static content: '
@@ -1831,6 +1834,25 @@ def put_hoplr_module(sln_settings, current_coords, current_label, main_branding,
 
 
 @returns([SolutionServiceMenuItem])
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], current_label=unicode, main_branding=SolutionMainBranding,
+           default_lang=unicode, tag=unicode)
+def put_timeblockr_module(sln_settings, current_coords, current_label, main_branding, default_lang, tag):
+    # type: (SolutionSettings, List[int], unicode, SolutionMainBranding, unicode, unicode) -> List[SolutionServiceMenuItem]
+    settings = TimeblockrSettings.create_key(sln_settings.service_user).get()  # type: TimeblockrSettings
+    if not settings or not settings.enabled:
+        if current_coords:
+            system.delete_menu_item(current_coords)
+        return []
+    item = SolutionServiceMenuItem(u'fa-calendar',
+                                   None,
+                                   common_translate(sln_settings.main_language, 'appointments'),
+                                   tag,
+                                   action=SolutionModule.action_order(SolutionModule.TIMEBLOCKR),
+                                   embedded_app=OCAEmbeddedApps.TIMEBLOCKR)
+    return [item]
+
+
+@returns([SolutionServiceMenuItem])
 def _dummy_put(*args, **kwargs):
     return []  # we don't need to do anything
 
@@ -1885,6 +1907,7 @@ MODULES_PUT_FUNCS = {
     SolutionModule.CIRKLO_VOUCHERS: put_cirklo_module,
     SolutionModule.HOPLR: put_hoplr_module,
     SolutionModule.POINTS_OF_INTEREST: _dummy_put,
+    SolutionModule.TIMEBLOCKR: put_timeblockr_module,
 }
 
 
@@ -1918,4 +1941,5 @@ MODULES_DELETE_FUNCS = {
     SolutionModule.CIRKLO_VOUCHERS: _default_delete,
     SolutionModule.HOPLR: _default_delete,
     SolutionModule.POINTS_OF_INTEREST: _default_delete,
+    SolutionModule.TIMEBLOCKR: _default_delete,
 }

@@ -6,7 +6,10 @@ current_dir="$(
 
 if [ -z "${project}" ]; then
   echo "Select the project that you want to build"
-  select project in "oca" "hoplr" "cirklo" "trash-calendar" "participation" "qmatic"; do
+  # Read projects from angular.json and filter out any non-application projects
+  angularjson=$(realpath $current_dir/../angular.json)
+  projects=$(python3 -c "import sys,json; print(' '.join((key for key, project in json.load(sys.stdin)['projects'].items() if project['projectType'] == 'application')))" < $angularjson)
+  select project in $projects; do
     break
   done
 fi

@@ -38,6 +38,7 @@ import { ServiceSyncedValueEditorComponent } from './service-info/service-synced
 import { SyncedValuesPreviewComponent } from './service-info/synced-values-preview/synced-values-preview.component';
 import { SettingsEffects } from './settings.effects';
 import { settingsReducer } from './settings.reducer';
+import { TimeblockrSettingsPageComponent } from './timeblockr/timeblockr-settings-page/timeblockr-settings-page.component';
 
 
 const routes: Routes = [
@@ -45,6 +46,7 @@ const routes: Routes = [
   { path: 'opening-hours', component: OpeningHoursSettingsPageComponent },
   { path: 'service-info', component: ServiceInfoPageComponent },
   { path: 'privacy', component: PrivacySettingsPageComponent },
+  { path: 'timeblockr', component: TimeblockrSettingsPageComponent },
 ];
 
 @NgModule({
@@ -55,6 +57,7 @@ const routes: Routes = [
     ServiceAddressesEditorComponent,
     SyncedValuesPreviewComponent,
     PrivacySettingsPageComponent,
+    TimeblockrSettingsPageComponent,
   ],
   imports: [
     CommonModule,

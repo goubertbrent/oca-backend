@@ -9,6 +9,7 @@
     "start-hoplr": "ng serve --project=hoplr",
     "start-cirklo": "ng serve --project=cirklo",
     "start-trash": "ng serve --project=trash-calendar",
+    "start-timeblockr": "ng serve --project=timeblockr",
     "start-participation": "ng serve --project=participation",
     "start-qmatic": "ng serve --project=qmatic",
     "build": "tools/build.sh",
