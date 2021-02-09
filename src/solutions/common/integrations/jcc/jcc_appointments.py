@@ -115,22 +115,31 @@ def get_location(url, username, password, location_id):
 
 def get_appointments_for_user(settings, app_user):
     # type: (JCCSettings, users.User) -> dict
-    user_appointments = JCCUserAppointments.create_key(settings.service_user, app_user).get()
+    user_appointments = JCCUserAppointments.create_key(settings.service_user, app_user)\
+        .get()  # type: JCCUserAppointments
     client = get_jcc_client(settings.url, settings.username, settings.password)
     appointments = []
     all_product_ids = set()
     all_location_ids = set()
     if user_appointments:
         now = datetime.now()
+        should_save = False
         for appointment in sorted(user_appointments.appointments, key=lambda a: a.start_date):
-            if appointment.start_date > now:
+            if not appointment.deleted_date and appointment.start_date > now:
                 # getGovAppointmentExtendedDetails is not supported by all jcc environments apparently
                 appointment_details = client.service.getGovAppointmentDetails(appID=appointment.id)
+                # In case the appointment no longer exists, this returns None
+                if not appointment_details:
+                    appointment.deleted_date = datetime.now()
+                    should_save = True
+                    continue
                 serialized = serialize_object(appointment_details)
                 serialized['id'] = appointment.id
                 appointments.append(serialized)
                 all_product_ids.update(appointment_details.productID.split(','))
                 all_location_ids.add(appointment_details.locationID)
+        if should_save:
+            user_appointments.put()
     # TODO: In case this is too slow, store these in datastore models so we can get everything in 1 call
     product_details = {product_id: get_product_details(settings.url, settings.username, settings.password, product_id)
                        for product_id in all_product_ids}

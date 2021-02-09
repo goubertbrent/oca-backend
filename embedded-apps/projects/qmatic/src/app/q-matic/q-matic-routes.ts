@@ -18,12 +18,9 @@ class CanActivateRoute implements CanActivate {
 }
 
 export const Q_MATIC_ROUTES: Routes = [
-  {
-    canActivate: [CanActivateRoute],
-    path: '',
+  { path: '',
     redirectTo: 'appointments',
-    pathMatch: 'full',
-  },
+    pathMatch: 'full' },
   {
     path: 'appointments',
     children: [
