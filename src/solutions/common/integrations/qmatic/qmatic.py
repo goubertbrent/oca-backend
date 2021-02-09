@@ -101,7 +101,7 @@ def save_qmatic_settings(service_user, data):
     settings.auth_token = data.auth_token.strip()
     settings.required_fields = data.required_fields
     try:
-        if data.url and data.auth_token:
+        if settings.url and settings.auth_token:
             if get_services(settings).status_code == 200:
                 if not settings.enabled:
                     settings.enabled = True
@@ -350,14 +350,14 @@ def _create_ical(appointment, cancelled):
     organizer.params['cn'] = vText(organizer_name)
     event.add('organizer', organizer)
     cal.add_component(event)
-    return cal, start_date, organizer_email, location
+    # Replace stuff that causes icalendar file validators to be happy
+    ical_content = cal.to_ical().replace(';TZID=UTC;VALUE=DATE-TIME', '')
+    return ical_content, start_date, organizer_email, location
 
 
 def _send_appointment_email(service_user, app_user, appointment, cancelled=False):
     sln_settings = get_solution_settings(service_user)
-    cal, start_date, organizer_email, location = _create_ical(appointment, cancelled)
-    # Replace stuff that causes icalendar file validators to be happy
-    ical_content = cal.to_ical().replace(';TZID=UTC;VALUE=DATE-TIME', '')
+    ical_content, start_date, organizer_email, location = _create_ical(appointment, cancelled)
     logging.debug('Created ical:\n%s', ical_content)
     to_email = organizer_email or get_human_user_from_app_user(app_user).email()
     app_id = get_app_id_from_app_user(app_user)

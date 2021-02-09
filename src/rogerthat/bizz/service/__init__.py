@@ -1571,12 +1571,12 @@ def press_menu_item(user, service_identity_user, coords, context, menuGeneration
             if (smd.form_id and not mobile_supports_feature(users.get_current_mobile(), Features.FORMS)) or \
                     (smd.embeddedApp and not mobile_supports_feature(users.get_current_mobile(), Features.EMBEDDED_APPS_IN_SMI)):
                 # For clients that do not support this yet send a message telling them to update.
-                # user_profile = get_user_profile(user)
-                # update_app_msg = localize(user_profile.language, 'update_app_to_use_feat')
-                # branding = service_identity.descriptionBranding
-                # member = UserMemberTO(user)
-                # sendMessage(service_identity_user, [member], Message.FLAG_ALLOW_DISMISS, 0, None, update_app_msg, [],
-                #             None, branding, smd.tag, 0, context)
+                user_profile = get_user_profile(user)
+                update_app_msg = localize(user_profile.language, 'update_app_to_use_feat')
+                branding = service_identity.descriptionBranding
+                member = UserMemberTO(user)
+                sendMessage(service_identity_user, [member], Message.FLAG_ALLOW_DISMISS, 0, None, update_app_msg, [],
+                            None, branding, smd.tag, 0, context)
                 return
             else:
                 poke_service_with_tag(user, service_identity_user, smd.tag, context, message_flow_run_id, timestamp)
