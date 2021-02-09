@@ -54,3 +54,15 @@ $app-theme: mat-light-theme((
 @include mat-form-field-theme($app-theme);
 @include mat-datepicker-theme($app-theme);
 @include mat-stepper-theme($app-theme);
+
+// Reduce padding from 24 to 12 so the labels can be longer
+.mat-stepper-label-position-bottom .mat-horizontal-stepper-header, .mat-vertical-stepper-header {
+  padding: 12px;
+}
+
+.mat-stepper-label-position-bottom .mat-stepper-horizontal-line,
+.mat-stepper-label-position-bottom .mat-horizontal-stepper-header::after,
+.mat-stepper-label-position-bottom .mat-horizontal-stepper-header::before {
+  // Originally 36px
+  top: 24px;
+}

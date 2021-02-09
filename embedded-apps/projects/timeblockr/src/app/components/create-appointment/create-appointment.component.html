@@ -1,19 +1,21 @@
 <form (ngSubmit)="submit()" [formGroup]="formGroup">
   <ion-progress-bar *ngIf="isLoading" type="indeterminate"></ion-progress-bar>
-  <mat-vertical-stepper (selectionChange)="stepChanged($event)"
-                        (animationDone)="stepAnimationDone.next($event)"
-                        [linear]="true">
+  <mat-horizontal-stepper (selectionChange)="stepChanged($event)"
+                          (animationDone)="stepAnimationDone.next($event)"
+                          [linear]="true"
+                          labelPosition="bottom"
+                          #stepper>
     <ng-template matStepperIcon="edit">
-      <ion-icon color="light" name="pencil"></ion-icon>
+      <ion-icon color="light" name="pencil" class="stepper-icon"></ion-icon>
     </ng-template>
     <ng-template matStepperIcon="done">
-      <ion-icon color="light" name="checkmark"></ion-icon>
+      <ion-icon color="light" name="checkmark" class="stepper-icon"></ion-icon>
     </ng-template>
     <ng-template let-index="index" matStepperIcon="number">
       <ion-text color="light">{{ index + 1 }}</ion-text>
     </ng-template>
     <mat-step [label]="'app.timeblockr.services' | translate" [stepControl]="formGroup.controls.product">
-      <ion-item>
+      <ion-item class="ion-item-no-padding">
         <ion-label>{{ 'app.timeblockr.service' | translate }}</ion-label>
         <ionic-selectable
           #productSelect
@@ -31,10 +33,15 @@
       <div *ngIf="formGroup.controls.product.value?.Description as selectedProductDescription"
            [innerHTML]="selectedProductDescription" class="product-description">
       </div>
+      <div class="first-step-button">
+        <ion-button type="button" (click)="stepper.next()" [disabled]="formGroup.controls.product.invalid">
+          {{ 'app.timeblockr.next' | translate }}
+        </ion-button>
+      </div>
     </mat-step>
     <mat-step [label]="'app.timeblockr.location_date_and_time' | translate" [stepControl]="formGroup.controls.time">
       <ion-list>
-        <ion-item>
+        <ion-item class="ion-item-no-padding">
           <ion-label>{{ 'app.timeblockr.location' | translate }}</ion-label>
           <ion-select #locationSelect
                       [cancelText]="'app.timeblockr.cancel' | translate"
@@ -46,7 +53,7 @@
             </ion-select-option>
           </ion-select>
         </ion-item>
-        <ion-item>
+        <ion-item class="ion-item-no-padding">
           <ion-label>{{ 'app.timeblockr.date' | translate }}</ion-label>
           <mat-form-field>
             <input (click)="datePicker.open()"
@@ -60,7 +67,7 @@
             <mat-datepicker #datePicker></mat-datepicker>
           </mat-form-field>
         </ion-item>
-        <ion-item [class.hidden]="formGroup.controls.date.invalid">
+        <ion-item [class.hidden]="formGroup.controls.date.invalid" class="ion-item-no-padding">
           <ion-label>{{ 'app.timeblockr.time' | translate }}</ion-label>
           <ion-select #timePicker
                       [cancelText]="'app.timeblockr.cancel' | translate"
@@ -73,6 +80,13 @@
           </ion-select>
         </ion-item>
       </ion-list>
+      <div class="step-nav-buttons">
+        <ion-button type="button" (click)="stepper.previous()"
+                    color="light">{{ 'app.timeblockr.back' | translate }}</ion-button>
+        <ion-button type="button" (click)="stepper.next()" [disabled]="formGroup.controls.time.invalid">
+          {{ 'app.timeblockr.next' | translate }}
+        </ion-button>
+      </div>
     </mat-step>
     <mat-step [label]="'app.timeblockr.data' | translate" [stepControl]="formGroup.controls.dynamicFields">
       <ion-list>
@@ -100,12 +114,19 @@
           </ng-container>
         </ng-container>
       </ion-list>
+      <div class="step-nav-buttons">
+        <ion-button type="button" (click)="stepper.previous()"
+                    color="light">{{ 'app.timeblockr.back' | translate }}</ion-button>
+        <ion-button type="button" (click)="stepper.next()" [disabled]="formGroup.controls.dynamicFields.invalid">
+          {{ 'app.timeblockr.next' | translate }}
+        </ion-button>
+      </div>
     </mat-step>
-    <mat-step [label]="'app.timeblockr.validate_and_confirm' | translate">
+    <mat-step [label]="'app.timeblockr.confirm' | translate" class="last-step">
       <h3>{{ 'app.timeblockr.services' | translate }}</h3>
       <ng-container *ngIf="formGroup.controls.product.value as product">
         <p>{{ product.Name }}</p>
-        <ion-text *ngIf="product.Description" [innerHTML]="product.Description" class="product-description"></ion-text>
+        <div *ngIf="product.Description" [innerHTML]="product.Description" class="product-description"></div>
       </ng-container>
       <ng-container *ngIf="formGroup.controls.location.value as location">
         <h2>{{ 'app.timeblockr.location' | translate }}</h2>
@@ -117,14 +138,17 @@
       <p *ngIf="formGroup.controls.time.value as selectedTime">{{ selectedTime | date : 'medium' }}</p>
       <h3>{{ 'app.timeblockr.data' | translate }}</h3>
       <ion-list>
-        <ion-item *ngFor="let field of templateDynamicFields">
+        <ion-item *ngFor="let field of templateDynamicFields" class="ion-item-no-padding">
           <ion-label>{{ field.field.Name}}</ion-label>
           <ion-note color="contrast" slot="end">{{ getFieldValue(field) }}</ion-note>
         </ion-item>
       </ion-list>
-      <ion-button [disabled]="isLoading"
-                  expand="block"
-                  type="submit">{{ 'app.timeblockr.book_appointment' | translate }}</ion-button>
+      <div class="step-nav-buttons">
+        <ion-button type="button" (click)="stepper.previous()"
+                    color="light">{{ 'app.timeblockr.back' | translate }}</ion-button>
+        <ion-button [disabled]="isLoading"
+                    type="submit">{{ 'app.timeblockr.book_appointment' | translate }}</ion-button>
+      </div>
     </mat-step>
-  </mat-vertical-stepper>
+  </mat-horizontal-stepper>
 </form>

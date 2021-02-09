@@ -141,9 +141,9 @@ def handle_method(service_user, email, method, params, tag, service_identity, us
         app_user = user.toAppUser()
         if method == TimeblockrApiMethod.GET_APPOINTMENTS:
             result = get_appointments(settings, app_user)
-        if method == TimeblockrApiMethod.GET_PRODUCTS:
+        elif method == TimeblockrApiMethod.GET_PRODUCTS:
             result = get_products(settings, json_data.get('selectedProducts', []))
-        if method == TimeblockrApiMethod.GET_LOCATIONS:
+        elif method == TimeblockrApiMethod.GET_LOCATIONS:
             result = get_locations(settings)
         elif method == TimeblockrApiMethod.GET_TIMESLOTS:
             result = get_timeslots(settings, json_data['selectedProducts'], json_data['locationId'],
@@ -156,7 +156,7 @@ def handle_method(service_user, email, method, params, tag, service_identity, us
             raise NotImplementedError('Method %s not implemented' % method)
 
         if isinstance(result, Response):
-            response.result = result.content
+            response.result = convert_to_unicode(result.content)
             response.error = None
             return response
         response.result = convert_to_unicode(json.dumps(result.to_dict() if isinstance(result, TO) else result))

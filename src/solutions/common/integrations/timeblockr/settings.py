@@ -21,6 +21,8 @@ from typing import Optional, Tuple
 
 from mcfw.exceptions import HttpBadRequestException
 from rogerthat.rpc import users
+from solutions.common.bizz import broadcast_updates_pending
+from solutions.common.dal import get_solution_settings
 from solutions.common.integrations.timeblockr.models import TimeblockrSettings
 from solutions.common.integrations.timeblockr.timeblockr import get_locations
 
@@ -35,9 +37,14 @@ def save_timeblockr_settings(service_user, url, api_key):
     settings = TimeblockrSettings(key=TimeblockrSettings.create_key(service_user))
     settings.url = url
     settings.api_key = api_key
+    was_enabled = settings.enabled
     settings.enabled = is_valid_timeblockr_settings(settings)
     settings.put()
-
+    if was_enabled != settings.enabled:
+        sln_settings = get_solution_settings(service_user)
+        sln_settings.updates_pending = True
+        sln_settings.put()
+        broadcast_updates_pending(sln_settings)
     if not settings.enabled:
         raise HttpBadRequestException('Invalid settings or server temporarily unreachable')
     else:

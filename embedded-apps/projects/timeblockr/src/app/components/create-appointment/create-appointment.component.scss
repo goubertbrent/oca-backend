@@ -12,3 +12,24 @@
   margin: 16px 0;
   display: block;
 }
+
+.step-nav-buttons, .first-step-button {
+  display: flex;
+  margin: 16px 0;
+}
+
+.first-step-button {
+  justify-content: flex-end;
+}
+
+.step-nav-buttons {
+  justify-content: space-between;
+}
+
+.stepper-icon {
+  margin-top: 3px;
+}
+
+.ion-item-no-padding {
+  --padding-start: 0;
+}

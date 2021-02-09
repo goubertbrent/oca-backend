@@ -5,6 +5,7 @@
       "book_appointment": "Book appointment",
       "cancel": "Cancel",
       "close": "Close",
+      "confirm": "Confirm",
       "create_appointment": "Create appointment",
       "data": "Data",
       "date": "Date",
@@ -12,9 +13,11 @@
       "invalid_email_address": "Invalid email address",
       "invalid_value": "Invalid value",
       "location": "Location",
-      "location_date_and_time": "Location, date and time",
+      "location_date_and_time": "Date & time",
+      "next": "Next",
       "no_services_found": "No services found",
       "ok": "Ok",
+      "previous": "Previous",
       "retry": "Retry",
       "search": "Search",
       "service": "Service",
@@ -22,7 +25,6 @@
       "this_field_is_required": "This field is required",
       "time": "Time",
       "unknown_error": "An error occurred, please retry later",
-      "validate_and_confirm": "Validate and book",
       "value_too_long": "This value is too long, please shorten it"
     }
   }

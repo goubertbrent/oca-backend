@@ -5,6 +5,7 @@
       "book_appointment": "Afspraak boeken",
       "cancel": "Annuleren",
       "close": "Sluiten",
+      "confirm": "Bevestigen",
       "create_appointment": "Afspraak maken",
       "data": "Gegevens",
       "date": "Datum",
@@ -12,9 +13,11 @@
       "invalid_email_address": "Ongeldig email-adres",
       "invalid_value": "Ongeldige waarde",
       "location": "Locatie",
-      "location_date_and_time": "Locatie & tijdstip",
+      "location_date_and_time": "Tijdstip",
+      "next": "Volgende",
       "no_services_found": "Geen diensten gevonden",
       "ok": "Ok",
+      "previous": "Vorige",
       "retry": "Opnieuw proberen",
       "search": "Zoeken",
       "service": "Dienst",
@@ -22,7 +25,6 @@
       "this_field_is_required": "Dit veld is verplicht",
       "time": "Tijd",
       "unknown_error": "Er is een fout opgetreden, probeer het later opnieuw.",
-      "validate_and_confirm": "Controleren en bevestigen",
       "value_too_long": "Deze waarde is te lang, gelieve ze te verkorten."
     }
   }
