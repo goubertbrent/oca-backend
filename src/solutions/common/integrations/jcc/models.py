@@ -87,6 +87,7 @@ class JCCSettings(NdbModel):
 class JCCAppointment(NdbModel):
     id = ndb.StringProperty()
     start_date = ndb.DateTimeProperty()
+    deleted_date = ndb.DateTimeProperty()
 
 
 class JCCUserAppointments(NdbModel):
