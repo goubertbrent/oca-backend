@@ -14,7 +14,6 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
-import { CovalentTextEditorModule } from '@covalent/text-editor';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
 import { TranslateModule } from '@ngx-translate/core';
@@ -43,7 +42,6 @@ import { MaxValidator, MinValidator } from './validators/validators';
       apiKey: environment.googleMapsKey,
       libraries: ['places'],
     }),
-    CovalentTextEditorModule,
     TranslateModule,
     StoreModule.forFeature('shared', sharedReducer),
     EffectsModule.forFeature([SharedEffects]),
@@ -68,7 +66,6 @@ import { MaxValidator, MinValidator } from './validators/validators';
   exports: [
     GoogleChartsModule,
     AgmCoreModule,
-    CovalentTextEditorModule,
     TranslateModule,
     HttpClientModule,
     FormsModule,

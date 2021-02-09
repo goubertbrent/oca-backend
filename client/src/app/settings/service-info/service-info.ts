@@ -1,9 +1,4 @@
-import { BaseMedia } from '@oca/web-shared';
-
-export interface MapServiceMediaItem {
-  role_ids: string[];
-  item: BaseMedia;
-}
+import { MediaItem } from '../../shared/media-selector/media';
 
 export const enum ServiceInfoSyncProvider {
   PADDLE = 'paddle',
@@ -38,7 +33,7 @@ export interface SyncedField {
 }
 
 export interface ServiceInfo {
-  cover_media: MapServiceMediaItem[];
+  media: MediaItem[];
   websites: SyncedNameValue[];
   name: string;
   timezone: string;
@@ -52,11 +47,6 @@ export interface ServiceInfo {
   place_types: string[];
   synced_fields: SyncedField[];
   visible: boolean;
-}
-
-export interface Country {
-  name: string;
-  code: string;
 }
 
 export interface PrivacySettings {

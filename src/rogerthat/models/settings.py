@@ -16,14 +16,17 @@
 # @@license_version:1.7@@
 
 from babel import Locale
-from google.appengine.ext.ndb import TextProperty, GeoPtProperty, StringProperty, GeoPt, StructuredProperty, \
+from google.appengine.ext.ndb.model import TextProperty, GeoPtProperty, StringProperty, GeoPt, StructuredProperty, \
     LocalStructuredProperty, BooleanProperty, Key
+from google.appengine.ext.ndb.model import KeyProperty
 from typing import List
 
 from rogerthat.dal import parent_ndb_key
 from rogerthat.models import NdbModel
 from rogerthat.models.maps import MapServiceMediaItem
+from rogerthat.models.news import MediaType
 from rogerthat.rpc import users
+from solutions.common.models.forms import UploadedFile
 
 
 class SyncedName(NdbModel):
@@ -54,7 +57,7 @@ class SyncedNameValue(SyncedName):
         return model
 
 
-class ServiceAddress(SyncedName):
+class ServiceLocation(SyncedName):
     coordinates = GeoPtProperty()  # type: GeoPt
     google_maps_place_id = StringProperty()
     country = TextProperty()  # BE
@@ -62,12 +65,10 @@ class ServiceAddress(SyncedName):
     postal_code = TextProperty()  # 9810
     street = TextProperty()  # Steenweg Deinze
     street_number = TextProperty()  # 154
-    
-    value = TextProperty() # todo remove 
 
     @classmethod
     def from_to(cls, address):
-        model = super(ServiceAddress, cls).from_to(address)
+        model = super(ServiceLocation, cls).from_to(address)
         model.coordinates = GeoPt(address.coordinates.lat, address.coordinates.lon)
         model.google_maps_place_id = address.google_maps_place_id
         model.country = address.country
@@ -92,11 +93,30 @@ class SyncedField(NdbModel):
                    provider=v.provider)
 
 
+class MediaItem(NdbModel):
+    # content/thumbnail is automatically set based on file_reference, if file_reference is set.
+    type = TextProperty(choices=MediaType.all(), required=True)
+    content = TextProperty(required=True)
+    thumbnail_url = TextProperty()
+    file_reference = KeyProperty(UploadedFile, indexed=False)  # type: Key
+
+    @classmethod
+    def from_file_model(cls, file_model):
+        return cls(type=file_model.type,
+                   content=file_model.url,
+                   thumbnail_url=file_model.thumbnail_url,
+                   file_reference=file_model.key)
+
+
 # Stores service data "temporarily", when publishing other models are populated
 class ServiceInfo(NdbModel):
-    addresses = StructuredProperty(ServiceAddress, repeated=True)  # type: List[ServiceAddress]
+    # TODO refactor to 'location' as a service can only be on one location at any time
+    # location = StructuredProperty(ServiceLocation)  # type: ServiceLocation
+    addresses = StructuredProperty(ServiceLocation, repeated=True)  # type: List[ServiceLocation]
+    # Deprecated - remove after migration (+ migration to remove property)
     cover_media = LocalStructuredProperty(MapServiceMediaItem, repeated=True,
                                           indexed=False)  # type: List[MapServiceMediaItem]
+    media = StructuredProperty(MediaItem, repeated=True, indexed=False)  # type: List[MediaItem]
     currency = TextProperty()
     description = TextProperty()
     email_addresses = StructuredProperty(SyncedNameValue, repeated=True, indexed=False)  # type: List[SyncedNameValue]

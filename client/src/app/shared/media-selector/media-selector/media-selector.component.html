@@ -10,7 +10,7 @@
 </mat-form-field>
 <div [ngSwitch]="selectedMediaType">
   <ng-container *ngSwitchCase="MediaType.IMAGE">
-    <button (click)="showImageDialog()" mat-stroked-button type="button">
+    <button (click)="showFileSelectDialog(MediaType.IMAGE)" mat-stroked-button type="button">
       {{ 'oca.choose_file' | translate }}
     </button>
     <button (click)="useCoverPhoto()"
@@ -29,7 +29,7 @@
       </div>
     </div>
   </ng-container>
-  <ng-container *ngSwitchCase="MediaType.YOUTUBE_VIDEO">
+  <ng-container *ngSwitchCase="MediaType.VIDEO_YOUTUBE">
     <mat-form-field class="full-width-field">
       <mat-label>{{ 'oca.youtube_url' | translate }}</mat-label>
       <input #ytUrlElem

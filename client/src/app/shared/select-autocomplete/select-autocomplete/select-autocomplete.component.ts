@@ -1,10 +1,21 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Input, OnDestroy, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  forwardRef,
+  Input,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+} from '@angular/core';
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatOption } from '@angular/material/core';
 import { MatSelectChange } from '@angular/material/select';
 import { IFormControl } from '@rxweb/types';
-import { Subject } from 'rxjs';
+import { ReplaySubject, Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
+import { removeDiacritics } from '../../util';
 
 type SelectValueType = string | number;
 
@@ -41,6 +52,7 @@ export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlVa
   constructor(private changeDetectorRef: ChangeDetectorRef) {
   }
 
+  @ViewChild('filterInput') filterInput: ElementRef<HTMLInputElement>;
   @Input() label: string;
   @Input() searchPlaceholder: string;
   @Input() placeholder: string;
@@ -56,15 +68,18 @@ export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlVa
 
   formControl: IFormControl<null | SelectValueType | SelectValueType[]> = new FormControl();
 
-  filteredOptions$ = new Subject<SelectAutocompleteOptionInternal[]>();
+  filteredOptions$ = new ReplaySubject<SelectAutocompleteOptionInternal[]>();
   filterFormControl: IFormControl<string> = new FormControl();
   private destroyed$ = new Subject();
+  private _shouldInitializeOptions = true;
 
   private _options: SelectAutocompleteOptionInternal[] = [];
 
   @Input() set options(value: SelectAutocompleteOption[] | null) {
-    this._options = (value ?? []).map((o => ({ ...o, sortLabel: o.label.toLowerCase() })));
-    this.setOptions();
+    this._options = (value ?? []).map((o => ({ ...o, sortLabel: removeDiacritics(o.label).toLowerCase() })));
+    if (this._shouldInitializeOptions) {
+      this.setOptions();
+    }
   }
 
   registerOnTouched(fn: any): void {
@@ -111,6 +126,9 @@ export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlVa
 
   writeValue(value: SelectValueType): void {
     this.formControl.setValue(value);
+    if (this._shouldInitializeOptions) {
+      this.setOptions();
+    }
     this.formControl.markAsDirty();
     this.formControl.markAsTouched();
     this.changeDetectorRef.markForCheck();
@@ -130,7 +148,7 @@ export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlVa
   }
 
   private setOptions() {
-    const lowerValue = this.filterFormControl.value?.toLowerCase().trim() ?? '';
+    const lowerValue = removeDiacritics(this.filterFormControl.value?.toLowerCase().trim() ?? '');
     const filtered: SelectAutocompleteOptionInternal[] = [];
     const value = this.formControl.value;
     let selectedValues: SelectValueType[] = [];
@@ -140,6 +158,9 @@ export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlVa
       if (value != null) {
         selectedValues = [value];
       }
+    }
+    if (this._options.length > 0 && selectedValues.length > 0) {
+      this._shouldInitializeOptions = false;
     }
     const selected = [];
     if (!lowerValue && selectedValues.length === 0) {
@@ -172,5 +193,10 @@ export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlVa
     this.filteredOptions$.next(ls
       .slice(0, this.maxDisplayedOptions)
       .concat(selected.sort(sortOptions)));
+  }
+
+  onSelectOpened() {
+    this.filterFormControl.reset();
+    this.filterInput.nativeElement.focus({});
   }
 }

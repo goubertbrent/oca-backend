@@ -10,12 +10,18 @@ import {
   AddBudgetAction,
   AddBudgetCompleteAction,
   AddBudgetFailedAction,
+  GetAvailablePlaceTypesAction,
+  GetAvailablePlaceTypesCompleteAction,
+  GetAvailablePlaceTypesFailedAction,
   GetBrandingSettingFailedAction,
   GetBrandingSettingsAction,
   GetBrandingSettingsCompleteAction,
   GetBudgetAction,
   GetBudgetCompleteAction,
   GetBudgetFailedAction,
+  GetCountriesAction,
+  GetCountriesCompleteAction,
+  GetCountriesFailedAction,
   GetGlobalConfigAction,
   GetGlobalConfigCompleteAction,
   GetSolutionSettingsAction,
@@ -75,7 +81,7 @@ export class SharedEffects {
     ),
   ));
 
-   updateAvatar$ = createEffect(() => this.actions$.pipe(
+  updateAvatar$ = createEffect(() => this.actions$.pipe(
     ofType<UpdateAvatarAction>(SharedActionTypes.UPDATE_AVATAR),
     switchMap(action => this.sharedService.updateAvatar(action.payload.avatar_url).pipe(
       map(data => new UpdateAvatarCompleteAction(data)),
@@ -83,12 +89,26 @@ export class SharedEffects {
     ),
   ));
 
-   updateLogo$ = createEffect(() => this.actions$.pipe(
+  updateLogo$ = createEffect(() => this.actions$.pipe(
     ofType<UpdateLogoAction>(SharedActionTypes.UPDATE_LOGO),
     switchMap(action => this.sharedService.updateLogo(action.payload.logo_url).pipe(
       map(data => new UpdateLogoCompleteAction(data)),
       catchError(err => this.errorService.handleError(action, UpdateLogoFailedAction, err))),
     ),
+  ));
+
+  getCountries$ = createEffect(() => this.actions$.pipe(
+    ofType<GetCountriesAction>(SharedActionTypes.GET_COUNTRIES),
+    switchMap(action => this.sharedService.getCountries().pipe(
+      map(result => new GetCountriesCompleteAction(result)),
+      catchError(err => this.errorService.handleError(action, GetCountriesFailedAction, err)))),
+  ));
+
+  getAvailablePlaceTypes$ = createEffect(() => this.actions$.pipe(
+    ofType<GetAvailablePlaceTypesAction>(SharedActionTypes.GET_AVAILABLE_PLACE_TYPES),
+    switchMap(action => this.sharedService.getAvailablePlaceTypes().pipe(
+      map(result => new GetAvailablePlaceTypesCompleteAction(result.results)),
+      catchError(err => this.errorService.handleError(action, GetAvailablePlaceTypesFailedAction, err)))),
   ));
 
   constructor(private actions$: Actions<SharedActions>,

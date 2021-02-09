@@ -1488,7 +1488,7 @@ def _validate_opening_time(prop, value):
 def _validate_day(prop, value):
     if 0 <= value <= 6:
         return value
-    raise ValueError('%s must be a number between 0 and 6' % prop)
+    raise ValueError('%s must be a number between 0 and 6, got %s' % (prop, value))
 
 
 class OpeningHour(NdbModel):

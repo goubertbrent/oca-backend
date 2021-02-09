@@ -68,6 +68,7 @@ export class AppActionEditorComponent implements OnDestroy, ControlValueAccessor
     { tag: 'gipod', label: 'Gipod' },
     { tag: 'services', label: 'Services' },
     { tag: 'reports', label: 'Reports' },
+    { tag: 'poi', label: 'Points of interest' },
   ];
   OpenAction = OpenActionType;
   openActionTypes: OpenActionItem[] = [

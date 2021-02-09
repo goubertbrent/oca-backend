@@ -26,6 +26,7 @@ from google.appengine.ext import ndb, db, deferred
 
 from mcfw.rpc import returns, arguments
 from mcfw.utils import Enum
+from rogerthat.bizz.communities.models import CommunityMapSettings
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.maps.shared import get_map_response
 from rogerthat.bizz.messaging import _ellipsize_for_json, _len_for_json
@@ -34,7 +35,7 @@ from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
 from rogerthat.dal.mobile import get_mobile_key_by_account
 from rogerthat.dal.profile import get_user_profile
 from rogerthat.models import UserProfileInfo
-from rogerthat.models.maps import MapSettings, MapConfig, MapNotifications
+from rogerthat.models.maps import MapSettings, MapNotifications
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import DO_NOT_SAVE_RPCCALL_OBJECTS, \
     CAPI_KEYWORD_ARG_PRIORITY, PRIORITY_HIGH, \
@@ -149,11 +150,14 @@ def _create_apple_push_message(title, short_message, tag, map_filter):
 @returns(GetMapResponseTO)
 @arguments(app_user=users.User)
 def get_map(app_user):
-    app_id = get_app_id_from_app_user(app_user)
-    models = ndb.get_multi([MapConfig.create_key(app_id, GIPOD_TAG), MapNotifications.create_key(GIPOD_TAG, app_user),
+    user_profile = get_user_profile(app_user)
+    community_id = user_profile.community_id
+    models = ndb.get_multi([CommunityMapSettings.create_key(community_id), MapNotifications.create_key(GIPOD_TAG, app_user),
                             MapSettings.create_key(GIPOD_TAG), UserProfileInfo.create_key(app_user)])
-    map_config, map_notifications, map_settings, user_profile_info = models  # type: MapConfig, MapNotifications, MapSettings, UserProfileInfo
-    language = get_user_profile(app_user).language
+    map_config, map_notifications, map_settings, user_profile_info = models
+    # type: CommunityMapSettings, MapNotifications, MapSettings, UserProfileInfo
+    map_config = map_config or CommunityMapSettings.get_default(community_id)
+    language = user_profile.language
     filters = [
         MapFilterTO(key=GipodFilter.NEXT_7D, label=localize(language, 'next_x_days', days=7)),
         MapFilterTO(key=GipodFilter.NEXT_30D, label=localize(language, 'next_x_days', days=30)),
@@ -167,7 +171,7 @@ def get_map(app_user):
         if base_url:
             base_urls.icon_pin = u'%s/static/plugins/gipod/icons/pin' % base_url
             base_urls.icon_transparent = u'%s/static/plugins/gipod/icons/transparent' % base_url
-    response = get_map_response(map_config, user_profile_info, filters)
+    response = get_map_response(map_config, GIPOD_TAG, user_profile_info, filters)
     response.functionalities = [MapFunctionality.ADDRESSES,
                                 MapFunctionality.AUTO_LOAD_DETAILS]
     response.base_urls = base_urls

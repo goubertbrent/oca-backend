@@ -4,27 +4,34 @@ import { MatChipInputEvent } from '@angular/material/chips';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
+import { maybeDispatchAction, MediaType } from '@oca/web-shared';
 import { IFormBuilder, IFormGroup } from '@rxweb/types';
-import { combineLatest, Observable, Subject } from 'rxjs';
+import { combineLatest, Observable, ReplaySubject, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, map, take, takeUntil } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
-import { DEFAULT_AVATAR_URL, DEFAULT_LOGO_URL } from '../../../consts';
-import { AvailableOtherPlaceType, AvailablePlaceType, BrandingSettings } from '../../../shared/interfaces/oca';
-import { GetBrandingSettingsAction, UpdateAvatarAction, UpdateLogoAction } from '../../../shared/shared.actions';
-import { getBrandingSettings, isBrandingSettingsLoading } from '../../../shared/shared.state';
-import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
-import { filterNull, markAllControlsAsDirty } from '../../../shared/util';
-import { GetAvailablePlaceTypesAction, GetCountriesAction, GetServiceInfoAction, UpdateServiceInfoAction } from '../../settings.actions';
+import { AVATAR_PLACEHOLDER, DEFAULT_LOGO_URL } from '../../../consts';
+import { AvailableOtherPlaceType, AvailablePlaceType, BrandingSettings, Country } from '../../../shared/interfaces/oca';
+import {
+  GetAvailablePlaceTypesAction,
+  GetBrandingSettingsAction,
+  GetCountriesAction,
+  UpdateAvatarAction,
+  UpdateLogoAction,
+} from '../../../shared/shared.actions';
 import {
   getAvailablePlaceTypes,
+  getAvailablePlaceTypesState,
+  getBrandingSettings,
   getCountries,
-  getServiceInfo,
+  isBrandingSettingsLoading,
   isPlaceTypesLoading,
-  isServiceInfoLoading,
-  SettingsState,
-} from '../../settings.state';
+} from '../../../shared/shared.state';
+import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
+import { filterNull, markAllControlsAsDirty } from '../../../shared/util';
+import { GetServiceInfoAction, UpdateServiceInfoAction } from '../../settings.actions';
+import { getServiceInfo, isServiceInfoLoading, SettingsState } from '../../settings.state';
 import { CURRENCIES, TIMEZONES } from '../constants';
-import { Country, ServiceInfo, ServiceInfoSyncProvider, SyncedFields } from '../service-info';
+import { ServiceInfo, ServiceInfoSyncProvider, SyncedFields } from '../service-info';
 
 const DEFAULT_SYNCED_VALUES: { [T in SyncedFields]: null } = {
   name: null,
@@ -46,15 +53,19 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
   brandingSettings$: Observable<BrandingSettings>;
   timezones = TIMEZONES;
   currencies = CURRENCIES;
-  DEFAULT_AVATAR_URL = DEFAULT_AVATAR_URL;
+  DEFAULT_AVATAR_URL = AVATAR_PLACEHOLDER;
   DEFAULT_LOGO_URL = DEFAULT_LOGO_URL;
   placeTypes$: Observable<AvailablePlaceType[]>;
-  otherPlaceTypes$: Subject<AvailableOtherPlaceType[]> = new Subject();
+  otherPlaceTypes$: ReplaySubject<AvailableOtherPlaceType[]> = new ReplaySubject();
   countries$: Observable<Country[]>;
   syncedValues: { [T in SyncedFields]: ServiceInfoSyncProvider | null } = DEFAULT_SYNCED_VALUES;
   submitted = false;
   formGroup: IFormGroup<ServiceInfo>;
   saveErrorMessage$ = new Subject<string>();
+  uploadFileDialogConfig: Partial<UploadFileDialogConfig> = {
+    uploadPrefix: '',
+    gallery: { prefix: 'logo' },
+  };
 
   private destroyed$ = new Subject();
   private formBuilder: IFormBuilder;
@@ -65,7 +76,7 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
               fb: FormBuilder) {
     this.formBuilder = fb;
     this.formGroup = this.formBuilder.group<ServiceInfo>({
-      cover_media: this.formBuilder.control([]),
+      media: this.formBuilder.control([]),
       websites: this.formBuilder.control([]),
       name: this.formBuilder.control('', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]),
       timezone: this.formBuilder.control('', Validators.required),
@@ -85,7 +96,7 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.store.dispatch(new GetServiceInfoAction());
     this.store.dispatch(new GetBrandingSettingsAction());
-    this.store.dispatch(new GetAvailablePlaceTypesAction());
+    maybeDispatchAction(this.store, getAvailablePlaceTypesState, new GetAvailablePlaceTypesAction());
     this.placeTypes$ = this.store.pipe(select(getAvailablePlaceTypes));
     this.placeTypes$.pipe(takeUntil(this.destroyed$)).subscribe(() => this.setOtherPlaceTypes());
     this.store.pipe(select(getServiceInfo), takeUntil(this.destroyed$)).subscribe(serviceInfo => {
@@ -172,7 +183,7 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
     });
     dialog.afterClosed().subscribe((result: UploadedFileResult | null) => {
       if (result) {
-        this.store.dispatch(new UpdateAvatarAction({ avatar_url: result.getUrl() }));
+        this.store.dispatch(new UpdateAvatarAction({ avatar_url: result.url }));
       }
     });
   }
@@ -187,7 +198,7 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
     });
     dialog.afterClosed().subscribe((result: UploadedFileResult | null) => {
       if (result) {
-        this.store.dispatch(new UpdateLogoAction({ logo_url: result.getUrl() }));
+        this.store.dispatch(new UpdateLogoAction({ logo_url: result.url }));
       }
     });
   }
@@ -196,7 +207,7 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
               partialConfig: Pick<UploadFileDialogConfig, 'title' | 'uploadPrefix' | 'listPrefix' | 'gallery'| 'croppedImageType'>) {
     const config: MatDialogConfig<UploadFileDialogConfig> = {
       data: {
-        fileType: 'image',
+        mediaType: MediaType.IMAGE,
         cropOptions: {
           dragMode: 'crop',
           rotatable: true,

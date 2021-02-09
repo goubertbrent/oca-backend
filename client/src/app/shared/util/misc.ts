@@ -1,5 +1,9 @@
 import { FormArray, FormGroup } from '@angular/forms';
 
+export type DeepPartial<T> = {
+    [P in keyof T]?: DeepPartial<T[P]>;
+};
+
 export function deepCopy<T extends object>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
 }
@@ -25,4 +29,13 @@ export function parseNumber(number: string | null | undefined): number | null {
   }
   const result = parseInt(number, 10);
   return isNaN(result) ? null : result;
+}
+
+/**
+ * @example
+ * // Returns 'Creme Brulee'
+ * removeDiacritics('Crème Brulée')
+ */
+export function removeDiacritics(string: string): string {
+  return string.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }

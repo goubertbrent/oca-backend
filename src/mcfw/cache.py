@@ -255,8 +255,9 @@ def cached(version, lifetime=600, request=True, memcache=True, key=None, datasto
         @wraps(f)
         def wrapped(*args, **kwargs):
             ck = cache_key(*args, **kwargs)
+            log_ck = ck if len(ck) < 100 else '%s...(length=%d)' % (ck[:100], len(ck))
             if not read_cache_in_transaction and db.is_in_transaction():
-                _log('Ignoring cache: %s, key %s', f.__name__, ck)
+                _log('Ignoring cache: %s, key %s', f.__name__, log_ck)
                 return f(*args, **kwargs)
             ck = cache_key(*args, **kwargs)
             with cache_key_locks[ck]:
@@ -320,7 +321,7 @@ def cached(version, lifetime=600, request=True, memcache=True, key=None, datasto
                                 serialize_result(buf, cache_value)
                                 serialized_cache_value = buf.getvalue()
                             if datastore:
-                                _log('Saving(ds): %s, key %s', f.__name__, ck)
+                                _log('Saving(ds): %s, key %s', f.__name__, log_ck)
 
                                 @db.non_transactional
                                 def update_dscache():
@@ -332,10 +333,10 @@ def cached(version, lifetime=600, request=True, memcache=True, key=None, datasto
 
                                 update_dscache()
                             if memcache:
-                                _log('Saving(memcache): %s, key %s', f.__name__, ck)
+                                _log('Saving(memcache): %s, key %s', f.__name__, log_ck)
                                 mod_memcache.set(ck, serialized_cache_value, time=lifetime)  # @UndefinedVariable
                         if request:
-                            _log('Saving(request): %s, key %s', f.__name__, ck)
+                            _log('Saving(request): %s, key %s', f.__name__, log_ck)
                             _tlocal.request_cache[ck] = cache_value
 
         return wrapped

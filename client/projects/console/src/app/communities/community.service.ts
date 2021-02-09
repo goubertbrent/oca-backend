@@ -1,8 +1,9 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { CommunityGeoFence } from '@oca/web-shared';
 import { Observable, of } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { Community, CreateCommunity, SimpleApp, UpdateNewsImagePayload } from './community/communities';
+import { Community, CommunityMapSettings, CreateCommunity, SimpleApp, UpdateNewsImagePayload } from './community/communities';
 import { HomeScreen } from './homescreen/models';
 import { NewsGroup, NewsSettings, NewsSettingsWithGroups } from './news/news';
 
@@ -73,6 +74,22 @@ export class CommunityService {
   }
 
   testHomeScreen(communityId: number, homeScreenId: string, testUser: string) {
-    return this.http.post(`/console-api/communities/${communityId}/home-screen/${homeScreenId}/test`, {test_user: testUser});
+    return this.http.post(`/console-api/communities/${communityId}/home-screen/${homeScreenId}/test`, { test_user: testUser });
+  }
+
+  getGeoFence(communityId: number) {
+    return this.http.get<CommunityGeoFence>(`/console-api/communities/${communityId}/geo-fence`);
+  }
+
+  updateGeoFence(communityId: number, data: CommunityGeoFence) {
+    return this.http.put<CommunityGeoFence>(`/console-api/communities/${communityId}/geo-fence`, data);
+  }
+
+  getMapSettings(communityId: number) {
+    return this.http.get<CommunityMapSettings>(`/console-api/communities/${communityId}/map-settings`);
+  }
+
+  updateMapSettings(communityId: number, data: CommunityMapSettings) {
+    return this.http.put<CommunityMapSettings>(`/console-api/communities/${communityId}/map-settings`, data);
   }
 }

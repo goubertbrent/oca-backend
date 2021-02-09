@@ -19,6 +19,7 @@ from __future__ import unicode_literals
 
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.maps import gipod, reports, services
+from rogerthat.bizz.maps.poi import map as poi_map
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import expose
 from rogerthat.to.maps import GetMapResponseTO, GetMapRequestTO, GetMapItemsResponseTO, GetMapItemsRequestTO, \
@@ -39,6 +40,8 @@ def getMap(request):
         return reports.get_map(app_user)
     if request.tag == services.SERVICES_TAG:
         return services.get_map(app_user)
+    if request.tag == poi_map.POI_TAG:
+        return poi_map.get_map(app_user)
     raise Exception('incorrect_tag')  # todo maps error message?
 
 
@@ -49,6 +52,8 @@ def getMapSearchSuggestions(request):
     app_user = users.get_current_user()
     if request.tag == services.SERVICES_TAG:
         return services.get_map_search_suggestions(app_user, request)
+    if request.tag == poi_map.POI_TAG:
+        return poi_map.get_map_search_suggestions(app_user, request)
     raise Exception('incorrect_tag')  # todo maps error message?
 
 
@@ -63,6 +68,8 @@ def getMapItems(request):
         return reports.get_map_items(app_user, request)
     if request.tag == services.SERVICES_TAG:
         return services.get_map_items(app_user, request)
+    if request.tag == poi_map.POI_TAG:
+        return poi_map.get_map_items(app_user, request)
     raise Exception('incorrect_tag')  # todo maps error message?
 
 
@@ -77,6 +84,8 @@ def getMapItemDetails(request):
         return reports.get_map_item_details(app_user, request)
     if request.tag == services.SERVICES_TAG:
         return services.get_map_item_details(app_user, request)
+    if request.tag == poi_map.POI_TAG:
+        return poi_map.get_map_item_details(app_user, request)
     raise Exception('incorrect_tag')  # todo maps error message?
 
 

@@ -3,7 +3,7 @@ import { FormBuilder, FormControl, Validators } from '@angular/forms';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { MatSlideToggle, MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { select, Store } from '@ngrx/store';
-import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '@oca/web-shared';
+import { MediaType, SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '@oca/web-shared';
 import { IFormArray, IFormBuilder, IFormGroup } from '@rxweb/types';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil, withLatestFrom } from 'rxjs/operators';
@@ -112,7 +112,7 @@ export class CirkloSettingsPageComponent implements OnInit, OnDestroy {
 
   changeLogo() {
     this.getImage().afterClosed().subscribe(result => {
-      const url = result && result.getUrl();
+      const url = result?.url;
       if (url) {
         this.formGroup.controls.logo_url.setValue(url);
         this.changeDetectorRef.markForCheck();
@@ -122,7 +122,7 @@ export class CirkloSettingsPageComponent implements OnInit, OnDestroy {
 
   changeSignupLogo() {
     this.getImage().afterClosed().subscribe(result => {
-      const url = result && result.getUrl();
+      const url = result?.url;
       if (url) {
         this.formGroup.controls.signup_logo_url.setValue(url);
         this.changeDetectorRef.markForCheck();
@@ -133,7 +133,7 @@ export class CirkloSettingsPageComponent implements OnInit, OnDestroy {
   private getImage() {
     const config: MatDialogConfig<UploadFileDialogConfig> = {
       data: {
-        fileType: 'image',
+        mediaType: MediaType.IMAGE,
         cropOptions: {
           dragMode: 'crop',
           rotatable: true,

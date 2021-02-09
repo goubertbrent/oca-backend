@@ -178,9 +178,9 @@ class GenericRESTRequestHandler(webapp2.RequestHandler):
                 self.response.set_status(result.status_code)
                 result = serialize_complex_value(result, ErrorResponse, False)
             if DEBUG:
-                self.response.out.write(json.dumps(result, indent=2, sort_keys=True))
+                json.dump(result, self.response.out, indent=2, sort_keys=True)
             else:
-                self.response.out.write(json.dumps(result))
+                json.dump(result, self.response.out)
         else:
             self.response.set_status(httplib.NO_CONTENT)
 

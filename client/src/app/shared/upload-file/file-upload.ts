@@ -1,11 +1,20 @@
-export interface GcsFile {
+import { MediaType } from '@oca/web-shared';
+
+export interface GalleryFile {
   content_type: string;
   size: number;
   url: string;
+  thumbnail_url: string | null;
+  type: MediaType;
 }
 
-export interface UploadedFile extends GcsFile {
-  id: number;
+export interface UploadedFile extends GalleryFile {
+  id: string;
+  title?: string | null;
+}
+
+export function isUploadedFile(item: UploadedFile | GalleryFile): item is UploadedFile {
+  return 'id' in item;
 }
 
 export interface UploadFormFileReference {
@@ -22,14 +31,23 @@ export interface UploadEventFileReference {
   id: number;
 }
 
-export type UploadFileReference = UploadFormFileReference | UploadEventFileReference | UploadFormFileBrandingSettings;
+export interface UploadPointOfInterestFileReference {
+  type: 'point_of_interest';
+  id: number;
+}
+
+export type UploadFileReference =
+  UploadFormFileReference
+  | UploadEventFileReference
+  | UploadFormFileBrandingSettings
+  | UploadPointOfInterestFileReference;
 
 export interface UploadFileDialogConfig {
   reference?: UploadFileReference;
   // Set to 'image' to only allow uploading images
-  fileType?: 'image';
   croppedImageType?: 'image/jpeg' | 'image/png';
   uploadPrefix: string;
+  mediaType?: MediaType;
   title: string;
   accept?: string;
   // https://github.com/fengyuanchen/cropperjs/blob/master/README.md#options

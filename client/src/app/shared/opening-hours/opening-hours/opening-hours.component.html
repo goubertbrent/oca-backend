@@ -1,0 +1,71 @@
+<mat-tab-group *ngIf="openingHours.type === 'textual' || openingHours.type === 'structured'">
+  <mat-tab [label]="'oca.opening-hours' | translate">
+    <ng-container *ngIf="openingHours.type === 'textual'">
+      <h4>Textuele openingsuren</h4>
+      <pre>{{ openingHours.text }}</pre>
+    </ng-container>
+    <div class="tab-margin">
+      <oca-opening-hours-periods (changed)="updatePeriods($event)"
+                                 [periodsAlwaysVisible]="true"
+                                 [periods]="openingHours.periods"></oca-opening-hours-periods>
+    </div>
+  </mat-tab>
+  <mat-tab [label]="'oca.exceptions_or_holidays' | translate">
+    <ng-template matTabContent>
+      <div class="tab-margin">
+        <p class="exceptions-info">{{ 'oca.exceptions_info' | translate }}</p>
+        <div *ngFor="let exception of openingHours.exceptional_opening_hours; let index = index; trackBy: trackByIndex">
+          <div class="exception-fields">
+            <mat-form-field>
+              <mat-label>{{ 'oca.start_date' | translate }}</mat-label>
+              <input (dateChange)="updateDate(exception, 'start_date', $event.value, index)"
+                     [ngModel]="exception.start_date"
+                     [matDatepicker]="startPicker"
+                     [ngModelOptions]="{standalone: true}"
+                     matInput required>
+              <mat-datepicker-toggle [for]="startPicker" matSuffix></mat-datepicker-toggle>
+              <mat-datepicker #startPicker></mat-datepicker>
+            </mat-form-field>
+            <mat-form-field class="end-date">
+              <mat-label>{{ 'oca.end_date' | translate }}</mat-label>
+              <input (dateChange)="updateDate(exception, 'end_date', $event.value, index)"
+                     [ngModel]="exception.end_date"
+                     [matDatepicker]="endPicker"
+                     [min]="exception.start_date"
+                     [ngModelOptions]="{standalone: true}"
+                     matInput required>
+              <mat-datepicker-toggle [for]="endPicker" matSuffix></mat-datepicker-toggle>
+              <mat-datepicker #endPicker></mat-datepicker>
+            </mat-form-field>
+            <mat-form-field class="exception-description">
+              <mat-label>{{ 'oca.description' | translate }}</mat-label>
+              <input [(ngModel)]="exception.description" [ngModelOptions]="{standalone: true}" matInput maxlength="50"
+                     required>
+              <mat-hint align="end">{{ exception.description?.length || 0 }} / 50</mat-hint>
+            </mat-form-field>
+            <button (click)="removeException(exception)" mat-icon-button type="button">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+          <oca-opening-hours-periods (changed)="updateExceptionPeriods(exception, $event, index)"
+                                     [periods]="exception.periods"></oca-opening-hours-periods>
+        </div>
+        <div class="add-hours-button">
+          <button (click)="addException()" mat-stroked-button type="button">
+            {{ 'oca.add_special_hours' | translate }}
+          </button>
+        </div>
+      </div>
+    </ng-template>
+  </mat-tab>
+</mat-tab-group>
+<mat-slide-toggle (change)="toggleNotRelevant($event)"
+                  [checked]="openingHours.type === 'not_relevant'">
+  {{ 'oca.opening_hours_not_relevant' | translate }}
+</mat-slide-toggle>
+<mat-form-field *ngIf="openingHours.type === 'not_relevant'" class="not-relevant-hours">
+  <mat-label>{{ 'oca.description' | translate }}</mat-label>
+  <input (ngModelChange)="setChanged(openingHours)" [(ngModel)]="openingHours.text" matInput maxlength="500"
+         name="openinghours_text" type="text">
+  <mat-hint>{{ 'oca.for_example_only_appointments' | translate }}</mat-hint>
+</mat-form-field>

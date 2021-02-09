@@ -990,10 +990,3 @@ class CustomerSignupTO(object):
         to.inbox_message_key = signup.inbox_message_key
         to.key = unicode(signup.key())
         return to
-
-
-class UploadedImageTO(TO):
-    id = long_property('id')
-    content_type = unicode_property('content_type')
-    size = long_property('size')
-    url = unicode_property('url')

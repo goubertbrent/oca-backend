@@ -1,7 +1,7 @@
 import { Action } from '@ngrx/store';
 import { Budget } from './billing/billing';
 import { ApiError } from './errors/errors';
-import { BrandingSettings, GlobalConfig, SolutionSettings } from './interfaces/oca';
+import { BrandingSettings, Country, GlobalConfig, PlaceType, SolutionSettings } from './interfaces/oca';
 
 export const enum SharedActionTypes {
   GET_BUDGET = '[shared] Get budget',
@@ -24,6 +24,12 @@ export const enum SharedActionTypes {
   UPDATE_LOGO_FAILED = '[shared] Update logo failed',
   GET_GLOBAL_CONFIG = '[shared] Get global config',
   GET_GLOBAL_CONFIG_COMPLETE = '[shared] Get global config complete',
+  GET_AVAILABLE_PLACE_TYPES = '[settings] Get available place types',
+  GET_AVAILABLE_PLACE_TYPES_COMPLETE = '[settings] Get available place types complete',
+  GET_AVAILABLE_PLACE_TYPES_FAILED = '[settings] Get available place types failed',
+  GET_COUNTRIES = '[settings] Get countries',
+  GET_COUNTRIES_COMPLETE = '[settings] Get countries complete',
+  GET_COUNTRIES_FAILED = '[settings] Get countries failed',
 }
 
 export class GetBudgetAction implements Action {
@@ -155,6 +161,42 @@ export class GetGlobalConfigCompleteAction implements Action {
   }
 }
 
+export class GetCountriesAction implements Action {
+  readonly type = SharedActionTypes.GET_COUNTRIES;
+}
+
+export class GetCountriesCompleteAction implements Action {
+  readonly type = SharedActionTypes.GET_COUNTRIES_COMPLETE;
+
+  constructor(public payload: Country[]) {
+  }
+}
+
+export class GetCountriesFailedAction implements Action {
+  readonly type = SharedActionTypes.GET_COUNTRIES_FAILED;
+
+  constructor(public error: string) {
+  }
+}
+
+export class GetAvailablePlaceTypesAction implements Action {
+  readonly type = SharedActionTypes.GET_AVAILABLE_PLACE_TYPES;
+}
+
+export class GetAvailablePlaceTypesCompleteAction implements Action {
+  readonly type = SharedActionTypes.GET_AVAILABLE_PLACE_TYPES_COMPLETE;
+
+  constructor(public payload: PlaceType[]) {
+  }
+}
+
+export class GetAvailablePlaceTypesFailedAction implements Action {
+  readonly type = SharedActionTypes.GET_AVAILABLE_PLACE_TYPES_FAILED;
+
+  constructor(public error: string) {
+  }
+}
+
 export type SharedActions =
   | GetBudgetAction
   | GetBudgetCompleteAction
@@ -175,4 +217,10 @@ export type SharedActions =
   | UpdateLogoCompleteAction
   | UpdateLogoFailedAction
   | GetGlobalConfigAction
-  | GetGlobalConfigCompleteAction;
+  | GetGlobalConfigCompleteAction
+  | GetCountriesAction
+  | GetCountriesCompleteAction
+  | GetCountriesFailedAction
+  | GetAvailablePlaceTypesAction
+  | GetAvailablePlaceTypesCompleteAction
+  | GetAvailablePlaceTypesFailedAction;

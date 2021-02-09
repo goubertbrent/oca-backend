@@ -1,0 +1,110 @@
+<form (ngSubmit)="submit()" [formGroup]="formGroup" class="poi-form">
+  <div class="field">
+    <mat-slide-toggle formControlName="visible">{{ 'oca.visible_on_map' | translate }}</mat-slide-toggle>
+  </div>
+  <mat-form-field class="field">
+    <mat-label>{{ 'oca.place_name' | translate }}</mat-label>
+    <input matInput required formControlName="title">
+  </mat-form-field>
+  <mat-form-field class="field">
+    <mat-label>{{ 'oca.description' | translate }}</mat-label>
+    <textarea formControlName="description" matInput matTextareaAutosize></textarea>
+  </mat-form-field>
+  <div class="dual-fields">
+    <oca-select-autocomplete [hint]="'oca.select_most_specific_place_type' | translate"
+                             [label]="'oca.place_type' | translate"
+                             [multiple]="false"
+                             [options]="placeTypes$ | async"
+                             [required]="true"
+                             [searchPlaceholder]="'oca.search-dot-dot-dot' | translate"
+                             class="field"
+                             formControlName="main_place_type"></oca-select-autocomplete>
+    <oca-select-autocomplete [label]="'oca.other_place_types' | translate"
+                             [max]="10"
+                             [multiple]="true"
+                             [options]="otherPlaceTypes$ | async"
+                             [required]="true"
+                             [searchPlaceholder]="'oca.search-dot-dot-dot' | translate"
+                             class="field"
+                             formControlName="place_types"></oca-select-autocomplete>
+  </div>
+  <div class="location-fields" formGroupName="location">
+    <mat-form-field class="field">
+      <mat-label>{{ 'oca.place_name_on_gmaps' | translate }}</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input [formControl]="placeNameControl"
+             [matAutocomplete]="autocomplete"
+             matInput>
+      <mat-autocomplete #autocomplete="matAutocomplete"
+                        (optionSelected)="placeResultSelected($event.option.value)"
+                        [displayWith]="displayGoogleMapsResult"
+                        autoActiveFirstOption>
+        <mat-option *ngFor="let result of googleMapsPlaceResults$ | async" [value]="result">
+          <strong>{{ result.name }}</strong> - <span>{{ result.formatted_address }}</span>
+        </mat-option>
+      </mat-autocomplete>
+      <mat-hint>{{ 'oca.use_this_to_automatically_fill_in_address' | translate }}</mat-hint>
+    </mat-form-field>
+    <div class="dual-fields">
+      <mat-form-field class="field">
+        <mat-label>{{ 'oca.street' | translate }}</mat-label>
+        <input formControlName="street"
+               matInput
+               maxlength="200">
+        <mat-error>{{ 'oca.this_field_is_required' | translate }}</mat-error>
+      </mat-form-field>
+      <mat-form-field class="field">
+        <mat-label>{{ 'oca.house_number' | translate }}</mat-label>
+        <input formControlName="street_number"
+               matInput
+               maxlength="10">
+        <mat-error>{{ 'oca.this_field_is_required' | translate }}</mat-error>
+      </mat-form-field>
+    </div>
+    <div class="dual-fields">
+      <mat-form-field class="field">
+        <mat-label>{{ 'oca.postal_code' | translate }}</mat-label>
+        <input formControlName="postal_code"
+               matInput
+               maxlength="10"
+               required>
+        <mat-error>{{ 'oca.this_field_is_required' | translate }}</mat-error>
+      </mat-form-field>
+      <mat-form-field class="field">
+        <mat-label>{{ 'oca.place' | translate }}</mat-label>
+        <input formControlName="locality"
+               matInput
+               maxlength="200"
+               required>
+        <mat-error>{{ 'oca.this_field_is_required' | translate }}</mat-error>
+      </mat-form-field>
+    </div>
+    <mat-form-field class="full-field field">
+      <mat-label>Google Maps Place id</mat-label>
+      <input formControlName="google_maps_place_id" matInput readonly>
+    </mat-form-field>
+    <agm-map (mapReady)="onMapReady($event)"
+             [latitude]="formGroup.controls.location.value!.coordinates!.lat"
+             [zoom]="16"
+             [longitude]="formGroup.controls.location.value!.coordinates!.lon"
+             class="poi-map">
+      <agm-marker (dragEnd)="locationUpdated($event)"
+                  [latitude]="formGroup.controls.location.value!.coordinates!.lat"
+                  [longitude]="formGroup.controls.location.value!.coordinates!.lon"
+                  [markerDraggable]="true"></agm-marker>
+    </agm-map>
+  </div>
+  <h3>{{ 'oca.opening-hours' | translate }}</h3>
+  <oca-opening-hours (hoursChanged)="formGroup.controls.opening_hours.setValue($event)"
+                     [openingHours]="formGroup.controls.opening_hours.value"></oca-opening-hours>
+  <h3>{{ 'oca.media' | translate }}</h3>
+  <oca-media-list-editor *ngIf="poiId"
+                         [placeholderUrl]="AVATAR_PLACEHOLDER"
+                         [uploadFileDialogConfig]="uploadFileDialogConfig"
+                         formControlName="media"></oca-media-list-editor>
+  <div class="fab-bottom-right">
+    <button mat-fab>
+      <mat-icon>save</mat-icon>
+    </button>
+  </div>
+</form>

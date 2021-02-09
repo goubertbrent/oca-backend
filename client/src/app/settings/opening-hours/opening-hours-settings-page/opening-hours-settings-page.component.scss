@@ -1,3 +1,8 @@
-.opening-hours-container {
-  margin: 0 16px;
+.hours-header {
+  display: flex;
+  align-items: center;
+}
+
+.save-button {
+  margin-left: 24px;
 }

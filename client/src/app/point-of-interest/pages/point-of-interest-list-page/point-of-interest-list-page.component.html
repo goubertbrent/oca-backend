@@ -1,0 +1,46 @@
+<p class="intro">{{ 'oca.point_of_interest_info_text' | translate }}</p>
+<form [formGroup]="filterForm" class="poi-filter-form">
+  <mat-form-field>
+    <mat-label>{{ 'oca.Search' | translate }}</mat-label>
+    <input formControlName="query" matInput>
+    <button type="button" mat-icon-button matSuffix (click)="filterForm.controls.query.setValue(null)">
+      <mat-icon>clear</mat-icon>
+    </button>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>{{ 'oca.status' | translate }}</mat-label>
+    <mat-select formControlName="status">
+      <mat-option [value]="null"></mat-option>
+      <mat-option *ngFor="let status of poiStatuses" [value]="status.value">{{ status.label | translate }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+</form>
+<mat-nav-list>
+  <h3 mat-subheader>
+    <ng-container *ngFor="let status of poiStatuses">
+      <span class="poi-status-icon">{{ status.icon }}</span>{{ status.label | translate }}
+    </ng-container>
+  </h3>
+  <a *ngFor="let poi of pointsOfInterest$ | async" [routerLink]="['detail', poi.id]" mat-list-item>
+    <div mat-line>
+      <ng-container [ngSwitch]="poi.status">
+      <span class="poi-status-icon">
+        <ng-container *ngSwitchCase="0">🟠</ng-container>
+        <ng-container *ngSwitchCase="1">🟢</ng-container>
+        <ng-container *ngSwitchCase="2">🔴</ng-container>
+      </span>
+    </ng-container> {{ poi.title }}</div>
+  </a>
+</mat-nav-list>
+<mat-progress-bar *ngIf="isLoadingPoiList$ | async" mode="indeterminate"></mat-progress-bar>
+<div *ngIf="hasMorePoi$ | async" class="load-more-btn">
+  <button (click)="loadMorePoi()"
+          [disabled]="isLoadingPoiList$ | async"
+          mat-stroked-button
+          type="button">{{ 'oca.Load more' | translate }}</button>
+</div>
+<div class="fab-bottom-right">
+  <a mat-fab routerLink="create">
+    <mat-icon>add</mat-icon>
+  </a>
+</div>

@@ -1,18 +1,19 @@
 <mat-form-field class="select-autocomplete-field">
   <mat-label>{{ label }}</mat-label>
-  <mat-select (opened)="filterFormControl.reset()"
-              (selectionChange)="onSelectionChange($event)"
+  <mat-select (opened)="onSelectOpened()"
               (closed)="selectClosed()"
               [formControl]="formControl"
               [multiple]="multiple"
               [placeholder]="placeholder"
               [sortComparator]="sortOptionsComparator"
               [ocaMaxSelect]="max"
+              (selectionChange)="onSelectionChange($event)"
               [required]="required">
     <div class="search-box">
       <input [formControl]="filterFormControl"
              [placeholder]="searchPlaceholder"
              class="search-input"
+             #filterInput
              type="text">
       <button (click)="filterFormControl.reset()"
               *ngIf="filterFormControl.value"

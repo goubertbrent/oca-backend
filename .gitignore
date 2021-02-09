@@ -37,3 +37,4 @@ src/shop/html/console-index.html
 
 services/statistics/src/lib
 services/workers/src/lib
+services/imageresizer/app.yaml

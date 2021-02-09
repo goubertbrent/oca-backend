@@ -1,0 +1,10 @@
+<mat-toolbar>
+  <a mat-icon-button routerLink="/point-of-interest">
+    <mat-icon>arrow_back</mat-icon>
+  </a>
+  <h1 class="flex-grow">{{ 'oca.point_of_interest' | translate }}</h1>
+</mat-toolbar>
+<mat-progress-bar *ngIf="isLoading$ | async" mode="indeterminate"></mat-progress-bar>
+<oca-point-of-interest-form (saved)="submit($event)"
+                            [disabled]="isLoading$ | async"
+                            [poi]="poi$ | async"></oca-point-of-interest-form>

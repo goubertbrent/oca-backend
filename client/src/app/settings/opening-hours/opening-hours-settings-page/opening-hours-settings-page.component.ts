@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/core';
 import { select, Store } from '@ngrx/store';
 import { Observable, Subject } from 'rxjs';
-import { debounceTime, map } from 'rxjs/operators';
-import { OpeningHours } from '../../../shared/interfaces/oca';
+import { debounceTime, map, tap } from 'rxjs/operators';
+import { ServiceOpeningHours } from '../../../shared/interfaces/oca';
 import { deepCopy } from '../../../shared/util';
 import { GetOpeningHoursAction, SaveOpeningHoursAction } from '../../settings.actions';
 import { getOpeningHours, openingHoursLoading, SettingsState } from '../../settings.state';
@@ -14,10 +14,11 @@ import { getOpeningHours, openingHoursLoading, SettingsState } from '../../setti
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OpeningHoursSettingsPageComponent implements OnInit, OnDestroy {
-  openingHours$: Observable<OpeningHours | null>;
+  openingHours$: Observable<ServiceOpeningHours | null>;
   isLoading$: Observable<boolean>;
 
-  private autoSave$ = new Subject<OpeningHours>();
+  private settings: ServiceOpeningHours;
+  private autoSave$ = new Subject<ServiceOpeningHours>();
 
   constructor(private store: Store<SettingsState>) {
   }
@@ -26,18 +27,27 @@ export class OpeningHoursSettingsPageComponent implements OnInit, OnDestroy {
     this.store.dispatch(new GetOpeningHoursAction());
     this.openingHours$ = this.store.pipe(select(getOpeningHours), map(hours => hours && deepCopy(hours)));
     this.isLoading$ = this.store.pipe(select(openingHoursLoading));
-    this.autoSave$.pipe(debounceTime(7500)).subscribe(settings => this.onOpeningHoursSaved(settings));
+    this.autoSave$.pipe(
+      tap(s => this.settings = s),
+      debounceTime(7500),
+    ).subscribe(settings => this.onOpeningHoursSaved(settings));
   }
 
   ngOnDestroy(): void {
-    this.autoSave$.unsubscribe();
+    this.autoSave$.complete();
   }
 
-  onOpeningHoursSaved($event: OpeningHours) {
+  manualSave() {
+    if (this.settings) {
+      this.onOpeningHoursSaved(this.settings);
+    }
+  }
+
+  onOpeningHoursSaved($event: ServiceOpeningHours) {
     this.store.dispatch(new SaveOpeningHoursAction($event));
   }
 
-  autoSave($event: OpeningHours) {
+  autoSave($event: ServiceOpeningHours) {
     this.autoSave$.next($event);
   }
 }

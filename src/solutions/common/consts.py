@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
+from rogerthat.consts import DEBUG
 
 OUR_CITY_APP_COLOUR = u'5BC4BF'
 
@@ -74,14 +75,21 @@ CURRENCY_NAMES = {
     'RON': u'Leu',
 }
 
-
 OCA_FILES_BUCKET = 'oca-files'
+OCA_DEV_BUCKET = 'rt-dev-debug'
+
+
+def get_files_bucket():
+    return OCA_DEV_BUCKET if DEBUG else OCA_FILES_BUCKET
+
+
 AUTO_PUBLISH_MINUTES = 15
 
 
 def get_currency_name(locale, currency_symbol):
     name = locale.currencies.get(currency_symbol)
     return name or CURRENCY_NAMES.get(currency_symbol, currency_symbol)
+
 
 # Translations used on the web clients with a prefix
 TRANSLATION_MAPPING = {
@@ -158,6 +166,7 @@ TRANSLATION_MAPPING = {
         'city_select_unselected',
         'city_select_unsupported',
         'confirm_delete_news',
+        'confirm_delete_x',
         'connected_users_only',
         'contact',
         'community_services',
@@ -180,6 +189,7 @@ TRANSLATION_MAPPING = {
         'gender-male',
         'gender-male-female',
         'inactive',
+        'invisible',
         'import',
         'jobs',
         'like',
@@ -233,6 +243,7 @@ TRANSLATION_MAPPING = {
         'unknown',
         'unlimited',
         'use_cover_photo',
+        'visible',
         'zip_code',
         'whitelist',
         'merchant_registered',

@@ -9,7 +9,7 @@ export const GENDER_OPTIONS = [
 export const NEWS_MEDIA_TYPE_OPTIONS = [
   { value: null, label: 'oca.none' },
   { value: MediaType.IMAGE, label: 'oca.image' },
-  { value: MediaType.YOUTUBE_VIDEO, label: 'oca.video' },
+  { value: MediaType.VIDEO_YOUTUBE, label: 'oca.video' },
 ];
 
 export const BUDGET_RATE = 2.0;  // 10k views / 5000 cent

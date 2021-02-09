@@ -14,11 +14,12 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
-
+from google.appengine.ext import ndb
+from google.appengine.ext.ndb.query import Cursor
 from typing import Type, TypeVar, Optional
 
 from mcfw.properties import bool_property, unicode_property, long_property, unicode_list_property, typed_property, \
-    float_property
+    float_property, get_members
 from mcfw.rpc import serialize_complex_value, parse_complex_value
 
 
@@ -86,10 +87,19 @@ class TO(object):
 class PaginatedResultTO(TO):
     cursor = unicode_property('cursor')
     more = bool_property('more')
-    results = typed_property('results', dict, True)  # Must be overwritten by superclass
+
+    # Must be overwritten by superclass
+    # E.g. results = typed_property('results', dict, True)
+    @property
+    def results(self):
+        raise NotImplementedError
 
     def __init__(self, cursor=None, more=False, results=None):
-        super(PaginatedResultTO, self).__init__(cursor=cursor, more=more, results=results or [])
+        if isinstance(cursor, Cursor):
+            cursor_str = cursor.urlsafe()
+        else:
+            cursor_str = cursor
+        super(PaginatedResultTO, self).__init__(cursor=cursor_str, more=more, results=results or [])
 
 
 class BaseButtonTO(TO):
@@ -566,7 +576,7 @@ class UploadInfoTO(TO):
 
 class FileTO(object):
     file = unicode_property('1')
-    
+
 
 class APNsTO(object):
     keyId = unicode_property('keyId')

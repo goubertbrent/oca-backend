@@ -6,12 +6,6 @@ import { TranslateService } from '@ngx-translate/core';
 import { ErrorService } from '@oca/web-shared';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import {
-  GetAvailablePlaceTypesAction,
-  GetAvailablePlaceTypesCompleteAction,
-  GetAvailablePlaceTypesFailedAction,
-  GetCountriesAction,
-  GetCountriesCompleteAction,
-  GetCountriesFailedAction,
   GetOpeningHoursAction,
   GetOpeningHoursCompleteAction,
   GetOpeningHoursFailedAction,
@@ -59,20 +53,6 @@ export class SettingsEffects {
     switchMap(action => this.settingsService.updateServiceInfo(action.payload).pipe(
       map(result => new UpdateServiceInfoCompleteAction(result)),
       catchError(err => this.errorService.handleError(action, UpdateServiceInfoFailedAction, err)))),
-  ));
-
-   getAvailablePlaceTypes$ = createEffect(() => this.actions$.pipe(
-    ofType<GetAvailablePlaceTypesAction>(SettingsActionTypes.GET_AVAILABLE_PLACE_TYPES),
-    switchMap(action => this.settingsService.getAvailablePlaceTypes().pipe(
-      map(result => new GetAvailablePlaceTypesCompleteAction(result.results)),
-      catchError(err => this.errorService.handleError(action, GetAvailablePlaceTypesFailedAction, err)))),
-  ));
-
-   getCountries$ = createEffect(() => this.actions$.pipe(
-    ofType<GetCountriesAction>(SettingsActionTypes.GET_COUNTRIES),
-    switchMap(action => this.settingsService.getCountries().pipe(
-      map(result => new GetCountriesCompleteAction(result)),
-      catchError(err => this.errorService.handleError(action, GetCountriesFailedAction, err)))),
   ));
 
   constructor(private actions$: Actions<SettingsActions>,

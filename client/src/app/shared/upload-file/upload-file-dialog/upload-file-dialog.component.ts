@@ -3,22 +3,16 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnDestro
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ProgressBarMode } from '@angular/material/progress-bar/progress-bar';
 import { TranslateService } from '@ngx-translate/core';
+import { MediaType } from '@oca/web-shared';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { GcsFile, UploadedFile, UploadFileDialogConfig } from '../file-upload';
+import { GalleryFile, UploadedFile, UploadFileDialogConfig } from '../file-upload';
 // noinspection ES6PreferShortImport
 import { ImageCropperComponent } from '../image-cropper/image-cropper.component';
 import { UploadFileService } from '../upload-file.service';
 
 
-export class UploadedFileResult {
-  constructor(public result: UploadedFile | GcsFile | string) {
-  }
-
-  getUrl(): string {
-    return typeof this.result === 'string' ? this.result : this.result.url;
-  }
-}
+export type UploadedFileResult = UploadedFile | GalleryFile;
 
 @Component({
   selector: 'oca-upload-file-dialog',
@@ -35,12 +29,11 @@ export class UploadFileDialogComponent implements OnDestroy {
   progressMode: ProgressBarMode = 'indeterminate';
   uploadError: string | null = null;
   selectedFile: File | null = null;
-  readonly images$: Observable<GcsFile[]>;
-  readonly galleryImages$: Observable<GcsFile[]>;
+  readonly images$: Observable<UploadedFile[]>;
+  readonly galleryImages$: Observable<GalleryFile[]>;
   readonly showGallery: boolean;
 
   private destroyed$ = new Subject();
-  private readonly supportedFileType: 'image' | undefined;
 
   constructor(@Inject(MAT_DIALOG_DATA) public data: UploadFileDialogConfig,
               private dialogRef: MatDialogRef<UploadFileDialogComponent>,
@@ -52,16 +45,16 @@ export class UploadFileDialogComponent implements OnDestroy {
     if (data.gallery) {
       this.galleryImages$ = this.uploadFileService.getGalleryFiles(data.gallery.prefix);
     }
-    this.images$ = this.uploadFileService.getFiles(data.listPrefix);
-    this.supportedFileType = data.fileType;
-    data.accept = data.accept || 'image/*';
+    if (data.mediaType) {
+      this.images$ = this.uploadFileService.getFiles(data.mediaType, data.listPrefix, data.reference);
+    }
     data.cropOptions = {
       viewMode: 1,
       autoCropArea: 1,
       ...data.cropOptions,
     };
     data.croppedCanvasOptions = {
-      maxWidth: 1440,
+      maxWidth: 4000,
       fillColor: '#ffffff',
       imageSmoothingEnabled: true,
       imageSmoothingQuality: 'high' as any,
@@ -69,8 +62,8 @@ export class UploadFileDialogComponent implements OnDestroy {
     };
   }
 
-  filePicked(file: GcsFile) {
-    this.dialogRef.close(new UploadedFileResult(file));
+  filePicked(file: GalleryFile) {
+    this.dialogRef.close(file);
   }
 
   removeFile() {
@@ -87,7 +80,7 @@ export class UploadFileDialogComponent implements OnDestroy {
     if (target.files && target.files.length) {
       const file = target.files[ 0 ];
       this.selectedFile = file;
-      if (this.supportedFileType === 'image' || this.data.croppedImageType || file.type.startsWith('image')) {
+      if (this.data.mediaType === MediaType.IMAGE || this.data.croppedImageType || file.type.startsWith('image')) {
         this.showProgress = true;
         reader.readAsDataURL(file);
         reader.onload = () => {
@@ -113,25 +106,16 @@ export class UploadFileDialogComponent implements OnDestroy {
     this.changeDetectorRef.markForCheck();
   }
 
-  ngOnDestroy(): void {
-    this.destroyed$.next();
-    this.destroyed$.complete();
-  }
-
   save() {
     if (this.uploadError) {
       return;
     }
     this.showProgress = true;
     this.progressMode = 'indeterminate';
-    this.getFile().then(async blob => {
+    this.getFile().then(async ([blob, mediaType]) => {
       this.progressMode = 'determinate';
       this.changeDetectorRef.markForCheck();
-      if (!blob) {
-        this.showProgress = false;
-        return;
-      }
-      this.uploadFileService.uploadImage(blob, this.data.uploadPrefix, this.data.reference).pipe(
+      this.uploadFileService.uploadImage(blob, this.data.uploadPrefix, mediaType, this.data.reference).pipe(
         takeUntil(this.destroyed$),
       ).subscribe(event => {
         switch (event.type) {
@@ -142,12 +126,28 @@ export class UploadFileDialogComponent implements OnDestroy {
             // Done - submit result
             this.showProgress = false;
             const body: UploadedFile = event.body as UploadedFile;
-            this.dialogRef.close(new UploadedFileResult(body));
+            this.dialogRef.close(body);
             break;
         }
         this.changeDetectorRef.markForCheck();
       }, e => this.handleUploadError(e));
+    }).catch((err) => {
+      console.error(err);
+      if (typeof err === 'string') {
+        this.uploadError = err;
+      } else if (err instanceof Error) {
+        this.uploadError = err.message;
+      } else {
+        this.uploadError = null;
+      }
+      this.showProgress = false;
+      this.changeDetectorRef.markForCheck();
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed$.next();
+    this.destroyed$.complete();
   }
 
   handleUploadError(error: any) {
@@ -161,9 +161,13 @@ export class UploadFileDialogComponent implements OnDestroy {
     this.changeDetectorRef.markForCheck();
   }
 
-  private getFile(): Promise<Blob | null> {
+  private getFile(): Promise<[Blob, MediaType]> {
     if (!this.selectedFile) {
-      return Promise.resolve(null);
+      return Promise.reject(null);
+    }
+    const mediaType = this.getMediaType(this.selectedFile, this.data.mediaType);
+    if (this.data.mediaType && mediaType !== this.data.mediaType || !mediaType) {
+      return Promise.reject(this.translate.instant('oca.unsupported_file_choose_other'));
     }
     if (this.data.croppedImageType || this.selectedFile.type.startsWith('image')) {
       // Always crop to jpeg unless it's a png (for transparent images so they don't lose the transparency)
@@ -173,11 +177,24 @@ export class UploadFileDialogComponent implements OnDestroy {
         // Prevent replacing transparent pixels for png images
         options.fillColor = undefined;
       }
-      return this.imageCropper.getCroppedImage(croppedImageType, 'blob', .9, options)
-        .then(result => result.blob);
+      return this.imageCropper.getCroppedImage(croppedImageType, .9, options)
+        .then(result => [result.blob, mediaType]);
     } else {
-      return Promise.resolve(this.selectedFile);
+      return Promise.resolve([this.selectedFile, mediaType]);
     }
+  }
+
+  private getMediaType(file: Blob, expectedMediaType: MediaType | undefined): MediaType | null {
+    const contentType = file.type;
+    if (contentType.startsWith('image')) {
+      if (expectedMediaType && [MediaType.IMAGE, MediaType.IMAGE_360].includes(expectedMediaType)) {
+        return expectedMediaType;
+      }
+      return MediaType.IMAGE;
+    } else if (contentType === 'application/pdf') {
+      return MediaType.PDF;
+    }
+    return null;
   }
 
 }

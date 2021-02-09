@@ -1,3 +1,5 @@
+import { LatLonTO } from '@oca/web-shared';
+
 export interface SimpleApp {
   id: string;
   name: string;
@@ -42,4 +44,38 @@ export interface Community extends CreateCommunity {
 
 export interface UpdateNewsImagePayload {
   file: any;
+}
+
+export const enum ReportsMapFilter {
+  ALL = 'all',
+  NEW = 'new',
+  IN_PROGRESS = 'in_progress',
+  RESOLVED = 'resolved',
+}
+
+export interface MapButton {
+  action: string;
+  color: string | null;
+  icon: string | null;
+  text: string | null;
+  service: string | null;
+}
+
+export interface MapLayerSettings {
+  filters: string[];
+  default_filter: string | null;
+  buttons: MapButton[];
+}
+
+export interface MapLayers {
+  gipod: MapLayerSettings;
+  poi: MapLayerSettings;
+  reports: MapLayerSettings;
+  services: MapLayerSettings;
+}
+
+export interface CommunityMapSettings {
+  center: LatLonTO | null;
+  distance: number | null;
+  layers: MapLayers;
 }

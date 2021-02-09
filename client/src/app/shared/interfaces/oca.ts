@@ -11,10 +11,6 @@ export interface SolutionSettings {
   iban: string | null;
   bic: string | null;
   publish_changes_users: string[];
-  location: {
-    lat: number;
-    lon: number;
-  } | null;
 }
 
 export interface BrandingSettings {
@@ -69,11 +65,20 @@ export const enum OpeningHourType {
   NOT_RELEVANT = 'not_relevant',
 }
 
-export interface OpeningHours {
-  id: string;
+export interface BaseOpeningHours {
   type: OpeningHourType;
   text: string | null;
-  title: string | null;
   periods: OpeningPeriod[];
   exceptional_opening_hours: OpeningHourException[];
 }
+
+export interface ServiceOpeningHours extends BaseOpeningHours {
+  id: string;
+  title: string | null;
+}
+
+export interface Country {
+  name: string;
+  code: string;
+}
+

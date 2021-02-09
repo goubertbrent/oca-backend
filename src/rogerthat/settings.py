@@ -176,6 +176,10 @@ class ServerSettings(CachedModelMixIn, db.Model):
                                             doc='oca-dot-rogerthat-server.ew.r.appspot.com/api api key',
                                             order=501)
 
+    imageResizerApiKey = add_meta(db.StringProperty(indexed=False),
+                                            doc='imageresizer-dot-rogerthat-server.ew.r.appspot.com/api api key',
+                                            order=502)
+
     @property
     def senderEmail(self):
         return "Rogerthat Dashboard <%s>" % self.dashboardEmail

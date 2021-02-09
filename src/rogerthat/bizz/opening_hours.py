@@ -25,10 +25,13 @@ from dateutil.relativedelta import relativedelta
 from typing import List, Tuple, Dict
 
 from rogerthat.models import OpeningHours, OpeningHour, OpeningPeriod
-from rogerthat.to.maps import WeekDayTextTO, MapItemLineTextPartTO
+from rogerthat.to.maps import WeekDayTextTO, MapItemLineTextPartTO, MapItemLineTextTO
 from rogerthat.translations import localize
 
 MIDNIGHT = datetime.time(hour=0, minute=0)
+OPENING_HOURS_GREEN_COLOR = u'51bd13'
+OPENING_HOURS_RED_COLOR = u'b01717'
+OPENING_HOURS_ORANGE_COLOR = u'e69f12'
 _NAMES = {}
 
 
@@ -193,7 +196,6 @@ def _format_opening_hour(opening_hour, lang):
 
 
 def get_weekday_text(periods, exceptions, lang, now):
-    from rogerthat.bizz.maps.services import get_openinghours_color, OPENING_HOURS_ORANGE_COLOR
     lines_per_day = defaultdict(list)
     weekday_exceptions = dict()
     for i in xrange(7):
@@ -250,7 +252,6 @@ def get_weekday_text(periods, exceptions, lang, now):
 
 
 def get_weekday_text_day(periods, lang, day):
-    from rogerthat.bizz.maps.services import get_openinghours_color, OPENING_HOURS_ORANGE_COLOR
     weekday = _get_weekday(day)
     if not periods:
         return {weekday: {'lines': [MapItemLineTextPartTO(text=localize(lang, 'closed'))]}}
@@ -320,3 +321,33 @@ def get_weekday_periods_day(periods, day):
         periods_weekday[weekday]['periods'].append(period)
 
     return periods_weekday
+
+
+def get_opening_hours_lines(opening_hours_model, language, timezone):
+    # type: (OpeningHours, str, str) -> List[MapItemLineTextTO]
+    now_open, open_until, extra_description, _ = get_opening_hours_info(opening_hours_model, timezone, language)
+    lines = []
+    if now_open:
+        lines.append(MapItemLineTextTO(parts=[
+            MapItemLineTextPartTO(color=get_openinghours_color(OPENING_HOURS_GREEN_COLOR),
+                                  text='**%s**' % localize(language, 'open')),
+            MapItemLineTextPartTO(color=None, text=open_until),
+        ]))
+    else:
+        lines.append(MapItemLineTextTO(parts=[
+            MapItemLineTextPartTO(color=get_openinghours_color(OPENING_HOURS_RED_COLOR),
+                                  text='**%s**' % localize(language, 'closed')),
+            MapItemLineTextPartTO(color=None, text=open_until),
+        ]))
+    if extra_description:
+        lines.append(MapItemLineTextTO(parts=[
+            MapItemLineTextPartTO(color=get_openinghours_color(OPENING_HOURS_ORANGE_COLOR),
+                                  text=extra_description),
+        ]))
+    return lines
+
+
+def get_openinghours_color(color):
+    if color.startswith('#'):
+        return color
+    return u'#%s' % color

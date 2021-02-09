@@ -1,0 +1,74 @@
+<mat-toolbar>
+  <a mat-icon-button routerLink="/communities">
+    <mat-icon>arrow_back</mat-icon>
+  </a>
+  <h1 class="flex-grow">Map settings</h1>
+  <button (click)="saveSettings()" [disabled]="loading$ | async" mat-icon-button type="button">
+    <mat-icon>save</mat-icon>
+  </button>
+</mat-toolbar>
+<h2 class="map-settings-content">Default map position</h2>
+<rcc-geo-location-form (centerChanged)="formGroup.controls.center.setValue($event)"
+                       (radiusChanged)="formGroup.controls.distance.setValue($event)"
+                       [center]="formGroup.controls.center.value"
+                       [country]="countryCode$ | async"
+                       [radius]="formGroup.controls.distance.value"></rcc-geo-location-form>
+<form (ngSubmit)="saveSettings()" [formGroup]="formGroup" class="map-settings-content">
+  <h2>Layer settings</h2>
+  <ng-container formGroupName="layers">
+    <ng-container *ngFor="let layer of layers" [formGroupName]="layer.id">
+      <ng-container *ngIf="possibleFilters[layer.id].length">
+        <h3>{{ layer.name }}</h3>
+        <mat-form-field>
+          <mat-label>Filters</mat-label>
+          <mat-select [multiple]="true" formControlName="filters" required>
+            <mat-option *ngFor="let filter of possibleFilters[layer.id]"
+                        [value]="filter.value">{{ filter.label }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>Default filter</mat-label>
+          <mat-select formControlName="default_filter" required>
+            <ng-container *ngFor="let filter of possibleFilters[layer.id]">
+              <mat-option *ngIf="getLayerForm(layer.id).controls.filters.value.includes(filter.value)"
+                          [value]="filter.value">
+                {{ filter.label }}
+              </mat-option>
+            </ng-container>
+          </mat-select>
+        </mat-form-field>
+        <ng-container *ngFor="let button of getLayerForm(layer.id).controls.buttons.value; let i = index"
+                      formArrayName="buttons">
+          <ng-container [formGroupName]="i">
+            <h4>Button {{ i + 1 }}</h4>
+            <button (click)="removeButton(layer.id, i)" mat-stroked-button type="button">
+              <mat-icon>close</mat-icon>
+              Delete
+            </button>
+            <mat-form-field>
+              <mat-label>Label</mat-label>
+              <input formControlName="text" matInput type="text">
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Icon</mat-label>
+              <input formControlName="icon" matInput type="text">
+              <mat-hint>See <a href="https://fontawesome.com/icons">https://fontawesome.com/icons</a></mat-hint>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Action</mat-label>
+              <input formControlName="action" matInput required type="url">
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Color</mat-label>
+              <input formControlName="color" matInput type="text">
+            </mat-form-field>
+          </ng-container>
+        </ng-container>
+        <button (click)="addButton(layer.id)" mat-stroked-button type="button">Add button</button>
+      </ng-container>
+    </ng-container>
+  </ng-container>
+  <div class="save-button">
+    <button [disabled]="loading$ | async" mat-stroked-button>Save</button>
+  </div>
+</form>

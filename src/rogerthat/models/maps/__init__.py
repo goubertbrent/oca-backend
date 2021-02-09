@@ -16,17 +16,19 @@
 # @@license_version:1.7@@
 
 from google.appengine.ext import ndb
+from google.appengine.ext.ndb.model import GeoPtProperty, GeoPt, TextProperty, JsonProperty, BooleanProperty, \
+    StringProperty, DateTimeProperty, KeyProperty, LocalStructuredProperty
 from typing import List
 
 from rogerthat.dal import parent_ndb_key
 from rogerthat.models.common import NdbModel, TOProperty
 from rogerthat.rpc import users
-from rogerthat.to.maps import MapButtonTO, MapListSectionItemTO
+from rogerthat.to.maps import MapListSectionItemTO
 from rogerthat.to.news import BaseMediaTO
 
 
 class MapSettings(NdbModel):
-    data = ndb.JsonProperty()
+    data = JsonProperty()
 
     @property
     def tag(self):
@@ -37,25 +39,9 @@ class MapSettings(NdbModel):
         return ndb.Key(cls, tag)
 
 
-class MapConfig(NdbModel):
-    center = ndb.GeoPtProperty(indexed=False)  # type: ndb.GeoPt
-    distance = ndb.IntegerProperty(indexed=False)
-    filters = ndb.StringProperty(repeated=True)
-    default_filter = ndb.StringProperty()
-    buttons = TOProperty(MapButtonTO, repeated=True)  # type: List[MapButtonTO]
-
-    @property
-    def tag(self):
-        return self.key.id().split('~')[1]
-
-    @classmethod
-    def create_key(cls, app_id, map_tag):
-        return ndb.Key(cls, '%s~%s' % (app_id, map_tag))
-
-
 class MapNotifications(NdbModel):
-    tag = ndb.StringProperty()
-    enabled = ndb.BooleanProperty()
+    tag = StringProperty()
+    enabled = BooleanProperty()
 
     @property
     def app_user(self):
@@ -73,8 +59,8 @@ class MapNotifications(NdbModel):
 
 
 class MapSavedItem(NdbModel):
-    created = ndb.DateTimeProperty(auto_now_add=True)
-    item_id = ndb.StringProperty()
+    created = DateTimeProperty(auto_now_add=True)
+    item_id = StringProperty()
 
     @property
     def id(self):
@@ -96,34 +82,30 @@ class MapSavedItem(NdbModel):
 
 
 class MapServiceMediaItem(NdbModel):
-    role_ids = ndb.TextProperty(repeated=True)
+    role_ids = TextProperty(repeated=True)
     item = TOProperty(BaseMediaTO)  # type: BaseMediaTO
-
-    @classmethod
-    def from_to(cls, m):
-        return cls(role_ids=m.role_ids,
-                   item=m.item)
 
 
 class MapServiceListItem(NdbModel):
-    role_ids = ndb.TextProperty(repeated=True)
+    role_ids = TextProperty(repeated=True)
     item = TOProperty(MapListSectionItemTO(), repeated=False)  # type: MapListSectionItemTO
 
 
 # todo multiple languages
 class MapService(NdbModel):
-    title = ndb.TextProperty()
-    main_place_type = ndb.TextProperty()
-    place_types = ndb.TextProperty(repeated=True)
-    address = ndb.TextProperty()
-    geo_location = ndb.GeoPtProperty(indexed=False)  # type: ndb.GeoPt
+    title = TextProperty()
+    main_place_type = TextProperty()
+    place_types = TextProperty(repeated=True)
+    address = TextProperty()
+    geo_location = GeoPtProperty(indexed=False)  # type: GeoPt
     # Only used for the sort order of the opening hours
-    opening_hours_links = ndb.KeyProperty(repeated=True, indexed=False)  # type: List[ndb.Key]
+    opening_hours_links = KeyProperty(repeated=True, indexed=False)  # type: List[ndb.Key]
 
-    media_items = ndb.LocalStructuredProperty(MapServiceMediaItem, repeated=True)  # type: List[MapServiceMediaItem]
-    horizontal_items = ndb.LocalStructuredProperty(MapServiceListItem, repeated=True)  # type: List[MapServiceListItem]
-    vertical_items = ndb.LocalStructuredProperty(MapServiceListItem, repeated=True)  # type: List[MapServiceListItem]
-    has_news = ndb.BooleanProperty(indexed=False)
+    # TODO: remove roles from media_items
+    media_items = LocalStructuredProperty(MapServiceMediaItem, repeated=True)  # type: List[MapServiceMediaItem]
+    horizontal_items = LocalStructuredProperty(MapServiceListItem, repeated=True)  # type: List[MapServiceListItem]
+    vertical_items = LocalStructuredProperty(MapServiceListItem, repeated=True)  # type: List[MapServiceListItem]
+    has_news = BooleanProperty(indexed=False)
 
     @property
     def service_identity_email(self):

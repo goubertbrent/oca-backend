@@ -36,7 +36,9 @@ from rogerthat.web_client.models import WebClientSession
 
 class MediaType(Enum):
     IMAGE = 'image'
+    IMAGE_360 = 'image_360'
     VIDEO_YOUTUBE = 'video_youtube'
+    PDF = 'pdf'
 
 
 class NewsMedia(NdbModel):

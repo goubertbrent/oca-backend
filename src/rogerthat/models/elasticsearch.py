@@ -31,6 +31,7 @@ class ElasticsearchSettings(NdbModel):
     place_types_index = ndb.TextProperty()
     jobs_index = ndb.TextProperty()
     news_index = ndb.TextProperty()
+    poi_index = ndb.TextProperty()
 
     shop_customers_index = ndb.TextProperty()
 

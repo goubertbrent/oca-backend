@@ -182,7 +182,8 @@ DEFAULT_COORDS = {
             'coords': [-1, -1, -1],
             'priority': 5,
         }
-    }
+    },
+    SolutionModule.POINTS_OF_INTEREST: None,
 }
 
 

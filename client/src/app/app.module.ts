@@ -42,6 +42,10 @@ export const routes: Routes = [
   { path: 'settings', loadChildren: () => import('./settings/settings.module').then(m => m.SettingsModule) },
   { path: 'jobs', loadChildren: () => import('./jobs/jobs.module').then(m => m.JobsModule) },
   { path: 'vouchers', loadChildren: () => import('./vouchers/vouchers.module').then(m => m.VouchersModule) },
+  {
+    path: 'point-of-interest',
+    loadChildren: () => import('./point-of-interest/point-of-interest.module').then(m => m.PointOfInterestModule),
+  },
 ];
 
 @NgModule({

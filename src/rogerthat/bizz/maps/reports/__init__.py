@@ -18,20 +18,21 @@
 from __future__ import unicode_literals
 
 import json
-import logging
 import urllib
 
+import logging
 from google.appengine.api import urlfetch
 from google.appengine.ext import ndb
 
 from mcfw.exceptions import HttpException
 from mcfw.rpc import returns, arguments, parse_complex_value
 from mcfw.utils import Enum
+from rogerthat.bizz.communities.models import CommunityMapSettings
 from rogerthat.bizz.maps.shared import get_map_response
 from rogerthat.consts import DEBUG
 from rogerthat.dal.profile import get_user_profile
 from rogerthat.models import UserProfileInfo
-from rogerthat.models.maps import MapConfig, MapSettings
+from rogerthat.models.maps import MapSettings
 from rogerthat.rpc import users
 from rogerthat.to.maps import GetMapResponseTO, GetMapItemsResponseTO, \
     GetMapItemsRequestTO, GetMapItemDetailsResponseTO, \
@@ -39,7 +40,6 @@ from rogerthat.to.maps import GetMapResponseTO, GetMapItemsResponseTO, \
     SaveMapItemVoteResponseTO, SaveMapItemVoteRequestTO, MapBaseUrlsTO, \
     MapAnnouncementTO, MapFunctionality
 from rogerthat.translations import localize
-from rogerthat.utils.app import get_app_id_from_app_user
 
 REPORTS_TAG = 'reports'
 
@@ -54,19 +54,21 @@ class ReportsFilter(Enum):
 @returns(GetMapResponseTO)
 @arguments(app_user=users.User)
 def get_map(app_user):
-    language = get_user_profile(app_user).language
+    user_profile = get_user_profile(app_user)
+    language = user_profile.language
+    community_id = user_profile.community_id
     filters = [
         MapFilterTO(key=ReportsFilter.ALL, label=localize(language, 'all')),
         MapFilterTO(key=ReportsFilter.NEW, label=localize(language, 'Reported')),
         MapFilterTO(key=ReportsFilter.IN_PROGRESS, label=localize(language, 'In Progress')),
         MapFilterTO(key=ReportsFilter.RESOLVED, label=localize(language, 'Resolved'))
     ]
-    app_id = get_app_id_from_app_user(app_user)
-    models = ndb.get_multi([MapConfig.create_key(app_id, REPORTS_TAG),
+    models = ndb.get_multi([CommunityMapSettings.create_key(community_id),
                             MapSettings.create_key(REPORTS_TAG),
                             UserProfileInfo.create_key(app_user)])
-    map_config, map_settings, user_profile_info = models  # type: MapConfig, MapSettings, UserProfileInfo
-    response = get_map_response(map_config, user_profile_info, filters)
+    map_config, map_settings, user_profile_info = models  # type: CommunityMapSettings, MapSettings, UserProfileInfo
+    map_config = map_config or CommunityMapSettings.get_default(community_id)
+    response = get_map_response(map_config, REPORTS_TAG, user_profile_info, filters)
     response.functionalities = [MapFunctionality.ADDRESSES]
     base_urls = MapBaseUrlsTO(icon_pin=None, icon_transparent=None)
     if map_settings and map_settings.data:

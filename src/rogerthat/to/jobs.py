@@ -50,6 +50,10 @@ class LatLonTO(TO):
     lat = float_property('lat')
     lon = float_property('lon')
 
+    @classmethod
+    def from_model(cls, m):
+        return cls(lat=m.lat, lon=m.lon)
+
 
 class JobOfferLocationTO(TO):
     city = unicode_property('city')

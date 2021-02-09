@@ -66,8 +66,8 @@ const rogerthat = {
       cirkloInfo: {
         logo: 'https://pbs.twimg.com/profile_images/618047344932577281/42i8HgbM_400x400.jpg',
         title: {
-          en: '## Buy your voucher now 🛍️',
-          nl: '## Koop nu je cadeaubon 🛍️',
+          en: '### Buy your voucher now 🛍️',
+          nl: '### Koop nu je cadeaubon 🛍️',
         },
         buttons: [
           { url: 'https://google.com', labels: { en: 'First button', nl: 'Eerste knop' } },

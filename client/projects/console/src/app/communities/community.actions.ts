@@ -1,5 +1,6 @@
 import { createAction, props } from '@ngrx/store';
-import { Community, CreateCommunity } from './community/communities';
+import { CommunityGeoFence } from '@oca/web-shared';
+import { Community, CommunityMapSettings, CreateCommunity } from './community/communities';
 import { HomeScreen } from './homescreen/models';
 
 export const loadCommunities = createAction(
@@ -133,5 +134,65 @@ export const testHomeScreenSuccess = createAction(
 
 export const testHomeScreenFailure = createAction(
   '[Community] Test HomeScreen Failure',
+  props<{ error: string }>(),
+);
+
+export const getGeoFence = createAction(
+  '[Community] Get GeoFence',
+  props<{ communityId: number }>(),
+);
+
+export const getGeoFenceSuccess = createAction(
+  '[Community] Get GeoFence success',
+  props<{ data: CommunityGeoFence }>(),
+);
+
+export const getGeoFenceFailure = createAction(
+  '[Community] Get GeoFence Failure',
+  props<{ error: string }>(),
+);
+
+export const updateGeoFence = createAction(
+  '[Community] Update GeoFence',
+  props<{ communityId: number; data: CommunityGeoFence }>(),
+);
+
+export const updateGeoFenceSuccess = createAction(
+  '[Community] Update GeoFence success',
+  props<{ data: CommunityGeoFence }>(),
+);
+
+export const updateGeoFenceFailure = createAction(
+  '[Community] Update GeoFence Failure',
+  props<{ error: string }>(),
+);
+
+export const getMapSettings = createAction(
+  '[Community] Get MapSettings',
+  props<{ communityId: number }>(),
+);
+
+export const getMapSettingsSuccess = createAction(
+  '[Community] Get MapSettings success',
+  props<{ data: CommunityMapSettings }>(),
+);
+
+export const getMapSettingsFailure = createAction(
+  '[Community] Get MapSettings Failure',
+  props<{ error: string }>(),
+);
+
+export const updateMapSettings = createAction(
+  '[Community] Update MapSettings',
+  props<{ communityId: number; data: CommunityMapSettings }>(),
+);
+
+export const updateMapSettingsSuccess = createAction(
+  '[Community] Update MapSettings success',
+  props<{ data: CommunityMapSettings }>(),
+);
+
+export const updateMapSettingsFailure = createAction(
+  '[Community] Update MapSettings Failure',
   props<{ error: string }>(),
 );

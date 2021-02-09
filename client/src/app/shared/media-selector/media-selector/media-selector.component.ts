@@ -2,9 +2,10 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Inpu
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { TranslateService } from '@ngx-translate/core';
-import { BaseMedia, MediaType } from '@oca/web-shared';
+import { MediaType } from '@oca/web-shared';
 import { NEWS_MEDIA_TYPE_OPTIONS } from '../../../news/consts';
-import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../upload-file';
+import { isUploadedFile, UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../upload-file';
+import { MediaItem } from '../media';
 
 @Component({
   selector: 'oca-media-selector',
@@ -18,10 +19,11 @@ import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig }
   }],
 })
 export class MediaSelectorComponent implements OnChanges, ControlValueAccessor {
+  @Input() uploadFileDialogConfig: Partial<UploadFileDialogConfig>;
   @Input() logoUrl?: string | null = null;
-  @Input() allowedMediaTypes: (MediaType | null)[] = [null, MediaType.IMAGE, MediaType.YOUTUBE_VIDEO];
+  @Input() allowedMediaTypes: (MediaType | null)[] = [null, MediaType.IMAGE, MediaType.VIDEO_YOUTUBE];
 
-  media: BaseMedia | null = null;
+  media: MediaItem | null = null;
 
   selectedMediaType: MediaType | null = MediaType.IMAGE;
   youtubeUrl: string | null;
@@ -50,18 +52,28 @@ export class MediaSelectorComponent implements OnChanges, ControlValueAccessor {
     this.setYoutubeUrl(null);
   }
 
-  showImageDialog() {
+  showFileSelectDialog(mediaType: MediaType) {
     const config: MatDialogConfig<UploadFileDialogConfig> = {
       data: {
-        fileType: 'image',
-        uploadPrefix: 'news',
-        title: this.translate.instant('oca.image'),
-        gallery: { prefix: 'logo' },
+        mediaType,
+        uploadPrefix: '',
+        title: this.translate.instant('oca.add_media'),
+        accept: this.getContentType(mediaType),
+        ...this.uploadFileDialogConfig,
       },
     };
     this.matDialog.open(UploadFileDialogComponent, config).afterClosed().subscribe((result?: UploadedFileResult) => {
       if (result) {
-        this.setResult({ type: MediaType.IMAGE, content: result.getUrl() });
+        if (isUploadedFile(result)) {
+          this.setResult({
+            type: result.type,
+            content: result.url,
+            thumbnail_url: result.thumbnail_url,
+            file_reference: result.id,
+          });
+        } else {
+          this.setResult({ type: result.type, content: result.url, thumbnail_url: result.thumbnail_url, file_reference: null });
+        }
         this.changeDetectorRef.markForCheck();
       }
     });
@@ -69,7 +81,7 @@ export class MediaSelectorComponent implements OnChanges, ControlValueAccessor {
 
   useCoverPhoto() {
     if (this.logoUrl) {
-      this.setResult({ type: MediaType.IMAGE, content: this.logoUrl });
+      this.setResult({ type: MediaType.IMAGE, content: this.logoUrl, thumbnail_url: null, file_reference: null });
     }
   }
 
@@ -77,13 +89,13 @@ export class MediaSelectorComponent implements OnChanges, ControlValueAccessor {
     if (url) {
       const id = this.getYoutubeVideoId(url);
       if (id) {
-        this.setResult({ type: MediaType.YOUTUBE_VIDEO, content: id });
+        this.setResult({ type: MediaType.VIDEO_YOUTUBE, content: id, thumbnail_url: null, file_reference: null });
       }
     }
     this.youtubeUrl = url;
   }
 
-  setResult(media: BaseMedia | null) {
+  setResult(media: MediaItem | null) {
     this.media = media;
     this.onChange(this.media);
   }
@@ -102,7 +114,10 @@ export class MediaSelectorComponent implements OnChanges, ControlValueAccessor {
   writeValue(value: any): void {
     if (value !== this.media) {
       this.media = value;
-      this.onChange(value);
+      if (this.media) {
+        this.selectedMediaType = this.media.type;
+      }
+      this.changeDetectorRef.markForCheck();
     }
   }
 
@@ -112,6 +127,18 @@ export class MediaSelectorComponent implements OnChanges, ControlValueAccessor {
       return result[ 3 ];
     } else {
       return null;
+    }
+  }
+
+  private getContentType(mediaType: MediaType) {
+    switch (mediaType) {
+      case MediaType.IMAGE:
+      case MediaType.IMAGE_360:
+        return 'image/*';
+      case MediaType.VIDEO_YOUTUBE:
+        return undefined;
+      case MediaType.PDF:
+        return 'application/pdf';
     }
   }
 

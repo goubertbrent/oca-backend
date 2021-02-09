@@ -17,7 +17,7 @@
 
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
-from shop.bizz import re_index_customer
+from shop.bizz import re_index_customer, delete_customer_index, create_customer_index
 from shop.models import Customer
 
 
@@ -26,4 +26,6 @@ def _all_customers(keys_only=True):
 
 
 def re_index_all_customers(queue=HIGH_LOAD_WORKER_QUEUE):
+    delete_customer_index()
+    create_customer_index()
     run_job(_all_customers, [True], re_index_customer, [], worker_queue=queue)

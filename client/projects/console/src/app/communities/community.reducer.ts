@@ -1,25 +1,40 @@
 import { createReducer, on } from '@ngrx/store';
-import { initialStateResult, ResultState, stateError, stateLoading, stateSuccess } from '@oca/web-shared';
+import { CommunityGeoFence, initialStateResult, ResultState, stateError, stateLoading, stateSuccess } from '@oca/web-shared';
 import { removeItem } from '../ngrx';
 import {
   createCommunity,
   createCommunityFailure,
   createCommunitySuccess,
   deleteCommunitySuccess,
-  loadCommunities,
-  loadCommunitiesFailure,
-  loadCommunitiesSuccess,
+  getGeoFence,
+  getGeoFenceFailure,
+  getGeoFenceSuccess,
   getHomeScreen,
   getHomeScreenFailure,
   getHomeScreenSuccess,
+  getMapSettings,
+  getMapSettingsFailure,
+  getMapSettingsSuccess,
+  loadCommunities,
+  loadCommunitiesFailure,
+  loadCommunitiesSuccess,
   loadCommunity,
   loadCommunityFailure,
   loadCommunitySuccess,
   updateCommunity,
   updateCommunityFailure,
-  updateCommunitySuccess, updateHomeScreen, updateHomeScreenFailure, updateHomeScreenSuccess,
+  updateCommunitySuccess,
+  updateGeoFence,
+  updateGeoFenceFailure,
+  updateGeoFenceSuccess,
+  updateHomeScreen,
+  updateHomeScreenFailure,
+  updateHomeScreenSuccess,
+  updateMapSettings,
+  updateMapSettingsFailure,
+  updateMapSettingsSuccess,
 } from './community.actions';
-import { Community } from './community/communities';
+import { Community, CommunityMapSettings } from './community/communities';
 import { HomeScreen } from './homescreen/models';
 
 
@@ -29,12 +44,16 @@ export interface CommunitiesState {
   communities: ResultState<Community[]>;
   community: ResultState<Community>;
   homeScreen: ResultState<HomeScreen>;
+  geoFence: ResultState<CommunityGeoFence>;
+  mapSettings: ResultState<CommunityMapSettings>;
 }
 
 export const initialState: CommunitiesState = {
   communities: initialStateResult,
   community: initialStateResult,
   homeScreen: initialStateResult,
+  geoFence: initialStateResult,
+  mapSettings: initialStateResult,
 };
 
 export const communitiesReducer = createReducer(
@@ -58,7 +77,19 @@ export const communitiesReducer = createReducer(
   on(getHomeScreen, state => ({ ...state, homeScreen: stateLoading(state.homeScreen.result) })),
   on(getHomeScreenSuccess, (state, { homeScreen }) => ({ ...state, homeScreen: stateSuccess(homeScreen) })),
   on(getHomeScreenFailure, (state, { error }) => ({ ...state, homeScreen: stateError(error, state.homeScreen.result) })),
-  on(updateHomeScreen, (state, {homeScreen}) => ({ ...state, homeScreen: stateLoading(homeScreen) })),
+  on(updateHomeScreen, (state, { homeScreen }) => ({ ...state, homeScreen: stateLoading(homeScreen) })),
   on(updateHomeScreenSuccess, (state, { homeScreen }) => ({ ...state, homeScreen: stateSuccess(homeScreen) })),
   on(updateHomeScreenFailure, (state, { error }) => ({ ...state, homeScreen: stateError(error, state.homeScreen.result) })),
+  on(getGeoFence, (state) => ({ ...state, geoFence: stateLoading(state.geoFence.result) })),
+  on(getGeoFenceSuccess, (state, { data }) => ({ ...state, geoFence: stateSuccess(data) })),
+  on(getGeoFenceFailure, (state, { error }) => ({ ...state, geoFence: stateError(error, state.geoFence.result) })),
+  on(updateGeoFence, (state, action) => ({ ...state, geoFence: stateLoading(action.data) })),
+  on(updateGeoFenceSuccess, (state, { data }) => ({ ...state, geoFence: stateSuccess(data) })),
+  on(updateGeoFenceFailure, (state, { error }) => ({ ...state, geoFence: stateError(error, state.geoFence.result) })),
+  on(getMapSettings, (state) => ({ ...state, mapSettings: stateLoading(state.mapSettings.result) })),
+  on(getMapSettingsSuccess, (state, { data }) => ({ ...state, mapSettings: stateSuccess(data) })),
+  on(getMapSettingsFailure, (state, { error }) => ({ ...state, mapSettings: stateError(error, state.mapSettings.result) })),
+  on(updateMapSettings, (state, action) => ({ ...state, mapSettings: stateLoading(action.data) })),
+  on(updateMapSettingsSuccess, (state, { data }) => ({ ...state, mapSettings: stateSuccess(data) })),
+  on(updateMapSettingsFailure, (state, { error }) => ({ ...state, mapSettings: stateError(error, state.mapSettings.result) })),
 );

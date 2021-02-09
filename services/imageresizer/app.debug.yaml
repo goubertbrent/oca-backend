@@ -1,0 +1,15 @@
+runtime: python39
+service: imageresizer
+instance_class: F1
+
+handlers:
+- url: /.*
+  secure: always
+  script: auto
+
+inbound_services:
+- warmup
+
+
+env_variables:
+  API_KEY: "debug"

@@ -5,7 +5,7 @@
   <h1 class="flex-grow">News settings</h1>
 </mat-toolbar>
 <ng-template #progressBar>
-  <mat-progress-bar></mat-progress-bar>
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
 </ng-template>
 <form [formGroup]="formGroup" (ngSubmit)="saveStream()" class="news-stream-form">
   <mat-form-field>

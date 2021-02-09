@@ -17,37 +17,34 @@
 
 from typing import List
 
+from rogerthat.bizz.communities.models import CommunityMapSettings
 from rogerthat.bizz.system import get_profile_addresses_to
 from rogerthat.models import UserProfileInfo, ServiceMenuDef
-from rogerthat.models.maps import MapConfig
 from rogerthat.to import GeoPointTO
 from rogerthat.to.maps import GetMapResponseTO, MapDefaultsTO, MapFilterTO
 
 
-def get_map_response(map_config, user_profile_info, filters, add_addresses=True):
-    # type: (MapConfig, UserProfileInfo, List[MapFilterTO]) -> GetMapResponseTO
-    defaults = MapDefaultsTO(coords=GeoPointTO(lat=51.0974612, lon=3.8378242),  # todo change to OSA office
-                             distance=3000,
+def get_map_response(map_settings, layer_tag, user_profile_info, filters, add_addresses=True):
+    # type: (CommunityMapSettings, str, UserProfileInfo, List[MapFilterTO], bool) -> GetMapResponseTO
+    defaults = MapDefaultsTO(coords=GeoPointTO(lat=map_settings.center.lat, lon=map_settings.center.lon),
+                             distance=map_settings.distance,
                              max_distance=15 * 1000)
 
     buttons = []
-    if map_config:
-        defaults.coords.lat = map_config.center.lat
-        defaults.coords.lon = map_config.center.lon
-        defaults.distance = map_config.distance
-        if map_config.filters:
-            filters = [f for f in filters if f.key in map_config.filters]
-        if map_config.default_filter:
-            results = [f for f in filters if f.key == map_config.default_filter]
-            if results:
-                defaults.filter = results[0].key
-        if map_config.buttons:
-            buttons = map_config.buttons
-            for button in buttons:
-                if button.action.startswith('smi://'):
-                    button.action = 'smi://' + ServiceMenuDef.hash_tag(button.action[6:])
-                if button.color and not button.color.startswith('#'):
-                    button.color = '#%s' % button.color
+    layer_settings = map_settings.layers.get_settings_for_tag(layer_tag)
+    if layer_settings and layer_settings.filters:
+        filters = [f for f in filters if f.key in layer_settings.filters]
+    if layer_settings and layer_settings.default_filter:
+        results = [f for f in filters if f.key == layer_settings.default_filter]
+        if results:
+            defaults.filter = results[0].key
+    if layer_settings and layer_settings.buttons:
+        buttons = layer_settings.buttons
+        for button in buttons:
+            if button.action.startswith('smi://'):
+                button.action = 'smi://' + ServiceMenuDef.hash_tag(button.action[6:])
+            if button.color and not button.color.startswith('#'):
+                button.color = '#%s' % button.color
 
     if not defaults.filter:
         defaults.filter = filters[0].key if filters else None

@@ -27,7 +27,7 @@ export class NewsItemPreviewItemComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes.media && changes.media.currentValue) {
-      if (this.media && this.media.type === MediaType.YOUTUBE_VIDEO) {
+      if (this.media && this.media.type === MediaType.VIDEO_YOUTUBE) {
         this.sharedService.ensureYoutubeLoaded();
       }
     }

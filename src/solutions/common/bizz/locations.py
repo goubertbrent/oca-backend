@@ -73,7 +73,7 @@ def _copy_service_info(service_user, new_identity, name):
     service_info = ServiceInfo.create_key(service_user, ServiceIdentity.DEFAULT).get()  # type: ServiceInfo
     info = ServiceInfo(key=ServiceInfo.create_key(service_user, new_identity))
     info.addresses = service_info.addresses
-    info.cover_media = service_info.cover_media
+    info.media = service_info.media
     info.description = service_info.description
     info.email_addresses = service_info.email_addresses
     info.keywords = service_info.keywords

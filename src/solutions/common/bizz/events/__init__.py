@@ -43,7 +43,8 @@ from rogerthat.dal import parent_ndb_key
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_service_profile, get_user_profile
 from rogerthat.models import App
-from rogerthat.models.utils import ndb_allocate_ids
+from rogerthat.models.news import MediaType
+from rogerthat.models.utils import ndb_allocate_id
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import APPENGINE_APP_ID
 from rogerthat.rpc.service import BusinessException
@@ -308,7 +309,7 @@ def put_event(sln_settings, new_event, community_id, organization_type):
     if new_event.id is not MISSING:
         event = get_event_by_id(service_user, sln_settings.solution, new_event.id)
     else:
-        event_id = ndb_allocate_ids(Event, 1, parent_ndb_key(service_user, sln_settings.solution))[0]
+        event_id = ndb_allocate_id(Event, parent_ndb_key(service_user, sln_settings.solution))
         event = Event(key=Event.create_key(event_id, service_user, sln_settings.solution))
 
     picture = MISSING.default(new_event.picture, None)
@@ -356,8 +357,9 @@ def upload_event_image(picture, event):
     img_str = base64.b64decode(img_b64)
     content_type = AttachmentTO.CONTENT_TYPE_IMG_PNG if AttachmentTO.CONTENT_TYPE_IMG_PNG in meta else AttachmentTO.CONTENT_TYPE_IMG_JPG
     uploaded_file = FieldStorage(StringIO(img_str), headers={'content-type': content_type})
-    uploaded_file_model = upload_file(event.service_user, uploaded_file, 'events', event.key)
-    event.media = [EventMedia(url=uploaded_file_model.url, type=EventMediaType.IMAGE, ref=uploaded_file_model.key)]
+    uploaded_file_model = upload_file(event.service_user, uploaded_file, 'events', MediaType.IMAGE, event.key,
+                                      do_generate_scaled_images=False)
+    event.media = [EventMedia(url=uploaded_file_model.original_url, type=EventMediaType.IMAGE, ref=uploaded_file_model.key)]
 
 
 @returns(NoneType)

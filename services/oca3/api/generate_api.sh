@@ -13,12 +13,13 @@ openapi-generator generate -i api.yaml --output $iosdir -g objc
 openapi-generator generate -i api.yaml --output ../gen -c swagger-config.json -g python-flask
 
 # Server - module 'oca'
-openapi-generator generate -i api.yaml --output ../../../src/oca -c swagger-config.json -g python
-cd ../../../src/oca
-rm -rf api models test docs .gitignore .gitlab-ci.yml .travis.yml git_push.sh README.md requirements.txt setup.cfg setup.py test-requirements.txt tox.ini
-mv oca/* .
-rmdir oca
-cd -
+# Currently disabled as latest version of openapi generator doesn't support py2
+#openapi-generator generate -i api.yaml --output ../../../src/oca -c swagger-config.json -g python
+#cd ../../../src/oca
+#rm -rf api models test docs .gitignore .gitlab-ci.yml .travis.yml git_push.sh README.md requirements.txt setup.cfg setup.py test-requirements.txt tox.ini
+#mv oca/* .
+#rmdir oca
+#cd -
 
 # Web - console
 openapi-generator generate -i api.yaml --output ../../../client/projects/console/src/app/communities/homescreen -c swagger-config.json -g typescript-rxjs

@@ -19,6 +19,8 @@ from __future__ import unicode_literals
 
 from random import randint
 
+import cloudstorage
+from cloudstorage.storage_api import _StorageApi
 from google.appengine.ext import ndb
 from typing import List
 
@@ -27,6 +29,7 @@ from mcfw.utils import Enum
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.dal import parent_ndb_key
 from rogerthat.models import NdbModel
+from rogerthat.models.news import MediaType
 from rogerthat.rpc import users
 from rogerthat.to import TO
 from solutions.common import SOLUTION_COMMON
@@ -172,29 +175,68 @@ class FormSubmission(NdbModel):
         return cls.query(cls.form_id == form_id).filter(cls.user == user)
 
 
+class ScaledImage(NdbModel):
+    cloudstorage_path = ndb.TextProperty(required=True)
+    width = ndb.IntegerProperty(required=True, indexed=False)
+    height = ndb.IntegerProperty(required=True, indexed=False)
+    size = ndb.IntegerProperty(required=True, indexed=False)
+    content_type = ndb.TextProperty(required=True)
+
+    @property
+    def url(self):
+        return _StorageApi.api_url + self.cloudstorage_path
+
+
 class UploadedFile(NdbModel):
     reference = ndb.KeyProperty()
     content_type = ndb.StringProperty(indexed=False)
+    title = ndb.StringProperty(indexed=False)  # optional user-provided file title
     cloudstorage_path = ndb.StringProperty()
     created_on = ndb.DateTimeProperty(auto_now_add=True)
     size = ndb.IntegerProperty(indexed=False)
+    type = ndb.StringProperty(choices=MediaType.all())
+    # contains scaled down versions of an image file, and thumbnails
+    scaled_images = ndb.StructuredProperty(ScaledImage, repeated=True, indexed=False)  # type: List[ScaledImage]
 
     @property
     def id(self):
         return self.key.id()
 
     @property
-    def url(self):
+    def original_url(self):
         return get_serving_url(self.cloudstorage_path)
 
+    @property
+    def url(self):
+        for scaled in self.scaled_images:
+            if scaled.width >= 1500 or scaled.height >= 1500:
+                return scaled.url
+        return self.original_url
+
+    @property
+    def thumbnail_url(self):
+        for scaled in self.scaled_images:
+            if scaled.width <= 500 and scaled.width <= 500:
+                return scaled.url
+
     @classmethod
-    def create_key(cls, service_user, form_id):
-        return ndb.Key(cls, form_id, parent=parent_ndb_key(service_user, SOLUTION_COMMON))
+    def create_key_service(cls, service_user, file_id):
+        return ndb.Key(cls, file_id, parent=parent_ndb_key(service_user, SOLUTION_COMMON))
+
+    @classmethod
+    def create_key_poi(cls, poi_key, file_id):
+        # type: (ndb.Key, int) -> ndb.Key
+        return ndb.Key(cls, file_id, parent=poi_key)
 
     @classmethod
     def list_by_reference(cls, key):
-        # type: (ndb.Key) -> list[UploadedFile]
+        # type: (ndb.Key) -> List[UploadedFile]
         return cls.query(cls.reference == key)
+
+    @classmethod
+    def list_by_poi(cls, poi_key):
+        # type: (ndb.Key) -> List[UploadedFile]
+        return cls.query(ancestor=poi_key)
 
     @classmethod
     def list_by_user(cls, service_user):

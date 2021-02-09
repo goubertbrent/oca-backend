@@ -21,6 +21,8 @@ from urlparse import urlparse
 
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred, ndb
+from google.appengine.ext.ndb.key import Key
+from typing import Tuple, List
 
 from mcfw.consts import MISSING
 from mcfw.exceptions import HttpNotFoundException
@@ -31,14 +33,12 @@ from rogerthat.bizz.service import _validate_service_identity
 from rogerthat.consts import FAST_QUEUE
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.models import ServiceIdentity
-from rogerthat.models.maps import MapServiceMediaItem
 from rogerthat.models.news import MediaType
-from rogerthat.models.settings import SyncedNameValue, ServiceAddress, SyncedField, ServiceInfo
+from rogerthat.models.settings import SyncedNameValue, ServiceLocation, SyncedField, ServiceInfo, MediaItem
 from rogerthat.rpc import users
 from rogerthat.service.api.system import put_avatar
-from rogerthat.to.news import BaseMediaTO
 from rogerthat.to.service import ServiceIdentityDetailsTO
-from rogerthat.utils import now
+from rogerthat.utils import now, try_or_defer
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.cloud_tasks import schedule_tasks, create_task
 from rogerthat.utils.transactions import run_in_transaction
@@ -52,7 +52,9 @@ from solutions.common.exceptions.settings import InvalidRssLinksException
 from solutions.common.models import SolutionSettings, \
     SolutionBrandingSettings, SolutionRssScraperSettings, SolutionRssLink, SolutionMainBranding, \
     SolutionServiceConsent
+from solutions.common.models.forms import UploadedFile
 from solutions.common.to import SolutionSettingsTO, SolutionRssSettingsTO
+from solutions.common.to.forms import MediaItemTO
 from solutions.common.to.settings import ServiceInfoTO, PrivacySettingsTO, PrivacySettingsGroupTO
 from solutions.common.utils import is_default_service_identity, send_client_action
 
@@ -156,15 +158,12 @@ def save_logo_to_media(service_user, service_identity, logo_url):
 def _save_logo_to_media(service_user, service_identity, logo_url):
     # type: (users.User, str, str) -> Tuple[ServiceInfo, bool]
     service_info = get_service_info(service_user, service_identity)
-    for media in service_info.cover_media:
-        if media.item.content == logo_url:
+    for media in service_info.media:
+        if media.content == logo_url:
             # Already present in cover media list, don't do anything
             return service_info, False
-    media_item = MapServiceMediaItem()
-    media_item.item = BaseMediaTO()
-    media_item.item.type = MediaType.IMAGE
-    media_item.item.content = logo_url
-    service_info.cover_media.insert(0, media_item)
+    media_item = MediaItem(type=MediaType.IMAGE, content=logo_url)
+    service_info.media.insert(0, media_item)
     service_info.put()
     return service_info, True
 
@@ -274,12 +273,32 @@ def get_service_info(service_user, service_identity):
     return ServiceInfo.create_key(service_user, service_identity).get()
 
 
+def get_media_item_models_from_to(media_items, media_models):
+    # type: (List[MediaItemTO], List[UploadedFile] ) -> List[MediaItem]
+    # media_models should never contain None unless the UploadedFile model was very recently deleted
+    file_models = {f.key.urlsafe(): f for f in media_models}
+    media_list = []
+    for media_item in media_items:
+        if media_item.file_reference:
+            file_model = file_models.get(media_item.file_reference)
+            if file_model:
+                media_list.append(MediaItem.from_file_model(file_model))
+            else:
+                logging.info('File model with key %s not found, skipping...', Key(urlsafe=media_item.file_reference))
+        else:
+            media_list.append(MediaItem(type=media_item.type,
+                                        content=media_item.content,
+                                        thumbnail_url=media_item.thumbnail_url))
+    return media_list
+
+
 def update_service_info(service_user, service_identity, data):
     # type: (users.User, str, ServiceInfoTO) -> ServiceInfo
     service_info = get_service_info(service_user, service_identity)
     service_info_dict = service_info.to_dict()
-    service_info.addresses = [ServiceAddress.from_to(a) for a in data.addresses]
-    service_info.cover_media = [MapServiceMediaItem.from_to(m) for m in data.cover_media]
+    service_info.addresses = [ServiceLocation.from_to(a) for a in data.addresses]
+    media_to_get = [Key(urlsafe=media.file_reference) for media in data.media if media.file_reference]
+    service_info.media = get_media_item_models_from_to(data.media, ndb.get_multi(media_to_get))
     service_info.currency = data.currency
     service_info.description = data.description
     service_info.email_addresses = [SyncedNameValue.from_to(v) for v in data.email_addresses]
@@ -300,12 +319,10 @@ def update_service_info(service_user, service_identity, data):
         # Temporarily copying these properties until we have cleaned up all usages of them
         # TODO: remove properties from SolutionSettings
         sln_settings.timezone = service_info.timezone
-        sln_settings.phone_number = service_info.main_phone_number
-        sln_settings.address = service_info.main_address(sln_settings.locale)
         sln_settings.currency = service_info.currency
         sln_settings.name = service_info.name
         sln_settings.put()
-        deferred.defer(broadcast_updates_pending, sln_settings)
+        try_or_defer(broadcast_updates_pending, sln_settings)
         deferred.defer(maybe_publish_home_screens, service_user)
     return service_info
 

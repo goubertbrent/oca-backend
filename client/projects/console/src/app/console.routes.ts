@@ -408,15 +408,6 @@ export const consoleRoutes: Array<Route> = [
     redirectTo: 'scripts',
   },
   {
-    path: 'maps',
-    loadChildren: () => import('./maps/maps.module').then(m => m.MapsModule),
-    data: {
-      id: 'maps',
-      icon: 'map',
-      label: 'rcc.maps',
-    },
-  },
-  {
     path: 'scripts',
     loadChildren: () => import('./interactive-explorer/explorer.module').then(m => m.ExplorerModule),
     data: {

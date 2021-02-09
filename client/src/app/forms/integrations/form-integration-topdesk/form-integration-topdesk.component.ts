@@ -14,11 +14,13 @@ import { FormSection, InputComponents, isInputComponent } from '../../interfaces
 import {
   OptionalFieldLocationFormat,
   OptionalFieldsOptions,
+  TOPDeskBranchMapping,
   TOPDeskBriefDescriptionMapping,
   TOPDeskCategory,
   TOPDeskCategoryMapping,
   TOPDeskComponentMapping,
   TOPDeskIntegrationFormConfig,
+  TOPDeskLocationMapping,
   TOPDeskOptionalField1Mapping,
   TOPDeskOptionalField2Mapping,
   TOPDeskPropertyName,
@@ -32,6 +34,8 @@ const ALLOWED_COMPONENT_TYPES_FOR_MAPPING_TYPE = {
   [ TOPDeskPropertyName.CATEGORY ]: [FormComponentType.SINGLE_SELECT],
   [ TOPDeskPropertyName.SUBCATEGORY ]: [FormComponentType.SINGLE_SELECT],
   [ TOPDeskPropertyName.BRIEF_DESCRIPTION ]: [FormComponentType.SINGLE_SELECT, FormComponentType.TEXT_INPUT],
+  [ TOPDeskPropertyName.BRANCH ]: [FormComponentType.LOCATION],
+  [ TOPDeskPropertyName.LOCATION ]: [FormComponentType.LOCATION],
   [ TOPDeskPropertyName.OPTIONAL_FIELDS_1 ]: [FormComponentType.LOCATION],
   [ TOPDeskPropertyName.OPTIONAL_FIELDS_2 ]: [FormComponentType.LOCATION],
 };
@@ -71,6 +75,8 @@ export class FormIntegrationTOPDeskComponent implements OnInit {
     [ TOPDeskPropertyName.CATEGORY ]: 'oca.category',
     [ TOPDeskPropertyName.SUBCATEGORY ]: 'oca.subcategory',
     [ TOPDeskPropertyName.BRIEF_DESCRIPTION ]: 'oca.brief_description',
+    [ TOPDeskPropertyName.BRANCH ]: 'oca.establishment',
+    [ TOPDeskPropertyName.LOCATION ]: 'oca.location',
     [ TOPDeskPropertyName.OPTIONAL_FIELDS_1 ]: 'oca.optional_fields_1',
     [ TOPDeskPropertyName.OPTIONAL_FIELDS_2 ]: 'oca.optional_fields_2',
   };
@@ -225,6 +231,16 @@ export class FormIntegrationTOPDeskComponent implements OnInit {
           type: this.formBuilder.control(component.type),
           id: this.formBuilder.control(component.id, Validators.required),
         });
+      case TOPDeskPropertyName.BRANCH:
+        return this.formBuilder.group<TOPDeskBranchMapping>({
+          type: this.formBuilder.control(component.type),
+          id: this.formBuilder.control(component.id, Validators.required),
+        });
+      case TOPDeskPropertyName.LOCATION:
+        return this.formBuilder.group<TOPDeskLocationMapping>({
+          type: this.formBuilder.control(component.type),
+          id: this.formBuilder.control(component.id, Validators.required),
+        });
       case TOPDeskPropertyName.OPTIONAL_FIELDS_1:
         return this.formBuilder.group<TOPDeskOptionalField1Mapping>({
           type: this.formBuilder.control(component.type),
@@ -266,6 +282,8 @@ export class FormIntegrationTOPDeskComponent implements OnInit {
   private getNewMapping(type: TOPDeskSupportedMappingTypes, id: string): TOPDeskComponentMapping {
     switch (type) {
       case TOPDeskPropertyName.BRIEF_DESCRIPTION:
+      case TOPDeskPropertyName.BRANCH:
+      case TOPDeskPropertyName.LOCATION:
         return { type, id };
       case TOPDeskPropertyName.CATEGORY:
         return { type, id, categories: {} };

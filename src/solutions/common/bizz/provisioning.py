@@ -143,6 +143,7 @@ POKE_TAGS = {
     SolutionModule.JCC_APPOINTMENTS: POKE_TAG_JCC_APPOINTMENTS,
     SolutionModule.CIRKLO_VOUCHERS: POKE_TAG_CIRKLO_VOUCHERS,
     SolutionModule.HOPLR: POKE_TAG_HOPLR,
+    SolutionModule.POINTS_OF_INTEREST: None,
 }
 
 STATIC_CONTENT_TAG_PREFIX = 'Static content: '
@@ -1883,6 +1884,7 @@ MODULES_PUT_FUNCS = {
     SolutionModule.JCC_APPOINTMENTS: put_jcc_appointments_module,
     SolutionModule.CIRKLO_VOUCHERS: put_cirklo_module,
     SolutionModule.HOPLR: put_hoplr_module,
+    SolutionModule.POINTS_OF_INTEREST: _dummy_put,
 }
 
 
@@ -1915,4 +1917,5 @@ MODULES_DELETE_FUNCS = {
     SolutionModule.JCC_APPOINTMENTS: _default_delete,
     SolutionModule.CIRKLO_VOUCHERS: _default_delete,
     SolutionModule.HOPLR: _default_delete,
+    SolutionModule.POINTS_OF_INTEREST: _default_delete,
 }

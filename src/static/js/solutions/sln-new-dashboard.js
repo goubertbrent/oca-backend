@@ -91,6 +91,7 @@ function debounce(func, wait, immediate) {
     ROUTES.reports = newDashboardRouter;
     ROUTES.jobs = newDashboardRouter;
     ROUTES.vouchers = newDashboardRouter;
+    ROUTES['point-of-interest'] = newDashboardRouter;
     var topMenu = $('#topmenu');
     window.addEventListener('message', function (e) {
         if (e.data && e.data.type === 'oca.set_navigation') {

@@ -1,0 +1,22 @@
+.hours-divider {
+  margin: 0 16px;
+}
+
+.periods {
+  display: flex;
+  align-items: baseline;
+}
+
+.time-form-field {
+  width: 120px;
+}
+
+.period-description {
+  flex: 1;
+  margin-left: 32px;
+}
+
+.add-hours-button {
+  display: flex;
+  justify-content: center;
+}

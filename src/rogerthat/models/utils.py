@@ -18,6 +18,7 @@
 import sys
 
 from google.appengine.ext import db, ndb
+from typing import List, Optional
 
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
@@ -65,7 +66,9 @@ def ndb_allocate_id(model_class, parent=None):
 
 @ndb.non_transactional()
 def ndb_allocate_ids(model_class, count, parent=None):
-    return model_class.allocate_ids(count, parent=parent)
+    # type: (ndb.Model, int, Optional[ndb.Key]) -> List[int]
+    start_id, end_id = model_class.allocate_ids(count, parent=parent)
+    return range(start_id, end_id + 1)
 
 
 @returns(dict)

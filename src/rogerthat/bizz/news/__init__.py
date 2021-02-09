@@ -1021,7 +1021,7 @@ def put_news(sender, sticky, sticky_until, title, message, image, news_type, new
                     btn.action = 'poke://' + hashed_tag
                     poke_tags_to_create.append(PokeTagMap(key=PokeTagMap.create_key(hashed_tag, service_user),
                                                           tag=tag))
-            
+
             button_ids.append(btn.id)
             buttons.append(btn)
     if poke_tags_to_create:
@@ -1124,7 +1124,9 @@ def put_news(sender, sticky, sticky_until, title, message, image, news_type, new
         if media_changed:
             news_item.media = media and NewsMedia(content=news_item_image_id,
                                                   url=None if news_item_image_id else media.content,
-                                                  **media.to_dict(exclude=['content']))
+                                                  type=media.type,
+                                                  width=media.width,
+                                                  height=media.height)
         if is_set(title):
             news_item.title = title
         if is_set(message):

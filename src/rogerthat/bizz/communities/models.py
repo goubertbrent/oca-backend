@@ -15,18 +15,23 @@
 #
 # @@license_version:1.5@@
 from __future__ import unicode_literals
-from google.appengine.ext import ndb
+
+from google.appengine.ext.ndb.model import StructuredProperty, GeoPtProperty, GeoPt, IntegerProperty, TextProperty, \
+    BooleanProperty, StringProperty, DateTimeProperty, Key, DateProperty
 from typing import List
 
+from mcfw.consts import MISSING
 from mcfw.utils import Enum
 from rogerthat.models import NdbModel
+from rogerthat.models.common import TOProperty
 from rogerthat.rpc import users
-from rogerthat.utils.service import add_slash_default
+from rogerthat.to.maps import MapButtonTO
+from rogerthat.utils.service import add_slash_default, create_service_identity_user
 
 
 class CommunityAutoConnectedService(NdbModel):
-    service_email = ndb.StringProperty()
-    removable = ndb.BooleanProperty(indexed=False, default=True)
+    service_email = StringProperty()
+    removable = BooleanProperty(indexed=False, default=True)
 
     @property
     def service_identity_email(self):
@@ -53,6 +58,7 @@ class AppFeatures(Enum):
     # Allows merchants to enable/disable the 'loyalty' feature in their dashboard
     LOYALTY = 'loyalty'
 
+
 # These are features that are only enabled for a few communities
 class CustomizationFeatures(Enum):
     # Store the user his home address in the app data of the main service
@@ -60,18 +66,18 @@ class CustomizationFeatures(Enum):
 
 
 class Community(NdbModel):
-    auto_connected_services = ndb.StructuredProperty(CommunityAutoConnectedService,
-                                                     repeated=True)  # type: List[CommunityAutoConnectedService]
-    country = ndb.StringProperty()  # 2 letter country code
-    create_date = ndb.DateTimeProperty(auto_now_add=True)
-    default_app = ndb.StringProperty()
-    demo = ndb.BooleanProperty(default=False)
-    embedded_apps = ndb.StringProperty(repeated=True)
-    main_service = ndb.StringProperty()
-    name = ndb.StringProperty()
-    signup_enabled = ndb.BooleanProperty(default=True)
-    features = ndb.StringProperty(repeated=True, choices=AppFeatures.all())  # type: List[str]
-    customization_features = ndb.IntegerProperty(repeated=True, choices=CustomizationFeatures.all())
+    auto_connected_services = StructuredProperty(CommunityAutoConnectedService,
+                                                 repeated=True)  # type: List[CommunityAutoConnectedService]
+    country = StringProperty()  # 2 letter country code
+    create_date = DateTimeProperty(auto_now_add=True)
+    default_app = StringProperty()
+    demo = BooleanProperty(default=False)
+    embedded_apps = StringProperty(repeated=True)
+    main_service = StringProperty()
+    name = StringProperty()
+    signup_enabled = BooleanProperty(default=True)
+    features = StringProperty(repeated=True, choices=AppFeatures.all())  # type: List[str]
+    customization_features = IntegerProperty(repeated=True, choices=CustomizationFeatures.all())
 
     @property
     def auto_connected_service_emails(self):
@@ -98,7 +104,7 @@ class Community(NdbModel):
 
     @classmethod
     def create_key(cls, community_id):
-        return ndb.Key(cls, community_id)
+        return Key(cls, community_id)
 
     @classmethod
     def list_by_country(cls, country):
@@ -130,21 +136,21 @@ class Community(NdbModel):
 
 
 class CountOnDate(NdbModel):
-    date = ndb.DateProperty(auto_now_add=True, indexed=False)
-    count = ndb.IntegerProperty(indexed=False)
+    date = DateProperty(auto_now_add=True, indexed=False)
+    count = IntegerProperty(indexed=False)
 
 
 class CommunityUserStatsHistory(NdbModel):
-    stats = ndb.StructuredProperty(CountOnDate, repeated=True, indexed=False)  # Should contain one entry per day
+    stats = StructuredProperty(CountOnDate, repeated=True, indexed=False)  # Should contain one entry per day
 
     @classmethod
     def create_key(cls, community_id):
-        return ndb.Key(cls, community_id)
+        return Key(cls, community_id)
 
 
 class CommunityUserStats(NdbModel):
-    count = ndb.IntegerProperty()
-    updated_on = ndb.DateTimeProperty(auto_now=True)
+    count = IntegerProperty()
+    updated_on = DateTimeProperty(auto_now=True)
 
     @property
     def community_id(self):
@@ -152,4 +158,65 @@ class CommunityUserStats(NdbModel):
 
     @classmethod
     def create_key(cls, community_id):
-        return ndb.Key(cls, community_id)
+        return Key(cls, community_id)
+
+
+class CommunityLocation(NdbModel):
+    locality = StringProperty()
+    postal_code = StringProperty()
+
+
+class GeoFenceGeometry(NdbModel):
+    center = GeoPtProperty(required=True)  # type: GeoPt
+    max_distance = IntegerProperty()
+
+
+class CommunityGeoFence(NdbModel):
+    country = StringProperty(required=True)
+    # Defaults used when creating a new point of interest
+    defaults = StructuredProperty(CommunityLocation, indexed=False)
+    geometry = StructuredProperty(GeoFenceGeometry, indexed=False)  # type: GeoFenceGeometry
+
+    @classmethod
+    def create_key(cls, community_id):
+        return Key(cls, community_id)
+
+
+class MapLayerSettings(NdbModel):
+    filters = TextProperty(repeated=True)
+    default_filter = TextProperty()
+    buttons = TOProperty(MapButtonTO, repeated=True)  # type: List[MapButtonTO]
+
+    @classmethod
+    def from_to(cls, to):
+        if not to or to is MISSING or not any((to.filters, to.default_filter, to.buttons)):
+            return None
+        return cls(filters=to.filters, default_filter=to.default_filter, buttons=to.buttons)
+
+
+class MapLayers(NdbModel):
+    gipod = StructuredProperty(MapLayerSettings, indexed=False)  # type: MapLayerSettings
+    poi = StructuredProperty(MapLayerSettings, indexed=False)  # type: MapLayerSettings
+    reports = StructuredProperty(MapLayerSettings, indexed=False)  # type: MapLayerSettings
+    services = StructuredProperty(MapLayerSettings, indexed=False)  # type: MapLayerSettings
+
+    def get_settings_for_tag(self, tag):
+        # type: (str) -> MapLayerSettings
+        return getattr(self, tag)
+
+
+class CommunityMapSettings(NdbModel):
+    center = GeoPtProperty(indexed=False)  # type: GeoPt
+    distance = IntegerProperty(indexed=False)
+    layers = StructuredProperty(MapLayers, indexed=False)  # type: MapLayers
+
+    @classmethod
+    def get_default(cls, community_id):
+        return cls(key=cls.create_key(community_id),
+                   center=GeoPt(50.9298839, 3.6246589),
+                   distance=2000,
+                   layers=MapLayers())
+
+    @classmethod
+    def create_key(cls, community_id):
+        return Key(cls, community_id)

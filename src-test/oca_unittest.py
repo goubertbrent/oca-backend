@@ -100,7 +100,6 @@ class TestCase(unittest.TestCase):
 
         sss = get_solution_server_settings()
         sss.shop_bizz_admin_emails = ["test@example.com"]
-        sss.shop_no_reply_email = "norepy@example.com"
 
         apps_to_be_created = {App.APP_TYPE_ROGERTHAT: {App.APP_ID_ROGERTHAT: 'Rogerthat'},
                               App.APP_TYPE_CONTENT_BRANDING: {App.APP_ID_OSA_LOYALTY: 'OSA Terminal'},

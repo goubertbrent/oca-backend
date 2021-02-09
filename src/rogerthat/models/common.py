@@ -18,13 +18,13 @@
 from datetime import datetime, date
 
 from google.appengine.api import users
-from google.appengine.ext import ndb
+from google.appengine.ext.ndb.model import JsonProperty, Expando, GeoPt, Model, Key
 
 from mcfw.rpc import parse_complex_value, serialize_complex_value
 from rogerthat.to import TO
 
 
-class NdbModel(ndb.Model):
+class NdbModel(Model):
     NAMESPACE = None
 
     def __init__(self, *args, **kwargs):
@@ -43,9 +43,9 @@ class NdbModel(ndb.Model):
             return prop.isoformat().decode('utf-8') + u'Z'
         elif isinstance(prop, date):
             return prop.isoformat().decode('utf-8')
-        elif isinstance(prop, ndb.GeoPt):
+        elif isinstance(prop, GeoPt):
             return {'lat': prop.lat, 'lon': prop.lon}
-        elif isinstance(prop, ndb.Key):
+        elif isinstance(prop, Key):
             id_ = prop.id()
             if isinstance(id_, str):
                 return id_.decode('utf-8')
@@ -53,7 +53,7 @@ class NdbModel(ndb.Model):
         elif isinstance(prop, dict):
             for p in prop:
                 prop[p] = self._convert_properties(prop[p])
-        elif isinstance(prop, ndb.Expando):
+        elif isinstance(prop, Expando):
             return self._convert_properties(prop.to_dict())
         elif isinstance(prop, TO):
             return prop.to_dict()
@@ -96,7 +96,7 @@ class NdbModel(ndb.Model):
 
 
 # JSON property that can be parsed to an object
-class TOProperty(ndb.JsonProperty):
+class TOProperty(JsonProperty):
     def __init__(self, cls, name=None, compressed=False, json_type=None, **kwds):
         super(TOProperty, self).__init__(name, compressed=compressed, json_type=json_type, **kwds)
         self.cls = cls

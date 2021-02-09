@@ -10,3 +10,6 @@ export const getCommunity = createSelector(feat, s => s.community.result);
 
 export const getCommunityHomeScreen = createSelector(feat, s => s.homeScreen.result);
 export const isHomeScreenLoading = createSelector(feat, s => s.homeScreen.state === CallStateType.LOADING);
+export const getCurrentGeoFence = createSelector(feat, s => s.geoFence.result);
+export const getCommunityMapSettings = createSelector(feat, s => s.mapSettings.result);
+export const isMapSettingsLoading = createSelector(feat, s => s.mapSettings.state === CallStateType.LOADING);

@@ -38,30 +38,6 @@ class MapButtonTO(TO):
     service = unicode_property('service', default=None)
 
 
-class MapConfigTO(TO):
-    center = typed_property('center', LatLonTO, default=None)  # type: LatLonTO
-    distance = long_property('distance', default=0)
-    filters = unicode_list_property('filters', default=[])
-    default_filter = unicode_property('default_filter', default=None)
-    buttons = typed_property('buttons', MapButtonTO, True, default=[])
-
-    @classmethod
-    def from_model(cls, m):
-        to = MapConfigTO()
-        if m:
-            to.center = LatLonTO(lat=m.center.lat, lon=m.center.lon)
-            to.distance = m.distance
-            to.filters = m.filters
-            to.default_filter = m.default_filter
-            to.buttons = m.buttons
-        else:
-            to.center = LatLonTO(lat=51.0974612, lon=3.8378242)
-            to.distance = 7287
-            to.max_distance = 15000
-        return to
-
-
-
 class MapFilterTO(TO):
     key = unicode_property('1')
     label = unicode_property('2')
@@ -207,10 +183,10 @@ class OpeningHourExceptionTO(TO):
 
 
 class OpeningHoursTO(TO):
-    id = unicode_property('id')
+    id = unicode_property('id', default=None)
     type = unicode_property('type')
     text = unicode_property('text')
-    title = unicode_property('title')
+    title = unicode_property('title', default=None)
     periods = typed_property('periods', OpeningPeriodTO, True, default=[])  # type: List[OpeningPeriodTO]
     exceptional_opening_hours = typed_property('exceptional_opening_hours', OpeningHourExceptionTO,
                                                True, default=[])  # type: List[OpeningHourExceptionTO]

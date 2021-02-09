@@ -595,4 +595,3 @@ export const TIMEZONES = [
 ];
 
 export const CURRENCIES = ['EUR', 'USD', 'GBP', 'RON', 'ZAR'];
-export const OPEN_24_HOURS_TIME = '0000';
