@@ -16,5 +16,8 @@
       </mat-option>
     </mat-select>
   </mat-form-field>
+  <mat-slide-toggle formControlName="show_product_info">
+    {{ 'oca.qmatic_show_service_info' | translate }}
+  </mat-slide-toggle>
   <button mat-stroked-button [disabled]="loading$ | async">{{ 'oca.Save' | translate }}</button>
 </form>

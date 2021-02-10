@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, ViewEncapsulation } from '@
 import { select, Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { QMState } from '../../../reducers';
-import { getDateString, QMaticBranch, QmaticClientSettings, QMaticService } from '../../appointments';
+import { getDateString, QMaticBranch, QmaticClientSettings, QMaticParsedService } from '../../appointments';
 import {
   GetBranchesAction,
   GetDatesAction,
@@ -20,7 +20,7 @@ import { NewAppointmentForm } from './create-appointment/create-appointment.comp
   encapsulation: ViewEncapsulation.None,
 })
 export class NewAppointmentPage implements OnInit {
-  services$: Observable<QMaticService[]>;
+  services$: Observable<QMaticParsedService[]>;
   branches$: Observable<QMaticBranch[]>;
   dates$: Observable<Date[]>;
   times$: Observable<string[]>;

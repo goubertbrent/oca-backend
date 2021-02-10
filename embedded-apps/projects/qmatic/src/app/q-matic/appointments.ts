@@ -5,6 +5,7 @@ export enum QMaticRequiredField {
 
 export interface QmaticClientSettings {
   required_fields: QMaticRequiredField[];
+  show_product_info: boolean;
 }
 
 export interface ListAppointments {
@@ -25,6 +26,9 @@ export interface ListResultMeta {
 
 export interface QMaticCustomServiceData {
   cancelEnabled?: boolean;
+  /**
+   * Contains HTML
+   */
   infoText?: string;
   notesFieldEnabled?: boolean;
   rescheduleEnabled?: boolean;
@@ -47,6 +51,10 @@ export interface QMaticService {
   publicEnabled: boolean;
   publicId: string;
   updated: number;
+}
+
+export interface QMaticParsedService extends QMaticService {
+  parsedCustom: QMaticCustomServiceData;
 }
 
 export interface ListServices {

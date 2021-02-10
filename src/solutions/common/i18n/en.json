@@ -1,4 +1,6 @@
 {
+  "extra_information": "Extra information",
+  "oca.qmatic_show_service_info": "Show extra service info",
   "appointment_booked": "Appointment booked",
   "appointment_cancelled": "Appointment cancelled",
   "qmatic_appointment_booked_text": "Dear,\nThe following appointment has been booked via the %(app_name)s app:",

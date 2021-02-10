@@ -1,6 +1,16 @@
 import { createFeatureSelector, createSelector } from '@ngrx/store';
 import { CallStateType, initialStateResult, ResultState } from '@oca/shared';
-import { Appointment, ListAppointments, ListBranches, ListDates, ListServices, ListTimes, QmaticClientSettings } from './appointments';
+import {
+  Appointment,
+  ListAppointments,
+  ListBranches,
+  ListDates,
+  ListServices,
+  ListTimes,
+  QmaticClientSettings,
+  QMaticParsedService,
+  QMaticService,
+} from './appointments';
 
 export const Q_MATIC_FEATURE = 'qmatic';
 
@@ -41,8 +51,8 @@ export const getAppointmentsList = createSelector(getQMaticState, s => {
 });
 
 export const getServices = createSelector(getQMaticState, s => s.services.state === CallStateType.SUCCESS
-  ? s.services.result.serviceList :
-  []);
+  ? s.services.result.serviceList.map(service => parseService(service))
+  : []);
 export const getBranches = createSelector(getQMaticState, s => s.branches.state === CallStateType.SUCCESS ?
   s.branches.result.branchList
   : []);
@@ -56,3 +66,15 @@ export const getReservedAppointment = createSelector(getQMaticState, s => s.rese
 export const isLoadingNewAppointmentInfo = createSelector(getQMaticState, s =>
   [s.services, s.branches, s.dates, s.times, s.reservedAppointment].some(status => status.state === CallStateType.LOADING));
 export const getClientSettings = createSelector(getQMaticState, s => s.settings.result);
+
+
+function parseService(service: QMaticService): QMaticParsedService {
+  if (service?.custom) {
+    try {
+      return { ...service, parsedCustom: JSON.parse(service.custom) };
+    } catch (e) {
+      console.log(e);
+    }
+  }
+  return { ...service, parsedCustom: {} };
+}

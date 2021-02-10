@@ -1,4 +1,6 @@
 {
+  "extra_information": "Extra informatie",
+  "oca.qmatic_show_service_info": "Toon extra dienst info",
   "appointment_booked": "Afspraak geboekt",
   "appointment_cancelled": "Afspraak geannuleerd",
   "qmatic_appointment_booked_text": "Beste,\nDe volgende afspraak werd geboekt via de %(app_name)s app:",

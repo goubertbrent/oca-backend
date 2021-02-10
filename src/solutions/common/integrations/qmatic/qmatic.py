@@ -34,7 +34,7 @@ from icalendar import Calendar, Event, vCalAddress, vText
 from typing import Union
 
 from mcfw.exceptions import HttpBadRequestException
-from mcfw.properties import unicode_property, unicode_list_property
+from mcfw.properties import unicode_property, unicode_list_property, bool_property
 from mcfw.rpc import returns, arguments
 from models import QMaticSettings, QMaticUser
 from rogerthat.bizz.app import get_app
@@ -66,6 +66,7 @@ class QMaticSettingsTO(TO):
     url = unicode_property('url', default=None)
     auth_token = unicode_property('auth_token', default=None)
     required_fields = unicode_list_property('required_fields', default=[])
+    show_product_info = bool_property('show_product_info', default=False)
 
 
 class TranslatedException(Exception):
@@ -100,6 +101,7 @@ def save_qmatic_settings(service_user, data):
     settings.url = data.url.strip()
     settings.auth_token = data.auth_token.strip()
     settings.required_fields = data.required_fields
+    settings.show_product_info = data.show_product_info
     try:
         if settings.url and settings.auth_token:
             if get_services(settings).status_code == 200:
@@ -356,6 +358,7 @@ def _create_ical(appointment, cancelled):
 
 
 def _send_appointment_email(service_user, app_user, appointment, cancelled=False):
+    qmatic_settings = QMaticSettings.create_key(service_user).get()  # type: QMaticSettings
     sln_settings = get_solution_settings(service_user)
     ical_content, start_date, organizer_email, location = _create_ical(appointment, cancelled)
     logging.debug('Created ical:\n%s', ical_content)
@@ -370,6 +373,9 @@ def _send_appointment_email(service_user, app_user, appointment, cancelled=False
     when = '%s %s' % (when_date, when_time)
     body = None
     html = None
+    # if settings.show_product_info is False, it is assumed that infoText contains the entire content of the email
+    # Otherwise, it is assumed that it contains extra info related to the service, like what items to bring.
+    # See services like Sint-Truiden.
     for service in appointment['services']:
         custom = service['custom']
         if custom:
@@ -378,11 +384,12 @@ def _send_appointment_email(service_user, app_user, appointment, cancelled=False
                 info_text = parsed_custom.get('infoText')
                 if info_text:
                     body = html2text.html2text(info_text)
-                    html = info_text
+                    if not qmatic_settings.show_product_info:
+                        html = info_text
                     break
             except ValueError as e:
                 logging.debug(e, exc_info=True)
-    if not body:
+    if not body or qmatic_settings.show_product_info:
         body_lines = [
             common_translate(lang, 'qmatic_appointment_cancelled_text') if cancelled else
             common_translate(lang, 'qmatic_appointment_booked_text', app_name=app.name),
@@ -395,6 +402,10 @@ def _send_appointment_email(service_user, app_user, appointment, cancelled=False
             body_lines.append('%s: %s' % (common_translate(lang, 'oca.location'), location))
         if appointment['notes']:
             body_lines.append('%s: %s' % (common_translate(lang, 'Note'), appointment['notes']))
+        # Add product info to email only if show_product_info is True
+        if qmatic_settings.show_product_info and body:
+            body_lines.append(common_translate(lang, 'extra_information') + ':')
+            body_lines.append(body)
         body = '\n'.join(body_lines)
 
     status_str = common_translate(lang, 'appointment_cancelled' if cancelled else 'appointment_booked')
@@ -416,7 +427,7 @@ def create_ical(qmatic_settings, app_user, appointment_id):
 
 def get_client_settings(config):
     # type: (QMaticSettings) -> dict
-    return {'required_fields': config.required_fields}
+    return {'required_fields': config.required_fields, 'show_product_info': config.show_product_info}
 
 
 def _get_qmatic_user(app_user):

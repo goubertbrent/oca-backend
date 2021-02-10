@@ -14,7 +14,9 @@
         itemTextField="name"
         itemValueField="publicId"></ionic-selectable>
     </ion-item>
-
+    <ion-item *ngIf="extraProductInfo$ | async as productInfo">
+      <div [innerHTML]="productInfo"></div>
+    </ion-item>
     <ion-item [class.hidden]="formGroup.controls.service.invalid">
       <ion-label>{{ 'app.qm.location' | translate }}</ion-label>
       <ion-select #branchSelect

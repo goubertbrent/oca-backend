@@ -95,6 +95,9 @@ export class QMaticTestEffects extends QMaticEffects {
     )));
 
   getSettings$ = createEffect(() => of({}).pipe(
-    map(() => new GetSettingsSuccessAction({ required_fields: [QMaticRequiredField.PHONE_NUMBER, QMaticRequiredField.EMAIL] })),
+    map(() => new GetSettingsSuccessAction({
+      required_fields: [QMaticRequiredField.PHONE_NUMBER, QMaticRequiredField.EMAIL],
+      show_product_info: true,
+    })),
   ));
 }

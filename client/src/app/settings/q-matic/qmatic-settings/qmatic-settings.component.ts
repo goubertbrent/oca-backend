@@ -14,6 +14,7 @@ interface QMaticSettings {
   url: string | null;
   auth_token: string | null;
   required_fields: QMaticRequiredField[];
+  show_product_info: boolean;
 }
 
 @Component({
@@ -27,6 +28,7 @@ export class QMaticSettingsComponent implements OnInit {
     url: new FormControl(null, Validators.required),
     auth_token: new FormControl(null, Validators.required),
     required_fields: new FormControl([]),
+    show_product_info: new FormControl(false),
   }) as IFormGroup<QMaticSettings>;
   possibleRequiredFields = [
     { value: QMaticRequiredField.EMAIL, label: 'oca.Email' },

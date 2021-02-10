@@ -27,6 +27,7 @@ class QMaticSettings(NdbModel):
     auth_token = ndb.TextProperty()
     enabled = ndb.BooleanProperty(default=False)
     required_fields = ndb.TextProperty(repeated=True)
+    show_product_info = ndb.BooleanProperty(default=False)
 
     @property
     def service_user(self):

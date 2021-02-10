@@ -1,24 +1,24 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnDestroy, Output, ViewChild } from '@angular/core';
-import { AbstractControl, FormBuilder, FormControl, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, Validators } from '@angular/forms';
 import { MatDatepicker } from '@angular/material/datepicker';
 import { IonSelect } from '@ionic/angular';
 import { TranslateService } from '@ngx-translate/core';
 import { markFormGroupTouched } from '@oca/shared';
 import { IFormBuilder, IFormGroup } from '@rxweb/types';
 import { IonicSelectableComponent } from 'ionic-selectable';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Observable, Subject } from 'rxjs';
+import { map, takeUntil } from 'rxjs/operators';
 import {
   getDateString,
   QMaticBranch,
   QmaticClientSettings,
   QMaticCustomer,
+  QMaticParsedService,
   QMaticRequiredField,
-  QMaticService,
 } from '../../../appointments';
 
 export interface NewAppointmentForm {
-  service: QMaticService | null;
+  service: QMaticParsedService | null;
   branch: string | null;
   date: Date | null;
   time: string | null;
@@ -27,9 +27,9 @@ export interface NewAppointmentForm {
   customer: Partial<QMaticCustomer>;
 }
 
-function makeRequired(formControl: AbstractControl){
+function makeRequired(formControl: AbstractControl) {
   formControl.setValidators(Validators.required);
-  formControl.updateValueAndValidity({emitEvent: false});
+  formControl.updateValueAndValidity({ emitEvent: false });
 }
 
 @Component({
@@ -52,6 +52,7 @@ export class CreateAppointmentComponent implements OnDestroy {
   @Output() dateSelected = new EventEmitter<{ service: string; branch: string; date: string; }>();
   @Output() confirmAppointment = new EventEmitter<NewAppointmentForm>();
   formGroup: IFormGroup<NewAppointmentForm>;
+  extraProductInfo$: Observable<string | undefined>;
   showValidationError = false;
   private destroyed$ = new Subject();
   private autoOpened = {
@@ -59,10 +60,11 @@ export class CreateAppointmentComponent implements OnDestroy {
     datePicker: false,
     timePicker: false,
   };
-  private _services: QMaticService[] = [];
+  private _services: QMaticParsedService[] = [];
   private _branches: QMaticBranch[] = [];
   private _dates: Date[] = [];
   private _times: string[] = [];
+  private _settings: QmaticClientSettings | null = null;
 
   constructor(private translate: TranslateService,
               private formBuilder: FormBuilder) {
@@ -81,6 +83,9 @@ export class CreateAppointmentComponent implements OnDestroy {
         phone: fb.control(null),
       }),
     });
+    this.extraProductInfo$ = this.formGroup.controls.service.valueChanges.pipe(
+      map(service => this.settings?.show_product_info ? service?.parsedCustom?.infoText : ''),
+    );
     this.formGroup.controls.service.valueChanges.pipe(takeUntil(this.destroyed$)).subscribe(v => {
       if (v) {
         this.formGroup.patchValue({ title: v.name, branch: null, date: null, time: null }, { emitEvent: false });
@@ -105,7 +110,12 @@ export class CreateAppointmentComponent implements OnDestroy {
     });
   }
 
+  get settings() {
+    return this._settings;
+  }
+
   @Input() set settings(value: QmaticClientSettings | null) {
+    this._settings = value;
     if (value) {
       const controls = this.customerForm.controls;
       if (value.required_fields.includes(QMaticRequiredField.PHONE_NUMBER)) {
@@ -151,7 +161,7 @@ export class CreateAppointmentComponent implements OnDestroy {
     return this._services;
   }
 
-  @Input() set services(value: QMaticService[]) {
+  @Input() set services(value: QMaticParsedService[]) {
     this._services = value;
     if (!this.autoOpened.services) {
       this.autoOpened.services = true;
