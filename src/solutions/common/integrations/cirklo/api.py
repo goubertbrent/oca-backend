@@ -268,9 +268,9 @@ def api_vouchers_save_cirklo_settings(data):
     info = CirkloAppInfo(enabled=data.app_info.enabled,
                          title=data.app_info.title,
                          buttons=data.app_info.buttons)
-    if info.to_dict() != og_info:
+    sln_settings = get_solution_settings(service_user)
+    if info.to_dict() != og_info and not sln_settings.ciklo_vouchers_only():
         city.app_info = info
-        sln_settings = get_solution_settings(service_user)
         sln_settings.updates_pending = True
         sln_settings.put()
         broadcast_updates_pending(sln_settings)
