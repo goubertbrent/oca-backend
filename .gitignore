@@ -13,6 +13,8 @@ js-test/gen/*
 src-tools/shop/*.xls
 src-tools/map/tmp
 .idea
+!.idea/ourcityapp.iml
+!.idea/modules.xml
 bin/
 src/solution_server_settings/consts.py
 src/migrations/
