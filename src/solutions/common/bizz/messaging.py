@@ -559,20 +559,21 @@ def _send_inbox_forwarders_message(service_user, service_identity, app_user, bod
            send_reminder=bool)
 def _send_inbox_forwarders_message_by_email(service_user, service_identity, app_user, msg_params, message_key=None,
                                             send_reminder=True):
-    if not (send_reminder and app_user and message_key):
+    if not message_key:
         return
 
     if is_default_service_identity(service_identity):
         sln_i_settings = get_solution_settings(service_user)
     else:
         sln_i_settings = get_solution_identity_settings(service_user, service_identity)
-
     if not sln_i_settings.inbox_mail_forwarders:
         return
 
     message = SolutionInboxMessage.get(message_key)
+    if not message:
+        return
     sender_app_user = create_app_user_by_email(message.sender.email, message.sender.app_id)
-    if app_user in sln_i_settings.inbox_forwarders and sender_app_user != app_user:
+    if app_user and app_user in sln_i_settings.inbox_forwarders and sender_app_user != app_user:
         return
 
     send_styled_inbox_forwarders_email(service_user, message_key, msg_params)
