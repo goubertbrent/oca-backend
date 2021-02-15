@@ -101,7 +101,6 @@ components:
               news: Nieuws
               trash_calendar: Afvalkalender
     HomeScreenContent:
-      # Unfortunately the kotlin generator doesn't support anyOf, and the java generator is all kinds of broken.
       required: [ type ]
       description: Content of the homescreen, native or an embedded app
       properties:
@@ -113,6 +112,13 @@ components:
         embedded_app:
           type: string
           description: Only set when 'type' is embedded_app
+        sections:
+          type: array
+          description: Content of the home screen
+          default: []
+          items:
+            # Can't be defined, since we would need to use oneOf which is barely supported. See MapListSectionItemTO
+            additionalProperties: true
         service_email:
           type: string
           description: This service will be used as 'context' in the embedded app, to set user data / service data.

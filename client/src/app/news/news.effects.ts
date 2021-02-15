@@ -39,12 +39,12 @@ import {
   GetNewsListFailedAction,
   GetNewsOptionsAction,
   GetNewsOptionsCompleteAction,
-  GetNewsOptionsFailedAction,
+  GetNewsOptionsFailedAction, LoadFeaturedItems, LoadFeaturedItemsFailed, LoadFeaturedItemsComplete,
   NewsActions,
   NewsActionTypes,
   UpdateNewsItemAction,
   UpdateNewsItemCompleteAction,
-  UpdateNewsItemFailedAction,
+  UpdateNewsItemFailedAction, SetFeaturedItem, SetFeaturedItemComplete, SetFeaturedItemFailed,
 } from './news.actions';
 import { NewsService } from './news.service';
 import { getLocations, NewsState } from './news.state';
@@ -62,7 +62,7 @@ export class NewsEffects {
 
   getNewsItems$ = createEffect(() => this.actions$.pipe(
     ofType<GetNewsListAction>(NewsActionTypes.GET_NEWS_LIST),
-    switchMap(action => this.newsService.getNewsList(action.payload.cursor, action.payload.query).pipe(
+    switchMap(action => this.newsService.getNewsList(action.payload.cursor, action.payload.query, action.payload.amount).pipe(
       map(data => new GetNewsListCompleteAction(data)),
       catchError(err => this.errorService.handleError(action, GetNewsListFailedAction, err, {format: 'dialog'})),
     )),
@@ -198,6 +198,20 @@ export class NewsEffects {
     switchMap(action => this.newsService.getCommunities().pipe(
       map(data => new GetCommunitiesComplete(data)),
       catchError(err => this.errorService.handleError(action, GetCommunitiesFailed, err)))),
+  ));
+
+  loadFeaturedItems$ = createEffect(() => this.actions$.pipe(
+    ofType<LoadFeaturedItems>(NewsActionTypes.LOAD_FEATURED_ITEMS),
+    switchMap(action => this.newsService.getFeaturedItems().pipe(
+      map(data => new LoadFeaturedItemsComplete(data)),
+      catchError(err => this.errorService.handleError(action, LoadFeaturedItemsFailed, err)))),
+  ));
+
+  setFeaturedItem$ = createEffect(() => this.actions$.pipe(
+    ofType<SetFeaturedItem>(NewsActionTypes.SET_FEATURED_ITEM),
+    switchMap(action => this.newsService.setFeaturedItem(action.payload).pipe(
+      map(data => new SetFeaturedItemComplete(data)),
+      catchError(err => this.errorService.handleError(action, SetFeaturedItemFailed, err)))),
   ));
 
 

@@ -241,6 +241,7 @@ class MapSectionType(object):
     MEDIA = 'media'
     NEWS = 'news'
     NEWS_GROUP = 'news-group'
+    NEWS_ITEM = 'news-item'
 
 
 class TextSectionTO(TO):
@@ -294,11 +295,19 @@ class NewsSectionTO(TO):
     limit = long_property('limit')
     placeholder_image = unicode_property('placeholder_image')
 
+
 class NewsGroupSectionTO(TO):
     type = unicode_property('type', default=MapSectionType.NEWS_GROUP)
     filter = typed_property('filter', GetNewsStreamFilterTO)
     group_id = unicode_property('group_id')
     items = typed_property('items', NewsStreamItemTO, True)
+    placeholder_image = unicode_property('placeholder_image')
+
+
+class NewsItemSectionTO(TO):
+    type = unicode_property('type', default=MapSectionType.NEWS_ITEM)
+    item = typed_property('item', NewsStreamItemTO)  # type: NewsStreamItemTO
+    group_id = unicode_property('group_id')
     placeholder_image = unicode_property('placeholder_image')
 
 
@@ -309,6 +318,7 @@ MAP_SECTION_MAPPING = {
     MapSectionType.LIST: ListSectionTO,
     MapSectionType.MEDIA: MediaSectionTO,
     MapSectionType.NEWS: NewsSectionTO,
+    MapSectionType.NEWS_ITEM: NewsItemSectionTO,
     MapSectionType.NEWS_GROUP: NewsGroupSectionTO,
 }
 
@@ -321,7 +331,7 @@ class MapSectionTO(object_factory):
 
 
 MAP_SECTION_TYPES = Union[TextSectionTO, GeometrySectionTO, VoteSectionTO, ListSectionTO, MediaSectionTO,
-                          NewsGroupSectionTO]
+                          NewsGroupSectionTO, NewsItemSectionTO]
 
 
 class MapIconTO(TO):

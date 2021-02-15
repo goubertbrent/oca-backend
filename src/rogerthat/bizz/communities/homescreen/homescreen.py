@@ -17,11 +17,11 @@
 from __future__ import unicode_literals
 
 import json
-import logging
 import urllib
 from copy import deepcopy
-from datetime import datetime
 
+import logging
+from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from google.appengine.api.app_identity.app_identity import get_application_id
 from google.appengine.ext import db, ndb
@@ -38,20 +38,23 @@ from rogerthat.bizz.communities.communities import get_community
 from rogerthat.consts import DEBUG
 from rogerthat.dal.profile import get_service_profile, get_user_profile
 from rogerthat.models import ServiceIdentity, OpeningHours, ServiceMenuDef
+from rogerthat.models.news import CommunityFeaturedNewsItems, NewsGroupFeaturedItemType
 from rogerthat.models.settings import ServiceInfo
 from rogerthat.rpc import users
 from rogerthat.settings import get_server_settings
 from rogerthat.to.maps import TextSectionTO, ListSectionTO, OpeningHoursSectionItemTO, OpeningHoursTO, \
     ExpandableListSectionItemTO, LinkListSectionItemTO, MAP_SECTION_TYPES, ListSectionStyle, VerticalLinkListItemStyle, \
-    HorizontalLinkListItemStyle, NewsGroupSectionTO
+    HorizontalLinkListItemStyle, NewsGroupSectionTO, NewsItemSectionTO
+from rogerthat.to.news import GetNewsStreamFilterTO
 from rogerthat.translations import DEFAULT_LANGUAGE, localize
 from solutions.common.models import SolutionBrandingSettings
 from .models import CommunityHomeScreen, HomeScreenTestUser
-from .to import BottomSheetSectionTemplate, TextSectionTemplate, BottomSheetSectionTemplateInstance, \
+from .to import HomeScreenSectionTemplate, TextSectionTemplate, HomeScreenSectionTemplateInstance, \
     ListSectionTemplate, NewsSectionTemplate, ExpandableItemTemplate, LinkItemTemplate, OpeningHoursItemTemplate, \
     ExpandableItemSource, LinkItemContentDefault, LinkItemSyncedContent, LinkItemSource, LinkItemAddress, \
-    LinkItemServiceMenuItem
-from ...news import get_items_for_filter
+    LinkItemServiceMenuItem, NewsItemSectionTemplate
+from ...maps.services import NEWS_PLACEHOLDER_IMAGE
+from ...news import get_items_for_filter, _get_news_stream_items_for_user
 from ...profile import update_mobiles
 
 TEST_HOME_SCREEN_ID = '_test_'
@@ -66,7 +69,8 @@ oca_client.rest_client.pool_manager = AppEngineManager()
 
 
 def convert_section_template_to_item(row, service_info, opening_hours, language, community_id):
-    # type: (BottomSheetSectionTemplate, ServiceInfo, OpeningHours, unicode, int) ->  Optional[MAP_SECTION_TYPES]
+    # type: (HomeScreenSectionTemplate, ServiceInfo, OpeningHours, unicode, int) ->  Optional[MAP_SECTION_TYPES]
+    logging.warning('Converting row %s', row)
     menu_items_to_get = set()
     if isinstance(row, ListSectionTemplate):
         for item in row.items:
@@ -179,8 +183,30 @@ def convert_section_template_to_item(row, service_info, opening_hours, language,
         news_section.filter = row.filter
         news_section.group_id = result.group_id
         news_section.items = result.items
-        news_section.placeholder_image = 'https://storage.googleapis.com/oca-files/map/news/billboard_placeholder.png'
+        news_section.placeholder_image = NEWS_PLACEHOLDER_IMAGE
         return news_section
+    elif isinstance(row, NewsItemSectionTemplate):
+        featured_config = CommunityFeaturedNewsItems.create_key(community_id).get()  # type: CommunityFeaturedNewsItems
+        featured_item = None
+        news_item_section = NewsItemSectionTO()
+        for item in featured_config.items:
+            if item.group_id == row.group_id:
+                if NewsGroupFeaturedItemType.LAST_ITEM:
+                    result = get_items_for_filter(GetNewsStreamFilterTO(group_id=item.group_id),
+                                                  community_id=community_id, amount=1)
+                    news_item_section.group_id = result.group_id
+                    if result.items:
+                        featured_item = result.items[0]
+                elif NewsGroupFeaturedItemType.SPECIFIC_ITEM:
+                    result = _get_news_stream_items_for_user(None, [item.news_id], None, [])
+                    featured_item = result[0]
+        if not featured_item:
+            return None
+        news_item_section.item = featured_item
+        news_item_section.group_id = row.group_id
+        news_item_section.placeholder_image = NEWS_PLACEHOLDER_IMAGE
+        logging.warning(news_item_section)
+        return news_item_section
     else:
         raise NotImplementedError(row)
 
@@ -190,9 +216,13 @@ def maybe_publish_home_screens(service_user):
     service_profile = get_service_profile(service_user)
     community_id = service_profile.community_id
     community = get_community(community_id)
-    if community.main_service == service_user.email():
-        for home_screen in CommunityHomeScreen.list_by_community(community_id):
-            publish_home_screen(community_id, home_screen.id)
+    if community.can_edit_home_screen(service_user):
+        publish_all_home_screens(community_id)
+
+
+def publish_all_home_screens(community_id):
+    for home_screen in CommunityHomeScreen.list_by_community(community_id):
+        publish_home_screen(community_id, home_screen.id)
 
 
 def publish_home_screen(community_id, home_screen_id, is_test=False, extra_sections=[]):
@@ -213,16 +243,26 @@ def publish_home_screen(community_id, home_screen_id, is_test=False, extra_secti
         ]
         home_screen_model, service_info, opening_hours = ndb.get_multi(
             keys)  # type: CommunityHomeScreen, ServiceInfo, OpeningHours
+        if 'sections' not in home_screen_model.data['content']:
+            home_screen_model.data['content']['sections'] = []
         data = deepcopy(home_screen_model.data)  # take copy to make sure we don't overwrite the model
-        bottom_sheet_sections = parse_complex_value(BottomSheetSectionTemplateInstance,
-                                                    data['bottom_sheet']['rows'], True)
         default_lang = data['default_language']
+
+        content_sections = parse_complex_value(HomeScreenSectionTemplateInstance, data['content']['sections'], True)
+        # Convert main content section templates to actual content
+        main_sections = [convert_section_template_to_item(section, service_info, opening_hours, default_lang,
+                                                          community_id) for section in content_sections]
+        data['content']['sections'] = [section.to_dict() for section in main_sections if section]
+
+        # Convert bottom sheet section templates to actual content
+        bottom_sheet_sections = parse_complex_value(HomeScreenSectionTemplateInstance,
+                                                    data['bottom_sheet']['rows'], True)
         bottom_sheet_rows = [convert_section_template_to_item(row, service_info, opening_hours, default_lang,
                                                               community_id) for row in bottom_sheet_sections]
         if is_test:
             bottom_sheet_rows.extend(extra_sections)
-
         data['bottom_sheet']['rows'] = [row.to_dict() for row in bottom_sheet_rows if row]
+
         # call the __deserialize "private" method
         home_screen = api_instance.api_client._ApiClient__deserialize(data, HomeScreen)  # type: HomeScreen
         bottom_sheet = home_screen.bottom_sheet  # type: HomeScreenBottomSheet
@@ -267,7 +307,10 @@ def get_temporary_home_screen(community_id, home_screen_id):
     key = CommunityHomeScreen.create_key(community_id, home_screen_id)
     home_screen = key.get()  # type: Optional[CommunityHomeScreen]
     if home_screen:
-        return home_screen.data
+        parsed = DefaultApi(oca_client).api_client._ApiClient__deserialize(home_screen.data, HomeScreen)  # type: HomeScreen
+        if parsed.content.sections is None:
+            parsed.content.sections = []
+        return parsed.to_dict()
 
     return HomeScreen(
         version=1,
@@ -284,8 +327,34 @@ def get_temporary_home_screen(community_id, home_screen_id):
                                            label='$settings'),
             ]
         ),
-        content=HomeScreenContent(type='native',
-                                  service_email=community.main_service),
+        content=HomeScreenContent(
+            type='native',
+            sections=[
+                ListSectionTemplate(items=[
+                    LinkItemTemplate(
+                        content=LinkItemContentDefault(
+                            url='open://' + json.dumps({
+                                'action': 'news',
+                                'action_type': None
+                            }),
+                        ),
+                        title='$news',
+                        style=VerticalLinkListItemStyle.BUTTON,
+                    ),
+                    LinkItemTemplate(
+                        content=LinkItemContentDefault(
+                            url='open://' + json.dumps({
+                                'action': 'services',
+                                'action_type': 'map'
+                            }),
+                        ),
+                        title='$near_you_on_map',
+                        style=VerticalLinkListItemStyle.BUTTON,
+                    ),
+                ])
+            ],
+            service_email=community.main_service
+        ),
         bottom_sheet=HomeScreenBottomSheet(
             header=HomeScreenBottomSheetHeader(title='$headerTitle',
                                                subtitle=None,
@@ -337,6 +406,8 @@ def get_temporary_home_screen(community_id, home_screen_id):
                 'email_verb': localize(DEFAULT_LANGUAGE, 'email_verb'),
                 'home': localize(DEFAULT_LANGUAGE, 'home'),
                 'messages': localize(DEFAULT_LANGUAGE, 'messages'),
+                'near_you_on_map': localize(DEFAULT_LANGUAGE, 'near_you_on_map'),
+                'news': localize(DEFAULT_LANGUAGE, 'news'),
                 'other_city_services': localize(DEFAULT_LANGUAGE, 'other_city_services'),
                 'settings': localize(DEFAULT_LANGUAGE, 'settings'),
                 'website': localize(DEFAULT_LANGUAGE, 'website'),

@@ -21,7 +21,6 @@ import httplib2
 from apiclient import discovery
 from google.appengine.ext.deferred import deferred
 from googleapiclient.errors import HttpError
-from oauth2client.service_account import ServiceAccountCredentials
 
 # These scopes must be granted by delegated_user on this page
 # https://admin.google.com/AdminHome?chromeless=1#OGX:ManageOauthClients
@@ -35,6 +34,7 @@ SCOPES = ['https://www.googleapis.com/auth/admin.directory.group',
 
 
 def _get_admin_directory_service():
+    from oauth2client.service_account import ServiceAccountCredentials
     server_settings = get_solution_server_settings()
     account = json.loads(server_settings.gsuite_service_account)
     credentials = ServiceAccountCredentials._from_parsed_json_keyfile(account, SCOPES)\

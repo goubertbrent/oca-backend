@@ -7,6 +7,7 @@ import { Observable, ReplaySubject, Subject } from 'rxjs';
 import { debounceTime, filter, map, takeUntil } from 'rxjs/operators';
 import { iconValidator } from '../../../constants';
 import { EmbeddedApp, Language, LANGUAGES } from '../../../interfaces';
+import { NewsGroup } from '../../news/news';
 import {
   AddTranslationDialogComponent,
   AddTranslationDialogData,
@@ -14,10 +15,9 @@ import {
 } from '../add-translation-dialog/add-translation-dialog.component';
 import { HomeScreenService } from '../home-screen.service';
 import {
-  BottomSheetListItemTemplate,
   BottomSheetListItemType,
-  BottomSheetSectionTemplate,
   HomeScreenDefaultTranslation,
+  HomeScreenSectionTemplate,
   HomeScreenSectionType,
   TranslationInternal,
   TranslationValue,
@@ -60,6 +60,7 @@ export class HomeScreenFormComponent implements OnDestroy {
   homeScreenFormGroup: IFormGroup<HomeScreen>;
 
   @Input() embeddedApps: EmbeddedApp[];
+  @Input() newsGroups: NewsGroup[];
   @Input() defaultTranslations: HomeScreenDefaultTranslation[];
   @Output() saved = new EventEmitter<HomeScreen>();
   private formBuilder: IFormBuilder;
@@ -88,6 +89,7 @@ export class HomeScreenFormComponent implements OnDestroy {
         content: this.formBuilder.group<HomeScreenContent>({
           embedded_app: this.formBuilder.control(null),
           service_email: this.formBuilder.control(null, Validators.email),
+          sections: this.formBuilder.array([]),
           type: this.formBuilder.control(HomeScreenContentTypeEnum.EmbeddedApp),
         }),
         default_language: this.formBuilder.control('en'),
@@ -139,14 +141,21 @@ export class HomeScreenFormComponent implements OnDestroy {
       translationsFormGroup.addControl(lang, this.getTranslationsFormGroup(translations));
     }
     const bottomSheet = this.homeScreenFormGroup.controls.bottom_sheet as IFormGroup<HomeScreenBottomSheet>;
-    const rows = bottomSheet.controls.rows as unknown as IFormArray<BottomSheetSectionTemplate>;
-    rows.clear();
-    for (const row of value.bottom_sheet.rows) {
-      rows.push(this.homeScreenFormsService.getHomeScreenItemForm(row as unknown as BottomSheetSectionTemplate));
-    }
+    this.setHomeScreenSectionRows(bottomSheet.controls.rows as unknown as IFormArray<HomeScreenSectionTemplate>,
+      value.bottom_sheet.rows as unknown as HomeScreenSectionTemplate[]);
+    const contentForm = this.homeScreenFormGroup.controls.content as unknown as IFormGroup<HomeScreenContent>;
+    this.setHomeScreenSectionRows(contentForm.controls.sections as unknown as IFormArray<HomeScreenSectionTemplate>,
+      (value.content.sections ?? []) as unknown as HomeScreenSectionTemplate[]);
     this.homeScreenFormGroup.patchValue(value, { emitEvent: false });
     this.initialized = true;
     this.setLanguages(value);
+  }
+
+  private setHomeScreenSectionRows(formArray: IFormArray<HomeScreenSectionTemplate>, sections: HomeScreenSectionTemplate[]) {
+    formArray.clear();
+    for (const section of sections) {
+      formArray.push(this.homeScreenFormsService.getHomeScreenItemForm(section));
+    }
   }
 
   ngOnDestroy() {
@@ -240,7 +249,7 @@ export class HomeScreenFormComponent implements OnDestroy {
       errors.push('Bottom sheet header');
     }
     for (let rowNum = 0; rowNum < homeScreen.bottom_sheet.rows.length; rowNum++) {
-      const row = homeScreen.bottom_sheet.rows[ rowNum ] as unknown as BottomSheetSectionTemplate;
+      const row = homeScreen.bottom_sheet.rows[ rowNum ] as unknown as HomeScreenSectionTemplate;
       switch (row.type) {
         case HomeScreenSectionType.TEXT:
           if (row.title === keyToDelete || row.description === keyToDelete) {
@@ -263,6 +272,7 @@ export class HomeScreenFormComponent implements OnDestroy {
           }
           break;
         case HomeScreenSectionType.NEWS:
+        case HomeScreenSectionType.NEWS_ITEM:
           break;
       }
     }

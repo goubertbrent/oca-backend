@@ -7,12 +7,14 @@ import {
   CityAppLocations,
   CreateNews,
   NewsCommunity,
+  NewsFeaturedItem,
   NewsItemBasicStatistics,
   NewsItemList,
   NewsItemTimeStatistics,
   NewsOptions,
   NewsStats,
   RssSettings,
+  SetFeaturedItemData,
 } from './news';
 
 @Injectable({ providedIn: 'root' })
@@ -22,13 +24,16 @@ export class NewsService {
               private _translate: TranslateService) {
   }
 
-  getNewsList(cursor: string | null, query: string | null) {
+  getNewsList(cursor: string | null, query: string | null, amount: number | undefined) {
     let params = new HttpParams();
     if (cursor) {
       params = params.set('cursor', cursor);
     }
     if (query) {
       params = params.set('query', encodeURIComponent(query));
+    }
+    if (amount) {
+      params = params.set('amount', amount.toString());
     }
     return this._http.get<NewsItemList>('/common/news', { params });
   }
@@ -75,6 +80,14 @@ export class NewsService {
 
   getCommunities() {
     return this._http.get<NewsCommunity[]>(`/common/news/communities`);
+  }
+
+  getFeaturedItems() {
+    return this._http.get<NewsFeaturedItem[]>(`/common/news/featured`);
+  }
+
+  setFeaturedItem(item: SetFeaturedItemData) {
+    return this._http.put<NewsFeaturedItem[]>(`/common/news/featured`, item);
   }
 
   getRssSettings() {

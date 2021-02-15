@@ -35,16 +35,18 @@ class HomeScreenContent(object):
     openapi_types = {
         'type': 'str',
         'embedded_app': 'str',
+        'sections': 'list[dict(str, object)]',
         'service_email': 'str'
     }
 
     attribute_map = {
         'type': 'type',
         'embedded_app': 'embedded_app',
+        'sections': 'sections',
         'service_email': 'service_email'
     }
 
-    def __init__(self, type=None, embedded_app=None, service_email=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, type=None, embedded_app=None, sections=None, service_email=None, local_vars_configuration=None):  # noqa: E501
         """HomeScreenContent - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -52,12 +54,15 @@ class HomeScreenContent(object):
 
         self._type = None
         self._embedded_app = None
+        self._sections = None
         self._service_email = None
         self.discriminator = None
 
         self.type = type
         if embedded_app is not None:
             self.embedded_app = embedded_app
+        if sections is not None:
+            self.sections = sections
         if service_email is not None:
             self.service_email = service_email
 
@@ -112,6 +117,25 @@ class HomeScreenContent(object):
         """
 
         self._embedded_app = embedded_app
+
+    @property
+    def sections(self):
+        """Gets the sections of this HomeScreenContent.  # noqa: E501
+
+        :return: The sections of this HomeScreenContent.  # noqa: E501
+        :rtype: str
+        """
+        return self._sections
+
+    @sections.setter
+    def sections(self, sections):
+        """Sets the sections of this HomeScreenContent.
+
+        :param sections: The sections of this HomeScreenContent.  # noqa: E501
+        :type: str
+        """
+
+        self._sections = sections
 
     @property
     def service_email(self):

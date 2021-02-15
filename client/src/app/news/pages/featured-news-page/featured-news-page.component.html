@@ -1,0 +1,22 @@
+<mat-toolbar color="primary">
+  <a mat-icon-button routerLink="/news/list">
+    <mat-icon>arrow_back</mat-icon>
+  </a>
+  <h1 class="flex-grow">{{ 'oca.featured_news_items' | translate }}</h1>
+</mat-toolbar>
+<p class="featured-info">{{ 'oca.featured_news_explanation' | translate }}</p>
+<mat-list class="featured-list">
+  <mat-list-item *ngFor="let item of featuredItems$ | async">
+    <button (click)="editFeaturedItem(item)" type="button" mat-icon-button>
+      <mat-icon>edit</mat-icon>
+    </button>
+    <h3 matLine>{{ item.group.name }}</h3>
+    <p matLine [ngSwitch]="item.type">
+      <ng-container *ngSwitchCase="NONE_TYPE"><i>{{ 'oca.no_featured_news_item' | translate }}</i></ng-container>
+      <ng-container *ngSwitchCase="LAST_ITEM_TYPE">{{ 'oca.last_published_news_item' | translate }}</ng-container>
+      <ng-container *ngSwitchCase="SPECIFIC_ITEM_TYPE">
+        {{ 'oca.specific_message' | translate }}: {{ item.item?.title || ('oca.news_item_not_found' | translate) }}
+      </ng-container>
+    </p>
+  </mat-list-item>
+</mat-list>

@@ -232,9 +232,7 @@ def sort_by_name(to):
 
 
 def render(tos, api_packages, capi_packages, target):
-    license_text = _read_file(
-        os.path.join(os.path.dirname(__file__), "..", "..", "..", "tools", "change_license",
-                     "gig_apache_license_header.tmpl"))
+    license_text = JINJA_ENVIRONMENT.get_template('license_header.tmpl').render()
     path = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
     tmpl = '%s.tmpl' % target
     license_string = licenses.get_license(license_text, target)
@@ -288,16 +286,6 @@ def _write_file(content, file_name):
     finally:
         f.close()
     print 'Generated %s' % file_name
-
-
-def _read_file(file_name):
-    if not os.path.exists(file_name):
-        raise RuntimeError("File '%s' does not exist" % os.path.abspath(file_name))
-    f = open(file_name, "r")
-    try:
-        return f.read()
-    finally:
-        f.close()
 
 
 DEPRECATED_API_CALLS = [

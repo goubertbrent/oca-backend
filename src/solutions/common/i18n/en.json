@@ -1,4 +1,12 @@
 {
+  "oca.please_select_a_news_item": "Please select a news item",
+  "oca.no_featured_news_item": "No featured message",
+  "oca.featured_news_items": "Featured messages",
+  "oca.featured_news_explanation": "Here you can configure the featured messages per news stream. These featured messages may be shown on the home screen.",
+  "near_you_on_map": "Near you on map",
+  "oca.last_published_news_item": "Last published message",
+  "oca.specific_message": "Specific message",
+  "oca.featured_news_item": "Featured message",
   "oca.establishment": "Establishment",
   "%(app_name)s has 1 new message for you": "%(app_name)s has 1 new message for you",
   "(Click to change)": "(Click to change)",

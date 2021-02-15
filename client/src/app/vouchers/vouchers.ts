@@ -53,6 +53,13 @@ export interface CirkloSettings {
   app_info: CirkloAppInfo;
 }
 
+export interface CirkloButton {
+  url: string;
+  labels: {
+    [ key: string ]: string;
+  };
+}
+
 export interface CirkloCity {
   cityWalletId: string;
   createdAt: string;

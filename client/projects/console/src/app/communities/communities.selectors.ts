@@ -13,3 +13,5 @@ export const isHomeScreenLoading = createSelector(feat, s => s.homeScreen.state 
 export const getCurrentGeoFence = createSelector(feat, s => s.geoFence.result);
 export const getCommunityMapSettings = createSelector(feat, s => s.mapSettings.result);
 export const isMapSettingsLoading = createSelector(feat, s => s.mapSettings.state === CallStateType.LOADING);
+
+export const getCommunityNewsGroups = createSelector(feat, s => s.newsGroups.result?.groups ?? []);

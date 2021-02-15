@@ -1,3 +1,4 @@
+import { NewsItemBasicStatistic } from '../../../../../src/app/news/news';
 import { BaseButton } from './messaging';
 
 export enum NewsItemType {

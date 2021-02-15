@@ -19,7 +19,7 @@ from __future__ import unicode_literals
 from google.appengine.ext import ndb
 
 from mcfw.consts import MISSING, REST_TYPE_TO
-from mcfw.exceptions import HttpBadRequestException, HttpNotFoundException
+from mcfw.exceptions import HttpBadRequestException, HttpNotFoundException, HttpForbiddenException
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
@@ -36,19 +36,21 @@ from rogerthat.service.api import system
 from rogerthat.service.api.communities import get_statistics
 from rogerthat.service.api.news import list_groups, get_basic_statistics, list_news
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
-from rogerthat.to.news import NewsItemTO, NewsItemListResultTO, NewsActionButtonTO, NewsItemTimeStatisticsTO, \
+from rogerthat.to.news import NewsItemTO, NewsActionButtonTO, NewsItemTimeStatisticsTO, \
     NewsItemBasicStatisticsTO
 from rogerthat.utils.service import create_service_identity_user
 from shop.exceptions import BusinessException
 from solutions import translate as common_translate
 from solutions.common.bizz.news import put_news_item, delete_news, get_news_item, get_news_reviews, \
     send_news_review_reply, publish_item_from_review, AllNewsSentToReviewWarning, get_locations, \
-    is_regional_news_enabled, check_can_send_news, get_news_statistics
+    is_regional_news_enabled, check_can_send_news, get_news_statistics, set_featured_item, get_featured_items, \
+    get_featured_list
 from solutions.common.dal import get_solution_settings
 from solutions.common.models.news import NewsSettings, NewsSettingsTags
 from solutions.common.to.broadcast import NewsOptionsTO, RegionalNewsSettingsTO, NewsActionButtonWebsite, \
     NewsActionButtonAttachment, NewsActionButtonEmail, NewsActionButtonPhone, NewsActionButtonMenuItem, \
-    NewsActionButtonOpen, NewsCommunityTO, DashboardNewsGroupTO
+    NewsActionButtonOpen, NewsCommunityTO, DashboardNewsGroupTO, SetNewsGroupFeaturedItemTO, \
+    ExtendedNewsListResultTO, NewsGroupFeaturedItemTO
 from solutions.common.to.news import NewsStatsTO, NewsReviewTO, CreateNewsItemTO
 from solutions.common.utils import is_default_service_identity
 
@@ -61,11 +63,21 @@ def _translate_exception_msg(sln_settings, msg):
 
 
 @rest('/common/news', 'get', read_only_access=True, silent_result=True)
-@returns(NewsItemListResultTO)
-@arguments(cursor=unicode, query=unicode)
-def rest_get_news(cursor=None, query=None):
-    service_identity = users.get_current_session().service_identity
-    return list_news(cursor, service_identity=service_identity, query=query)
+@returns(ExtendedNewsListResultTO)
+@arguments(cursor=unicode, query=unicode, amount=int)
+def rest_get_news(cursor=None, query=None, amount=10):
+    session = users.get_current_session()
+    current_user = users.get_current_user()
+    service_identity = session.service_identity
+    result = list_news(cursor, amount, service_identity=service_identity, query=query)
+    extended_result = ExtendedNewsListResultTO()
+    extended_result.more = result.more
+    extended_result.cursor = result.cursor
+    extended_result.result = result.result
+    extended_result.can_edit_rss = session.shop
+    community = get_community(get_service_profile(current_user).community_id)
+    extended_result.can_edit_featured = community.can_edit_home_screen(current_user)
+    return extended_result
 
 
 @rest('/common/news/statistics', 'get', read_only_access=True, silent_result=True)
@@ -299,3 +311,27 @@ def rest_get_news_options():
     return NewsOptionsTO(tags=tags, regional=regional, groups=dashboard_groups, media_types=media_types,
                          location_filter_enabled=AppFeatures.NEWS_LOCATION_FILTER in community.features,
                          action_buttons=action_buttons, service_name=service_info.name, community_id=community.id)
+
+
+@rest('/common/news/featured', 'get', read_only_access=True, silent_result=True)
+@returns([NewsGroupFeaturedItemTO])
+@arguments()
+def rest_get_featured_items():
+    community = _validate_featured_access()
+    return get_featured_list(users.get_current_user(), get_featured_items(community.id))
+
+
+@rest('/common/news/featured', 'put', read_only_access=True, silent_result=True)
+@returns([NewsGroupFeaturedItemTO])
+@arguments(data=SetNewsGroupFeaturedItemTO)
+def rest_set_featured_item(data):
+    community = _validate_featured_access()
+    return set_featured_item(users.get_current_user(), community.id, data)
+
+
+def _validate_featured_access():
+    current_user = users.get_current_user()
+    community = get_community(get_service_profile(current_user).community_id)
+    if not community.can_edit_home_screen(current_user):
+        raise HttpForbiddenException()
+    return community

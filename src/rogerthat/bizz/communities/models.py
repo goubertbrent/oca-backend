@@ -102,6 +102,9 @@ class Community(NdbModel):
     def can_edit_services(self, city_service_user):
         return self.main_service == city_service_user.email()
 
+    def can_edit_home_screen(self, service_user):
+        return self.main_service == service_user.email()
+
     @classmethod
     def create_key(cls, community_id):
         return Key(cls, community_id)

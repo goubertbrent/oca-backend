@@ -49,6 +49,7 @@ import { LinkItemTemplateContentEditorComponent } from './homescreen/link-item-t
 import { NewsGroupFormComponent } from './news/news-group-form/news-group-form.component';
 import { NewsGroupComponent } from './news/news-group/news-group.component';
 import { NewsSettingsComponent } from './news/news-setings/news-settings.component';
+import { HomeScreenSectionArrayComponent } from './homescreen/home-screen-section-array/home-screen-section-array.component';
 
 const routes: Routes = [
   { path: '', component: CommunitiesListComponent },
@@ -115,6 +116,7 @@ const routes: Routes = [
     GeoFenceSettingsPageComponent,
     MapSettingsPageComponent,
     GeoLocationFormComponent,
+    HomeScreenSectionArrayComponent,
   ],
   imports: [
     RouterModule.forChild(routes),

@@ -47,6 +47,8 @@ import { NewsDetailPageComponent } from './pages/news-detail-page/news-detail-pa
 import { NewsListPageComponent } from './pages/news-list-page/news-list-page.component';
 import { NewsSettingsPageComponent } from './pages/news-settings-page/news-settings-page.component';
 import { CreateBudgetChargeComponent } from './components/create-budget-charge/create-budget-charge.component';
+import { FeaturedNewsPageComponent } from './pages/featured-news-page/featured-news-page.component';
+import { EditFeaturedItemDialogComponent } from './components/edit-featured-item-dialog/edit-featured-item-dialog.component';
 
 @NgModule({
   declarations: [
@@ -66,6 +68,8 @@ import { CreateBudgetChargeComponent } from './components/create-budget-charge/c
     NewsReachComponent,
     NewsSettingsPageComponent,
     CreateBudgetChargeComponent,
+    FeaturedNewsPageComponent,
+    EditFeaturedItemDialogComponent,
   ],
   imports: [
     SharedModule,

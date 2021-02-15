@@ -15,30 +15,35 @@ class HomeScreenContent(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, type=None, embedded_app=None, service_email=None):  # noqa: E501
+    def __init__(self, type=None, embedded_app=None, sections=None, service_email=None):  # noqa: E501
         """HomeScreenContent - a model defined in OpenAPI
 
         :param type: The type of this HomeScreenContent.  # noqa: E501
         :type type: str
         :param embedded_app: The embedded_app of this HomeScreenContent.  # noqa: E501
         :type embedded_app: str
+        :param sections: The sections of this HomeScreenContent.  # noqa: E501
+        :type sections: List[Dict[str, object]]
         :param service_email: The service_email of this HomeScreenContent.  # noqa: E501
         :type service_email: str
         """
         self.openapi_types = {
             'type': str,
             'embedded_app': str,
+            'sections': List[Dict[str, object]],
             'service_email': str
         }
 
         self.attribute_map = {
             'type': 'type',
             'embedded_app': 'embedded_app',
+            'sections': 'sections',
             'service_email': 'service_email'
         }
 
         self._type = type
         self._embedded_app = embedded_app
+        self._sections = sections
         self._service_email = service_email
 
     @classmethod
@@ -101,6 +106,29 @@ class HomeScreenContent(Model):
         """
 
         self._embedded_app = embedded_app
+
+    @property
+    def sections(self):
+        """Gets the sections of this HomeScreenContent.
+
+        Content of the home screen  # noqa: E501
+
+        :return: The sections of this HomeScreenContent.
+        :rtype: List[Dict[str, object]]
+        """
+        return self._sections
+
+    @sections.setter
+    def sections(self, sections):
+        """Sets the sections of this HomeScreenContent.
+
+        Content of the home screen  # noqa: E501
+
+        :param sections: The sections of this HomeScreenContent.
+        :type sections: List[Dict[str, object]]
+        """
+
+        self._sections = sections
 
     @property
     def service_email(self):

@@ -26,7 +26,7 @@ from rogerthat.bizz.communities.homescreen.to import TestHomeScreenTO
 from rogerthat.bizz.communities.maps import update_community_map_settings, get_community_map_settings
 from rogerthat.bizz.communities.news import get_news_settings, upload_news_background_image, update_news_stream
 from rogerthat.bizz.communities.to import CommunityTO, BaseCommunityTO, CommunityGeoFenceTO, CommunityMapSettingsTO
-from rogerthat.to.news import NewsSettingsTO, NewsGroupConfigTO, NewsSettingsWithGroupsTO
+from rogerthat.to.news import NewsSettingsTO, NewsGroupConfigTO, NewsSettingsWithGroupsTO, NewsGroupTO
 
 
 @rest('/console-api/communities/countries', 'get')
@@ -95,14 +95,15 @@ def api_upload_news_background_image(community_id, group_id):
     return upload_news_background_image(community_id, group_id, uploaded_file)
 
 
-@rest('/console-api/communities/<community_id:\d+>/home-screen/<home_screen_id:[^/]+>', 'get')
+@rest('/console-api/communities/<community_id:\d+>/home-screen/<home_screen_id:[^/]+>', 'get', silent_result=True)
 @returns(dict)
 @arguments(community_id=(int, long), home_screen_id=unicode)
 def api_get_home_screen(community_id, home_screen_id):
     return get_temporary_home_screen(community_id, home_screen_id)
 
 
-@rest('/console-api/communities/<community_id:\d+>/home-screen/<home_screen_id:[^/]+>', 'put')
+@rest('/console-api/communities/<community_id:\d+>/home-screen/<home_screen_id:[^/]+>', 'put', silent=True,
+      silent_result=True)
 @returns(dict)
 @arguments(community_id=(int, long), home_screen_id=unicode, data=dict)
 def api_save_home_screen(community_id, home_screen_id, data):

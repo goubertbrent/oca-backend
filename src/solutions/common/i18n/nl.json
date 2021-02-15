@@ -1,4 +1,12 @@
 {
+  "oca.please_select_a_news_item": "Gelieve een bericht te selecteren",
+  "oca.no_featured_news_item": "Geen uitgelicht bericht",
+  "oca.featured_news_items": "Uitgelichte berichten",
+  "oca.featured_news_explanation": "Hier kunt u de uitgelichte berichten per nieuwsstroom configureren. Deze uitgelichte berichten kunnen op het startscherm worden weergegeven.",
+  "near_you_on_map": "Je buurt in kaart",
+  "oca.last_published_news_item": "Laatst gepubliceerde bericht",
+  "oca.specific_message": "Specifiek bericht",
+  "oca.featured_news_item": "Uitgelicht bericht",
   "oca.establishment": "Vestiging",
   "%(app_name)s has 1 new message for you": "%(app_name)s heeft 1 nieuw bericht voor u",
   "(Click to change)": "(Klik om te veranderen)",

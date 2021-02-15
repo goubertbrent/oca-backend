@@ -27,6 +27,8 @@ export function newsReducer(state: NewsState = initialNewsState, action: NewsAct
           ...state.items,
           cursor: action.payload.cursor,
           more: action.payload.more,
+          can_edit_rss: action.payload.can_edit_rss,
+          can_edit_featured: action.payload.can_edit_featured,
         }),
       };
     case NewsActionTypes.GET_NEWS_LIST_FAILED:
@@ -108,6 +110,13 @@ export function newsReducer(state: NewsState = initialNewsState, action: NewsAct
       return { ...state, communities: stateSuccess(action.payload) };
     case NewsActionTypes.GET_COMMUNITIES_FAILED:
       return { ...state, communities: stateError(action.error, initialNewsState.communities.result) };
+    case NewsActionTypes.LOAD_FEATURED_ITEMS:
+      return { ...state, featuredItems: stateLoading(initialNewsState.featuredItems.result) };
+    case NewsActionTypes.LOAD_FEATURED_ITEMS_COMPLETE:
+    case NewsActionTypes.SET_FEATURED_ITEM_COMPLETE:
+      return { ...state, featuredItems: stateSuccess(action.payload) };
+    case NewsActionTypes.LOAD_FEATURED_ITEMS_FAILED:
+      return { ...state, featuredItems: stateError(action.error, initialNewsState.featuredItems.result) };
   }
   return state;
 }

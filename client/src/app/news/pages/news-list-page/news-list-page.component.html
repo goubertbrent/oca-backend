@@ -16,7 +16,10 @@
       </button>
     </mat-form-field>
   </div>
-  <a mat-icon-button routerLink="/news/settings" *ngIf="isShowUser$ | async">
+  <a mat-icon-button routerLink="/news/featured-items" *ngIf="canEditFeatured$ | async">
+    <mat-icon>star</mat-icon>
+  </a>
+  <a mat-icon-button routerLink="/news/settings" *ngIf="canEditRss$ | async">
     <mat-icon>settings</mat-icon>
   </a>
 </mat-toolbar>

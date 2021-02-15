@@ -7,8 +7,9 @@ import { Observable } from 'rxjs';
 import { ListEmbeddedAppsAction } from '../../../actions';
 import { getEmbeddedApps } from '../../../console.state';
 import { EmbeddedApp } from '../../../interfaces';
-import { getCommunityHomeScreen, isHomeScreenLoading } from '../../communities.selectors';
-import { getHomeScreen, publishHomeScreen, testHomeScreen, updateHomeScreen } from '../../community.actions';
+import { getCommunityHomeScreen, getCommunityNewsGroups, isHomeScreenLoading } from '../../communities.selectors';
+import { getHomeScreen, loadCommunityNewsSettings, publishHomeScreen, testHomeScreen, updateHomeScreen } from '../../community.actions';
+import { NewsGroup } from '../../news/news';
 import { HomeScreenService } from '../home-screen.service';
 import { HomeScreenDefaultTranslation } from '../homescreen';
 import { HomeScreen } from '../models';
@@ -23,6 +24,7 @@ export class HomeScreenPageComponent implements OnInit {
   homeScreen$: Observable<HomeScreen | null>;
   homeScreenLoading$: Observable<boolean>;
   embeddedApps$: Observable<EmbeddedApp[]>;
+  newsGroups$: Observable<NewsGroup[]>;
   defaultTranslations$: Observable<HomeScreenDefaultTranslation[]>;
 
   private communityId: number;
@@ -42,6 +44,8 @@ export class HomeScreenPageComponent implements OnInit {
     this.homeScreenLoading$ = this.store.pipe(select(isHomeScreenLoading));
     this.store.dispatch(new ListEmbeddedAppsAction());
     this.embeddedApps$ = this.store.pipe(select(getEmbeddedApps));
+    this.newsGroups$ = this.store.pipe(select(getCommunityNewsGroups));
+    this.store.dispatch(loadCommunityNewsSettings({communityId: this.communityId}));
     this.defaultTranslations$ = this.homeScreenService.getDefaultTranslations();
   }
 

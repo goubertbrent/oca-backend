@@ -474,6 +474,54 @@ class NewsGroup(NdbModel):
         return qry
 
 
+class NewsGroupFeaturedItemType(Enum):
+    NONE = 0
+    SPECIFIC_ITEM = 1
+    LAST_ITEM = 2
+
+
+class NewsGroupFeaturedItem(NdbModel):
+    group_id = ndb.StringProperty(indexed=False, required=True)
+    news_id = ndb.IntegerProperty()
+    type = ndb.IntegerProperty(indexed=False, choices=NewsGroupFeaturedItemType.all())
+
+
+# Contains config for news items featured on the home screen of the app
+class CommunityFeaturedNewsItems(NdbModel):
+    items = ndb.StructuredProperty(NewsGroupFeaturedItem, repeated=True)  # type: List[NewsGroupFeaturedItem]
+
+    @property
+    def community_id(self):
+        return self.key.id()
+
+    @classmethod
+    def create_key(cls, community_id):
+        return ndb.Key(cls, community_id)
+
+    @classmethod
+    def list_by_news_id(cls, news_id):
+        return cls.query().filter(cls.items.news_id == news_id)
+
+    def get_news_ids(self):
+        for i in self.items:
+            if i.news_id:
+                yield i.news_id
+
+    def get_item_by_group_id(self, group_id):
+        # type: (str) -> Optional[NewsGroupFeaturedItem]
+        for i in self.items:
+            if i.group_id == group_id:
+                return i
+
+    def should_update_home_screen(self, group_ids):
+        # Should only update home screen when type is 'LAST_ITEM' and if any of the group ids match the ones configured
+        for item in self.items:
+            if item.type == NewsGroupFeaturedItemType.LAST_ITEM:
+                if item.group_id in group_ids:
+                    return True
+        return False
+
+
 class NewsSettingsServiceGroup(NdbModel):
     group_type = ndb.StringProperty()
 

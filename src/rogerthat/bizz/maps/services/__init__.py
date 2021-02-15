@@ -70,6 +70,7 @@ from rogerthat.utils.service import add_slash_default, remove_slash_default, \
 SERVICES_TAG = 'services'
 
 ORGANIZATION_TYPE_SEARCH_PREFIX = 'organization-type-'
+NEWS_PLACEHOLDER_IMAGE = 'https://storage.googleapis.com/oca-files/map/news/billboard_placeholder.png'
 
 
 class SearchTag(object):
@@ -573,13 +574,13 @@ def _get_map_item_details_to_from_ids(app_user, ids):
             news_section.filter = stream_filter
             news_section.group_id = result.group_id
             news_section.items = result.items
-            news_section.placeholder_image = 'https://storage.googleapis.com/oca-files/map/news/billboard_placeholder.png'
+            news_section.placeholder_image = NEWS_PLACEHOLDER_IMAGE
             sections.append(news_section)
             # TODO: remove after most clients support NewsGroupSectionTO
             # Then also remove NewsSectionTO model
             sections.append(NewsSectionTO(filter=stream_filter,
                                           limit=3,
-                                          placeholder_image='https://storage.googleapis.com/oca-files/map/news/billboard_placeholder.png'))
+                                          placeholder_image=NEWS_PLACEHOLDER_IMAGE))
         map_items.append(MapItemDetailsTO(id=id_,
                                           geometry=[],
                                           sections=sections))

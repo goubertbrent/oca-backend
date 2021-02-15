@@ -10,12 +10,15 @@ import { isShopUser } from '../../../shared/shared.state';
 import { ServiceNewsGroup } from '../../news';
 import { CopyNewsItemAction, DeleteNewsItemAction, GetNewsListAction } from '../../news.actions';
 import {
+  canEditFeaturedItems,
+  canEditRss,
   getNewsCursor,
   getNewsItemListStatus,
   getNewsItems,
   getNewsOptions,
   hasMoreNews,
   initialNewsState,
+  isNewsListLoading,
   NewsState,
 } from '../../news.state';
 
@@ -28,25 +31,26 @@ import {
 export class NewsListPageComponent implements OnInit {
   newsList$: Observable<NewsItem[]>;
   hasMore$: Observable<boolean>;
-  listStatus$: Observable<ResultState<null>>;
   newsGroups$: Observable<ServiceNewsGroup[]>;
   isNewsListLoading$: Observable<boolean>;
   hasNoNews$: Observable<boolean>;
   hasNoResults: Observable<boolean>;
-  isShowUser$: Observable<boolean>;
+  canEditRss$: Observable<boolean>;
+  canEditFeatured$: Observable<boolean>;
   searchControl = new FormControl() as IFormControl<string>;
+
+  private listStatus$: Observable<ResultState<null>>;
 
   constructor(private store: Store<NewsState>) {
   }
 
   ngOnInit() {
-    this.store.dispatch(new GetGlobalConfigAction());
     this.newsList$ = this.store.pipe(select(getNewsItems));
     this.hasMore$ = this.store.pipe(select(hasMoreNews));
-    this.listStatus$ = this.store.pipe(select(getNewsItemListStatus));
-    this.isNewsListLoading$ = this.listStatus$.pipe(map(s => s.state === CallStateType.LOADING));
-    this.isShowUser$ = this.store.pipe(select(isShopUser));
-    this.listStatus$.pipe(take(1)).subscribe(status => {
+    this.isNewsListLoading$ = this.listStatus$.pipe(select(isNewsListLoading));
+    this.canEditRss$ = this.store.pipe(select(canEditRss));
+    this.canEditFeatured$ = this.store.pipe(select(canEditFeaturedItems));
+    this.store.pipe(select(getNewsItemListStatus)).pipe(take(1)).subscribe(status => {
       if (status === initialNewsState.listStatus) {
         this.store.dispatch(new GetNewsListAction({ cursor: null, query: null }));
       }

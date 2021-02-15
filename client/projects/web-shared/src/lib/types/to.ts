@@ -1,30 +1,30 @@
 // tslint:disable:no-empty-interface
 export type FormComponentTO =
-  FileComponentTO
-  | TextInputComponentTO
-  | MultiSelectComponentTO
-  | DatetimeComponentTO
-  | ParagraphComponentTO
+  TextInputComponentTO
   | LocationComponentTO
-  | SingleSelectComponentTO;
+  | DatetimeComponentTO
+  | FileComponentTO
+  | MultiSelectComponentTO
+  | SingleSelectComponentTO
+  | ParagraphComponentTO;
 
 export type FormComponentValueTO =
-  SingleSelectComponentValueTO
-  | TextInputComponentValueTO
-  | MultiSelectComponentValueTO
-  | DatetimeComponentValueTO
+  TextInputComponentValueTO
   | LocationComponentValueTO
-  | FileComponentValueTO;
+  | DatetimeComponentValueTO
+  | FileComponentValueTO
+  | MultiSelectComponentValueTO
+  | SingleSelectComponentValueTO;
 
 export type FormValidatorTO =
-  RegexValidatorTO
-  | MinLengthValidatorTO
+  RequiredValidatorTO
   | MaxDateValidatorTO
+  | MinDateValidatorTO
   | MinValidatorTO
-  | MaxLengthValidatorTO
+  | RegexValidatorTO
   | MaxValidatorTO
-  | RequiredValidatorTO
-  | MinDateValidatorTO;
+  | MaxLengthValidatorTO
+  | MinLengthValidatorTO;
 
 export type JobOfferActionTO =
   JobOfferOpenActionTO
@@ -38,17 +38,17 @@ export type MapAnnouncementTO =
 
 export type MapGeometryTO =
   MultiLineStringGeometryTO
-  | LineStringGeometryTO
   | PolygonGeometryTO
+  | LineStringGeometryTO
   | MultiPolygonGeometryTO;
 
 export type MapItemLineTO =
   MapItemLineTextTO;
 
 export type MapListSectionItemTO =
-  OpeningHoursListSectionItemTO
-  | ToggleListSectionItemTO
+  ToggleListSectionItemTO
   | LinkListSectionItemTO
+  | OpeningHoursListSectionItemTO
   | ExpandableListSectionItemTO
   | OpeningHoursSectionItemTO;
 
@@ -57,23 +57,24 @@ export type MapSearchSuggestionTO =
   | MapSearchSuggestionKeywordTO;
 
 export type MapSectionTO =
-  NewsGroupSectionTO
+  MediaSectionTO
+  | NewsGroupSectionTO
   | GeometrySectionTO
+  | NewsSectionTO
   | TextSectionTO
   | ListSectionTO
-  | MediaSectionTO
-  | VoteSectionTO
-  | NewsSectionTO;
+  | NewsItemSectionTO
+  | VoteSectionTO;
 
 export type NewFlowMessageTO =
   MessageTO
   | FormMessageTO;
 
 export type NextActionTO =
-  NextActionURLTO
-  | NextActionSectionTO
+  NextActionDefaultTO
+  | NextActionURLTO
   | NextActionSubmitTO
-  | NextActionDefaultTO;
+  | NextActionSectionTO;
 
 export type Step =
   MessageFlowStepTO
@@ -82,28 +83,28 @@ export type Step =
 
 export const enum FormComponentType {
   TEXT_INPUT = 'text_input',
+  LOCATION = 'location',
+  DATETIME = 'datetime',
   FILE = 'file',
   MULTI_SELECT = 'multi_select',
-  DATETIME = 'datetime',
-  PARAGRAPH = 'paragraph',
-  LOCATION = 'location',
   SINGLE_SELECT = 'single_select',
+  PARAGRAPH = 'paragraph',
 }
 
 export const enum FormValidatorType {
+  MAXDATE = 'maxdate',
   REGEX = 'regex',
-  REQUIRED = 'required',
   MIN = 'min',
-  MAX = 'max',
+  MINDATE = 'mindate',
   MAXLENGTH = 'maxlength',
   MINLENGTH = 'minlength',
-  MAXDATE = 'maxdate',
-  MINDATE = 'mindate',
+  REQUIRED = 'required',
+  MAX = 'max',
 }
 
 export const enum JobOfferActionType {
-  OPEN = 0,
   CHAT = 1,
+  OPEN = 0,
 }
 
 export const enum MapActionChipType {
@@ -115,9 +116,9 @@ export const enum MapAnnouncementType {
 }
 
 export const enum MapGeometryType {
+  LINE_STRING = 'LineString',
   MULTI_POLYGON = 'MultiPolygon',
   POLYGON = 'Polygon',
-  LINE_STRING = 'LineString',
   MULTI_LINE_STRING = 'MultiLineString',
 }
 
@@ -126,11 +127,11 @@ export const enum MapItemLineType {
 }
 
 export const enum MapListSectionItemType {
-  OPENING_HOURS = 'opening_hours',
-  EXPANDABLE = 'expandable',
+  TOGGLE = 'toggle',
   DYNAMIC_OPENING_HOURS = 'opening-hours',
   LINK = 'link',
-  TOGGLE = 'toggle',
+  OPENING_HOURS = 'opening_hours',
+  EXPANDABLE = 'expandable',
 }
 
 export const enum MapSearchSuggestionType {
@@ -139,13 +140,14 @@ export const enum MapSearchSuggestionType {
 }
 
 export const enum MapSectionType {
-  NEWS_GROUP = 'news-group',
-  GEOMETRY = 'geometry',
   MEDIA = 'media',
-  LIST = 'list',
-  TEXT = 'text',
+  GEOMETRY = 'geometry',
   VOTE = 'vote',
+  NEWS_ITEM = 'news-item',
+  NEWS_GROUP = 'news-group',
   NEWS = 'news',
+  TEXT = 'text',
+  LIST = 'list',
 }
 
 export const enum MessageType {
@@ -154,15 +156,15 @@ export const enum MessageType {
 }
 
 export const enum NewMessageType {
-  FORM_MESSAGE = 2,
   MESSAGE = 1,
+  FORM_MESSAGE = 2,
 }
 
 export const enum NextActionType {
-  URL = 'url',
-  SECTION = 'section',
-  SUBMIT = 'submit',
   NEXT = 'next',
+  URL = 'url',
+  SUBMIT = 'submit',
+  SECTION = 'section',
 }
 
 
@@ -363,6 +365,7 @@ export interface AutoCompleteTO {
 
 export interface BaseMediaTO {
   content: string | null;
+  thumbnail_url: string | null;
   type: string | null;
 }
 
@@ -1897,6 +1900,7 @@ export interface MediaSectionTO {
 export interface MediaTO {
   content: string | null;
   height: number;
+  thumbnail_url: string | null;
   type: string | null;
   width: number;
 }
@@ -1925,7 +1929,7 @@ export interface MemberStatusUpdateRequestTO {
 export interface MemberStatusUpdateResponseTO {
 }
 
-export interface MessageEmbeddedApp {
+export interface MessageEmbeddedAppTO {
   context: string | null;
   description: string | null;
   id: string | null;
@@ -1995,7 +1999,7 @@ export interface MessageLockedResponseTO {
 export interface MessageTO {
   attachments: AttachmentTO[];
   buttons: ButtonTO[];
-  embedded_app: MessageEmbeddedApp | null;
+  embedded_app: MessageEmbeddedAppTO | null;
   members: MemberStatusTO[];
   alert_flags: number;
   branding: string | null;
@@ -2403,6 +2407,13 @@ export interface NewsGroupTabInfoTO {
   key: string | null;
   name: string | null;
   notifications: number;
+}
+
+export interface NewsItemSectionTO {
+  item: NewsStreamItemTO | null;
+  group_id: string | null;
+  placeholder_image: string | null;
+  readonly type: MapSectionType.NEWS_ITEM;
 }
 
 export interface NewsSectionTO {
@@ -3079,7 +3090,7 @@ export interface SendApiCallResponseTO {
 export interface SendMessageRequestTO {
   attachments: AttachmentTO[];
   buttons: ButtonTO[];
-  embedded_app: MessageEmbeddedApp | null;
+  embedded_app: MessageEmbeddedAppTO | null;
   flags: number;
   key: string | null;
   members: string[];
@@ -3928,19 +3939,19 @@ export interface UpdateJSEmbeddingResponseTO {
 }
 
 export interface UpdateMessageEmbeddedAppRequestTO {
-  embedded_app: MessageEmbeddedApp | null;
+  embedded_app: MessageEmbeddedAppTO | null;
   message_key: string | null;
   parent_message_key: string | null;
 }
 
 export interface UpdateMessageEmbeddedAppResponseTO {
-  embedded_app: MessageEmbeddedApp | null;
+  embedded_app: MessageEmbeddedAppTO | null;
   message_key: string | null;
   parent_message_key: string | null;
 }
 
 export interface UpdateMessageRequestTO {
-  embedded_app: MessageEmbeddedApp | null;
+  embedded_app: MessageEmbeddedAppTO | null;
   existence: number;
   flags: number;
   has_existence: boolean;

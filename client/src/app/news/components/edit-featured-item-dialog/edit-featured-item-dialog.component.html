@@ -1,0 +1,40 @@
+<h2 matDialogTitle>{{ data.group.name }}</h2>
+<mat-dialog-content>
+  <form [formGroup]="formGroup" class="featured-item-form">
+    <mat-radio-group required formControlName="type" class="radio-buttons">
+      <mat-radio-button [value]="option.value" *ngFor="let option of typeOptions">
+        {{ option.label | translate }}
+      </mat-radio-button>
+    </mat-radio-group>
+    <mat-card *ngIf="data.item" style="margin-bottom: 16px;">
+      <mat-card-header>
+        <mat-card-title>{{ 'oca.featured_news_item' | translate }}</mat-card-title>
+        <mat-card-subtitle>{{ (data.item.timestamp * 1000) | date: 'mediumDate' }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>{{ data.item.title }}</mat-card-content>
+    </mat-card>
+    <ng-container *ngIf="formGroup.controls.type.value === SPECIFIC_ITEM">
+      <mat-form-field>
+        <mat-label>{{ 'oca.Search' | translate }}</mat-label>
+        <input matInput type="search" [formControl]="newsSearchControl">
+      </mat-form-field>
+      <mat-progress-bar *ngIf="loadingNewsItems$ | async" mode="indeterminate"></mat-progress-bar>
+      <mat-selection-list [multiple]="false" (selectionChange)="setSelectedItem($event.options[0].value)">
+        <mat-list-option *ngFor="let newsItem of newsItems$ | async" [value]="newsItem">
+          {{ (newsItem.timestamp * 1000) | date: 'mediumDate' }} - {{ newsItem.title }}
+        </mat-list-option>
+      </mat-selection-list>
+    </ng-container>
+  </form>
+  <p *ngIf="formGroup.controls.news_id.hasError('required')" class="error-message">
+    {{ 'oca.please_select_a_news_item' | translate }}
+  </p>
+</mat-dialog-content>
+<mat-dialog-actions>
+  <button type="button" matDialogClose mat-button>
+    {{ 'oca.Cancel' | translate }}
+  </button>
+  <button color="primary" mat-button type="button" (click)="save()">
+    {{ 'oca.Save' | translate }}
+  </button>
+</mat-dialog-actions>

@@ -16,27 +16,31 @@
 # @@license_version:1.7@@
 from __future__ import unicode_literals
 
-import base64
-import datetime
 import json
-import logging
 from types import NoneType
 
+import base64
+import datetime
+import logging
 from babel.dates import format_datetime, get_timezone
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
+from typing import List
 
 from mcfw.consts import MISSING
 from mcfw.exceptions import HttpForbiddenException
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.communities.communities import get_community, get_communities_by_id
+from rogerthat.bizz.communities.homescreen import publish_all_home_screens
 from rogerthat.bizz.communities.models import Community, AppFeatures
+from rogerthat.bizz.news import get_group_title
 from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_ndb_key
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.models import App, Image
-from rogerthat.models.news import NewsItem
+from rogerthat.models.news import NewsItem, CommunityFeaturedNewsItems, NewsGroupFeaturedItem, \
+    NewsGroupFeaturedItemType, NewsGroup, NewsStream
 from rogerthat.models.settings import ServiceInfo
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
@@ -44,6 +48,7 @@ from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import app, news
 from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, BaseMediaTO, NewsLocationsTO, \
     NewsItemTO
+from rogerthat.utils import try_or_defer
 from rogerthat.utils.service import get_service_identity_tuple
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
@@ -55,6 +60,8 @@ from solutions.common.models import SolutionInboxMessage, SolutionSettings
 from solutions.common.models.budget import Budget
 from solutions.common.models.news import NewsCoupon, SolutionNewsItem, NewsSettings, NewsSettingsTags, NewsReview, \
     CityAppLocations
+from solutions.common.to.broadcast import NewsGroupFeaturedItemTO, BasicNewsItemTO, BasicNewsGroupTO, \
+    SetNewsGroupFeaturedItemTO
 from solutions.common.to.news import NewsStatsTO
 
 
@@ -446,3 +453,49 @@ def check_can_send_news(sln_settings, service_info):
         reason = common_translate(sln_settings.main_language, 'news_service_invisible_reason')
         msg = common_translate(sln_settings.main_language, 'cannot_send_news', reason='\n' + reason)
         raise HttpForbiddenException(msg)
+
+
+def get_featured_items(community_id):
+    key = CommunityFeaturedNewsItems.create_key(community_id)
+    featured_items = key.get()  # type: CommunityFeaturedNewsItems
+    if not featured_items:
+        featured_items = CommunityFeaturedNewsItems(key=key)
+    return featured_items
+
+
+def get_featured_list(service_user, featured):
+    # type: (users.User, CommunityFeaturedNewsItems) -> List[NewsGroupFeaturedItemTO]
+    results = []
+    lang = get_solution_settings(service_user).main_language
+    news_stream = NewsStream.create_key(featured.community_id).get()  # type: NewsStream
+    news_keys = (NewsItem.create_key(news_id) for news_id in featured.get_news_ids())
+    featured_news_items = {i.id: i for i in ndb.get_multi(news_keys) if i}
+    is_city = news_stream.stream_type == NewsStream.TYPE_CITY
+    for group in ndb.get_multi((NewsGroup.create_key(group_id) for group_id in news_stream.group_ids)):
+        featured_group = featured.get_item_by_group_id(group.group_id)
+        item = NewsGroupFeaturedItemTO()
+        item.type = featured_group.type if featured_group else NewsGroupFeaturedItemType.NONE
+        name = get_group_title(is_city, group, lang)
+        item.group = BasicNewsGroupTO.from_model(group, name)
+        if item.type == NewsGroupFeaturedItemType.SPECIFIC_ITEM:
+            news_item = featured_news_items.get(featured_group.news_id)
+            if news_item:
+                item.item = BasicNewsItemTO(id=news_item.id, title=news_item.title, timestamp=news_item.timestamp)
+        results.append(item)
+    return results
+
+
+def set_featured_item(service_user, community_id, data):
+    # type: (users.User, int, SetNewsGroupFeaturedItemTO) -> List[NewsGroupFeaturedItemTO]
+    featured_items = get_featured_items(community_id)
+    group_item = featured_items.get_item_by_group_id(data.group_id)
+    if not group_item:
+        group_item = NewsGroupFeaturedItem(group_id=data.group_id)
+        featured_items.items.append(group_item)
+    group_item.type = data.type
+    group_item.news_id = data.news_id if data.type == NewsGroupFeaturedItemType.SPECIFIC_ITEM else None
+    if group_item.type == NewsGroupFeaturedItemType.NONE:
+        featured_items.items.remove(group_item)
+    featured_items.put()
+    try_or_defer(publish_all_home_screens, community_id)
+    return get_featured_list(service_user, featured_items)

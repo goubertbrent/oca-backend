@@ -29,6 +29,12 @@ export interface HomeScreenContent {
      */
     embedded_app?: string;
     /**
+     * Content of the home screen
+     * @type {Array<{ [key: string]: object; }>}
+     * @memberof HomeScreenContent
+     */
+    sections?: Array<{ [key: string]: object; }>;
+    /**
      * This service will be used as \'context\' in the embedded app, to set user data / service data.
      * @type {string}
      * @memberof HomeScreenContent

@@ -2,6 +2,7 @@ import { Action } from '@ngrx/store';
 import { ApiError, ErrorAction, NewsItem } from '@oca/web-shared';
 import {
   CityAppLocations,
+  NewsFeaturedItem,
   CreateNews,
   NewsCommunity,
   NewsItemBasicStatistics,
@@ -9,6 +10,7 @@ import {
   NewsItemTimeStatistics,
   NewsOptions,
   NewsStats,
+  SetFeaturedItemData,
 } from './news';
 
 export enum NewsActionTypes {
@@ -45,6 +47,12 @@ export enum NewsActionTypes {
   GET_COMMUNITIES = '[news] Get communities',
   GET_COMMUNITIES_COMPLETED = '[news] Get communities complete',
   GET_COMMUNITIES_FAILED = '[news] Get communities failed',
+  LOAD_FEATURED_ITEMS = '[news] Get featured items',
+  LOAD_FEATURED_ITEMS_COMPLETE = '[news] Get featured items complete',
+  LOAD_FEATURED_ITEMS_FAILED = '[news] Get featured items failed',
+  SET_FEATURED_ITEM = '[news] Set featured item',
+  SET_FEATURED_ITEM_COMPLETE = '[news] Set featured item complete',
+  SET_FEATURED_ITEM_FAILED = '[news] Set featured item failed',
 }
 
 export class GetNewsOptionsAction implements Action {
@@ -69,7 +77,7 @@ export class GetNewsOptionsFailedAction implements ErrorAction {
 export class GetNewsListAction implements Action {
   readonly type = NewsActionTypes.GET_NEWS_LIST;
 
-  constructor(public payload: { cursor: string | null, query: string | null }) {
+  constructor(public payload: { cursor: string | null, query: string | null; amount?: number}) {
   }
 }
 
@@ -279,6 +287,44 @@ export class GetCommunitiesFailed implements ErrorAction {
   }
 }
 
+export class LoadFeaturedItems implements Action {
+  readonly type = NewsActionTypes.LOAD_FEATURED_ITEMS;
+}
+
+export class LoadFeaturedItemsComplete implements Action {
+  readonly type = NewsActionTypes.LOAD_FEATURED_ITEMS_COMPLETE;
+
+  constructor(public payload: NewsFeaturedItem[]) {
+  }
+}
+
+export class LoadFeaturedItemsFailed implements ErrorAction {
+  readonly type = NewsActionTypes.LOAD_FEATURED_ITEMS_FAILED;
+
+  constructor(public error: string) {
+  }
+}
+
+export class SetFeaturedItem implements Action {
+  readonly type = NewsActionTypes.SET_FEATURED_ITEM;
+
+  constructor(public payload: SetFeaturedItemData) {
+  }
+}
+
+export class SetFeaturedItemComplete implements Action {
+  readonly type = NewsActionTypes.SET_FEATURED_ITEM_COMPLETE;
+
+  constructor(public payload: NewsFeaturedItem[]) {
+  }
+}
+
+export class SetFeaturedItemFailed implements ErrorAction {
+  readonly type = NewsActionTypes.SET_FEATURED_ITEM_FAILED;
+
+  constructor(public error: string) {
+  }
+}
 
 export type NewsActions = GetNewsOptionsAction
   | GetNewsOptionsCompleteAction
@@ -312,4 +358,10 @@ export type NewsActions = GetNewsOptionsAction
   | GetLocationsFailedAction
   | GetCommunities
   | GetCommunitiesComplete
-  | GetCommunitiesFailed;
+  | GetCommunitiesFailed
+  | LoadFeaturedItems
+  | LoadFeaturedItemsComplete
+  | LoadFeaturedItemsFailed
+  | SetFeaturedItem
+  | SetFeaturedItemComplete
+  | SetFeaturedItemFailed;

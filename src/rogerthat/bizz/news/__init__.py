@@ -15,21 +15,22 @@
 #
 # @@license_version:1.7@@
 
-import base64
-from collections import defaultdict
-from datetime import datetime
-import imghdr
 import json
-import logging
-from types import NoneType
 import urllib2
 import urlparse
+from collections import defaultdict
+from types import NoneType
 
+import base64
+import imghdr
+import logging
+from datetime import datetime
 from google.appengine.api import urlfetch, images, taskqueue
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
 from google.appengine.ext.ndb import utils
 from google.appengine.ext.ndb.query import Cursor
+from typing import List, Dict, Tuple, Iterable, Optional
 
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
@@ -50,12 +51,12 @@ from rogerthat.bizz.news.matching import (
 )
 from rogerthat.bizz.news.searching import find_news, re_index_news_item, re_index_news_item_by_key, find_news_by_service
 from rogerthat.capi.news import disableNews, createNotification
-from rogerthat.consts import SCHEDULED_QUEUE, DEBUG, NEWS_STATS_QUEUE, NEWS_MATCHING_QUEUE
+from rogerthat.consts import SCHEDULED_QUEUE, DEBUG, NEWS_STATS_QUEUE, NEWS_MATCHING_QUEUE, HIGH_LOAD_WORKER_QUEUE
 from rogerthat.dal import put_in_chunks
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.mobile import get_mobile_key_by_account
-from rogerthat.dal.profile import get_user_profile, get_service_profile, get_service_profiles, \
-    get_service_visible_non_transactional, get_profile_key
+from rogerthat.dal.profile import get_user_profile, get_service_profile, get_service_visible_non_transactional, \
+    get_profile_key
 from rogerthat.dal.service import get_service_identity, \
     get_service_identities_not_cached
 from rogerthat.exceptions.news import NewsNotFoundException, CannotUnstickNewsException, TooManyNewsButtonsException, \
@@ -70,7 +71,7 @@ from rogerthat.models.news import NewsItem, NewsItemImage, NewsItemActionStatist
     NewsMedia, NewsStream, NewsItemLocation, NewsItemGeoAddress, NewsItemAddress, \
     NewsNotificationStatus, NewsNotificationFilter, NewsStreamCustomLayout, NewsItemAction, MediaType, \
     NewsSettingsServiceGroup, NewsItemWebActions, NewsItemActions, \
-    NewsMatchType, UserNewsGroupSettings, NewsButton
+    NewsMatchType, UserNewsGroupSettings, NewsButton, CommunityFeaturedNewsItems
 from rogerthat.models.properties.messaging import DuplicateButtonIdException
 from rogerthat.models.properties.news import NewsItemStatistics
 from rogerthat.models.utils import ndb_allocate_id
@@ -92,12 +93,11 @@ from rogerthat.to.push import NewsStreamNotification
 from rogerthat.translations import localize
 from rogerthat.utils import now, is_flag_set, try_or_defer, guid, bizz_check, get_epoch_from_datetime
 from rogerthat.utils.app import get_app_id_from_app_user, create_app_user
+from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from rogerthat.utils.iOS import construct_push_notification
 from rogerthat.utils.service import add_slash_default, get_service_user_from_service_identity_user, \
     remove_slash_default, get_service_identity_tuple
 from rogerthat.web_client.models import WebClientSession
-from typing import List, Dict, Tuple, Iterable, Any, Optional
-
 
 _DEFAULT_LIMIT = 100
 ALLOWED_NEWS_BUTTON_ACTIONS = list(ALLOWED_BUTTON_ACTIONS) + ['poke']
@@ -1206,7 +1206,6 @@ def put_news(sender, sticky, sticky_until, title, message, image, news_type, new
 
     news_item = trans(existing_news_item.id if existing_news_item else None, news_type)
 
-    # TODO homescreen: Update homescreens with news block
     if not news_item.published and is_set(scheduled_at) and scheduled_at != 0:
         if scheduled_at_changed or news_item.scheduled_task_name is None:
             schedule_news(news_item)
@@ -1215,7 +1214,7 @@ def put_news(sender, sticky, sticky_until, title, message, image, news_type, new
                        _transactional=db.is_in_transaction(),
                        _queue=NEWS_MATCHING_QUEUE)
         deferred.defer(re_index_news_item_by_key, news_item.key, _countdown=2, _queue=NEWS_MATCHING_QUEUE)
-
+        try_or_defer(_update_home_screens_for_news_item, news_item)
     return news_item
 
 
@@ -1312,19 +1311,18 @@ def schedule_news(news_item):
         taskqueue.Queue(SCHEDULED_QUEUE).delete_tasks_by_name(task_name)
 
     news_item_id = news_item.id
-    task = deferred.defer(send_delayed_realtime_updates, news_item_id, _countdown=news_item.scheduled_at - now(),
+    task = deferred.defer(set_scheduled_news_item_published, news_item_id, _countdown=news_item.scheduled_at - now(),
                           _queue=SCHEDULED_QUEUE, _transactional=db.is_in_transaction())
 
     news_item.scheduled_task_name = task.name
     news_item.put()
 
 
-# excuse the irony
-def send_delayed_realtime_updates(news_item_id, *args):
-    # type: (int, Any) -> None
-    news_item = NewsItem.get_by_id(news_item_id)
+def set_scheduled_news_item_published(news_item_id):
+    # type: (int) -> None
+    news_item = NewsItem.get_by_id(news_item_id)  # type: NewsItem
     if not news_item:
-        logging.warn('Scheduled news item %d not found', news_item_id)
+        logging.warning('Scheduled news item %d not found', news_item_id)
         return
     if news_item.published:
         raise BusinessException('Not sending realtime news update for already published news item %d' % news_item_id)
@@ -1337,6 +1335,21 @@ def send_delayed_realtime_updates(news_item_id, *args):
 
     re_index_news_item(news_item)
     create_matches_for_news_item(news_item, [], True)
+    _update_home_screens_for_news_item(news_item)
+
+
+def _update_home_screens_for_news_item(news_item):
+    # type: (NewsItem) -> None
+    from rogerthat.bizz.communities.homescreen import publish_all_home_screens
+    keys = [CommunityFeaturedNewsItems.create_key(community_id) for community_id in news_item.community_ids]
+    featured_models = ndb.get_multi(keys)  # type: List[CommunityFeaturedNewsItems]
+    tasks = [create_task(publish_all_home_screens, featured.community_id) for featured in featured_models
+             if featured.should_update_home_screen(news_item.group_ids)]
+    schedule_tasks(tasks, HIGH_LOAD_WORKER_QUEUE)
+    # TODO: when news item list is needed as home screen content / bottomsheet content (NewsSectionTemplate),
+    # make sure the home screen is updated as well.
+    # Best way is probably to add some properties to CommunityFeaturedNewsItems (probably list of news group ids)
+    # when updating the home screen, so that we know when we should update the home screen.
 
 
 def news_statistics(app_user, news_type, news_ids):

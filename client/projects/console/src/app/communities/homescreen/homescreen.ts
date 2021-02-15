@@ -15,6 +15,7 @@ export const enum HomeScreenSectionType {
   TEXT = 'text',
   LIST = 'list',
   NEWS = 'news',
+  NEWS_ITEM = 'news-item',
 }
 
 export const enum BottomSheetListItemType {
@@ -111,7 +112,12 @@ export interface NewsSectionTemplate {
   limit: number;
 }
 
-export type BottomSheetSectionTemplate = TextSectionTemplate | ListSectionTemplate | NewsSectionTemplate;
+export interface NewsItemSectionTemplate {
+  type: HomeScreenSectionType.NEWS_ITEM;
+  group_id: string;
+}
+
+export type HomeScreenSectionTemplate = TextSectionTemplate | ListSectionTemplate | NewsSectionTemplate | NewsItemSectionTemplate;
 
 export interface HomeScreenDefaultTranslation {
   key: string;

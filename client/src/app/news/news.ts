@@ -23,6 +23,34 @@ export interface NewsCommunity {
   total_user_count: number;
 }
 
+export const enum NewsGroupFeaturedItemType {
+  NONE,
+  SPECIFIC_ITEM,
+  LAST_ITEM,
+}
+
+export interface BasicNewsItem {
+  id: number;
+  title: string;
+  timestamp: number;
+}
+
+export interface NewsFeaturedItem {
+  group: {
+    id: string;
+    name: string;
+    type: NewsGroupType;
+  };
+  type: NewsGroupFeaturedItemType;
+  item: BasicNewsItem | null;
+}
+
+export interface SetFeaturedItemData {
+  group_id: string;
+  news_id: number | null;
+  type: NewsGroupFeaturedItemType;
+}
+
 export interface ServiceNewsGroup {
   group_type: NewsGroupType;
   name: string;
@@ -108,6 +136,8 @@ export interface NewsItemList {
   result: NewsItem[];
   cursor: string | null;
   more: boolean;
+  can_edit_rss: boolean;
+  can_edit_featured: boolean;
 }
 
 export interface ServiceNewsGroup {

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { Router } from '@angular/router';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { ErrorService } from '@oca/web-shared';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
@@ -11,14 +11,23 @@ import {
   deleteCommunity,
   deleteCommunityFailure,
   deleteCommunitySuccess,
-  loadCommunities,
-  loadCommunitiesFailure,
-  loadCommunitiesSuccess,
+  getGeoFence,
+  getGeoFenceFailure,
+  getGeoFenceSuccess,
   getHomeScreen,
   getHomeScreenFailure,
   getHomeScreenSuccess,
+  getMapSettings,
+  getMapSettingsFailure,
+  getMapSettingsSuccess,
+  loadCommunities,
+  loadCommunitiesFailure,
+  loadCommunitiesSuccess,
   loadCommunity,
   loadCommunityFailure,
+  loadCommunityNewsSettings,
+  loadCommunityNewsSettingsFailure,
+  loadCommunityNewsSettingsSuccess,
   loadCommunitySuccess,
   publishHomeScreen,
   publishHomeScreenFailure,
@@ -29,21 +38,15 @@ import {
   updateCommunity,
   updateCommunityFailure,
   updateCommunitySuccess,
+  updateGeoFence,
+  updateGeoFenceFailure,
+  updateGeoFenceSuccess,
   updateHomeScreen,
   updateHomeScreenFailure,
   updateHomeScreenSuccess,
-  getGeoFence,
-  getGeoFenceSuccess,
-  updateGeoFence,
-  updateGeoFenceSuccess,
-  updateGeoFenceFailure,
-  getGeoFenceFailure,
-  getMapSettingsSuccess,
   updateMapSettings,
-  getMapSettingsFailure,
-  getMapSettings,
-  updateMapSettingsSuccess,
   updateMapSettingsFailure,
+  updateMapSettingsSuccess,
 } from './community.actions';
 import { CommunityService } from './community.service';
 
@@ -143,9 +146,16 @@ export class CommunitiesEffects {
   updateMapSettings$ = createEffect(() => this.actions$.pipe(
     ofType(updateMapSettings),
     switchMap(action => this.communityService.updateMapSettings(action.communityId, action.data).pipe(
-      map(data => updateMapSettingsSuccess({data})),
+      map(data => updateMapSettingsSuccess({ data })),
       tap(() => this.matSnackbar.open('Map settings updated', undefined, { duration: 5000 })),
       catchError(err => this.errorService.handleError(action, updateMapSettingsFailure, err)),
+    ))));
+
+  loadCommunityNewsSettings$ = createEffect(() => this.actions$.pipe(
+    ofType(loadCommunityNewsSettings),
+    switchMap(action => this.communityService.getNewsSettings(action.communityId).pipe(
+      map(data => loadCommunityNewsSettingsSuccess({ data })),
+      catchError(err => this.errorService.handleError(action, loadCommunityNewsSettingsFailure, err)),
     ))));
 
   constructor(private actions$: Actions,

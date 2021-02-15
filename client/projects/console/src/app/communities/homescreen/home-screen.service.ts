@@ -7,7 +7,7 @@ import { SERVICE_IDENTITY_REGEX } from '../../constants';
 import {
   BottomSheetListItemTemplate,
   BottomSheetListItemType,
-  BottomSheetSectionTemplate,
+  HomeScreenSectionTemplate,
   ExpandableItemTemplate,
   HomeScreenDefaultTranslation,
   HomeScreenSectionType,
@@ -18,7 +18,7 @@ import {
   LinkItemSource,
   LinkItemSyncedContent,
   LinkItemTemplate,
-  ListSectionTemplate,
+  ListSectionTemplate, NewsItemSectionTemplate,
   NewsSectionTemplate,
   OpeningHoursItemTemplate,
   TextSectionTemplate,
@@ -38,7 +38,7 @@ export class HomeScreenService {
     return this.http.get<HomeScreenDefaultTranslation[]>('/console-api/home-screen-translations');
   }
 
-  getHomeScreenItemForm(item: BottomSheetSectionTemplate): IFormGroup<BottomSheetSectionTemplate> {
+  getHomeScreenItemForm(item: HomeScreenSectionTemplate): IFormGroup<HomeScreenSectionTemplate> {
     switch (item.type) {
       case HomeScreenSectionType.TEXT:
         return this.formBuilder.group<TextSectionTemplate>(
@@ -66,6 +66,11 @@ export class HomeScreenService {
               Validators.pattern(SERVICE_IDENTITY_REGEX)),
           }),
         });
+      case HomeScreenSectionType.NEWS_ITEM:
+        return this.formBuilder.group<NewsItemSectionTemplate>({
+          type: this.formBuilder.control(item.type, Validators.required),
+          group_id: this.formBuilder.control(item.group_id, Validators.required),
+          });
     }
   }
 

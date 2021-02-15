@@ -18,8 +18,9 @@
 from mcfw.properties import unicode_property, typed_property, bool_property, long_property, unicode_list_property, \
     object_factory
 from mcfw.utils import Enum
+from rogerthat.models.news import NewsGroup
 from rogerthat.to import TO
-from rogerthat.to.news import ServiceNewsGroupTO, NewsActionButtonTO
+from rogerthat.to.news import ServiceNewsGroupTO, NewsActionButtonTO, NewsItemListResultTO
 
 
 class RegionalNewsSettingsTO(TO):
@@ -100,6 +101,12 @@ class NewsOptionsTO(TO):
     community_id = long_property('community_id')
 
 
+class ExtendedNewsListResultTO(NewsItemListResultTO):
+    # permissions
+    can_edit_rss = bool_property('can_edit_rss')
+    can_edit_featured = bool_property('can_edit_featured')
+
+
 class NewsCommunityTO(TO):
     id = long_property('id')
     name = unicode_property('name')
@@ -108,3 +115,40 @@ class NewsCommunityTO(TO):
     @classmethod
     def from_model(cls, m, total_user_count):
         return NewsCommunityTO(id=m.id, name=m.name, total_user_count=total_user_count)
+
+
+class CommunityNewsGroupTO(TO):
+    id = unicode_property('id')
+    type = unicode_property('type')
+    name = unicode_property('name')
+
+
+class SetNewsGroupFeaturedItemTO(TO):
+    group_id = unicode_property('group_id')
+    news_id = long_property('news_id')
+    type = long_property('type')
+
+
+class BasicNewsGroupTO(TO):
+    id = unicode_property('id')
+    name = unicode_property('name')
+    type = unicode_property('type')
+
+    @classmethod
+    def from_model(cls, m, name):
+        # type: (NewsGroup, str) -> BasicNewsGroupTO
+        return cls(id=m.group_id,
+                   name=name,
+                   type=m.group_type)
+
+
+class BasicNewsItemTO(TO):
+    id = long_property('id')
+    title = unicode_property('title')
+    timestamp = long_property('timestamp')
+
+
+class NewsGroupFeaturedItemTO(TO):
+    group = typed_property('group', BasicNewsGroupTO)  # type: BasicNewsGroupTO
+    type = long_property('type')
+    item = typed_property('item', BasicNewsItemTO, default=None)  # type: BasicNewsItemTO

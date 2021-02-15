@@ -7,10 +7,17 @@ import { MediaType, SimpleDialogComponent, SimpleDialogData, SimpleDialogResult 
 import { IFormArray, IFormBuilder, IFormGroup } from '@rxweb/types';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil, withLatestFrom } from 'rxjs/operators';
-import { CirkloButton } from '../../../../../embedded-apps/projects/cirklo/src/app/cirklo';
 import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../shared/upload-file';
 import { LanguagePickerDialogComponent } from '../language-picker-dialog/language-picker-dialog.component';
-import { CirkloAppInfo, CirkloAppInfoButton, CirkloCity, CirkloSettings, SignupLanguageProperty, SignupMails } from '../vouchers';
+import {
+  CirkloAppInfo,
+  CirkloAppInfoButton,
+  CirkloButton,
+  CirkloCity,
+  CirkloSettings,
+  SignupLanguageProperty,
+  SignupMails,
+} from '../vouchers';
 import { GetCirkloCities, GetCirkloSettingsAction, SaveCirkloSettingsAction } from '../vouchers.actions';
 import { areCirkloSettingsLoading, getCirkloCities, getCirkloSettings } from '../vouchers.selectors';
 

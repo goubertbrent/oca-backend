@@ -24,9 +24,10 @@ class HomeScreenSectionType(object):
     TEXT = MapSectionType.TEXT
     LIST = MapSectionType.LIST
     NEWS = MapSectionType.NEWS
+    NEWS_ITEM = MapSectionType.NEWS_ITEM
 
 
-class BottomSheetListItemType(object):
+class ListSectionItemType(object):
     OPENING_HOURS = MapListSectionItemType.DYNAMIC_OPENING_HOURS
     EXPANDABLE = MapListSectionItemType.EXPANDABLE
     LINK = MapListSectionItemType.LINK
@@ -47,11 +48,11 @@ class LinkItemSource(object):
 
 
 class OpeningHoursItemTemplate(TO):
-    type = unicode_property('type', default=BottomSheetListItemType.OPENING_HOURS)
+    type = unicode_property('type', default=ListSectionItemType.OPENING_HOURS)
 
 
 class ExpandableItemTemplate(TO):
-    type = unicode_property('type', default=BottomSheetListItemType.EXPANDABLE)
+    type = unicode_property('type', default=ListSectionItemType.EXPANDABLE)
     # in case of ExpandableItemSource.NONE, icon and title must be set
     source = long_property('source', default=ExpandableItemSource.NONE)
     icon = unicode_property('icon')
@@ -98,7 +99,7 @@ class LinkItemContent(object_factory):
 
 
 class LinkItemTemplate(TO):
-    type = unicode_property('type', default=BottomSheetListItemType.LINK)
+    type = unicode_property('type', default=ListSectionItemType.LINK)
     content = typed_property('content', LinkItemContent())
     style = long_property('style', default=VerticalLinkListItemStyle.DEFAULT)
     title = unicode_property('title', default=None)  # markdown
@@ -106,18 +107,18 @@ class LinkItemTemplate(TO):
     icon_color = unicode_property('icon_color', default=None)
 
 
-BOTTOM_SHEET_ITEM_MAPPING = {
-    BottomSheetListItemType.OPENING_HOURS: OpeningHoursItemTemplate,
-    BottomSheetListItemType.EXPANDABLE: ExpandableItemTemplate,
-    BottomSheetListItemType.LINK: LinkItemTemplate,
+LIST_SECTION_ITEM_MAPPING = {
+    ListSectionItemType.OPENING_HOURS: OpeningHoursItemTemplate,
+    ListSectionItemType.EXPANDABLE: ExpandableItemTemplate,
+    ListSectionItemType.LINK: LinkItemTemplate,
 }
 
 
-class BottomSheetListItemTemplate(object_factory):
+class ListSectionItemTemplate(object_factory):
     type = unicode_property('type')
 
     def __init__(self):
-        super(BottomSheetListItemTemplate, self).__init__('type', BOTTOM_SHEET_ITEM_MAPPING, BottomSheetListItemType)
+        super(ListSectionItemTemplate, self).__init__('type', LIST_SECTION_ITEM_MAPPING, ListSectionItemType)
 
 
 class TextSectionTemplate(TO):
@@ -129,7 +130,7 @@ class TextSectionTemplate(TO):
 class ListSectionTemplate(TO):
     type = unicode_property('type', default=HomeScreenSectionType.LIST)
     style = unicode_property('style', default=ListSectionStyle.VERTICAL)
-    items = typed_property('items', BottomSheetListItemTemplate(), True)
+    items = typed_property('items', ListSectionItemTemplate(), True)
 
 
 class NewsSectionTemplate(TO):
@@ -138,21 +139,27 @@ class NewsSectionTemplate(TO):
     limit = long_property('limit')
 
 
-BOTTOM_SHEET_SECTION_MAPPING = {
+class NewsItemSectionTemplate(TO):
+    type = unicode_property('type', default=HomeScreenSectionType.NEWS_ITEM)
+    group_id = unicode_property('group_id')
+
+
+HOME_SCREEN_SECTION_MAPPING = {
     HomeScreenSectionType.TEXT: TextSectionTemplate,
     HomeScreenSectionType.LIST: ListSectionTemplate,
     HomeScreenSectionType.NEWS: NewsSectionTemplate,
+    HomeScreenSectionType.NEWS_ITEM: NewsItemSectionTemplate,
 }
 
 
-class BottomSheetSectionTemplate(object_factory):
+class HomeScreenSectionTemplate(object_factory):
     type = unicode_property('type')
 
     def __init__(self):
-        super(BottomSheetSectionTemplate, self).__init__('type', BOTTOM_SHEET_SECTION_MAPPING, HomeScreenSectionType)
+        super(HomeScreenSectionTemplate, self).__init__('type', HOME_SCREEN_SECTION_MAPPING, HomeScreenSectionType)
 
 
-BottomSheetSectionTemplateInstance = BottomSheetSectionTemplate()
+HomeScreenSectionTemplateInstance = HomeScreenSectionTemplate()
 
 
 class TestHomeScreenTO(TO):

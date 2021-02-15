@@ -2,6 +2,7 @@ import { createAction, props } from '@ngrx/store';
 import { CommunityGeoFence } from '@oca/web-shared';
 import { Community, CommunityMapSettings, CreateCommunity } from './community/communities';
 import { HomeScreen } from './homescreen/models';
+import { NewsGroup, NewsSettings, NewsSettingsWithGroups } from './news/news';
 
 export const loadCommunities = createAction(
   '[Community] Load Communities',
@@ -194,5 +195,20 @@ export const updateMapSettingsSuccess = createAction(
 
 export const updateMapSettingsFailure = createAction(
   '[Community] Update MapSettings Failure',
+  props<{ error: string }>(),
+);
+
+export const loadCommunityNewsSettings = createAction(
+  '[Community] Load CommunityNewsSettings',
+  props<{ communityId: number }>(),
+);
+
+export const loadCommunityNewsSettingsSuccess = createAction(
+  '[Community] Load CommunityNewsSettings success',
+  props<{ data: NewsSettingsWithGroups}>(),
+);
+
+export const loadCommunityNewsSettingsFailure = createAction(
+  '[Community] Load CommunityNewsSettings Failure',
   props<{ error: string }>(),
 );

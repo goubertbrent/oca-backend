@@ -5,7 +5,7 @@ import {
   createCommunity,
   createCommunityFailure,
   createCommunitySuccess,
-  deleteCommunitySuccess,
+  deleteCommunitySuccess, loadCommunityNewsSettings, loadCommunityNewsSettingsFailure, loadCommunityNewsSettingsSuccess,
   getGeoFence,
   getGeoFenceFailure,
   getGeoFenceSuccess,
@@ -36,6 +36,7 @@ import {
 } from './community.actions';
 import { Community, CommunityMapSettings } from './community/communities';
 import { HomeScreen } from './homescreen/models';
+import { NewsGroup, NewsSettingsWithGroups } from './news/news';
 
 
 export const communityFeatureKey = 'community';
@@ -46,6 +47,7 @@ export interface CommunitiesState {
   homeScreen: ResultState<HomeScreen>;
   geoFence: ResultState<CommunityGeoFence>;
   mapSettings: ResultState<CommunityMapSettings>;
+  newsGroups: ResultState<NewsSettingsWithGroups>;
 }
 
 export const initialState: CommunitiesState = {
@@ -54,6 +56,7 @@ export const initialState: CommunitiesState = {
   homeScreen: initialStateResult,
   geoFence: initialStateResult,
   mapSettings: initialStateResult,
+  newsGroups: initialStateResult,
 };
 
 export const communitiesReducer = createReducer(
@@ -91,5 +94,8 @@ export const communitiesReducer = createReducer(
   on(getMapSettingsFailure, (state, { error }) => ({ ...state, mapSettings: stateError(error, state.mapSettings.result) })),
   on(updateMapSettings, (state, action) => ({ ...state, mapSettings: stateLoading(action.data) })),
   on(updateMapSettingsSuccess, (state, { data }) => ({ ...state, mapSettings: stateSuccess(data) })),
-  on(updateMapSettingsFailure, (state, { error }) => ({ ...state, mapSettings: stateError(error, state.mapSettings.result) })),
+  on(updateMapSettingsFailure, (state, { error }) => ({ ...state, mapSettings: stateError(error, state.mapSettings.result)})),
+  on(loadCommunityNewsSettings, (state) => ({ ...state, newsGroups: stateLoading(initialState.newsGroups.result) })),
+  on(loadCommunityNewsSettingsSuccess, (state, { data }) => ({ ...state, newsGroups: stateSuccess(data) })),
+  on(loadCommunityNewsSettingsFailure, (state, { error }) => ({ ...state, newsGroups: stateError(error, state.newsGroups.result) })),
 );

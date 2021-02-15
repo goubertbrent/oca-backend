@@ -10,5 +10,7 @@
 <rcc-home-screen-form *ngIf="homeScreen$ | async as homeScreen"
                       class="home-screen-form"
                       [embeddedApps]="embeddedApps$ | async"
+                      [newsGroups]="newsGroups$ | async"
                       [defaultTranslations]="defaultTranslations$ | async"
-                      [homeScreen]="homeScreen" (saved)="updateHomeScreen($event)"></rcc-home-screen-form>
+                      [homeScreen]="homeScreen"
+                      (saved)="updateHomeScreen($event)"></rcc-home-screen-form>
