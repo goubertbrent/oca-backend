@@ -572,9 +572,10 @@ def _send_inbox_forwarders_message_by_email(service_user, service_identity, app_
     message = SolutionInboxMessage.get(message_key)
     if not message:
         return
-    sender_app_user = create_app_user_by_email(message.sender.email, message.sender.app_id)
-    if app_user and app_user in sln_i_settings.inbox_forwarders and sender_app_user != app_user:
-        return
+    if app_user:
+        sender_app_user = create_app_user_by_email(message.sender.email, message.sender.app_id)
+        if app_user in sln_i_settings.inbox_forwarders and sender_app_user != app_user:
+            return
 
     send_styled_inbox_forwarders_email(service_user, message_key, msg_params)
 
