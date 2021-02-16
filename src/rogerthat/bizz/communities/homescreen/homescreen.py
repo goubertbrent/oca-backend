@@ -35,7 +35,7 @@ from oca.api.default_api import DefaultApi
 from oca.models import HomeScreenBottomNavigation, HomeScreenBottomSheet, \
     HomeScreenBottomSheetHeader, HomeScreen, HomeScreenContent, HomeScreenNavigationButton
 from rogerthat.bizz.communities.communities import get_community
-from rogerthat.consts import DEBUG
+from rogerthat.consts import DEBUG, get_fontawesome_5_icon
 from rogerthat.dal.profile import get_service_profile, get_user_profile
 from rogerthat.models import ServiceIdentity, OpeningHours, ServiceMenuDef
 from rogerthat.models.news import CommunityFeaturedNewsItems, NewsGroupFeaturedItemType
@@ -70,7 +70,6 @@ oca_client.rest_client.pool_manager = AppEngineManager()
 
 def convert_section_template_to_item(row, service_info, opening_hours, language, community_id):
     # type: (HomeScreenSectionTemplate, ServiceInfo, OpeningHours, unicode, int) ->  Optional[MAP_SECTION_TYPES]
-    logging.warning('Converting row %s', row)
     menu_items_to_get = set()
     if isinstance(row, ListSectionTemplate):
         for item in row.items:
@@ -94,7 +93,7 @@ def convert_section_template_to_item(row, service_info, opening_hours, language,
         for item in row.items:
             if isinstance(item, OpeningHoursItemTemplate):
                 items.append(OpeningHoursSectionItemTO(
-                    icon='fa-clock-o',
+                    icon='fa-clock',
                     title=opening_hours.title,
                     timezone=service_info.timezone,
                     opening_hours=OpeningHoursTO.from_model(opening_hours),
@@ -107,7 +106,7 @@ def convert_section_template_to_item(row, service_info, opening_hours, language,
                     title = service_info.description
                 else:
                     raise NotImplementedError('Unknown source on ExpandableItemTemplate: %s' % item.source)
-                items.append(ExpandableListSectionItemTO(title=title, icon=item.icon))
+                items.append(ExpandableListSectionItemTO(title=title, icon=get_fontawesome_5_icon(item.icon)))
             elif isinstance(item, LinkItemTemplate):
                 link_item = LinkListSectionItemTO()
                 link_item.icon_color = item.icon_color
@@ -118,7 +117,7 @@ def convert_section_template_to_item(row, service_info, opening_hours, language,
                     link_item.request_user_link = content.request_user_link
                     link_item.url = content.url
                     link_item.title = item.title
-                    link_item.icon = item.icon or 'fa-globe'
+                    link_item.icon = get_fontawesome_5_icon(item.icon) or 'fa-globe'
                 elif isinstance(content, LinkItemSyncedContent):
                     link_item.external = False
                     link_item.request_user_link = False
@@ -127,17 +126,17 @@ def convert_section_template_to_item(row, service_info, opening_hours, language,
                             email = service_info.email_addresses[content.index]
                             link_item.title = item.title or email.value
                             link_item.url = 'mailto://' + email.value
-                            link_item.icon = item.icon or 'fa-envelope'
+                            link_item.icon = get_fontawesome_5_icon(item.icon) or 'fa-envelope'
                         elif content.source == LinkItemSource.SERVICE_INFO_PHONE:
                             phone = service_info.phone_numbers[content.index]
                             link_item.title = item.title or phone.name or phone.value
                             link_item.url = 'tel://' + phone.value
-                            link_item.icon = item.icon or 'fa-phone'
+                            link_item.icon = get_fontawesome_5_icon(item.icon) or 'fa-phone'
                         elif content.source == LinkItemSource.SERVICE_INFO_WEBSITE:
                             website = service_info.websites[content.index]
                             link_item.title = item.title or website.name or website.value
                             link_item.url = website.value
-                            link_item.icon = item.icon or 'fa-globe'
+                            link_item.icon = get_fontawesome_5_icon(item.icon) or 'fa-globe'
                     except IndexError:
                         logging.debug('Skipping item %s: No data at index in service info %d', item,
                                       content.index)
@@ -154,7 +153,7 @@ def convert_section_template_to_item(row, service_info, opening_hours, language,
                     address_line = '%s %s, %s' % (address.street, address.street_number, address.locality)
                     link_item.title = item.title or address_line
                     link_item.url = geo_url
-                    link_item.icon = item.icon or 'fa-map-marker'
+                    link_item.icon = get_fontawesome_5_icon(item.icon) or 'fa-map-marker-alt'
                 elif isinstance(content, LinkItemServiceMenuItem):
                     menu_item = menu_items_map[content.service].get(content.tag)
                     if not menu_item:
@@ -165,9 +164,9 @@ def convert_section_template_to_item(row, service_info, opening_hours, language,
                                                             'service': content.service})
                     link_item.title = item.title or menu_item.label
                     if not item.icon and menu_item.iconName and menu_item.iconName.startswith('fa'):
-                        link_item.icon = menu_item.iconName
+                        link_item.icon = get_fontawesome_5_icon(menu_item.iconName)
                     else:
-                        link_item.icon = item.icon or 'fa-globe'
+                        link_item.icon = get_fontawesome_5_icon(item.icon) or 'fa-globe'
                 else:
                     raise NotImplementedError('Unimplemented LinkItemTemplate.content: %s' % content)
                 if not link_item.url:
@@ -205,7 +204,6 @@ def convert_section_template_to_item(row, service_info, opening_hours, language,
         news_item_section.item = featured_item
         news_item_section.group_id = row.group_id
         news_item_section.placeholder_image = NEWS_PLACEHOLDER_IMAGE
-        logging.warning(news_item_section)
         return news_item_section
     else:
         raise NotImplementedError(row)
