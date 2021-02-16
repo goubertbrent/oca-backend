@@ -100,15 +100,17 @@ components:
             nl:
               news: Nieuws
               trash_calendar: Afvalkalender
+    HomeScreenContentType:
+      type: string
+      enum:
+        - native
+        - embedded_app
     HomeScreenContent:
       required: [ type ]
       description: Content of the homescreen, native or an embedded app
       properties:
         type:
-          type: string
-          enum:
-            - native
-            - embedded_app
+          $ref: '#/components/schemas/HomeScreenContentType'
         embedded_app:
           type: string
           description: Only set when 'type' is embedded_app

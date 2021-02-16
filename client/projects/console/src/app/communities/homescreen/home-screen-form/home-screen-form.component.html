@@ -7,7 +7,7 @@
         <mat-option *ngFor="let type of homeScreenTypes" [value]="type.type">{{ type.label }}</mat-option>
       </mat-select>
     </mat-form-field>
-    <ng-container *ngIf="homeScreenFormGroup.controls.content.value?.type === HomeScreenContentTypeEnum.EmbeddedApp">
+    <ng-container *ngIf="homeScreenFormGroup.controls.content.value?.type === HomeScreenContentType.EmbeddedApp">
       <mat-form-field>
         <mat-label>Embedded app</mat-label>
         <mat-select formControlName="embedded_app" required>

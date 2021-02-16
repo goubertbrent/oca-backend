@@ -1,30 +1,30 @@
 // tslint:disable:no-empty-interface
 export type FormComponentTO =
-  TextInputComponentTO
-  | LocationComponentTO
-  | DatetimeComponentTO
-  | FileComponentTO
+  FileComponentTO
+  | TextInputComponentTO
   | MultiSelectComponentTO
-  | SingleSelectComponentTO
-  | ParagraphComponentTO;
+  | DatetimeComponentTO
+  | ParagraphComponentTO
+  | LocationComponentTO
+  | SingleSelectComponentTO;
 
 export type FormComponentValueTO =
-  TextInputComponentValueTO
-  | LocationComponentValueTO
-  | DatetimeComponentValueTO
-  | FileComponentValueTO
+  SingleSelectComponentValueTO
+  | TextInputComponentValueTO
   | MultiSelectComponentValueTO
-  | SingleSelectComponentValueTO;
+  | DatetimeComponentValueTO
+  | LocationComponentValueTO
+  | FileComponentValueTO;
 
 export type FormValidatorTO =
-  RequiredValidatorTO
+  RegexValidatorTO
+  | MinLengthValidatorTO
   | MaxDateValidatorTO
-  | MinDateValidatorTO
   | MinValidatorTO
-  | RegexValidatorTO
-  | MaxValidatorTO
   | MaxLengthValidatorTO
-  | MinLengthValidatorTO;
+  | MaxValidatorTO
+  | RequiredValidatorTO
+  | MinDateValidatorTO;
 
 export type JobOfferActionTO =
   JobOfferOpenActionTO
@@ -38,17 +38,17 @@ export type MapAnnouncementTO =
 
 export type MapGeometryTO =
   MultiLineStringGeometryTO
-  | PolygonGeometryTO
   | LineStringGeometryTO
+  | PolygonGeometryTO
   | MultiPolygonGeometryTO;
 
 export type MapItemLineTO =
   MapItemLineTextTO;
 
 export type MapListSectionItemTO =
-  ToggleListSectionItemTO
+  OpeningHoursListSectionItemTO
+  | ToggleListSectionItemTO
   | LinkListSectionItemTO
-  | OpeningHoursListSectionItemTO
   | ExpandableListSectionItemTO
   | OpeningHoursSectionItemTO;
 
@@ -57,24 +57,24 @@ export type MapSearchSuggestionTO =
   | MapSearchSuggestionKeywordTO;
 
 export type MapSectionTO =
-  MediaSectionTO
-  | NewsGroupSectionTO
-  | GeometrySectionTO
-  | NewsSectionTO
-  | TextSectionTO
-  | ListSectionTO
+  VoteSectionTO
   | NewsItemSectionTO
-  | VoteSectionTO;
+  | MediaSectionTO
+  | GeometrySectionTO
+  | TextSectionTO
+  | NewsSectionTO
+  | ListSectionTO
+  | NewsGroupSectionTO;
 
 export type NewFlowMessageTO =
   MessageTO
   | FormMessageTO;
 
 export type NextActionTO =
-  NextActionDefaultTO
-  | NextActionURLTO
+  NextActionURLTO
+  | NextActionSectionTO
   | NextActionSubmitTO
-  | NextActionSectionTO;
+  | NextActionDefaultTO;
 
 export type Step =
   MessageFlowStepTO
@@ -83,28 +83,28 @@ export type Step =
 
 export const enum FormComponentType {
   TEXT_INPUT = 'text_input',
-  LOCATION = 'location',
-  DATETIME = 'datetime',
   FILE = 'file',
   MULTI_SELECT = 'multi_select',
-  SINGLE_SELECT = 'single_select',
+  DATETIME = 'datetime',
   PARAGRAPH = 'paragraph',
+  LOCATION = 'location',
+  SINGLE_SELECT = 'single_select',
 }
 
 export const enum FormValidatorType {
-  MAXDATE = 'maxdate',
   REGEX = 'regex',
+  REQUIRED = 'required',
   MIN = 'min',
-  MINDATE = 'mindate',
+  MAX = 'max',
   MAXLENGTH = 'maxlength',
   MINLENGTH = 'minlength',
-  REQUIRED = 'required',
-  MAX = 'max',
+  MAXDATE = 'maxdate',
+  MINDATE = 'mindate',
 }
 
 export const enum JobOfferActionType {
-  CHAT = 1,
   OPEN = 0,
+  CHAT = 1,
 }
 
 export const enum MapActionChipType {
@@ -116,9 +116,9 @@ export const enum MapAnnouncementType {
 }
 
 export const enum MapGeometryType {
-  LINE_STRING = 'LineString',
   MULTI_POLYGON = 'MultiPolygon',
   POLYGON = 'Polygon',
+  LINE_STRING = 'LineString',
   MULTI_LINE_STRING = 'MultiLineString',
 }
 
@@ -127,11 +127,11 @@ export const enum MapItemLineType {
 }
 
 export const enum MapListSectionItemType {
-  TOGGLE = 'toggle',
-  DYNAMIC_OPENING_HOURS = 'opening-hours',
-  LINK = 'link',
   OPENING_HOURS = 'opening_hours',
   EXPANDABLE = 'expandable',
+  DYNAMIC_OPENING_HOURS = 'opening-hours',
+  LINK = 'link',
+  TOGGLE = 'toggle',
 }
 
 export const enum MapSearchSuggestionType {
@@ -140,14 +140,14 @@ export const enum MapSearchSuggestionType {
 }
 
 export const enum MapSectionType {
-  MEDIA = 'media',
-  GEOMETRY = 'geometry',
-  VOTE = 'vote',
-  NEWS_ITEM = 'news-item',
   NEWS_GROUP = 'news-group',
-  NEWS = 'news',
-  TEXT = 'text',
+  GEOMETRY = 'geometry',
+  MEDIA = 'media',
   LIST = 'list',
+  NEWS_ITEM = 'news-item',
+  TEXT = 'text',
+  VOTE = 'vote',
+  NEWS = 'news',
 }
 
 export const enum MessageType {
@@ -156,15 +156,15 @@ export const enum MessageType {
 }
 
 export const enum NewMessageType {
-  MESSAGE = 1,
   FORM_MESSAGE = 2,
+  MESSAGE = 1,
 }
 
 export const enum NextActionType {
-  NEXT = 'next',
   URL = 'url',
-  SUBMIT = 'submit',
   SECTION = 'section',
+  SUBMIT = 'submit',
+  NEXT = 'next',
 }
 
 

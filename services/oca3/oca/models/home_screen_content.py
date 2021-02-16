@@ -6,6 +6,7 @@ from datetime import date, datetime  # noqa: F401
 from typing import List, Dict  # noqa: F401
 
 from oca.models.base_model_ import Model
+from oca.models.home_screen_content_type import HomeScreenContentType
 from oca import util
 
 
@@ -19,7 +20,7 @@ class HomeScreenContent(Model):
         """HomeScreenContent - a model defined in OpenAPI
 
         :param type: The type of this HomeScreenContent.  # noqa: E501
-        :type type: str
+        :type type: HomeScreenContentType
         :param embedded_app: The embedded_app of this HomeScreenContent.  # noqa: E501
         :type embedded_app: str
         :param sections: The sections of this HomeScreenContent.  # noqa: E501
@@ -28,7 +29,7 @@ class HomeScreenContent(Model):
         :type service_email: str
         """
         self.openapi_types = {
-            'type': str,
+            'type': HomeScreenContentType,
             'embedded_app': str,
             'sections': List[Dict[str, object]],
             'service_email': str
@@ -63,7 +64,7 @@ class HomeScreenContent(Model):
 
 
         :return: The type of this HomeScreenContent.
-        :rtype: str
+        :rtype: HomeScreenContentType
         """
         return self._type
 
@@ -73,14 +74,10 @@ class HomeScreenContent(Model):
 
 
         :param type: The type of this HomeScreenContent.
-        :type type: str
+        :type type: HomeScreenContentType
         """
-        allowed_values = ["native", "embedded_app"]  # noqa: E501
-        if type not in allowed_values:
-            raise ValueError(
-                "Invalid value for `type` ({0}), must be one of {1}"
-                .format(type, allowed_values)
-            )
+        if type is None:
+            raise ValueError("Invalid value for `type`, must not be `None`")  # noqa: E501
 
         self._type = type
 

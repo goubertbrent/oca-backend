@@ -11,6 +11,10 @@
  * Do not edit the class manually.
  */
 
+import {
+    HomeScreenContentType,
+} from './';
+
 /**
  * Content of the homescreen, native or an embedded app
  * @export
@@ -18,10 +22,10 @@
  */
 export interface HomeScreenContent {
     /**
-     * @type {string}
+     * @type {HomeScreenContentType}
      * @memberof HomeScreenContent
      */
-    type: HomeScreenContentTypeEnum;
+    type: HomeScreenContentType;
     /**
      * Only set when \'type\' is embedded_app
      * @type {string}
@@ -41,13 +45,3 @@ export interface HomeScreenContent {
      */
     service_email?: string;
 }
-
-/**
- * @export
- * @enum {string}
- */
-export enum HomeScreenContentTypeEnum {
-    Native = 'native',
-    EmbeddedApp = 'embedded_app'
-}
-

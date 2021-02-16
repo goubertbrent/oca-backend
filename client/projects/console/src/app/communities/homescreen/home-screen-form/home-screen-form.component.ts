@@ -28,7 +28,7 @@ import {
   HomeScreenBottomSheet,
   HomeScreenBottomSheetHeader,
   HomeScreenContent,
-  HomeScreenContentTypeEnum,
+  HomeScreenContentType,
   HomeScreenNavigationButton,
 } from '../models';
 
@@ -42,10 +42,10 @@ const TRANSLATION_PREFIX = '$';
 })
 export class HomeScreenFormComponent implements OnDestroy {
   LANGUAGES = LANGUAGES;
-  HomeScreenContentTypeEnum = HomeScreenContentTypeEnum;
+  HomeScreenContentType = HomeScreenContentType;
   homeScreenTypes = [
-    { type: HomeScreenContentTypeEnum.Native, label: 'Native' },
-    { type: HomeScreenContentTypeEnum.EmbeddedApp, label: 'Embedded app' },
+    { type: HomeScreenContentType.Native, label: 'Native' },
+    { type: HomeScreenContentType.EmbeddedApp, label: 'Embedded app' },
   ];
   // Default language translations array
   translations$: ReplaySubject<TranslationInternal[]> = new ReplaySubject();
@@ -90,7 +90,7 @@ export class HomeScreenFormComponent implements OnDestroy {
           embedded_app: this.formBuilder.control(null),
           service_email: this.formBuilder.control(null, Validators.email),
           sections: this.formBuilder.array([]),
-          type: this.formBuilder.control(HomeScreenContentTypeEnum.EmbeddedApp),
+          type: this.formBuilder.control(HomeScreenContentType.EmbeddedApp),
         }),
         default_language: this.formBuilder.control('en'),
         translations: this.formBuilder.group<HomeScreen['translations']>({}),
@@ -98,7 +98,7 @@ export class HomeScreenFormComponent implements OnDestroy {
     );
     const content = this.homeScreenFormGroup.controls.content as IFormGroup<HomeScreenContent>;
     content.controls.type.valueChanges.pipe(takeUntil(this.destroyed$)).subscribe(type => {
-      if (type === HomeScreenContentTypeEnum.EmbeddedApp) {
+      if (type === HomeScreenContentType.EmbeddedApp) {
         content.controls.embedded_app!!.setValidators([Validators.required]);
       } else {
         content.controls.embedded_app!!.clearValidators();
