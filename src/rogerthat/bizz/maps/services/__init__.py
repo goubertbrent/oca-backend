@@ -82,6 +82,10 @@ class SearchTag(object):
     @staticmethod
     def community(community_id):
         return 'community_id#%s' % community_id
+    
+    @staticmethod
+    def home_screen_id(home_screen_id):
+        return 'home_screen_id#%s' % home_screen_id
 
     @staticmethod
     def country(country_code):
