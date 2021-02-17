@@ -16,6 +16,7 @@ import {
   GetDatesSuccessAction,
   GetServicesAction,
   GetServicesSuccessAction,
+  GetSettingsAction,
   GetSettingsSuccessAction,
   GetTimesAction,
   GetTimesSuccessAction,
@@ -48,13 +49,13 @@ export class QMaticTestEffects extends QMaticEffects {
 
   getServices$ = createEffect(() => this.actions$.pipe(
     ofType<GetServicesAction>(QMaticActionTypes.GET_SERVICES),
-    delay(randint(50, 500)),
+    delay(randint(200, 1000)),
     switchMap(() => of(new GetServicesSuccessAction(getServicesResult))),
   ));
 
   getBranches$ = createEffect(() => this.actions$.pipe(
     ofType<GetBranchesAction>(QMaticActionTypes.GET_BRANCHES),
-    delay(randint(50, 500)),
+    delay(randint(300, 1000)),
     switchMap(() => of(new GetBranchesSuccessAction(getBranchesResult)),
     )));
 
@@ -91,13 +92,15 @@ export class QMaticTestEffects extends QMaticEffects {
 
   cancelAppointment$ = createEffect(() => this.actions$.pipe(
     ofType<CancelAppointmentAction>(QMaticActionTypes.CANCEL_APPOINTMENT),
-    switchMap(action => of(new CancelAppointmentSuccessAction(action.payload)),
+    map(action => new CancelAppointmentSuccessAction(action.payload),
     )));
 
-  getSettings$ = createEffect(() => of({}).pipe(
+  getSettings$ = createEffect(() => this.actions$.pipe(
+    ofType<GetSettingsAction>(QMaticActionTypes.GET_SETTINGS),
     map(() => new GetSettingsSuccessAction({
       required_fields: [QMaticRequiredField.PHONE_NUMBER, QMaticRequiredField.EMAIL],
       show_product_info: true,
+      first_step_location: false,
     })),
   ));
 }

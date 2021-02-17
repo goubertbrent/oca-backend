@@ -9,7 +9,7 @@ import { map } from 'rxjs/operators';
 import { QMState } from '../../../reducers';
 import { Appointment, ListAppointments } from '../../appointments';
 import { CancelAppointmentAction, GetAppointmentsAction } from '../../q-matic-actions';
-import { getAppointments, getAppointmentsList } from '../../q-matic.state';
+import { getAppointmentsState, getAppointmentsList } from '../../q-matic.state';
 
 @Component({
   templateUrl: 'appointments.page.html',
@@ -31,7 +31,7 @@ export class AppointmentsPage implements OnInit {
 
   ngOnInit(): void {
     this.store.dispatch(new GetAppointmentsAction());
-    this.result$ = this.store.pipe(select(getAppointments));
+    this.result$ = this.store.pipe(select(getAppointmentsState));
     this.appointments$ = this.store.pipe(select(getAppointmentsList));
     this.isLoading$ = this.result$.pipe(isStatus(CallStateType.LOADING));
     this.showNoResults$ = combineLatest([this.result$.pipe(isStatus(CallStateType.SUCCESS)), this.appointments$])

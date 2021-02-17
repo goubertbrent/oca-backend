@@ -1,36 +1,37 @@
 <form (ngSubmit)="confirm()" [formGroup]="formGroup">
   <ion-list>
-    <ion-item>
-      <ion-label>{{ 'app.qm.service' | translate }}</ion-label>
-      <ionic-selectable
-        #serviceSelect
-        [canSearch]="true"
-        [clearButtonText]="'app.qm.cancel' | translate"
-        [closeButtonText]="'app.qm.close' | translate"
-        [items]="services"
-        [searchFailText]="'app.qm.no_activities_found' | translate"
-        [searchPlaceholder]="'app.qm.search' | translate"
-        formControlName="service"
-        itemTextField="name"
-        itemValueField="publicId"></ionic-selectable>
-    </ion-item>
-    <ion-item *ngIf="extraProductInfo$ | async as productInfo">
-      <div [innerHTML]="productInfo"></div>
-    </ion-item>
-    <ion-item [class.hidden]="formGroup.controls.service.invalid">
-      <ion-label>{{ 'app.qm.location' | translate }}</ion-label>
-      <ion-select #branchSelect
-                  [cancelText]="'app.qm.cancel' | translate"
-                  [okText]="'app.qm.ok' | translate"
-                  formControlName="branch"
-                  required>
-        <ion-select-option *ngFor="let branch of branches" [value]="branch.publicId">
-          {{ branch.name }}
-        </ion-select-option>
-      </ion-select>
-    </ion-item>
-
-    <ion-item [class.hidden]="formGroup.controls.branch.invalid">
+    <div [class.location-first]="settings?.first_step_location">
+      <ion-item class="item-service" [class.hidden]="shouldHideService">
+        <ion-label>{{ 'app.qm.service' | translate }}</ion-label>
+        <ionic-selectable
+          #serviceSelect
+          [canSearch]="true"
+          [clearButtonText]="'app.qm.cancel' | translate"
+          [closeButtonText]="'app.qm.close' | translate"
+          [items]="services"
+          [searchFailText]="'app.qm.no_activities_found' | translate"
+          [searchPlaceholder]="'app.qm.search' | translate"
+          formControlName="service"
+          itemTextField="name"
+          itemValueField="publicId"></ionic-selectable>
+      </ion-item>
+      <ion-item *ngIf="extraProductInfo$ | async as productInfo" class="item-service-info">
+        <div [innerHTML]="productInfo"></div>
+      </ion-item>
+      <ion-item [class.hidden]="shouldHideBranch" class="item-branch">
+        <ion-label>{{ 'app.qm.location' | translate }}</ion-label>
+        <ion-select #branchSelect
+                    [cancelText]="'app.qm.cancel' | translate"
+                    [okText]="'app.qm.ok' | translate"
+                    formControlName="branch"
+                    required>
+          <ion-select-option *ngFor="let branch of branches" [value]="branch.publicId">
+            {{ branch.name }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+    </div>
+    <ion-item [class.hidden]="shouldHideDate">
       <ion-label>{{ 'app.qm.date' | translate }}</ion-label>
       <mat-form-field>
         <input #dateInput

@@ -5,6 +5,7 @@ export enum QMaticRequiredField {
 
 export interface QmaticClientSettings {
   required_fields: QMaticRequiredField[];
+  first_step_location: boolean;
   show_product_info: boolean;
 }
 

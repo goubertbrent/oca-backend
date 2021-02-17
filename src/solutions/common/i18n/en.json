@@ -1,4 +1,6 @@
 {
+  "oca.qmatic_first_step_location": "Use location as first step",
+  "oca.qmatic_first_step_location_info": "When enabled, the first step when creating a new appointment will be the location, instead of the service.",
   "extra_information": "Extra information",
   "oca.qmatic_show_service_info": "Show extra service info",
   "appointment_booked": "Appointment booked",

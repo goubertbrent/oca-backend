@@ -66,6 +66,7 @@ class QMaticSettingsTO(TO):
     url = unicode_property('url', default=None)
     auth_token = unicode_property('auth_token', default=None)
     required_fields = unicode_list_property('required_fields', default=[])
+    first_step_location = bool_property('first_step_location', default=False)
     show_product_info = bool_property('show_product_info', default=False)
 
 
@@ -101,6 +102,7 @@ def save_qmatic_settings(service_user, data):
     settings.url = data.url.strip()
     settings.auth_token = data.auth_token.strip()
     settings.required_fields = data.required_fields
+    settings.first_step_location = data.first_step_location
     settings.show_product_info = data.show_product_info
     try:
         if settings.url and settings.auth_token:
@@ -159,11 +161,11 @@ def handle_method(service_user, email, method, params, tag, service_identity, us
         if not settings:
             raise Exception('Qmatic settings not found')
 
-        jsondata = json.loads(params) if params else None
+        jsondata = json.loads(params) if params else {}
         if API_METHOD_APPOINTMENTS == method:
             result = get_appointments(settings, app_user)
         elif API_METHOD_SERVICES == method:
-            result = get_services(settings)
+            result = get_services(settings, **jsondata)
         elif API_METHOD_BRANCHES == method:
             result = get_branches(settings, **jsondata)
         elif API_METHOD_DATES == method:
@@ -239,15 +241,21 @@ def _get_empty_appointment_list():
     }
 
 
-def get_services(qmatic_settings):
-    # type: (QMaticSettings) -> urlfetch._URLFetchResult
-    url = '%s/services' % URL_PREFIX
+def get_services(qmatic_settings, branch_id=None):
+    # type: (QMaticSettings, str) -> urlfetch._URLFetchResult
+    if branch_id:
+        url = '%s/branches/%s/services' % (URL_PREFIX, branch_id)
+    else:
+        url = '%s/services' % URL_PREFIX
     return do_request(qmatic_settings, url)
 
 
-def get_branches(qmatic_settings, service_id):
+def get_branches(qmatic_settings, service_id=None):
     # type: (QMaticSettings, str) -> urlfetch._URLFetchResult
-    url = '%s/services/%s/branches' % (URL_PREFIX, service_id)
+    if service_id:
+        url = '%s/services/%s/branches' % (URL_PREFIX, service_id)
+    else:
+        url = '%s/branches' % URL_PREFIX
     return do_request(qmatic_settings, url)
 
 
@@ -427,7 +435,11 @@ def create_ical(qmatic_settings, app_user, appointment_id):
 
 def get_client_settings(config):
     # type: (QMaticSettings) -> dict
-    return {'required_fields': config.required_fields, 'show_product_info': config.show_product_info}
+    return {
+        'required_fields': config.required_fields,
+        'show_product_info': config.show_product_info,
+        'first_step_location': config.first_step_location
+    }
 
 
 def _get_qmatic_user(app_user):

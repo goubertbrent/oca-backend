@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
 import { select, Store } from '@ngrx/store';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
+import { filter, take, takeUntil } from 'rxjs/operators';
 import { QMState } from '../../../reducers';
 import { getDateString, QMaticBranch, QmaticClientSettings, QMaticParsedService } from '../../appointments';
 import {
@@ -19,13 +20,16 @@ import { NewAppointmentForm } from './create-appointment/create-appointment.comp
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
 })
-export class NewAppointmentPage implements OnInit {
+export class NewAppointmentPage implements OnInit, OnDestroy {
   services$: Observable<QMaticParsedService[]>;
   branches$: Observable<QMaticBranch[]>;
   dates$: Observable<Date[]>;
   times$: Observable<string[]>;
   isLoading$: Observable<boolean>;
-  settings$: Observable<QmaticClientSettings | null>;
+  settings$: Observable<QmaticClientSettings>;
+
+  private destroyed$ = new Subject();
+  private settings: QmaticClientSettings;
 
   constructor(private store: Store<QMState>) {
   }
@@ -35,25 +39,45 @@ export class NewAppointmentPage implements OnInit {
     this.branches$ = this.store.pipe(select(getBranches));
     this.dates$ = this.store.pipe(select(getDates));
     this.times$ = this.store.pipe(select(getTimes));
-    this.settings$ = this.store.pipe(select(getClientSettings));
+    this.settings$ = this.store.pipe(select(getClientSettings), filter(s => s !== null)) as Observable<QmaticClientSettings>;
     this.isLoading$ = this.store.pipe(select(isLoadingNewAppointmentInfo));
-    this.store.dispatch(new GetServicesAction());
     this.store.dispatch(new GetSettingsAction());
+    this.settings$.pipe(take(1), takeUntil(this.destroyed$)).subscribe(settings => {
+      this.settings = settings;
+      if (settings!.first_step_location) {
+        this.store.dispatch(new GetBranchesAction({}));
+      } else {
+        this.store.dispatch(new GetServicesAction({}));
+      }
+    });
   }
 
-  serviceChanged(service: string) {
-    this.store.dispatch(new GetBranchesAction({ service_id: service }));
+  ngOnDestroy() {
+    this.destroyed$.next();
+    this.destroyed$.complete();
   }
 
-  branchChanged({ service, branch }: { service: string; branch: string }) {
-    this.store.dispatch(new GetDatesAction({ service_id: service, branch_id: branch }));
+  serviceChanged(form: NewAppointmentForm) {
+    if (this.settings.first_step_location) {
+      this.store.dispatch(new GetDatesAction({ service_id: form.service!.publicId, branch_id: form.branch! }));
+    } else {
+      this.store.dispatch(new GetBranchesAction({ service_id: form.service!.publicId }));
+    }
   }
 
-  dateChanged({ service, branch, date }: { service: string; branch: string; date: string }) {
+  branchChanged({ service, branch }: NewAppointmentForm) {
+    if (this.settings.first_step_location) {
+      this.store.dispatch(new GetServicesAction({ branch_id: branch! }));
+    } else {
+      this.store.dispatch(new GetDatesAction({ service_id: service!.publicId, branch_id: branch! }));
+    }
+  }
+
+  dateChanged({ service, branch, date }: NewAppointmentForm) {
     this.store.dispatch(new GetTimesAction({
-      service_id: service,
+      service_id: service!.publicId,
       branch_id: branch!,
-      date,
+      date: getDateString(date!),
     }));
   }
 

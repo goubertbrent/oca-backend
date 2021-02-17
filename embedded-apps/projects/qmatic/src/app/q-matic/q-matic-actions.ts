@@ -6,7 +6,8 @@ import {
   ListBranches,
   ListDates,
   ListServices,
-  ListTimes, QmaticClientSettings,
+  ListTimes,
+  QmaticClientSettings,
   QMaticCustomer,
 } from './appointments';
 
@@ -64,6 +65,9 @@ export class GetAppointmentsFailedAction implements Action {
 
 export class GetServicesAction implements Action {
   readonly type = QMaticActionTypes.GET_SERVICES;
+
+  constructor(public payload: { branch_id?: string; }) {
+  }
 }
 
 export class GetServicesSuccessAction implements Action {
@@ -83,7 +87,7 @@ export class GetServicesFailedAction implements Action {
 export class GetBranchesAction implements Action {
   readonly type = QMaticActionTypes.GET_BRANCHES;
 
-  constructor(public payload: { service_id: string; }) {
+  constructor(public payload: { service_id?: string; }) {
   }
 }
 

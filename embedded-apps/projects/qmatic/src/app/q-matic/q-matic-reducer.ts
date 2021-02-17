@@ -14,7 +14,7 @@ export function qmaticReducer(state = initialQMaticState, action: QMaticActions)
       return {
         ...state,
         services: stateLoading(initialQMaticState.services.result),
-        branches: initialQMaticState.branches,
+        branches: state.settings.result?.first_step_location ? state.branches : initialQMaticState.branches,
         dates: initialQMaticState.dates,
         times: initialQMaticState.times,
       };
@@ -25,6 +25,7 @@ export function qmaticReducer(state = initialQMaticState, action: QMaticActions)
     case QMaticActionTypes.GET_BRANCHES:
       return {
         ...state,
+        services: state.settings.result?.first_step_location ? initialQMaticState.services : state.services,
         branches: stateLoading(initialQMaticState.branches.result),
         dates: initialQMaticState.dates,
         times: initialQMaticState.times,
@@ -77,7 +78,7 @@ export function qmaticReducer(state = initialQMaticState, action: QMaticActions)
       }
       break;
     case QMaticActionTypes.GET_SETTINGS:
-      return { ...state, settings: stateLoading(state.settings.result) };
+      return { ...state, settings: stateLoading(initialQMaticState.settings.result) };
     case QMaticActionTypes.GET_SETTINGS_SUCCESS:
       return { ...state, settings: stateSuccess(action.payload) };
     case QMaticActionTypes.GET_SETTINGS_FAILED:

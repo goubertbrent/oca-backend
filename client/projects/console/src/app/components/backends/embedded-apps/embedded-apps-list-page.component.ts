@@ -29,7 +29,9 @@ export class EmbeddedAppsListPageComponent implements OnInit {
     this.deleteStatus$ = this.store.pipe(select(deleteEmbeddedAppStatus));
   }
 
-  confirmRemove(embeddedApp: EmbeddedApp) {
+  confirmRemove(event: Event, embeddedApp: EmbeddedApp) {
+    event.stopPropagation();
+    event.preventDefault();
     const config = {
       title: this.translate.instant('rcc.remove_embedded_app'),
       message: this.translate.instant('rcc.are_you_sure_you_want_to_delete_embedded_app', { app: embeddedApp.name }),

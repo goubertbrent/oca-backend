@@ -69,7 +69,7 @@ export class QMaticEffects {
 
    getServices$ = createEffect(() => this.actions$.pipe(
     ofType<GetServicesAction>(QMaticActionTypes.GET_SERVICES),
-    switchMap(action => this.rogerthatService.apiCall<ListServices>(ApiCalls.SERVICES).pipe(
+    switchMap(action => this.rogerthatService.apiCall<ListServices>(ApiCalls.SERVICES, action.payload).pipe(
       map(result => new GetServicesSuccessAction(result)),
       catchError(err => {
         this.errorService.showErrorDialog(action, err);

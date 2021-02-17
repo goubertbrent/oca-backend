@@ -1,4 +1,6 @@
 {
+  "oca.qmatic_first_step_location": "Gebruik locatie als eerste stap",
+  "oca.qmatic_first_step_location_info": "Wanneer ingeschakeld zal de eerste stap van een afspraak maken de locatie zijn, in plaats van de dienst.",
   "extra_information": "Extra informatie",
   "oca.qmatic_show_service_info": "Toon extra dienst info",
   "appointment_booked": "Afspraak geboekt",

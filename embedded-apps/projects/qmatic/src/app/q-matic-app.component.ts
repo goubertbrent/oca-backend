@@ -54,12 +54,12 @@ export class QMaticAppComponent {
           this.statusBar.styleDefault();
         }
         this.cdRef.markForCheck();
-        if (rogerthat.system.debug) {
-          this.actions$.subscribe(action => {
+        this.actions$.subscribe(action => {
+          if (rogerthat.system.debug) {
             const { type, ...rest } = action;
             return console.log(`${type} - ${JSON.stringify(rest)}`);
-          });
-        }
+          }
+        });
       });
     });
   }

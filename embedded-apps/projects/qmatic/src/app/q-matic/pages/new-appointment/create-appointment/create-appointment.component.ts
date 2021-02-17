@@ -8,14 +8,7 @@ import { IFormBuilder, IFormGroup } from '@rxweb/types';
 import { IonicSelectableComponent } from 'ionic-selectable';
 import { Observable, Subject } from 'rxjs';
 import { map, takeUntil } from 'rxjs/operators';
-import {
-  getDateString,
-  QMaticBranch,
-  QmaticClientSettings,
-  QMaticCustomer,
-  QMaticParsedService,
-  QMaticRequiredField,
-} from '../../../appointments';
+import { QMaticBranch, QmaticClientSettings, QMaticCustomer, QMaticParsedService, QMaticRequiredField } from '../../../appointments';
 
 export interface NewAppointmentForm {
   service: QMaticParsedService | null;
@@ -47,19 +40,14 @@ export class CreateAppointmentComponent implements OnDestroy {
 
   @Input() showLoading: boolean;
 
-  @Output() serviceSelected = new EventEmitter<string>();
-  @Output() branchSelected = new EventEmitter<{ service: string; branch: string }>();
-  @Output() dateSelected = new EventEmitter<{ service: string; branch: string; date: string; }>();
+  @Output() serviceSelected = new EventEmitter<NewAppointmentForm>();
+  @Output() branchSelected = new EventEmitter<NewAppointmentForm>();
+  @Output() dateSelected = new EventEmitter<NewAppointmentForm>();
   @Output() confirmAppointment = new EventEmitter<NewAppointmentForm>();
   formGroup: IFormGroup<NewAppointmentForm>;
   extraProductInfo$: Observable<string | undefined>;
   showValidationError = false;
   private destroyed$ = new Subject();
-  private autoOpened = {
-    services: false,
-    datePicker: false,
-    timePicker: false,
-  };
   private _services: QMaticParsedService[] = [];
   private _branches: QMaticBranch[] = [];
   private _dates: Date[] = [];
@@ -88,24 +76,26 @@ export class CreateAppointmentComponent implements OnDestroy {
     );
     this.formGroup.controls.service.valueChanges.pipe(takeUntil(this.destroyed$)).subscribe(v => {
       if (v) {
-        this.formGroup.patchValue({ title: v.name, branch: null, date: null, time: null }, { emitEvent: false });
-        this.serviceSelected.emit(v.publicId);
+        this.formGroup.patchValue({ title: v.name, date: null, time: null }, { emitEvent: false });
+        if (!this.settings!.first_step_location) {
+          this.formGroup.controls.branch.setValue(null, { emitEvent: false });
+        }
+        this.serviceSelected.emit(this.formGroup.value!);
       }
     });
     this.formGroup.controls.branch.valueChanges.pipe(takeUntil(this.destroyed$)).subscribe(v => {
       if (v) {
         this.formGroup.patchValue({ date: null, time: null }, { emitEvent: false });
-        this.branchSelected.emit({ service: this.formGroup.controls.service.value!.publicId, branch: v });
+        if (this.settings!.first_step_location) {
+          this.formGroup.controls.service.setValue(null, { emitEvent: false });
+        }
+        this.branchSelected.emit(this.formGroup.value!);
       }
     });
     this.formGroup.controls.date.valueChanges.pipe(takeUntil(this.destroyed$)).subscribe(v => {
       if (v) {
         this.formGroup.patchValue({ time: null }, { emitEvent: false });
-        this.dateSelected.emit({
-          service: this.formGroup.controls.service.value!.publicId!,
-          branch: this.formGroup.controls.branch.value!,
-          date: getDateString(v),
-        });
+        this.dateSelected.emit(this.formGroup.value!);
       }
     });
   }
@@ -133,8 +123,7 @@ export class CreateAppointmentComponent implements OnDestroy {
 
   @Input() set times(value: string[]) {
     this._times = value;
-    if (value?.length > 0 && !this.autoOpened.timePicker) {
-      this.autoOpened.timePicker = true;
+    if (value?.length > 0) {
       // Automatically select first value if there's only one value, otherwise open the selector
       if (value.length === 1) {
         this.formGroup.controls.time.setValue(value[ 0 ]);
@@ -150,9 +139,7 @@ export class CreateAppointmentComponent implements OnDestroy {
 
   @Input() set dates(value: Date[]) {
     this._dates = value;
-    if (value?.length > 0 && !this.autoOpened.datePicker) {
-      this.autoOpened.datePicker = true;
-      this.autoOpened.timePicker = false;
+    if (value?.length > 0) {
       this.datePicker.open();
     }
   }
@@ -163,8 +150,7 @@ export class CreateAppointmentComponent implements OnDestroy {
 
   @Input() set services(value: QMaticParsedService[]) {
     this._services = value;
-    if (!this.autoOpened.services) {
-      this.autoOpened.services = true;
+    if (value?.length) {
       this.serviceSelect.open();
     }
   }
@@ -176,8 +162,6 @@ export class CreateAppointmentComponent implements OnDestroy {
   @Input() set branches(value: QMaticBranch[]) {
     this._branches = value;
     if (value?.length > 0) {
-      this.autoOpened.timePicker = false;
-      this.autoOpened.datePicker = false;
       // Automatically select first value if there's only one value, otherwise open the selector
       if (value.length === 1) {
         this.formGroup.controls.branch.setValue(value[ 0 ].publicId);
@@ -203,6 +187,27 @@ export class CreateAppointmentComponent implements OnDestroy {
     const checkTime = date.getTime();
     return this._dates.some(d => d.getTime() === checkTime);
   };
+
+  get shouldHideService() {
+    if (this.settings?.first_step_location) {
+      return this.formGroup.controls.branch.invalid;
+    }
+    return false;
+  }
+
+  get shouldHideBranch() {
+    if (this.settings?.first_step_location) {
+      return false;
+    }
+    return this.formGroup.controls.service.invalid;
+  }
+
+  get shouldHideDate() {
+    if (this.settings?.first_step_location) {
+      return this.formGroup.controls.service.invalid;
+    }
+    return this.formGroup.controls.branch.invalid;
+  }
 
   confirm() {
     if (this.formGroup.invalid) {

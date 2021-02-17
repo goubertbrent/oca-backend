@@ -27,6 +27,8 @@ class QMaticSettings(NdbModel):
     auth_token = ndb.TextProperty()
     enabled = ndb.BooleanProperty(default=False)
     required_fields = ndb.TextProperty(repeated=True)
+    # True if the first step should be the location instead of the service.
+    first_step_location = ndb.BooleanProperty(default=False)
     show_product_info = ndb.BooleanProperty(default=False)
 
     @property

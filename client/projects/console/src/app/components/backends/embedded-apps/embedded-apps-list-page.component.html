@@ -1,19 +1,16 @@
 <div class="default-component-margin">
   <rcc-api-request-status [status]="deleteStatus$ | async"></rcc-api-request-status>
-  <mat-card *ngFor="let app of embeddedApps$| async">
-    <mat-card-header>
-      <mat-card-title>{{ app.title }}</mat-card-title>
-      <mat-card-subtitle>{{ app.tags }} - {{ app.modification_date | date }}</mat-card-subtitle>
-    </mat-card-header>
-    <mat-card-actions fxLayoutAlign="end center">
-      <a [routerLink]="app.name" mat-button>
-        {{ 'rcc.edit' | translate }}
+  <mat-list style="max-width: 400px;">
+    <mat-nav-list *ngFor="let app of embeddedApps$| async">
+      <a [routerLink]="app.name" mat-list-item>
+        <h2 matLine>{{ app.title }}</h2>
+        <p matLine>{{ app.modification_date | date : 'medium' }}</p>
+        <button type="button" mat-icon-button (click)="confirmRemove($event, app)">
+          <mat-icon>delete</mat-icon>
+        </button>
       </a>
-      <button type="button" mat-button color="warn" (click)="confirmRemove(app)">
-        {{ 'rcc.delete' | translate }}
-      </button>
-    </mat-card-actions>
-  </mat-card>
+    </mat-nav-list>
+  </mat-list>
   <rcc-api-request-status [status]="listStatus$ | async"></rcc-api-request-status>
   <div class="fab-bottom-right">
     <a mat-fab [routerLink]="['create']">

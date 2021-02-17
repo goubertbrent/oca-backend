@@ -51,6 +51,8 @@ import { metaReducers, reducers } from './reducers';
         strictActionImmutability: true,
         strictStateSerializability: true,
         strictActionSerializability: true,
+        strictActionWithinNgZone: true,
+        strictActionTypeUniqueness: true,
       },
     }),
     StoreDevtoolsModule.instrument({
