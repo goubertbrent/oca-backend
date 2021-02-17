@@ -39,8 +39,11 @@ class AppSearchItem(NdbModel):
 
 
 class AppSearch(NdbModel):
-    community_id = ndb.IntegerProperty()
     items = ndb.LocalStructuredProperty(AppSearchItem, repeated=True)
+
+    @property
+    def community_id(self):
+        return self.key.parent().id()
 
     @property
     def home_screen_id(self):
@@ -52,7 +55,7 @@ class AppSearch(NdbModel):
 
     @classmethod
     def list_by_community(cls, community_id):
-        return cls.query().filter(cls.community_id == community_id)
+        return cls.query(ancestor=Community.create_key(community_id))
 
     def get_item_by_uid(self, uid):
         for item in self.items:
