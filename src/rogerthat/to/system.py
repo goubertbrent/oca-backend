@@ -18,7 +18,7 @@
 import time
 
 from mcfw.properties import bool_property, long_property, long_list_property, unicode_property, \
-    typed_property, unicode_list_property
+    typed_property, unicode_list_property, object_factory
 from rogerthat.pages.legal import DOC_TERMS, get_current_document_version
 from rogerthat.to import TO, GeoPointTO
 from rogerthat.to.profile import UserProfileTO
@@ -504,3 +504,39 @@ class LanguagesTO(object):
 
 class ExportResultTO(object):
     download_url = unicode_property('download_url')
+
+
+class AppSearchTO(TO):
+    query = unicode_property('query')
+
+
+class AppSearchSuggestionType(object):
+    ACTION = 'action'
+
+
+class AppSearchSuggestionActionTO(TO):
+    type = unicode_property('type', default=AppSearchSuggestionType.ACTION)
+    title = unicode_property('title')
+    description = unicode_property('description')
+    icon = unicode_property('icon')
+    action = unicode_property('action')
+
+
+APP_SEARCH_SUGGESTION_MAPPING = {
+    AppSearchSuggestionType.ACTION: AppSearchSuggestionActionTO,
+}
+
+
+class AppSearchSuggestionTO(object_factory):
+    type = unicode_property('type')
+
+    def __init__(self):
+        super(AppSearchSuggestionTO, self).__init__('type', APP_SEARCH_SUGGESTION_MAPPING, AppSearchSuggestionType)
+
+
+class GetAppSearchSuggestionsRequestTO(TO):
+    search = typed_property('search', AppSearchTO, False, default=None)
+
+
+class GetAppSearchSuggestionsResponseTO(TO):
+    items = typed_property('items', AppSearchSuggestionTO(), True)

@@ -53,8 +53,15 @@ def _create_index():
     return create_index(_get_elasticsearch_index(), request)
 
 
+def _create_global_uid(community_id, home_screen_id, uid):
+    return u'%s-%s#%s' % (community_id, home_screen_id, uid)
+
+def _get_uid_from_global_uid(uid):
+    return uid.rsplit('#', 1)[1]
+
+
 def _index_app_search_item(app_search, uid):
-    global_uid = u'%s-%s#%s' % (app_search.community_id, app_search.home_screen_id, uid)
+    global_uid = _create_global_uid(app_search.community_id, app_search.home_screen_id, uid)
     app_search_item = app_search.get_item_by_uid(uid)
     if not app_search_item:
         return delete_doc_operations(global_uid)
@@ -81,13 +88,12 @@ def _index_app_search_item(app_search, uid):
     return index_doc_operations(global_uid, doc)
 
 
-def index_app_search(community_id, home_screen_id, all_uids_incuding_just_removed_once):
-    app_search = AppSearch.create_key(community_id, home_screen_id).get()
+def index_app_search(app_search, all_uids_incuding_just_removed_once):
     operations = itertools.chain.from_iterable([_index_app_search_item(app_search, uid) for uid in all_uids_incuding_just_removed_once])
     return execute_bulk_request(_get_elasticsearch_index(), operations)
 
 
-def _suggest_items(search, community_id, home_screen_id):
+def suggest_items(search, community_id, home_screen_id):
     tags = [SearchTag.community(community_id),
             SearchTag.home_screen_id(home_screen_id)]
     qry = {
@@ -125,9 +131,5 @@ def _suggest_items(search, community_id, home_screen_id):
     result_data = es_request(path, urlfetch.POST, qry)
     results = []
     for hit in result_data['hits']['hits']:
-        app_search_tag, uid = hit['_id'].rsplit('#', 1)
-        community_id, home_screen_id = app_search_tag.split('-', 1)
-        results.append({'community_id': long(community_id),
-                        'home_screen_id': home_screen_id,
-                        'uid': uid})
+        results.add(_get_uid_from_global_uid(hit['_id']))
     return results

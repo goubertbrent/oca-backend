@@ -23,6 +23,7 @@ from google.appengine.ext import deferred
 
 from mcfw.consts import MISSING
 from mcfw.rpc import returns, arguments
+from rogerthat.bizz.app_search import get_search_suggestions
 from rogerthat.bizz.embedded_applications import get_embedded_application, get_embedded_apps_by_type, \
     get_embedded_apps_by_community
 from rogerthat.bizz.friends import get_user_invite_url, get_user_and_qr_code_url
@@ -54,7 +55,8 @@ from rogerthat.to.system import SettingsTO, SaveSettingsRequest, SaveSettingsRes
     AddProfilePhoneNumberRequestTO, UpdateProfilePhoneNumberResponseTO, \
     UpdateProfilePhoneNumberRequestTO, DeleteProfilePhoneNumbersResponseTO, \
     DeleteProfilePhoneNumbersRequestTO, GetProfilePhoneNumbersResponseTO, \
-    GetProfilePhoneNumbersRequestTO
+    GetProfilePhoneNumbersRequestTO, GetAppSearchSuggestionsResponseTO,\
+    GetAppSearchSuggestionsRequestTO
 from rogerthat.utils import channel, slog, try_or_defer
 from rogerthat.utils.app import create_app_user, get_app_id_from_app_user
 
@@ -341,3 +343,11 @@ def getEmbeddedApp(request):
     # type: (GetEmbeddedAppRequestTO) -> GetEmbeddedAppResponseTO
     embedded_app = get_embedded_application(request.name)
     return GetEmbeddedAppResponseTO.from_dict(embedded_app.to_dict())
+
+
+@expose(('api',))
+@returns(GetAppSearchSuggestionsResponseTO)
+@arguments(request=GetAppSearchSuggestionsRequestTO)
+def getSearchSuggestions(request):
+    app_user = users.get_current_user()
+    return get_search_suggestions(app_user, request.search.query)
