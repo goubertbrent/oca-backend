@@ -45,7 +45,6 @@ from rogerthat.handlers.proxy import _exec_request
 from rogerthat.models import App, AppSettings, UserProfile, ServiceIdentity, AppTranslations, AppNameMapping
 from rogerthat.models.apps import EmbeddedApplication
 from rogerthat.models.firebase import FirebaseProjectSettings
-from rogerthat.models.properties.oauth import OAuthSettings
 from rogerthat.rpc import users
 from rogerthat.rpc.models import Mobile
 from rogerthat.rpc.rpc import logError
@@ -159,15 +158,6 @@ def put_settings(app_id, settings):
             updated = True
             update_mobiles = True
 
-        if settings.oauth is not MISSING and settings.oauth.url:
-            if not app_settings.oauth:
-                app_settings.oauth = OAuthSettings()
-            _, simple_properties = get_members(OAuthSettings)
-            for prop, _ in simple_properties:
-                updated_property = getattr(settings.oauth, prop)
-                if updated_property is not MISSING and getattr(app_settings.oauth, prop) != updated_property:
-                    setattr(app_settings.oauth, prop, updated_property)
-                    updated = True
         if settings.birthday_message_enabled is not MISSING:
             app_settings.birthday_message_enabled = settings.birthday_message_enabled
             updated = True

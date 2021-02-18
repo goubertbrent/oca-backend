@@ -103,7 +103,6 @@ ACTOR_TYPE_INVITEE = u"invitee"
 
 REGISTRATION_ORIGIN_DEFAULT = u'default'
 REGISTRATION_ORIGIN_QR = u'qr'
-REGISTRATION_ORIGIN_OAUTH = u'oauth'
 
 
 @returns([ButtonTO])

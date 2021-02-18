@@ -33,7 +33,7 @@ from mcfw.utils import chunks
 from rogerthat.bizz.communities.communities import get_communities_by_id
 from rogerthat.bizz.friends import ack_invitation_by_invitation_secret, makeFriends, ORIGIN_YSAAA, \
     REGISTRATION_ORIGIN_QR, ACCEPT_AND_CONNECT_ID, register_result_response_receiver, REGISTRATION_ORIGIN_DEFAULT, \
-    REGISTRATION_ORIGIN_OAUTH, ORIGIN_USER_INVITE
+    ORIGIN_USER_INVITE
 from rogerthat.bizz.job import hookup_with_default_services
 from rogerthat.bizz.messaging import send_messages_after_registration
 from rogerthat.bizz.profile import create_user_profile
@@ -431,7 +431,7 @@ def finish_registration(mobile_account, mobileInfo, invitor_code, invitor_secret
     if registration and registration.installation:
         save_successful_registration(registration, mobile, my_profile)
 
-        if registration.installation.service_identity_user and (registration.installation.qr_url or registration.installation.oauth_state):
+        if registration.installation.service_identity_user and registration.installation.qr_url:
             service_identity_user = registration.installation.service_identity_user
             service_user, service_identity = get_service_identity_tuple(service_identity_user)
             svc_profile = get_service_profile(service_user)
@@ -475,11 +475,6 @@ def finish_registration(mobile_account, mobileInfo, invitor_code, invitor_secret
                                                     service_identity=service_identity,
                                                     user_details=user_details,
                                                     origin=REGISTRATION_ORIGIN_QR)
-            elif registration.installation.oauth_state:
-                service_api_friends.register_result(register_result_response_receiver, logServiceError, svc_profile,
-                                                    service_identity=service_identity,
-                                                    user_details=user_details,
-                                                    origin=REGISTRATION_ORIGIN_OAUTH)
 
         else:
             app = get_app_by_id(get_app_id_from_app_user(mobile.user))
@@ -511,7 +506,7 @@ def migrate_anonymous_account(anonymous_account, new_app_user):
     anonymous_friend_map, new_friend_map, anonymous_user_profile = db.get([get_friends_map_key_by_user(anonymous_user),
                                                                            get_friends_map_key_by_user(new_app_user),
                                                                            get_user_profile_key(anonymous_user)])
-    bizz_check(anonymous_user_profile, 'No UserProfile found for %s', anonymous_user.email())
+    bizz_check(anonymous_user_profile, 'No UserProfile found for %s' % anonymous_user.email())
 
     if anonymous_friend_map:
         new_friend_details = new_friend_map.get_friend_details() if new_friend_map else {}

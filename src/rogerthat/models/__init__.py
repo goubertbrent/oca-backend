@@ -49,7 +49,6 @@ from rogerthat.models.properties.keyvalue import KeyValueProperty, KVStore
 from rogerthat.models.properties.messaging import ButtonsProperty, MemberStatusesProperty, JsFlowDefinitionsProperty, \
     AttachmentsProperty, SpecializedList, EmbeddedAppProperty, MessageButtonTO,\
     MessageEmbeddedAppTO, MessageAttachmentTO, MessageMemberStatusTO, JsFlowDefinitionTO
-from rogerthat.models.properties.oauth import OAuthSettingsProperty
 from rogerthat.models.properties.profiles import MobileDetailsProperty, \
     MobileDetailsNdbProperty, MobileDetailTO
 from rogerthat.models.utils import get_meta, add_meta
@@ -2104,7 +2103,6 @@ class Branding(CachedModelMixIn, db.Model):
 class AppSettings(CachedModelMixIn, db.Model):
     wifi_only_downloads = db.BooleanProperty(indexed=False, default=False)
     background_fetch_timestamps = db.ListProperty(int, indexed=False)  # seconds since midnight, UTC
-    oauth = OAuthSettingsProperty()
     birthday_message_enabled = db.BooleanProperty(default=False)
     birthday_message = db.TextProperty()
     tos_enabled = db.BooleanProperty(default=True)
@@ -2947,7 +2945,6 @@ class Installation(db.Model):
     auto_connected_services = db.StringListProperty(indexed=False)
     roles = db.TextProperty()
     qr_url = db.StringProperty(indexed=False)
-    oauth_state = db.StringProperty(indexed=False)
     mobile = db.ReferenceProperty(Mobile)
     profile = db.ReferenceProperty(UserProfile)
 

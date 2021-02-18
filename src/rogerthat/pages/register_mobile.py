@@ -26,36 +26,32 @@ import uuid
 from google.appengine.ext import webapp, db, deferred
 import webapp2
 
-from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import parse_complex_value, serialize_complex_value, returns
 from mcfw.utils import chunks
 from rogerthat.bizz.friends import get_service_profile_via_user_code, REGISTRATION_ORIGIN_QR, ACCEPT_ID, \
-    ACCEPT_AND_CONNECT_ID, REGISTRATION_ORIGIN_OAUTH, register_response_receiver
-from rogerthat.bizz.oauth import get_oauth_access_token
-from rogerthat.bizz.profile import get_profile_for_facebook_user, FailedToBuildFacebookProfileException, \
-    create_user_profile
+    ACCEPT_AND_CONNECT_ID, register_response_receiver
+from rogerthat.bizz.profile import get_profile_for_facebook_user, FailedToBuildFacebookProfileException
 from rogerthat.bizz.registration import register_mobile, get_device_names_of_my_mobiles, get_device_name, \
     get_mobile_type, get_or_insert_installation, send_installation_progress_callback, \
     save_tos_consent, save_push_notifications_consent, get_headers_for_consent,\
     get_communities_by_app_id
 from rogerthat.dal import parent_key
-from rogerthat.dal.app import get_app_by_id, get_app_settings
-from rogerthat.dal.profile import get_user_profile, get_service_or_user_profile, \
-    get_service_profile
+from rogerthat.dal.app import get_app_by_id
+from rogerthat.dal.profile import get_user_profile, get_service_or_user_profile
 from rogerthat.dal.registration import get_last_but_one_registration
 from rogerthat.dal.roles import get_service_admins
 from rogerthat.dal.service import get_service_interaction_def
 from rogerthat.models import Installation, InstallationLog, Registration, App, ServiceProfile, \
-    UserProfile, Profile, InstallationStatus
+    UserProfile, InstallationStatus
+from rogerthat.models.auth.acm import ACMLoginState
 from rogerthat.pages.legal import DOC_TERMS, get_current_document_version
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException, logServiceError
 from rogerthat.settings import get_server_settings
 from rogerthat.templates import render
 from rogerthat.to.friends import RegistrationResultTO, RegistrationResultRolesTO
-from rogerthat.to.oauth import OauthAccessTokenTO
-from rogerthat.to.registration import MobileInfoTO, DeprecatedMobileInfoTO, OAuthInfoTO
+from rogerthat.to.registration import MobileInfoTO, DeprecatedMobileInfoTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import localize, DEFAULT_LANGUAGE
 from rogerthat.utils import get_country_code_by_ipaddress, countries, now, send_mail, bizz_check
@@ -63,8 +59,7 @@ from rogerthat.utils.app import create_app_user, get_human_user_from_app_user, c
     get_app_id_from_app_user
 from rogerthat.utils.crypto import sha256_hex
 from rogerthat.utils.languages import get_iso_lang
-from rogerthat.utils.service import create_service_identity_user, \
-    get_identity_from_service_identity_user, get_service_identity_tuple
+from rogerthat.utils.service import create_service_identity_user, get_identity_from_service_identity_user
 from rogerthat.utils.transactions import run_in_transaction
 
 
@@ -462,7 +457,8 @@ class CommonRegistrationHandler(webapp.RequestHandler):
 
     def post(self):
         logging.debug(self.request.POST)
-
+        self.response.headers['Content-Type'] = 'text/json'
+        
         self.server_settings = get_server_settings()
         self.to_put = []
         self.installation = None
@@ -515,7 +511,6 @@ class CommonRegistrationHandler(webapp.RequestHandler):
         human_user = get_human_user_from_app_user(app_user)
 
         # Create registration entry.
-        self.response.headers['Content-Type'] = 'text/json'
         registration = Registration(parent=parent_key(app_user), key_name=registration_id)
         registration.timestamp = int(registration_time)
         registration.device_id = device_id
@@ -577,6 +572,8 @@ class CommonRegistrationHandler(webapp.RequestHandler):
                 age_and_gender_set = True
             elif self.TYPE == RegisterMobileViaFacebookHandler.TYPE:
                 age_and_gender_set = True
+                
+            age_and_gender_set = True # the user should complete this manually instead of after the signup
 
             app_user = create_app_user(human_user, app_id)
             headers = get_headers_for_consent(self.request)
@@ -687,6 +684,61 @@ class RegisterMobileViaAppleHandler(CommonRegistrationHandler):
         self.apple_given_name = self.request.get("full_name.given_name", None)
         self.apple_email = self.request.get("email", None)
         super(RegisterMobileViaAppleHandler, self).post()
+
+
+class RegisterMobileViaAuthHandler(CommonRegistrationHandler):
+    TYPE = 'AUTH'
+    ANONYMOUS = False
+
+    def _get_app_user(self, language, app_id):
+        try:
+            
+            human_user = users.User(u"u-%s@%s.auth.rogerth.at" % (self.auth_token_sub, self.auth_provider))
+            return create_app_user(human_user, app_id)
+        except Exception:
+            logging.error("Failed to build auth profile.", exc_info=True)
+            self.to_put.append(InstallationLog(parent=self.installation, timestamp=now(),
+                                               description="ERROR: Failed to build auth profile"))
+            self._put_and_callback()
+            self.response.set_status(500)
+            raise BusinessException()
+
+    def _validate_signature(self, signature, version, install_id, registration_time, device_id, registration_id):
+        calculated_signature = sha256_hex(version + " " + install_id + " " + registration_time + " " + device_id + " " +
+                                          registration_id + " " + self.auth_provider + self.auth_state + self.auth_token_sub + 
+                                          base64.b64decode(self.server_settings.registrationMainSignature.encode("utf8")))
+        return signature.upper() == calculated_signature.upper()
+
+    def _get_first_name(self):
+        return self.auth_token_given_name
+
+    def _get_last_name(self):
+        return self.auth_token_family_name
+
+    def post(self):
+        self.auth_provider = self.request.get("provider", None)
+        self.auth_state = self.request.get("state", None)
+        self.auth_token_sub = self.request.get("token.sub", None)
+        try:
+            if self.auth_provider != u'acm':
+                raise BusinessException("Invalid auth provider")
+            state_model = ACMLoginState.create_key(self.auth_state).get()
+            if not state_model:
+                raise BusinessException("Invalid auth state")
+            if state_model.id_token['sub'] != self.auth_token_sub:
+                raise BusinessException("Invalid auth token")
+
+            self.auth_token_family_name = state_model.id_token.get('family_name', None)
+            self.auth_token_given_name = state_model.id_token.get('given_name', None)
+
+        except BusinessException as e:
+            self.response.headers['Content-Type'] = 'text/json'
+            self.response.set_status(500)
+            if e.message:
+                self.response.out.write(json.dumps(dict(error=e.message)))
+            return
+            
+        super(RegisterMobileViaAuthHandler, self).post()
 
 
 class RegisterMobileViaQRHandler(webapp.RequestHandler):
@@ -1137,50 +1189,6 @@ class RegistrationCommunityHandler(webapp2.RequestHandler):
                                                 age_and_gender_set=age_and_gender_set)))
 
 
-class GetRegistrationOauthInfoHandler(webapp2.RequestHandler):
-
-    def post(self):
-        logging.debug(self.request.POST)
-        version = self.request.get("version", None)
-        install_id = self.request.get("install_id", None)
-        registration_time = self.request.get("registration_time", None)
-        device_id = self.request.get("device_id", None)
-        registration_id = self.request.get("registration_id", None)
-        signature = self.request.get("signature", None)
-        app_id = self.request.get("app_id", App.APP_ID_ROGERTHAT)
-        platform = self.request.get('platform')
-        use_xmpp_kick_channel = self.request.get('use_xmpp_kick', 'true') == 'true'
-        use_firebase_kick_channel = self.request.get('use_firebase_kick', 'false') == 'true'
-        language = _get_language_from_request(self.request)
-
-        server_settings = get_server_settings()
-
-        email_sig = base64.b64decode(server_settings.registrationMainSignature.encode('utf8'))
-        calculated_signature = sha256_hex(version + " " + install_id + " " + registration_time + " " + device_id + " " +
-                                          registration_id + " " + 'oauth' + email_sig)
-
-        if signature.upper() != calculated_signature.upper():
-            logging.error("Invalid request signature.")
-            self.response.set_status(400)
-            return
-
-        app = verify_app(self.response, language, app_id)
-        if not app:
-            return
-
-        mobile_type = get_mobile_type(platform, use_xmpp_kick_channel, use_firebase_kick_channel)
-        installation = get_or_insert_installation(install_id, version, mobile_type, registration_time, app_id,
-                                                  language, status=InstallationStatus.IN_PROGRESS)
-        log = InstallationLog(parent=installation, timestamp=now(), description='Oauth registration started')
-        log.put()
-        send_installation_progress_callback(installation, [log])
-        oauth = get_app_settings(app_id).oauth
-        self.response.headers['Content-Type'] = 'application/json'
-        self.response.out.write(json.dumps(serialize_complex_value(OAuthInfoTO.create(oauth.authorize_url, oauth.scopes,
-                                                                                      install_id, oauth.client_id),
-                                                                   OAuthInfoTO, False)))
-
-
 @returns((unicode, RegistrationResultTO))
 def validate_user_registration(installation, app_user, language, service_identity_user, service_profile,
                                service_identity, origin, data=None):
@@ -1218,174 +1226,6 @@ def validate_user_registration(installation, app_user, language, service_identit
 
     installation.service_identity_user = service_identity_user
     return r
-
-
-class OauthRegistrationHandler(webapp2.RequestHandler):
-
-    def post(self):
-        logging.debug(self.request.POST)
-        version = self.request.get("version", None)
-        install_id = self.request.get("install_id", None)
-        registration_time = self.request.get("registration_time", None)
-        device_id = self.request.get("device_id", None)
-        registration_id = self.request.get("registration_id", None)
-        request_signature = self.request.get("signature", None)
-        app_id = self.request.get("app_id", App.APP_ID_ROGERTHAT)
-        code = self.request.get('code')
-        state = self.request.get('state')
-        tos_age = self.request.get("tos_age", None)
-        push_notifications_enabled = self.request.get("push_notifications_enabled", None)
-        use_xmpp_kick_channel = self.request.get('use_xmpp_kick', 'true') == 'true'
-        use_firebase_kick_channel = self.request.get('use_firebase_kick', 'false') == 'true'
-        gcm_registration_id = self.request.get('GCM_registration_id', '')
-        firebase_registration_id = self.request.get('firebase_registration_id', '')
-        unique_device_id = self.request.get("unique_device_id", None)
-        language = _get_language_from_request(self.request)
-        platform = self.request.get('platform')
-
-        email_sig = base64.b64decode(get_server_settings().registrationMainSignature.encode('utf8'))
-        calculated_signature = sha256_hex(version + " " + install_id + " " + registration_time + " " + device_id + " " +
-                                          registration_id + " " + code + state + email_sig)
-        if request_signature.upper() != calculated_signature.upper():
-            self.abort(400)
-            return
-
-        # Validate input.
-        version = int(version)
-        azzert(version > 0 and version <= 4)
-
-        app = verify_app(self.response, language, app_id)
-        if not app:
-            return
-
-        self.response.headers['Content-Type'] = 'application/json'
-        to_put = []
-        installation = None
-        try:
-            oauth = get_app_settings(app_id).oauth
-            access_token = get_oauth_access_token(oauth.token_url, oauth.client_id, oauth.secret, code,
-                                                  'oauth-%s://x-callback-url' % app_id, state)
-            if access_token.info is not MISSING and access_token.info.username is not MISSING:
-                username = access_token.info.username
-            else:
-                # todo: get oauth identity
-                # username = get_oauth_identity(oauth.identity_url, access_token, variable_type)
-                bizz_check(False, u"Service did not provide a username")
-
-            mobile_type = get_mobile_type(platform, use_xmpp_kick_channel, use_firebase_kick_channel)
-            installation = get_or_insert_installation(install_id, version, mobile_type, registration_time, app_id,
-                                                      language, status=InstallationStatus.IN_PROGRESS)
-
-            to_put.append(InstallationLog(parent=installation, timestamp=now(),
-                                          description='Oauth registration authorized with state %s' % state))
-
-            profile, app_user = _get_existing_user_profile(username, app_id, oauth.domain)
-            registration_result = None
-            if oauth.service_identity_email:
-                service_identity_user = users.User(oauth.service_identity_email)
-                service_user, service_identity = get_service_identity_tuple(service_identity_user)
-                svc_profile = get_service_profile(service_user)
-
-                data = json.dumps(
-                    dict(state=state,
-                         result=serialize_complex_value(access_token, OauthAccessTokenTO, False, skip_missing=True)))
-                registration_result = validate_user_registration(installation, app_user, language,
-                                                                 service_identity_user, svc_profile, service_identity,
-                                                                 REGISTRATION_ORIGIN_OAUTH, data)
-                installation.oauth_state = state
-                to_put.append(installation)
-            if not profile:
-                profile = _create_user_profile(app_user, username, registration_result) # todo communities set community_id
-
-            human_user = get_human_user_from_app_user(app_user)
-
-            registration = Registration(parent=parent_key(app_user), key_name=registration_id)
-            registration.timestamp = int(registration_time)
-            registration.device_id = device_id
-            registration.pin = -1
-            registration.timesleft = -1
-            registration.installation = installation
-            registration.language = language
-            to_put.append(registration)
-            to_put.append(InstallationLog(parent=installation, timestamp=now(),
-                                          description="Profile created & registration request validated."))
-
-            if version >= 3:
-                device_names = get_device_names_of_my_mobiles(human_user, language, app_id, unique_device_id)
-                if device_names:
-                    registration.device_names = device_names
-                    to_put.append(InstallationLog(parent=registration.installation,
-                                                  timestamp=now(),
-                                                  description="Current device names: '%s'" % device_names))
-                    db.put(to_put)
-                    send_installation_progress_callback(installation,
-                                                        [m for m in to_put if isinstance(m, InstallationLog)])
-                    self.response.out.write(json.dumps(dict(has_devices=True,
-                                                            email=human_user.email(),
-                                                            device_names=device_names)))
-                    return
-                
-
-            tos_version = None
-            if tos_age:
-                tos_version = get_current_document_version(DOC_TERMS)
-            consent_push_notifications_shown = push_notifications_enabled is not None
-            account, registration.mobile, age_and_gender_set = register_mobile(human_user, app_id=app_id,
-                                                                               use_xmpp_kick_channel=use_xmpp_kick_channel,
-                                                                               gcm_registration_id=gcm_registration_id,
-                                                                               language=registration.language,
-                                                                               firebase_registration_id=firebase_registration_id,
-                                                                               tos_version=tos_version,
-                                                                               consent_push_notifications_shown=consent_push_notifications_shown)
-
-            headers = get_headers_for_consent(self.request)
-            if tos_version:
-                deferred.defer(save_tos_consent, app_user, headers, tos_version, tos_age)
-            if consent_push_notifications_shown:
-                deferred.defer(save_push_notifications_consent, app_user, headers, push_notifications_enabled)
-
-            to_put.append(InstallationLog(parent=installation, timestamp=now(),
-                                          description="Profile created & registration request validated."))
-            installation.mobile = registration.mobile
-            installation.profile = profile
-            to_put.append(installation)
-            db.put(to_put)
-            send_installation_progress_callback(installation, [m for m in to_put if isinstance(m, InstallationLog)])
-            response = dict(has_devices=False,
-                            account=account.to_dict(),
-                            email=human_user.email(),
-                            age_and_gender_set=age_and_gender_set)
-        except BusinessException as exception:
-            logging.warning("Failed to finish OauthRegistrationHandler", exc_info=True)
-            db.put(to_put)
-            if installation:
-                send_installation_progress_callback(installation, [m for m in to_put if isinstance(m, InstallationLog)])
-            self.response.set_status(500)
-            self.response.out.write(json.dumps(dict(error=exception.message)))
-            return
-        self.response.out.write(json.dumps(response))
-
-
-def _get_existing_user_profile(username, app_id, oauth_domain):
-    # Existing users may have a profile with unhashed username in their email, ensure their old profile is returned
-    email_unhashed = u'%s@%s' % (username, oauth_domain)
-    email_hashed = u'%s@%s' % (sha256_hex(username), oauth_domain)
-    app_user_unhashed = create_app_user(users.User(email_unhashed), app_id)
-    app_user_hashed = create_app_user(users.User(email_hashed), app_id)
-    profile_1, profile_2 = db.get([Profile.createKey(app_user_unhashed), Profile.createKey(app_user_hashed)])
-    if profile_1:
-        return profile_1, app_user_unhashed
-    return profile_2, app_user_hashed
-
-
-def _create_user_profile(app_user, username, registration_result):
-    name = username
-    avatar = None
-    if isinstance(registration_result, RegistrationResultTO):
-        if registration_result.user_details is not MISSING:
-            name = MISSING.default(registration_result.user_details.name, username)
-            avatar = MISSING.default(registration_result.user_details.avatar, None)
-    return create_user_profile(app_user, name, image=avatar)
 
 
 def _get_language_from_request(request):

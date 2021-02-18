@@ -114,6 +114,10 @@ handlers:
   - url: /auth
     script: rogerthat_unauthenticated.app
     secure: always
+  
+  - url: /auth/openid/v1/acm/.*
+    script: rogerthat_unauthenticated.app
+    secure: always
 
   - url: /upgrade/update_to_rogerth.at
     script: rogerthat_unauthenticated.app

@@ -150,7 +150,10 @@ def delete_user_data(app_user, friend_map, user_profile, unregister_reason=None)
     logging.info("len(models_to_delete): %s %r", len(models_to_delete), models_to_delete)
 
     cleanup_news(app_user)
-    cleanup_jobs_data(app_user)
+    try:
+        cleanup_jobs_data(app_user)
+    except:
+        logging.error("Failed to cleanup jobs data")
     UserProfileInfo.create_key(app_user).delete()
 
     db.delete(models_to_delete)
