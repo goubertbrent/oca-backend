@@ -472,7 +472,9 @@ def _user_has_role(service_identity_user, user_profile, role):
 
 
 def _item_is_visible(service_identity_user, user_profile, role_ids, existing_role_ids):
-    # type: (users.User, UserProfile, List[str], List[int]) -> bool
+    # type: (users.User, Optional[UserProfile], List[str], List[int]) -> bool
+    if not user_profile:
+        return False
     if not role_ids:
         return True
     for role_id in role_ids:
@@ -481,10 +483,14 @@ def _item_is_visible(service_identity_user, user_profile, role_ids, existing_rol
     return False
 
 
-def _get_map_item_details_to_from_ids(app_user, ids):
+def _get_map_item_details_to_from_ids(ids, app_user=None, language=None):
     from rogerthat.bizz.news import get_items_for_filter
-    user_profile = get_user_profile(app_user)
-    lang = user_profile.language
+    if app_user:
+        user_profile = get_user_profile(app_user)
+        lang = user_profile.language
+    else:
+        user_profile = None
+        lang = language
     map_items = []
     service_identity_users = [add_slash_default(users.User(email)) for email in ids]
     map_services = ndb.get_multi([MapService.create_key(user.email())
@@ -494,7 +500,8 @@ def _get_map_item_details_to_from_ids(app_user, ids):
     all_service_role_keys = set()
     for id_, map_service in zip(ids, map_services):
         service_user, service_identity = get_service_identity_tuple(users.User(map_service.service_identity_email))
-        models_to_get.append(MapSavedItem.create_key(SERVICES_TAG, app_user, id_))
+        if app_user:
+            models_to_get.append(MapSavedItem.create_key(SERVICES_TAG, app_user, id_))
         for item in map_service.vertical_items:
             if isinstance(item.item, OpeningHoursListSectionItemTO):
                 models_to_get.extend(map_service.opening_hours_links)
