@@ -15,14 +15,15 @@
 #
 # @@license_version:1.7@@
 
-import webapp2
 from google.appengine.api import app_identity
+import webapp2
 
-import rogerthat.web_client.api.app
-import rogerthat.web_client.api.news
 from mcfw.restapi import rest_functions, GenericRESTRequestHandler
 from rogerthat.bizz.jobs import worker_callbacks as jobs_worker_callbacks
 from rogerthat.consts import DEBUG
+from rogerthat.handlers.acm import ACMOpenIdLoginHandler, ACMOpenIdLogoutHandler,\
+    ACMOpenIdAuthorizedCallbackHandler, ACMOpenIdLoggedOutCallbackHandler,\
+    ACMOpenIdTokenHandler
 from rogerthat.handlers.apple import AppleAppSiteAssociationHandler
 from rogerthat.handlers.itsme import ItsmeAuthorizeHandler, ItsmeLoginHandler, ItsmeAuthorizedHandler, ItsmeJWKsHandler
 from rogerthat.pages import ViewImageHandler
@@ -51,8 +52,8 @@ from rogerthat.pages.qrinstall import QRInstallRequestHandler
 from rogerthat.pages.register_mobile import FinishRegistrationHandler, \
     InitiateRegistrationViaEmailVerificationHandler, VerifyEmailWithPinHandler, RegisterInstallIdentifierHandler, \
     RegisterMobileViaFacebookHandler, LogRegistrationStepHandler, InitServiceAppHandler, RegisterMobileViaQRHandler, \
-    GetRegistrationOauthInfoHandler, OauthRegistrationHandler, RegisterDeviceHandler, AnonymousRegistrationHandler, \
-    RegisterMobileViaAppleHandler, RegistrationCommunityHandler
+    RegisterDeviceHandler, AnonymousRegistrationHandler, RegisterMobileViaAppleHandler, RegistrationCommunityHandler,\
+    RegisterMobileViaAuthHandler
 from rogerthat.pages.service_disabled import ServiceDisabledHandler
 from rogerthat.pages.service_interact import ServiceInteractRequestHandler, ServiceInteractQRCodeRequestHandler
 from rogerthat.pages.service_map import ServiceMapHandler
@@ -66,6 +67,8 @@ from rogerthat.rpc.http import JSONRPCRequestHandler, UserAuthenticationHandler,
     InstantJSONRPCRequestHandler
 from rogerthat.rpc.service import ServiceApiHandler, CallbackResponseReceiver
 from rogerthat.service.api import XMLSchemaHandler
+import rogerthat.web_client.api.app
+import rogerthat.web_client.api.news
 from rogerthat.web_client.pages.news import NewsPageHandler
 from rogerthat.wsgi import RogerthatWSGIApplication
 from rogerthat_service_api_calls import register_all_service_api_calls
@@ -82,7 +85,6 @@ def authorize_internal_request():
         return True
     return False
 
-
 handlers = [
     ('/', MainPage),
     ('/robots.txt', RobotsTxt),
@@ -98,11 +100,10 @@ handlers = [
     ('/unauthenticated/mobi/registration/register_device', RegisterDeviceHandler),
     ('/unauthenticated/mobi/registration/register_anonymous', AnonymousRegistrationHandler),
     ('/unauthenticated/mobi/registration/register_apple', RegisterMobileViaAppleHandler),
+    ('/unauthenticated/mobi/registration/register_auth', RegisterMobileViaAuthHandler),
     ('/unauthenticated/mobi/registration/finish', FinishRegistrationHandler),
     ('/unauthenticated/mobi/registration/log_registration_step', LogRegistrationStepHandler),
     ('/unauthenticated/mobi/registration/init_service_app', InitServiceAppHandler),
-    ('/unauthenticated/mobi/registration/oauth/info', GetRegistrationOauthInfoHandler),
-    ('/unauthenticated/mobi/registration/oauth/registered', OauthRegistrationHandler),
     ('/unauthenticated/mobi/registration/register_community', RegistrationCommunityHandler),
     ('/unauthenticated/mobi/cached/avatar/(.*)', GetCachedAvatarHandler),
     ('/unauthenticated/mobi/avatar/(.*)', GetAvatarHandler),
@@ -162,7 +163,12 @@ handlers = [
     webapp2.Route('/oauth/itsme/authorized', ItsmeAuthorizedHandler, 'itsme_authorized'),
     webapp2.Route('/oauth/itsme/jwks.json', ItsmeJWKsHandler),
     webapp2.Route('/oauth/itsme/<app_id:[^/]+>/jwks.json', ItsmeJWKsHandler),
-    webapp2.Route('/web/<application_identifier:[^/]+>/news/id/<news_id:\d+>', NewsPageHandler, name='news-item')
+    webapp2.Route('/web/<application_identifier:[^/]+>/news/id/<news_id:\d+>', NewsPageHandler, name='news-item'),
+    webapp2.Route('/auth/openid/v1/acm/login', ACMOpenIdLoginHandler),
+    webapp2.Route('/auth/openid/v1/acm/logout', ACMOpenIdLogoutHandler),
+    webapp2.Route('/auth/openid/v1/acm/token', ACMOpenIdTokenHandler),
+    webapp2.Route('/auth/openid/v1/acm/authorized', ACMOpenIdAuthorizedCallbackHandler),
+    webapp2.Route('/auth/openid/v1/acm/logged-out', ACMOpenIdLoggedOutCallbackHandler),
 ]
 
 handlers.extend(rest_functions(user))

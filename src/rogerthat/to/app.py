@@ -18,7 +18,6 @@
 from mcfw.properties import bool_property, unicode_property, long_property, typed_property, unicode_list_property, \
     long_list_property, float_property
 from rogerthat.models.properties.friend import FriendDetailTO
-from rogerthat.models.properties.oauth import OAuthSettings
 from rogerthat.to import TO
 from rogerthat.utils.app import get_human_user_from_app_user
 
@@ -187,23 +186,21 @@ class AppUserListResultTO(object):
 
 
 class AppSettingsTO(object):
-    wifi_only_downloads = bool_property('1')
-    background_fetch_timestamps = long_list_property('2')
-    oauth = typed_property('3', OAuthSettings, False)
-    birthday_message_enabled = bool_property('4')
-    birthday_message = unicode_property('5')
-    tos_enabled = bool_property('6')
-    ios_firebase_project_id = unicode_property('7')
+    wifi_only_downloads = bool_property('wifi_only_downloads')
+    background_fetch_timestamps = long_list_property('background_fetch_timestamps')
+    birthday_message_enabled = bool_property('birthday_message_enabled')
+    birthday_message = unicode_property('birthday_message')
+    tos_enabled = bool_property('tos_enabled')
+    ios_firebase_project_id = unicode_property('ios_firebase_project_id')
     ios_apns_key_id = unicode_property('ios_apns_key_id')
 
-    def __init__(self, wifi_only_downloads=None, background_fetch_timestamps=None, oauth=None,
+    def __init__(self, wifi_only_downloads=None, background_fetch_timestamps=None,
                  birthday_message_enabled=False, birthday_message=None, tos_enabled=True,
                  ios_firebase_project_id=None, ios_apns_key_id=None):
         if background_fetch_timestamps is None:
             background_fetch_timestamps = []
         self.wifi_only_downloads = wifi_only_downloads
         self.background_fetch_timestamps = background_fetch_timestamps
-        self.oauth = oauth
         self.birthday_message_enabled = birthday_message_enabled
         self.birthday_message = birthday_message
         self.tos_enabled = tos_enabled
@@ -216,7 +213,7 @@ class AppSettingsTO(object):
         Args:
             model (rogerthat.models.AppSettings)
         """
-        return cls(model.wifi_only_downloads, model.background_fetch_timestamps, model.oauth,
+        return cls(model.wifi_only_downloads, model.background_fetch_timestamps,
                    model.birthday_message_enabled, model.birthday_message, model.tos_enabled,
                    model.ios_firebase_project_id, ios_apns_key_id)
 

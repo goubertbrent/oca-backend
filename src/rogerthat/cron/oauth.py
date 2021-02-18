@@ -17,18 +17,21 @@
 
 from datetime import datetime
 
-import webapp2
-from google.appengine.ext import ndb
-
 from dateutil.relativedelta import relativedelta
+from google.appengine.ext import ndb
+import webapp2
+
 from mcfw.utils import chunks
 from rogerthat.models import OAuthState
+from rogerthat.models.auth.acm import ACMLoginState, ACMLogoutState
 
 
 class RemoveStatesHandler(webapp2.RequestHandler):
     def get(self):
         today = datetime.now()
         yesterday = today - relativedelta(days=1)
-        to_delete = OAuthState.list_before_date(yesterday).fetch(keys_only=True)
-        for chunk in chunks(to_delete, 500):
-            ndb.delete_multi(chunk)
+
+        for cls in (OAuthState, ACMLoginState, ACMLogoutState):
+            to_delete = cls.list_before_date(yesterday).fetch(keys_only=True)
+            for chunk in chunks(to_delete, 500):
+                ndb.delete_multi(chunk)

@@ -47,23 +47,9 @@ def rest_save_app_settings(settings):
     Args:
         settings (AppSettingsTO)
     """
-    settings.oauth = MISSING
     settings.background_fetch_timestamps = MISSING
     settings.wifi_only_downloads = MISSING
     return app.put_settings(settings)
-
-
-@rest ("/common/cityapp/settings/save", "post")
-@returns(ReturnStatusTO)
-@arguments(gather_events=bool)
-def save_cityapp_settings(gather_events):
-    from solutions.common.bizz.cityapp import save_cityapp_settings as save_cityapp_settings_bizz
-    try:
-        service_user = users.get_current_user()
-        save_cityapp_settings_bizz(service_user, gather_events)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException as e:
-        return ReturnStatusTO.create(False, e.message)
 
 
 @rest("/common/cityapp/uitdatabank/settings", "get", read_only_access=True)
