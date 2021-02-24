@@ -1,24 +1,28 @@
-import { HttpClient, HttpClientModule } from '@angular/common/http';
-import { NgModule } from '@angular/core';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { BrowserModule } from '@angular/platform-browser';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { RouterModule, Routes } from '@angular/router';
-import { EffectsModule } from '@ngrx/effects';
-import { StoreModule } from '@ngrx/store';
-import { StoreDevtoolsModule } from '@ngrx/store-devtools';
-import { TranslateLoader, TranslateModule, TranslateService } from '@ngx-translate/core';
-import { TranslateHttpLoader } from '@ngx-translate/http-loader';
-import { ErrorService } from '@oca/web-shared';
-import { Observable, of } from 'rxjs';
-import { environment } from '../../../../src/environments/environment';
-import { ErrorHandlingModule } from '../../../web-shared/src/lib/error-handling';
-import { ERROR_HANDLING_TRANLATIONS_PROVIDER } from '../environments/config';
-import { AppComponent } from './app.component';
-import { AppEffects } from './app.effects';
-import { reducers } from './app.reducer';
-import { getInitialState } from './initial-state';
-import { WebNavbarComponent } from './web-navbar/web-navbar.component';
+import {HttpClient, HttpClientModule} from '@angular/common/http';
+import {NgModule} from '@angular/core';
+import {MatToolbarModule} from '@angular/material/toolbar';
+import {BrowserModule} from '@angular/platform-browser';
+import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
+import {RouterModule, Routes} from '@angular/router';
+import {EffectsModule} from '@ngrx/effects';
+import {StoreModule} from '@ngrx/store';
+import {StoreDevtoolsModule} from '@ngrx/store-devtools';
+import {TranslateLoader, TranslateModule, TranslateService} from '@ngx-translate/core';
+import {TranslateHttpLoader} from '@ngx-translate/http-loader';
+import {ErrorService} from '@oca/web-shared';
+import {Observable, of} from 'rxjs';
+import {environment} from '../../../../src/environments/environment';
+import {ErrorHandlingModule} from '../../../web-shared/src/lib/error-handling';
+import {ERROR_HANDLING_TRANLATIONS_PROVIDER} from '../environments/config';
+import {AppComponent} from './app.component';
+import {AppEffects} from './app.effects';
+import {reducers} from './app.reducer';
+import {getInitialState} from './initial-state';
+import {WebNavbarComponent} from './web-navbar/web-navbar.component';
+import {MapModule} from "./map/map.module";
+import {MatCardModule} from "@angular/material/card";
+import {MatButtonModule} from "@angular/material/button";
+import {MatIconModule} from "@angular/material/icon";
 
 const oca = getInitialState();
 
@@ -42,6 +46,9 @@ const routes: Routes = [
       {
         path: 'news', loadChildren: () => import('./news/news.module').then(m => m.NewsModule),
       },
+      {
+        path: 'map', loadChildren: () => import('./map/map.module').then(m => m.MapModule),
+      }
     ],
   },
 ];
@@ -55,7 +62,11 @@ const routes: Routes = [
     BrowserModule,
     BrowserAnimationsModule,
     HttpClientModule,
-    RouterModule.forRoot(routes, { paramsInheritanceStrategy: 'always' }),
+    MapModule,
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    RouterModule.forRoot(routes, {paramsInheritanceStrategy: 'always'}),
     TranslateModule.forRoot({
       defaultLanguage: 'en',
       loader: {

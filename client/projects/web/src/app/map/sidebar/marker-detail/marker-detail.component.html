@@ -1,0 +1,6 @@
+<p>Marker details works!</p>
+
+<div *ngIf="marker$ | async as marker">
+  <p>{{ marker.properties | json }}</p>
+  <p>{{ marker.properties.name }}</p>
+</div>
