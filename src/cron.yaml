@@ -149,3 +149,7 @@ cron:
 - description: Home screen test users
   url: /cron/home-screen-test-users
   schedule: every 5 minutes
+
+- description: mapbox export to tileset
+  url: /cron/mapbox-export-tileset
+  schedule: every 1 hours

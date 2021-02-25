@@ -25,6 +25,7 @@ from rogerthat.bizz.rtemail import EmailHandler
 from rogerthat.cron.apn_expiration_check import ApnExpirationCheckHandler
 from rogerthat.cron.birthday import BirthdayMessagesCronHandler
 from rogerthat.cron.jobs import SendJobNotificationsHandler
+from rogerthat.cron.mapbox import ExportToTilesetHandler
 from rogerthat.cron.news import NewsUnstickHandler, NewsStatisticsHandler, \
     NewsServiceSetupHandler, NewsGroupVisibilityHandler
 from rogerthat.cron.oauth import RemoveStatesHandler
@@ -82,6 +83,7 @@ handlers = [
     ('/cron/user/cleanup/context', CleanupUserContextHandler),
     ('/cron/web-cleanup-sessions', CleanupWebSessionsHandler),
     ('/cron/home-screen-test-users', HomeScreenTestUsersHandler),
+    ('/cron/mapbox-export-tileset', ExportToTilesetHandler),
     ('/mobiadmin/explorer', ExplorerPage),
     ('/mobiadmin/installation_logs', InstallationLogsHandler),
     ('/mobiadmin/activation_logs', ActivationLogsHandler),

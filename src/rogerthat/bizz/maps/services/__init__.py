@@ -41,6 +41,7 @@ from rogerthat.bizz.opening_hours import get_opening_hours_info, OPENING_HOURS_G
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_user_profile, get_service_profile
 from rogerthat.dal.service import get_service_menu_items
+from rogerthat.mapbox.mapbox_exporter import save_to_mapbox_dataset
 from rogerthat.models import UserProfileInfo, OpeningHours, ServiceIdentity, \
     ServiceTranslation, ServiceRole, UserProfile, App, AppServiceFilter, ServiceProfile
 from rogerthat.models.elasticsearch import ElasticsearchSettings
@@ -483,14 +484,14 @@ def _item_is_visible(service_identity_user, user_profile, role_ids, existing_rol
     return False
 
 
-def _get_map_item_details_to_from_ids(ids, app_user=None, language=None):
+def _get_map_item_details_to_from_ids(ids, app_user=None):
     from rogerthat.bizz.news import get_items_for_filter
     if app_user:
         user_profile = get_user_profile(app_user)
         lang = user_profile.language
     else:
         user_profile = None
-        lang = language
+        lang = 'nl'
     map_items = []
     service_identity_users = [add_slash_default(users.User(email)) for email in ids]
     map_services = ndb.get_multi([MapService.create_key(user.email())
@@ -499,6 +500,8 @@ def _get_map_item_details_to_from_ids(ids, app_user=None, language=None):
     models_to_get = []
     all_service_role_keys = set()
     for id_, map_service in zip(ids, map_services):
+        if not map_service:
+            continue
         service_user, service_identity = get_service_identity_tuple(users.User(map_service.service_identity_email))
         if app_user:
             models_to_get.append(MapSavedItem.create_key(SERVICES_TAG, app_user, id_))
@@ -506,11 +509,14 @@ def _get_map_item_details_to_from_ids(ids, app_user=None, language=None):
             if isinstance(item.item, OpeningHoursListSectionItemTO):
                 models_to_get.extend(map_service.opening_hours_links)
                 models_to_get.append(ServiceInfo.create_key(service_user, service_identity))
-            all_service_role_keys.update({ServiceRole.create_key(service_user, long(role_id)) for role_id in item.role_ids})
+            all_service_role_keys.update(
+                {ServiceRole.create_key(service_user, long(role_id)) for role_id in item.role_ids})
         for item in map_service.horizontal_items:
-            all_service_role_keys.update({ServiceRole.create_key(service_user, long(role_id)) for role_id in item.role_ids})
+            all_service_role_keys.update(
+                {ServiceRole.create_key(service_user, long(role_id)) for role_id in item.role_ids})
         for item in map_service.media_items:
-            all_service_role_keys.update({ServiceRole.create_key(service_user, long(role_id)) for role_id in item.role_ids})
+            all_service_role_keys.update(
+                {ServiceRole.create_key(service_user, long(role_id)) for role_id in item.role_ids})
     models = ndb.get_multi(models_to_get)
     all_opening_hours = {model.key: model for model in models if isinstance(model, OpeningHours)}
     service_infos = {model.key: model for model in models if isinstance(model, ServiceInfo)}
@@ -518,10 +524,10 @@ def _get_map_item_details_to_from_ids(ids, app_user=None, language=None):
     role_ids = {role.role_id for role in db.get(list(all_service_role_keys)) if role} if all_service_role_keys else []
 
     for id_, service_identity_user, map_service in zip(ids, service_identity_users, map_services):
-        service_user, service_identity = get_service_identity_tuple(users.User(map_service.service_identity_email))
         if not map_service:
             logging.debug('map_service with id "%s" not found', service_identity_user.email())
             continue
+        service_user, service_identity = get_service_identity_tuple(users.User(map_service.service_identity_email))
 
         sections = []
 
@@ -533,9 +539,10 @@ def _get_map_item_details_to_from_ids(ids, app_user=None, language=None):
         horizontal_list_items = [item.item for item in map_service.horizontal_items
                                  if _item_is_visible(service_identity_user, user_profile, item.role_ids,
                                                      role_ids)]
-        is_saved = id_ in all_saved_items
-        save_item = _get_saved_toggle_item(is_saved, None, lang)
-        horizontal_list_items.append(save_item)
+        if app_user:
+            is_saved = id_ in all_saved_items
+            save_item = _get_saved_toggle_item(is_saved, None, lang)
+            horizontal_list_items.append(save_item)
         sections.append(ListSectionTO(style=ListSectionStyle.HORIZONTAL, items=horizontal_list_items))
 
         vertical_list_items = []
@@ -645,7 +652,8 @@ def _convert_to_item_to(map_service, language, timezone, opening_hours):
         lines.append(MapItemLineTextTO(parts=[MapItemLineTextPartTO(color=None, text=txt) for txt in line_1]))
 
     if map_service.address:
-        lines.append(MapItemLineTextTO(parts=[MapItemLineTextPartTO(color=None, text=', '.join(map_service.address.splitlines()))]))
+        lines.append(MapItemLineTextTO(
+            parts=[MapItemLineTextPartTO(color=None, text=', '.join(map_service.address.splitlines()))]))
 
     if opening_hours:
         opening_hours_model = opening_hours[0]
@@ -935,7 +943,7 @@ def _search_services(tags, place_type_tags, lat, lon, distance, cursor, limit, s
 
     new_cursor = None
     if place_type_tags or search:
-        pass # no cursor
+        pass  # no cursor
     else:
         next_offset = start_offset + len(result_data['hits']['hits'])
         if result_data['hits']['total']['relation'] in ('eq', 'gte'):

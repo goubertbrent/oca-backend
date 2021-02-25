@@ -76,6 +76,7 @@ from rogerthat.dal.service import get_api_keys, get_api_key, get_api_key_count, 
     get_default_service_identity, get_service_identity_not_cached, get_service_identities, get_child_identities, \
     get_service_interaction_defs, get_users_connected_to_service_identity, log_service_activity, \
     get_service_identities_by_service_identity_users
+from rogerthat.mapbox.mapbox_exporter import save_to_mapbox_dataset
 from rogerthat.models import Profile, APIKey, SIKKey, ServiceInteractionDef, ShortURL, \
     QRTemplate, Message, MFRSIKey, ServiceMenuDef, Branding, PokeTagMap, ServiceProfile, UserProfile, ServiceIdentity, \
     SearchConfigLocation, ProfilePointer, FacebookProfilePointer, MessageFlowDesign, ServiceTranslation, \

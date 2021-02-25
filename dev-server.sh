@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-LISTEN_ADDRESS=0.0.0.0
+LISTEN_ADDRESS=localhost
 BLOBSTORE_PATH=""
 SEARCH_INDEXES_PATH=""
 APPLICATION_ID="mobicagecloudhr"
@@ -29,4 +29,4 @@ if [ ! -z ${SEARCH_INDEXES_PATH} ]; then
 fi
 
 echo ${LISTEN_ADDRESS}
-python2.7 -u ${DEV_SERVER_PATH} src --admin_host 0.0.0.0 --host ${LISTEN_ADDRESS} --port 8080 --skip_sdk_update_check --datastore_path=~/tmp/appengine.sqlite --log_level=debug ${SEARCH_INDEXES_PATH} ${BLOBSTORE_PATH} --require_indexes=yes --max_module_instances=5 --application ${APPLICATION_ID} --enable_host_checking=false --support_datastore_emulator=true ${EXTRA_PARAMS}
+python2.7 -u ${DEV_SERVER_PATH} src --admin_host $LISTEN_ADDRESS --host ${LISTEN_ADDRESS} --port 8080 --skip_sdk_update_check --datastore_path=~/tmp/appengine.sqlite --log_level=debug ${SEARCH_INDEXES_PATH} ${BLOBSTORE_PATH} --require_indexes=yes --max_module_instances=5 --application ${APPLICATION_ID} --enable_host_checking=false --support_datastore_emulator=true ${EXTRA_PARAMS}
