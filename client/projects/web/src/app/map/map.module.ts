@@ -1,15 +1,13 @@
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { StoreModule } from '@ngrx/store';
+import {NgModule} from '@angular/core';
+import {CommonModule} from '@angular/common';
+import {StoreModule} from '@ngrx/store';
 import * as fromMap from './map.reducer';
 import {MapComponent} from "./map.component";
 import {MapboxComponent} from "./mapbox/mapbox.component";
 import {SidebarComponent} from "./sidebar/sidebar.component";
 import {MarkerDetailComponent} from "./sidebar/marker-detail/marker-detail.component";
-import {MatCardModule} from "@angular/material/card";
-import {MatButtonModule} from "@angular/material/button";
-import {MatIconModule} from "@angular/material/icon";
-
+import {LayerbarComponent} from './mapbox/layerbar/layerbar.component';
+import {MaterialModule} from "../material/material.module";
 
 
 @NgModule({
@@ -17,16 +15,16 @@ import {MatIconModule} from "@angular/material/icon";
     MapComponent,
     MapboxComponent,
     SidebarComponent,
-    MarkerDetailComponent
+    MarkerDetailComponent,
+    LayerbarComponent
   ],
 
   imports: [
     CommonModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
+    MaterialModule,
     StoreModule.forFeature(fromMap.mapFeatureKey, fromMap.mapReducer)
   ],
   exports: [MapComponent]
 })
-export class MapModule { }
+export class MapModule {
+}

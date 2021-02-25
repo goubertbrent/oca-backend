@@ -97,6 +97,8 @@ export class MapboxComponent implements OnInit {
 
     map.on('load', () => {
 
+      map.resize();
+
       addImage('http://api.gipod.vlaanderen.be/ws/v1/icon/manifestation?eventType=betoging&size=64&grey=false', 'manifestIcon');
       addImage('http://api.gipod.vlaanderen.be/ws/v1/icon/workassignment?important=false&size=64&grey=false', 'workassignmentOrangeIcon');
       addImage('http://api.gipod.vlaanderen.be/ws/v1/icon/workassignment?important=true', 'workassignmentRedIcon');
@@ -163,8 +165,6 @@ export class MapboxComponent implements OnInit {
       map.on('moveend', () => {
         // @ts-ignore
         const features: Marker[] =  map.queryRenderedFeatures({layers: this.layers});
-
-
 
         if (features) {
           markers = features;
@@ -240,9 +240,6 @@ export class MapboxComponent implements OnInit {
             map.setLayoutProperty(clickedLayer, 'visibility', 'visible');
           }
         };
-
-        const layers = document.getElementById('menu') as HTMLDivElement;
-        layers.appendChild(link);
       }
     });
   }

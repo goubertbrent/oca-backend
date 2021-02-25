@@ -4,23 +4,8 @@ body {
 }
 
 #map {
-  position: absolute;
-  left: 25%;
-  top: 0;
-  bottom: 0;
-  width: 75%;
-}
 
-.map-overlay {
-  position: absolute;
-  width: 25%;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
-  background-color: #fff;
-  max-height: 100%;
-  overflow: hidden;
+  height: 100%;
 }
 
 .map-overlay fieldset {

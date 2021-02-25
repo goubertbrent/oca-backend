@@ -6,7 +6,6 @@ import {Component, Input, OnInit} from '@angular/core';
   styleUrls: ['./sidebar.component.scss']
 })
 export class SidebarComponent implements OnInit {
-  @Input() feature: any;
   constructor() { }
 
   ngOnInit(): void {

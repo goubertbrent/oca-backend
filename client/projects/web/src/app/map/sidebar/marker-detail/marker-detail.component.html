@@ -1,6 +1,26 @@
-<p>Marker details works!</p>
-
 <div *ngIf="marker$ | async as marker">
-  <p>{{ marker.properties | json }}</p>
-  <p>{{ marker.properties.name }}</p>
+  <mat-card>
+<h1>{{ marker.properties.name }}</h1>
+
+    <p>
+      <mat-icon>info</mat-icon>
+      Bij ons kan kan u veel doen. Een voorbeeld hiervan is dingen testen.
+      Heel veel testen.
+    </p>
+
+    <p>
+      <mat-icon>room</mat-icon>
+      Kerkstraat 4
+    </p>
+
+    <p>
+      <mat-icon>email</mat-icon>
+      test@example.com
+    </p>
+
+  <p>
+    <mat-icon>call</mat-icon>
+    +324785123644
+  </p>
+  </mat-card>
 </div>

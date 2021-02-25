@@ -20,9 +20,7 @@ import {reducers} from './app.reducer';
 import {getInitialState} from './initial-state';
 import {WebNavbarComponent} from './web-navbar/web-navbar.component';
 import {MapModule} from "./map/map.module";
-import {MatCardModule} from "@angular/material/card";
-import {MatButtonModule} from "@angular/material/button";
-import {MatIconModule} from "@angular/material/icon";
+import {MaterialModule} from "./material/material.module";
 
 const oca = getInitialState();
 
@@ -63,9 +61,7 @@ const routes: Routes = [
     BrowserAnimationsModule,
     HttpClientModule,
     MapModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
+    MaterialModule,
     RouterModule.forRoot(routes, {paramsInheritanceStrategy: 'always'}),
     TranslateModule.forRoot({
       defaultLanguage: 'en',
