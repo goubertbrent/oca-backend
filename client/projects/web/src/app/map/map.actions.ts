@@ -1,5 +1,5 @@
-import { createAction, props } from '@ngrx/store';
-import {Marker} from "./marker.model";
+import {createAction, props} from '@ngrx/store';
+import {SelectedMarker} from "./marker.model";
 
 export const loadMaps = createAction(
   '[Map] Load Maps'
@@ -17,5 +17,5 @@ export const loadMapsFailure = createAction(
 
 export const clickMarker = createAction(
   '[Map] save selected feature',
-  props<{selectedMarker : Marker}>()
+  props<{ selectedMarker: SelectedMarker }>()
 );

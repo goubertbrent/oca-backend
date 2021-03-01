@@ -1,7 +1,5 @@
-import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { CallStateType } from '@oca/web-shared';
-import { mapFeatureKey, MapState } from './map.reducer';
-import {Marker} from "./marker.model";
+import {createFeatureSelector, createSelector} from '@ngrx/store';
+import {mapFeatureKey, MapState} from './map.reducer';
 
 export const selectNewsState = createFeatureSelector<MapState>(mapFeatureKey);
 

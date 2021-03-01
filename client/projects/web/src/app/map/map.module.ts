@@ -8,6 +8,9 @@ import {SidebarComponent} from "./sidebar/sidebar.component";
 import {MarkerDetailComponent} from "./sidebar/marker-detail/marker-detail.component";
 import {LayerbarComponent} from './mapbox/layerbar/layerbar.component';
 import {MaterialModule} from "../material/material.module";
+import {MatIconRegistry} from "@angular/material/icon";
+import {MatListModule} from "@angular/material/list";
+import {MatExpansionModule} from "@angular/material/expansion";
 
 
 @NgModule({
@@ -19,11 +22,13 @@ import {MaterialModule} from "../material/material.module";
     LayerbarComponent
   ],
 
-  imports: [
-    CommonModule,
-    MaterialModule,
-    StoreModule.forFeature(fromMap.mapFeatureKey, fromMap.mapReducer)
-  ],
+    imports: [
+        CommonModule,
+        MaterialModule,
+        StoreModule.forFeature(fromMap.mapFeatureKey, fromMap.mapReducer),
+        MatListModule,
+        MatExpansionModule
+    ],
   exports: [MapComponent]
 })
 export class MapModule {

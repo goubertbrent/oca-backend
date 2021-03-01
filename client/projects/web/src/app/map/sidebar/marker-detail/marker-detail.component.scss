@@ -12,3 +12,26 @@ h1{
   text-align: center;
 }
 
+.Horizontal{
+  display: flex;
+  flex-direction: row;
+}
+
+.Vertical{
+  display: flex;
+  flex-direction: column;
+  p{
+    font-size: small;
+  }
+}
+
+.imageDetail{
+  width: 100%;
+}
+
+.openOrClosed {
+  color: green;
+}
+
+
+

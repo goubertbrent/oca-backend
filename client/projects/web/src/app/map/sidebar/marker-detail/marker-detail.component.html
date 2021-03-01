@@ -1,26 +1,76 @@
 <div *ngIf="marker$ | async as marker">
   <mat-card>
-<h1>{{ marker.properties.name }}</h1>
+    <h1>{{ marker.properties.name }}</h1>
+    <ng-container *ngFor="let section of marker.properties.sections" [ngSwitch]="section.type">
+      <ng-container *ngSwitchCase="SECTION_TYPE_LIST">
+        <mat-list>
+          <ng-container [ngSwitch]="section.style">
 
-    <p>
-      <mat-icon>info</mat-icon>
-      Bij ons kan kan u veel doen. Een voorbeeld hiervan is dingen testen.
-      Heel veel testen.
-    </p>
+            <ng-container *ngSwitchCase="HORIZONTAL">
+              <mat-list class="Horizontal">
+                <mat-list-item *ngFor="let listItem of section.items" class="Vertical">
+                  <mat-icon mat-list-icon fontSet="fa" [fontIcon]="listItem.icon"></mat-icon>
+                  <p matLine>{{listItem.title}}</p>
+                </mat-list-item>
+              </mat-list>
+            </ng-container>
 
-    <p>
-      <mat-icon>room</mat-icon>
-      Kerkstraat 4
-    </p>
+            <ng-container *ngSwitchDefault>
+              <ng-container *ngFor="let listItem of section.items" [ngSwitch]="listItem.type">
+                <ng-container *ngSwitchCase="MAP_LIST_ITEM_TYPE_LINK">
+                  <mat-list-item>
+                    <mat-icon mat-list-icon fontSet="fa" [fontIcon]="listItem.icon"></mat-icon>
+                    <p matLine>{{listItem.title}}</p>
+                  </mat-list-item>
+                </ng-container>
+                <ng-container *ngSwitchCase="MAP_LIST_ITEM_TYPE_EXPANDABLE">
+                  <mat-expansion-panel>
+                    <mat-expansion-panel-header>
+                      <mat-panel-title>
+                        <mat-icon mat-list-icon fontSet="fa" [fontIcon]="listItem.icon"></mat-icon>
+                      </mat-panel-title>
+                      <mat-panel-description>
+                        Beschrijving
+                      </mat-panel-description>
+                    </mat-expansion-panel-header>
+                    <p>{{listItem.title}}</p>
+                  </mat-expansion-panel>
+                </ng-container>
+                <ng-container *ngSwitchCase="MAP_LIST_ITEM_TYPE_DYNAMIC_OPENING_HOURS">
+                  <mat-list-item>
+                    <mat-icon mat-list-icon fontSet="fa" [fontIcon]="listItem.icon"></mat-icon>
+                    <p matLine class="openOrClosed">{{isOpen(listItem.opening_hours)}}</p>
+                  </mat-list-item>
+                </ng-container>
+                <ng-container *ngSwitchCase="MAP_LIST_ITEM_TYPE_OPENING_HOURS">
+                  <mat-expansion-panel>
+                    <mat-expansion-panel-header>
+                      <mat-panel-title>
+                        <mat-icon mat-list-icon fontSet="fa" [fontIcon]="listItem.icon"></mat-icon>
+                      </mat-panel-title>
+                      <mat-panel-description>
+                        Openeningsuren
+                      </mat-panel-description>
+                    </mat-expansion-panel-header>
+                    <ng-container *ngFor="let weekday_text of listItem.opening_hours.weekday_text">
+                      <ng-container *ngFor="let line of weekday_text.lines">
+                        <p>{{weekday_text.day}}:  {{line.text}}</p>
+                      </ng-container>
+                    </ng-container>
+                  </mat-expansion-panel>
+                </ng-container>
+              </ng-container>
+            </ng-container>
 
-    <p>
-      <mat-icon>email</mat-icon>
-      test@example.com
-    </p>
+          </ng-container>
+        </mat-list>
+      </ng-container>
 
-  <p>
-    <mat-icon>call</mat-icon>
-    +324785123644
-  </p>
+      <ng-container *ngSwitchCase="SECTION_TYPE_MEDIA">
+        <img src="{{section.items[0].content}}" class="imageDetail">
+      </ng-container>
+
+
+    </ng-container>
   </mat-card>
 </div>

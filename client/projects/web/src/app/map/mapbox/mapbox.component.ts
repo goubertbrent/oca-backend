@@ -4,7 +4,7 @@ import {Store} from '@ngrx/store';
 import {clickMarker} from '../map.actions';
 
 import * as  mapboxgl from 'mapbox-gl';
-import {Marker} from "../marker.model";
+import {Marker, SelectedMarker} from "../marker.model";
 
 interface Source {
   sourceId: string;
@@ -23,19 +23,22 @@ export class MapboxComponent implements OnInit {
   private servicesProfitLayerId = 'servicesProfit';
   private servicesNonProfitLayerId = 'servicesNonProfit';
   private servicesCareLayerId = 'servicesCare';
-  private layers = [this.servicesCityLayerId, this.servicesProfitLayerId,this.servicesNonProfitLayerId,this.servicesCareLayerId]
+  //private layers = [this.servicesCityLayerId, this.servicesProfitLayerId,this.servicesNonProfitLayerId,this.servicesCareLayerId]
+  private layers = [this.servicesCityLayerId]
 
   constructor(private store: Store) {
   }
 
   public onClickMarker(feature: Marker) {
-    let test: Marker = {
+    console.log(feature);
+    let test: SelectedMarker = {
       'id': feature.id,
-      'properties': feature.properties,
+      'properties': JSON.parse(feature.properties.data),
       'type': feature.type,
       'geometry': feature.geometry,
     }
-    this.store.dispatch(clickMarker({selectedMarker: test})); // moet object zijn
+    console.log(test);
+    this.store.dispatch(clickMarker({selectedMarker: test}));
   }
 
   ngOnInit(): void {
@@ -108,6 +111,25 @@ export class MapboxComponent implements OnInit {
       addSource(servicesNonProfit);
       addSource(servicesCare);
 
+      // map.addSource('testSource', {
+      //   'type': "geojson",
+      //   'data': '../../../assets/geoJson/features.geojson'
+      // })
+/*
+      map.addLayer({
+        id: this.servicesCityLayerId,
+        source: 'testSource',
+        type: 'symbol',
+        layout: {
+          'icon-image': 'manifestIcon',
+          'icon-size': 0.35,
+          'icon-allow-overlap': true,
+          visibility: 'visible'
+        }
+      });
+
+ */
+
 
       map.addLayer({
         id: this.servicesCityLayerId,
@@ -122,44 +144,44 @@ export class MapboxComponent implements OnInit {
         }
       });
 
-      map.addLayer({
-        id: this.servicesProfitLayerId,
-        source: servicesProfit.sourceId,
-        'source-layer': servicesProfit.tileName,
-        type: 'symbol',
-        layout: {
-          'icon-image': 'manifestIcon',
-          'icon-size': 0.35,
-          'icon-allow-overlap': true,
-          visibility: 'visible'
-        }
-      });
-
-      map.addLayer({
-        id: this.servicesNonProfitLayerId,
-        source: servicesNonProfit.sourceId,
-        'source-layer': servicesNonProfit.tileName,
-        type: 'symbol',
-        layout: {
-          'icon-image': 'manifestIcon',
-          'icon-size': 0.35,
-          'icon-allow-overlap': true,
-          visibility: 'visible'
-        }
-      });
-
-      map.addLayer({
-        id: this.servicesCareLayerId,
-        source: servicesCare.sourceId,
-        'source-layer': servicesCare.tileName,
-        type: 'symbol',
-        layout: {
-          'icon-image': 'manifestIcon',
-          'icon-size': 0.35,
-          'icon-allow-overlap': true,
-          visibility: 'visible'
-        }
-      });
+      // map.addLayer({
+      //   id: this.servicesProfitLayerId,
+      //   source: servicesProfit.sourceId,
+      //   'source-layer': servicesProfit.tileName,
+      //   type: 'symbol',
+      //   layout: {
+      //     'icon-image': 'manifestIcon',
+      //     'icon-size': 0.35,
+      //     'icon-allow-overlap': true,
+      //     visibility: 'visible'
+      //   }
+      // });
+      //
+      // map.addLayer({
+      //   id: this.servicesNonProfitLayerId,
+      //   source: servicesNonProfit.sourceId,
+      //   'source-layer': servicesNonProfit.tileName,
+      //   type: 'symbol',
+      //   layout: {
+      //     'icon-image': 'manifestIcon',
+      //     'icon-size': 0.35,
+      //     'icon-allow-overlap': true,
+      //     visibility: 'visible'
+      //   }
+      // });
+      //
+      // map.addLayer({
+      //   id: this.servicesCareLayerId,
+      //   source: servicesCare.sourceId,
+      //   'source-layer': servicesCare.tileName,
+      //   type: 'symbol',
+      //   layout: {
+      //     'icon-image': 'manifestIcon',
+      //     'icon-size': 0.35,
+      //     'icon-allow-overlap': true,
+      //     visibility: 'visible'
+      //   }
+      // });
 
 
       map.on('moveend', () => {
@@ -167,6 +189,7 @@ export class MapboxComponent implements OnInit {
         const features: Marker[] =  map.queryRenderedFeatures({layers: this.layers});
 
         if (features) {
+          console.log(features)
           markers = features;
         }
       });
@@ -205,42 +228,11 @@ export class MapboxComponent implements OnInit {
         popup
           .setLngLat([feature.geometry.coordinates[0], feature.geometry.coordinates[1]])
           .setText(
-            feature.properties.name
+            feature.properties.id
           )
           .addTo(map);
         this.onClickMarker(feature);
       });
-
-
-      // enumerate ids of the layers
-      const toggleableLayerIds = [this.servicesProfitLayerId, this.servicesNonProfitLayerId,
-        this.servicesCareLayerId, this.servicesCityLayerId];
-
-// set up the corresponding toggle button for each layer
-      for (const id of toggleableLayerIds) {
-        const link = document.createElement('a');
-        link.href = '#';
-        link.className = 'active';
-        link.textContent = id;
-
-        link.onclick = e => {
-          // tslint:disable-next-line:no-non-null-assertion
-          const clickedLayer = link.textContent!;
-          e.preventDefault();
-          e.stopPropagation();
-
-          const visibility = map.getLayoutProperty(clickedLayer, 'visibility');
-
-// toggle layer visibility by changing the layout object's visibility property
-          if (visibility === 'visible') {
-            map.setLayoutProperty(clickedLayer, 'visibility', 'none');
-            link.className = '';
-          } else {
-            link.className = 'active';
-            map.setLayoutProperty(clickedLayer, 'visibility', 'visible');
-          }
-        };
-      }
     });
   }
 }
