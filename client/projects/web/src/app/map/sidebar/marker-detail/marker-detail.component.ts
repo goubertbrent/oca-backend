@@ -14,6 +14,7 @@ import {MapListSectionItemType} from "../../../../../../web-shared/src/lib/types
 })
 export class MarkerDetailComponent implements OnInit {
   marker$: Observable<SelectedMarker | null>;
+
   SECTION_TYPE_LIST = MapSectionType.LIST
   SECTION_TYPE_NEWS_GROUP = MapSectionType.NEWS_GROUP
   SECTION_TYPE_GEOMETRY = MapSectionType.GEOMETRY

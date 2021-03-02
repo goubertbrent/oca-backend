@@ -16,6 +16,7 @@
             </ng-container>
 
             <ng-container *ngSwitchDefault>
+
               <ng-container *ngFor="let listItem of section.items" [ngSwitch]="listItem.type">
                 <ng-container *ngSwitchCase="MAP_LIST_ITEM_TYPE_LINK">
                   <mat-list-item>
@@ -23,6 +24,7 @@
                     <p matLine>{{listItem.title}}</p>
                   </mat-list-item>
                 </ng-container>
+
                 <ng-container *ngSwitchCase="MAP_LIST_ITEM_TYPE_EXPANDABLE">
                   <mat-expansion-panel>
                     <mat-expansion-panel-header>
@@ -36,12 +38,14 @@
                     <p>{{listItem.title}}</p>
                   </mat-expansion-panel>
                 </ng-container>
+
                 <ng-container *ngSwitchCase="MAP_LIST_ITEM_TYPE_DYNAMIC_OPENING_HOURS">
                   <mat-list-item>
                     <mat-icon mat-list-icon fontSet="fa" [fontIcon]="listItem.icon"></mat-icon>
                     <p matLine class="openOrClosed">{{isOpen(listItem.opening_hours)}}</p>
                   </mat-list-item>
                 </ng-container>
+
                 <ng-container *ngSwitchCase="MAP_LIST_ITEM_TYPE_OPENING_HOURS">
                   <mat-expansion-panel>
                     <mat-expansion-panel-header>
@@ -52,13 +56,16 @@
                         Openeningsuren
                       </mat-panel-description>
                     </mat-expansion-panel-header>
+                    <mat-list>
                     <ng-container *ngFor="let weekday_text of listItem.opening_hours.weekday_text">
                       <ng-container *ngFor="let line of weekday_text.lines">
-                        <p>{{weekday_text.day}}:  {{line.text}}</p>
+                        <mat-list-item>{{weekday_text.day}}:  {{line.text}}</mat-list-item>
                       </ng-container>
                     </ng-container>
+                    </mat-list>
                   </mat-expansion-panel>
                 </ng-container>
+
               </ng-container>
             </ng-container>
 

@@ -1,10 +1,13 @@
 /* tslint:disable:no-trailing-whitespace */
-import {Component, OnInit, EventEmitter, Output} from '@angular/core';
-import {Store} from '@ngrx/store';
+import {Component, OnInit} from '@angular/core';
+import {select, Store} from '@ngrx/store';
 import {clickMarker} from '../map.actions';
 
 import * as  mapboxgl from 'mapbox-gl';
 import {Marker, SelectedMarker} from "../marker.model";
+import {environment} from "../../../environments/environment";
+import {Observable} from "rxjs";
+import {getLayerId, getPreviousLayerId} from "../map.selectors";
 
 interface Source {
   sourceId: string;
@@ -18,49 +21,34 @@ interface Source {
   styleUrls: ['./mapbox.component.scss']
 })
 export class MapboxComponent implements OnInit {
-
-  private servicesCityLayerId = 'servicesCity';
-  private servicesProfitLayerId = 'servicesProfit';
-  private servicesNonProfitLayerId = 'servicesNonProfit';
-  private servicesCareLayerId = 'servicesCare';
   //private layers = [this.servicesCityLayerId, this.servicesProfitLayerId,this.servicesNonProfitLayerId,this.servicesCareLayerId]
-  private layers = [this.servicesCityLayerId]
+  private layers = [environment.servicesCityLayerId]
+  selectedLayerId$: Observable<string>;
+  previousLayerId$: Observable<string>;
 
-  constructor(private store: Store) {
-  }
+  private map: any;
+
+  constructor(private store: Store) {}
 
   public onClickMarker(feature: Marker) {
-    console.log(feature);
     let test: SelectedMarker = {
       'id': feature.id,
       'properties': JSON.parse(feature.properties.data),
       'type': feature.type,
       'geometry': feature.geometry,
     }
-    console.log(test);
     this.store.dispatch(clickMarker({selectedMarker: test}));
   }
 
+  ChangeLayer(layerId: string, visibility: string): void {
+    if(layerId != "")
+    {
+      this.map.setLayoutProperty(layerId, 'visibility', visibility);
+    }
+  }
+
   ngOnInit(): void {
-
-    const servicesCity = {sourceId: this.servicesCityLayerId, tileId: 'fairville.services_city', tileName: 'services_city'};
-    const servicesNonProfit = {
-      sourceId: this.servicesNonProfitLayerId, tileId: 'fairville.services_non_profit',
-      tileName: 'services_non_profit'
-    };
-    const servicesProfit = {
-      sourceId: this.servicesProfitLayerId,
-      tileId: 'fairville.services_profit',
-      tileName: 'services_profit'
-    };
-    const servicesCare = {
-      sourceId: this.servicesCareLayerId,
-      tileId: 'fairville.services_emergency',
-      tileName: 'services_emergency'
-    };
-
-
-    const map = new mapboxgl.Map({
+    this.map = new mapboxgl.Map({
       accessToken: 'pk.eyJ1IjoiZmFpcnZpbGxlIiwiYSI6ImNrbDZkb2ppNzFjeXQycW1uOGM0cDY1NmQifQ.-l4ZEOYtpkk39Re3txcSNw',
       container: 'map',
       style: 'mapbox://styles/mapbox/streets-v11',
@@ -70,133 +58,117 @@ export class MapboxComponent implements OnInit {
       zoom: 10
     });
 
-// Holds visible airport features for filtering
-    let markers: Marker[] = [];
+    const servicesCity = {
+      sourceId: environment.servicesCityLayerId,
+      tileId: 'fairville.services_city',
+      tileName: 'services_city'
+    };
+    const servicesNonProfit = {
+      sourceId: environment.servicesNonProfitLayerId, tileId: 'fairville.services_non_profit',
+      tileName: 'services_non_profit'
+    };
+    const servicesProfit = {
+      sourceId: environment.servicesProfitLayerId,
+      tileId: 'fairville.services_profit',
+      tileName: 'services_profit'
+    };
+    const servicesCare = {
+      sourceId: environment.servicesCareLayerId,
+      tileId: 'fairville.services_emergency',
+      tileName: 'services_emergency'
+    };
 
 // Create a popup, but don't add it to the map yet.
     const popup = new mapboxgl.Popup({
       closeButton: false
     });
 
-    function addImage(url: string, name: string) {
-      map.loadImage(
-        url,
-        (error: any, image: any) => {
-          if (error) {
-            throw error;
-          }
-          map.addImage(name, image as any);
-        });
-    }
+    this.map.on('load', () => {
 
-    function addSource(source: Source) {
-      const url = 'mapbox://' + source.tileId;
-      map.addSource(source.sourceId, {
-        type: 'vector',
-        url
-      });
-    }
+      this.map.resize();
+
+      this.addImage('http://api.gipod.vlaanderen.be/ws/v1/icon/manifestation?eventType=betoging&size=64&grey=false', 'manifestIcon');
+      this.addImage('http://api.gipod.vlaanderen.be/ws/v1/icon/workassignment?important=false&size=64&grey=false', 'workassignmentOrangeIcon');
+      this.addImage('http://api.gipod.vlaanderen.be/ws/v1/icon/workassignment?important=true', 'workassignmentRedIcon');
 
 
-    map.on('load', () => {
-
-      map.resize();
-
-      addImage('http://api.gipod.vlaanderen.be/ws/v1/icon/manifestation?eventType=betoging&size=64&grey=false', 'manifestIcon');
-      addImage('http://api.gipod.vlaanderen.be/ws/v1/icon/workassignment?important=false&size=64&grey=false', 'workassignmentOrangeIcon');
-      addImage('http://api.gipod.vlaanderen.be/ws/v1/icon/workassignment?important=true', 'workassignmentRedIcon');
-
-      addSource(servicesCity);
-      addSource(servicesProfit);
-      addSource(servicesNonProfit);
-      addSource(servicesCare);
-
-      // map.addSource('testSource', {
-      //   'type': "geojson",
-      //   'data': '../../../assets/geoJson/features.geojson'
-      // })
-/*
-      map.addLayer({
-        id: this.servicesCityLayerId,
-        source: 'testSource',
-        type: 'symbol',
-        layout: {
-          'icon-image': 'manifestIcon',
-          'icon-size': 0.35,
-          'icon-allow-overlap': true,
-          visibility: 'visible'
-        }
-      });
-
- */
+      this.addSource(servicesCity);
+      this.addSource(servicesProfit);
+      this.addSource(servicesNonProfit);
+      this.addSource(servicesCare);
 
 
-      map.addLayer({
-        id: this.servicesCityLayerId,
+      this.map.addLayer({
+        id: environment.servicesCityLayerId,
         source: servicesCity.sourceId,
         'source-layer': servicesCity.tileName,
         type: 'symbol',
+        layout: this.setLayout()
+      });
+
+      this.map.addLayer({
+        id: environment.servicesProfitLayerId,
+        source: servicesProfit.sourceId,
+        'source-layer': servicesProfit.tileName,
+        type: 'symbol',
         layout: {
           'icon-image': 'manifestIcon',
           'icon-size': 0.35,
           'icon-allow-overlap': true,
-          visibility: 'visible'
+          visibility: 'none'
         }
       });
 
-      // map.addLayer({
-      //   id: this.servicesProfitLayerId,
-      //   source: servicesProfit.sourceId,
-      //   'source-layer': servicesProfit.tileName,
-      //   type: 'symbol',
-      //   layout: {
-      //     'icon-image': 'manifestIcon',
-      //     'icon-size': 0.35,
-      //     'icon-allow-overlap': true,
-      //     visibility: 'visible'
-      //   }
-      // });
-      //
-      // map.addLayer({
-      //   id: this.servicesNonProfitLayerId,
-      //   source: servicesNonProfit.sourceId,
-      //   'source-layer': servicesNonProfit.tileName,
-      //   type: 'symbol',
-      //   layout: {
-      //     'icon-image': 'manifestIcon',
-      //     'icon-size': 0.35,
-      //     'icon-allow-overlap': true,
-      //     visibility: 'visible'
-      //   }
-      // });
-      //
-      // map.addLayer({
-      //   id: this.servicesCareLayerId,
-      //   source: servicesCare.sourceId,
-      //   'source-layer': servicesCare.tileName,
-      //   type: 'symbol',
-      //   layout: {
-      //     'icon-image': 'manifestIcon',
-      //     'icon-size': 0.35,
-      //     'icon-allow-overlap': true,
-      //     visibility: 'visible'
-      //   }
-      // });
+      this.map.addLayer({
+        id: environment.servicesNonProfitLayerId,
+        source: servicesNonProfit.sourceId,
+        'source-layer': servicesNonProfit.tileName,
+        type: 'symbol',
+        layout: {
+          'icon-image': 'manifestIcon',
+          'icon-size': 0.35,
+          'icon-allow-overlap': true,
+          visibility: 'none'
+        }
+      });
+
+      this.map.addLayer({
+        id: environment.servicesCareLayerId,
+        source: servicesCare.sourceId,
+        'source-layer': servicesCare.tileName,
+        type: 'symbol',
+        layout: {
+          'icon-image': 'manifestIcon',
+          'icon-size': 0.35,
+          'icon-allow-overlap': true,
+          visibility: 'none'
+        }
+      });
+
+      this.selectedLayerId$ = this.store.pipe(select(getLayerId));
+      this.previousLayerId$ = this.store.pipe(select(getPreviousLayerId));
+      this.selectedLayerId$.subscribe(
+        id => {
+          this.ChangeLayer(id, 'visible');
+          console.log(id)
+        }
+      );
+      this.previousLayerId$.subscribe(
+        id => {
+          this.ChangeLayer(id, 'none');
+          console.log(id)
+        }
+      );
 
 
-      map.on('moveend', () => {
+      this.map.on('moveend', () => {
         // @ts-ignore
-        const features: Marker[] =  map.queryRenderedFeatures({layers: this.layers});
-
-        if (features) {
-          console.log(features)
-          markers = features;
-        }
+        const features: Marker[] = this.map.queryRenderedFeatures({layers: this.layers});
       });
 
-      map.on('mousemove', this.servicesProfitLayerId, (e: any) => {
+      this.map.on('mousemove', environment.servicesProfitLayerId, (e: any) => {
 // Change the cursor style as a UI indicator.
-        map.getCanvas().style.cursor = 'pointer';
+        this.map.getCanvas().style.cursor = 'pointer';
 
 // Populate the popup and set its coordinates based on the feature.
         if (!e.features) {
@@ -207,18 +179,18 @@ export class MapboxComponent implements OnInit {
         popup
           .setLngLat(geometry.coordinates)
           .setText(feature.properties!.description)
-          .addTo(map);
+          .addTo(this.map);
       });
 
 
-      map.on('mouseleave', this.servicesProfitLayerId, () => {
-        map.getCanvas().style.cursor = '';
+      this.map.on('mouseleave', environment.servicesProfitLayerId, () => {
+        this.map.getCanvas().style.cursor = '';
         popup.remove();
       });
 
-      map.on('click', this.servicesCityLayerId, (e: any) => {
+      this.map.on('click', environment.servicesCityLayerId, (e: any) => {
 // Change the cursor style as a UI indicator.
-        map.getCanvas().style.cursor = 'pointer';
+        this.map.getCanvas().style.cursor = 'pointer';
 
 // Populate the popup and set its coordinates based on the feature.
         if (!e.features) {
@@ -230,10 +202,38 @@ export class MapboxComponent implements OnInit {
           .setText(
             feature.properties.id
           )
-          .addTo(map);
+          .addTo(this.map);
         this.onClickMarker(feature);
       });
     });
+  }
+
+  addImage(url: string, name: string): void {
+    this.map.loadImage(
+      url,
+      (error: any, image: any) => {
+        if (error) {
+          throw error;
+        }
+        this.map.addImage(name, image as any);
+      });
+  }
+
+  addSource(source: Source) {
+    const url = 'mapbox://' + source.tileId;
+    this.map.addSource(source.sourceId, {
+      type: 'vector',
+      url
+    });
+  }
+
+  private setLayout() {
+    return {
+      'icon-image': 'manifestIcon',
+      'icon-size': 0.35,
+      'icon-allow-overlap': true,
+      'visibility': 'visible'
+    };
   }
 }
 

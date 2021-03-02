@@ -19,3 +19,8 @@ export const clickMarker = createAction(
   '[Map] save selected feature',
   props<{ selectedMarker: SelectedMarker }>()
 );
+
+export const changeLayer = createAction(
+  '[Map] change layer on map',
+  props<{layerId: string}>()
+);

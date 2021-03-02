@@ -1,19 +1,19 @@
 <mat-chip-list>
-  <mat-chip color="primary" selected>
+  <mat-chip id={{PROFITKEY}} color="primary" [selected]=isProfitSelected (click)="selectLayer(PROFITKEY)">
     <mat-icon>local_grocery_store</mat-icon>
     Handelaars
   </mat-chip>
-  <mat-chip color="primary" selected>
+  <mat-chip id={{CAREKEY}} color="primary" [selected]=isCareSelected (click)="selectLayer(CAREKEY)">
     <mat-icon>local_hospital</mat-icon>
     Zorgverstrekkers
   </mat-chip>
-  <mat-chip color="primary" selected>
+  <mat-chip id={{NON_PROFITKEY}} color="primary" [selected]=isNonProfitSelected (click)="selectLayer(NON_PROFITKEY)">
     <mat-icon>sports_football</mat-icon>
     Verenigingen
   </mat-chip>
-  <mat-chip color="primary" selected>
+  <mat-chip id={{CITYKEY}} color="primary" [selected]=isCitySelected (click)="selectLayer(CITYKEY)">
     <mat-icon>search</mat-icon>
-    POI
+    Gemeente
   </mat-chip>
 </mat-chip-list>
 
