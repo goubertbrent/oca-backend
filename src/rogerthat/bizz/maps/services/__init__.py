@@ -474,10 +474,10 @@ def _user_has_role(service_identity_user, user_profile, role):
 
 def _item_is_visible(service_identity_user, user_profile, role_ids, existing_role_ids):
     # type: (users.User, Optional[UserProfile], List[str], List[int]) -> bool
-    if not user_profile:
-        return False
     if not role_ids:
         return True
+    if not user_profile:
+        return False
     for role_id in role_ids:
         if long(role_id) in existing_role_ids and _user_has_role(service_identity_user, user_profile, role_id):
             return True
@@ -543,6 +543,7 @@ def _get_map_item_details_to_from_ids(ids, app_user=None):
             is_saved = id_ in all_saved_items
             save_item = _get_saved_toggle_item(is_saved, None, lang)
             horizontal_list_items.append(save_item)
+        logging.warning('horizontal items: %s', horizontal_list_items)
         sections.append(ListSectionTO(style=ListSectionStyle.HORIZONTAL, items=horizontal_list_items))
 
         vertical_list_items = []
@@ -574,7 +575,7 @@ def _get_map_item_details_to_from_ids(ids, app_user=None):
                     vertical_list_items.append(item.item)
             else:
                 vertical_list_items.append(item.item)
-
+        logging.warning('vertical items:%s', vertical_list_items)
         if vertical_list_items:
             sections.append(ListSectionTO(style=ListSectionStyle.VERTICAL,
                                           items=vertical_list_items))
@@ -594,6 +595,7 @@ def _get_map_item_details_to_from_ids(ids, app_user=None):
             sections.append(NewsSectionTO(filter=stream_filter,
                                           limit=3,
                                           placeholder_image='https://storage.googleapis.com/oca-files/map/news/billboard_placeholder.png'))
+        logging.warning('%s sections: %s', id_, sections)
         map_items.append(MapItemDetailsTO(id=id_,
                                           geometry=[],
                                           sections=sections))

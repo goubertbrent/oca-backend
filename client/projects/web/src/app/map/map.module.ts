@@ -22,7 +22,7 @@ const routes: Routes = [
     MapboxComponent,
     SidebarComponent,
     MarkerDetailComponent,
-    LayerbarComponent
+    LayerbarComponent,
   ],
 
   imports: [
@@ -35,4 +35,9 @@ const routes: Routes = [
   exports: [MapComponent]
 })
 export class MapModule {
+
+  constructor(private matIconRegistry: MatIconRegistry) {
+    matIconRegistry.registerFontClassAlias('fontawesome', 'fa');
+  }
 }
+
