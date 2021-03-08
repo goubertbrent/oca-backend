@@ -1,5 +1,10 @@
 .mat-icon {
   vertical-align: middle;
+  horiz-align: center;
+}
+
+a{
+  horiz-align: center;
 }
 
 .mat-card {
@@ -15,6 +20,7 @@ h1{
 .Horizontal{
   display: flex;
   flex-direction: row;
+  justify-content: space-around;
 }
 
 .Vertical{
@@ -31,6 +37,11 @@ h1{
 
 .openOrClosed {
   color: green;
+}
+
+swiper{
+  width: 100%;
+  height: auto;
 }
 
 

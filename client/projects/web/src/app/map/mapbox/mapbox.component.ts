@@ -7,7 +7,7 @@ import * as  mapboxgl from 'mapbox-gl';
 import {Marker, SelectedMarker} from "../marker.model";
 import {environment} from "../../../environments/environment";
 import {Observable} from "rxjs";
-import {getLayerId, getPreviousLayerId} from "../map.selectors";
+import {getLayerId} from "../map.selectors";
 
 interface Source {
   sourceId: string;
@@ -21,12 +21,12 @@ interface Source {
   styleUrls: ['./mapbox.component.scss']
 })
 export class MapboxComponent implements OnInit {
-  //private layers = [this.servicesCityLayerId, this.servicesProfitLayerId,this.servicesNonProfitLayerId,this.servicesCareLayerId]
-  private layers = [environment.servicesCityLayerId]
+  private layers = [environment.servicesCityLayerId, environment.servicesProfitLayerId,
+  environment.servicesNonProfitLayerId ,environment.servicesCareLayerId]
   selectedLayerId$: Observable<string>;
-  previousLayerId$: Observable<string>;
 
   private map: any;
+  private selectedLayerId: string | null = null;
 
   constructor(private store: Store) {}
 
@@ -41,10 +41,13 @@ export class MapboxComponent implements OnInit {
   }
 
   ChangeLayer(layerId: string, visibility: string): void {
-    if(layerId != "")
+    if(this.selectedLayerId)
     {
-      this.map.setLayoutProperty(layerId, 'visibility', visibility);
+     this.hideLayer(this.selectedLayerId)
     }
+    this.selectedLayerId = layerId;
+
+    this.map.setLayoutProperty(layerId, 'visibility', visibility);
   }
 
   ngOnInit(): void {
@@ -87,79 +90,29 @@ export class MapboxComponent implements OnInit {
 
       this.map.resize();
 
-      this.addImage('http://api.gipod.vlaanderen.be/ws/v1/icon/manifestation?eventType=betoging&size=64&grey=false', 'manifestIcon');
+      this.addImage('../../../assets/images/icons/grocery_store.png', 'grocery_store');
+      this.addImage('../../../assets/images/icons/location_city.png', 'location_city');
+      this.addImage('../../../assets/images/icons/medical_services.png', 'medical_services');
+      this.addImage('../../../assets/images/icons/sports_football.png', 'sports_football');
       this.addImage('http://api.gipod.vlaanderen.be/ws/v1/icon/workassignment?important=false&size=64&grey=false', 'workassignmentOrangeIcon');
       this.addImage('http://api.gipod.vlaanderen.be/ws/v1/icon/workassignment?important=true', 'workassignmentRedIcon');
-
 
       this.addSource(servicesCity);
       this.addSource(servicesProfit);
       this.addSource(servicesNonProfit);
       this.addSource(servicesCare);
 
-
-      this.map.addLayer({
-        id: environment.servicesCityLayerId,
-        source: servicesCity.sourceId,
-        'source-layer': servicesCity.tileName,
-        type: 'symbol',
-        layout: this.setLayout()
-      });
-
-      this.map.addLayer({
-        id: environment.servicesProfitLayerId,
-        source: servicesProfit.sourceId,
-        'source-layer': servicesProfit.tileName,
-        type: 'symbol',
-        layout: {
-          'icon-image': 'manifestIcon',
-          'icon-size': 0.35,
-          'icon-allow-overlap': true,
-          visibility: 'none'
-        }
-      });
-
-      this.map.addLayer({
-        id: environment.servicesNonProfitLayerId,
-        source: servicesNonProfit.sourceId,
-        'source-layer': servicesNonProfit.tileName,
-        type: 'symbol',
-        layout: {
-          'icon-image': 'manifestIcon',
-          'icon-size': 0.35,
-          'icon-allow-overlap': true,
-          visibility: 'none'
-        }
-      });
-
-      this.map.addLayer({
-        id: environment.servicesCareLayerId,
-        source: servicesCare.sourceId,
-        'source-layer': servicesCare.tileName,
-        type: 'symbol',
-        layout: {
-          'icon-image': 'manifestIcon',
-          'icon-size': 0.35,
-          'icon-allow-overlap': true,
-          visibility: 'none'
-        }
-      });
+      this.addLayer(environment.servicesCityLayerId, servicesCity, 'location_city', 'visible');
+      this.addLayer(environment.servicesNonProfitLayerId, servicesNonProfit, 'sports_football');
+      this.addLayer(environment.servicesProfitLayerId, servicesProfit, 'grocery_store');
+      this.addLayer(environment.servicesCareLayerId, servicesCare, 'medical_services');
 
       this.selectedLayerId$ = this.store.pipe(select(getLayerId));
-      this.previousLayerId$ = this.store.pipe(select(getPreviousLayerId));
       this.selectedLayerId$.subscribe(
         id => {
           this.ChangeLayer(id, 'visible');
-          console.log(id)
         }
       );
-      this.previousLayerId$.subscribe(
-        id => {
-          this.ChangeLayer(id, 'none');
-          console.log(id)
-        }
-      );
-
 
       this.map.on('moveend', () => {
         // @ts-ignore
@@ -178,7 +131,7 @@ export class MapboxComponent implements OnInit {
         const geometry = feature.geometry as any;
         popup
           .setLngLat(geometry.coordinates)
-          .setText(feature.properties!.description)
+          .setText(feature.properties.data.name)
           .addTo(this.map);
       });
 
@@ -188,23 +141,10 @@ export class MapboxComponent implements OnInit {
         popup.remove();
       });
 
-      this.map.on('click', environment.servicesCityLayerId, (e: any) => {
-// Change the cursor style as a UI indicator.
-        this.map.getCanvas().style.cursor = 'pointer';
-
-// Populate the popup and set its coordinates based on the feature.
-        if (!e.features) {
-          return;
-        }
-        const feature: Marker = e.features[0];
-        popup
-          .setLngLat([feature.geometry.coordinates[0], feature.geometry.coordinates[1]])
-          .setText(
-            feature.properties.id
-          )
-          .addTo(this.map);
-        this.onClickMarker(feature);
-      });
+      this.makeMarkersClickable(environment.servicesCityLayerId);
+      this.makeMarkersClickable(environment.servicesCareLayerId);
+      this.makeMarkersClickable(environment.servicesProfitLayerId);
+      this.makeMarkersClickable(environment.servicesNonProfitLayerId);
     });
   }
 
@@ -227,13 +167,41 @@ export class MapboxComponent implements OnInit {
     });
   }
 
-  private setLayout() {
+  addLayer(layerId : string, source : Source, iconImage: string, visibility = 'none'): void {
+    this.map.addLayer({
+      id: layerId,
+      source: source.sourceId,
+      'source-layer': source.tileName,
+      type: 'symbol',
+      layout: this.setLayoutLayer(iconImage,visibility),
+    })
+  }
+
+  private setLayoutLayer(iconImage: string, visibility: string) {
     return {
-      'icon-image': 'manifestIcon',
-      'icon-size': 0.35,
+      'icon-image': iconImage,
+      'icon-size': 0.6,
       'icon-allow-overlap': true,
-      'visibility': 'visible'
+      'visibility': visibility
     };
+  }
+
+  makeMarkersClickable(layerId: string): void
+  {
+    this.map.on('click', layerId, (e: any) => {
+// Change the cursor style as a UI indicator.
+      this.map.getCanvas().style.cursor = 'pointer';
+
+      if (!e.features) {
+        return;
+      }
+      const feature: Marker = e.features[0];
+      this.onClickMarker(feature);
+    });
+  }
+
+  private hideLayer(layerId: string) {
+    this.map.setLayoutProperty(layerId, 'visibility', 'none');
   }
 }
 

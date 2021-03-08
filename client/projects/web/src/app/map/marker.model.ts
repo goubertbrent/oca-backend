@@ -1,8 +1,8 @@
 import {MapSectionTO} from "@oca/web-shared";
 
 export interface Marker {
-  'type': string;
-  'id': string;
+  type: string;
+  id: string;
   geometry: Geometry;
   properties: MarkerProperties;
 }
@@ -18,6 +18,7 @@ export interface MarkerDetails {
   email: string;
   phone_number: string;
   description: string;
+  timezone: string;
   sections: MapSectionTO[];
 }
 
@@ -37,12 +38,12 @@ export interface MarkerProperties {
 }
 
 export interface Icon {
-  'icon_fa': string;
-  'icon_color': string;
+  icon_fa: string;
+  icon_color: string;
 }
 
 export interface Address {
-  'street': string;
-  'postal_code': string;
-  'street_number': string;
+  street: string;
+  postal_code: string;
+  street_number: string;
 }

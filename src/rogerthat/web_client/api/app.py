@@ -41,6 +41,6 @@ def rest_get_app_info(app_name):
         'app_id': app_mapping.app_id,
         'name': app.name,
         'url_name': app_mapping.name,
-        'logo_url': branding_settings.avatar_url,
-        'cover_url': branding_settings.logo_url,
+        #'logo_url': branding_settings.avatar_url,
+        #'cover_url': branding_settings.logo_url,
     }

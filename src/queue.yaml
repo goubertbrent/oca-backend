@@ -88,3 +88,5 @@ queue:
   rate: 20/s
 - name: phone
   rate: 3/m
+- name: mapbox
+  rate: 3/m

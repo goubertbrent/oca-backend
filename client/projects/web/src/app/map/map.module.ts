@@ -9,9 +9,12 @@ import {MarkerDetailComponent} from "./sidebar/marker-detail/marker-detail.compo
 import {LayerbarComponent} from './mapbox/layerbar/layerbar.component';
 import {MaterialModule} from "../material/material.module";
 import {MatIconRegistry} from "@angular/material/icon";
-import {MatListModule} from "@angular/material/list";
-import {MatExpansionModule} from "@angular/material/expansion";
+import {SwiperModule} from "swiper/angular";
+import {RouterModule, Routes} from "@angular/router";
 
+const routes: Routes = [
+  {path: '', component: MapComponent,}
+]
 
 @NgModule({
   declarations: [
@@ -22,13 +25,13 @@ import {MatExpansionModule} from "@angular/material/expansion";
     LayerbarComponent
   ],
 
-    imports: [
-        CommonModule,
-        MaterialModule,
-        StoreModule.forFeature(fromMap.mapFeatureKey, fromMap.mapReducer),
-        MatListModule,
-        MatExpansionModule
-    ],
+  imports: [
+    CommonModule,
+    MaterialModule,
+    StoreModule.forFeature(fromMap.mapFeatureKey, fromMap.mapReducer),
+    RouterModule.forChild(routes),
+    SwiperModule,
+  ],
   exports: [MapComponent]
 })
 export class MapModule {

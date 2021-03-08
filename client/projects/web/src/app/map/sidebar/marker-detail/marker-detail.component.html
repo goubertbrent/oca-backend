@@ -7,12 +7,15 @@
           <ng-container [ngSwitch]="section.style">
 
             <ng-container *ngSwitchCase="HORIZONTAL">
-              <mat-list class="Horizontal">
-                <mat-list-item *ngFor="let listItem of section.items" class="Vertical">
-                  <mat-icon mat-list-icon fontSet="fa" [fontIcon]="listItem.icon"></mat-icon>
-                  <p matLine>{{listItem.title}}</p>
-                </mat-list-item>
-              </mat-list>
+              <div class="Horizontal">
+                <ng-container *ngFor="let listItem of section.items">
+                  <div class="Vertical">
+                    <p>{{convertUrl(listItem.url)}}</p>
+                    <a [href]="'http://maps.google.com/?q=' + listItem.url" target="_blank"><mat-icon mat-list-icon fontSet="fa" [fontIcon]="listItem.icon"></mat-icon></a>
+                    <p matLine>{{listItem.title}}</p>
+                  </div>
+                </ng-container>
+              </div>
             </ng-container>
 
             <ng-container *ngSwitchDefault>
@@ -40,32 +43,22 @@
                 </ng-container>
 
                 <ng-container *ngSwitchCase="MAP_LIST_ITEM_TYPE_DYNAMIC_OPENING_HOURS">
-                  <mat-list-item>
-                    <mat-icon mat-list-icon fontSet="fa" [fontIcon]="listItem.icon"></mat-icon>
-                    <p matLine class="openOrClosed">{{isOpen(listItem.opening_hours)}}</p>
-                  </mat-list-item>
-                </ng-container>
-
-                <ng-container *ngSwitchCase="MAP_LIST_ITEM_TYPE_OPENING_HOURS">
                   <mat-expansion-panel>
                     <mat-expansion-panel-header>
                       <mat-panel-title>
                         <mat-icon mat-list-icon fontSet="fa" [fontIcon]="listItem.icon"></mat-icon>
                       </mat-panel-title>
                       <mat-panel-description>
-                        Openeningsuren
+                        {{isOpen(listItem.opening_hours, marker.properties.timezone)}}
                       </mat-panel-description>
                     </mat-expansion-panel-header>
                     <mat-list>
-                    <ng-container *ngFor="let weekday_text of listItem.opening_hours.weekday_text">
-                      <ng-container *ngFor="let line of weekday_text.lines">
-                        <mat-list-item>{{weekday_text.day}}:  {{line.text}}</mat-list-item>
+                      <ng-container *ngFor="let period of listItem.opening_hours.periods">
+                        <p>{{showOpening(period)}}</p>
                       </ng-container>
-                    </ng-container>
                     </mat-list>
                   </mat-expansion-panel>
                 </ng-container>
-
               </ng-container>
             </ng-container>
 
@@ -74,7 +67,24 @@
       </ng-container>
 
       <ng-container *ngSwitchCase="SECTION_TYPE_MEDIA">
-        <img src="{{section.items[0].content}}" class="imageDetail">
+        <swiper
+          [slidesPerView]="1"
+          [pagination]="{ clickable: true }">
+          <ng-container *ngFor="let item of section.items">
+            <p>{{item.type}}</p>
+            <ng-container [ngSwitch]="item.type">
+              <ng-container *ngSwitchCase="MEDIA_TYPE_IMAGE">
+                <ng-template swiperSlide><img src="{{item.content}}" class="imageDetail"></ng-template>
+              </ng-container>
+              <ng-container *ngSwitchCase="MEDIA_TYPE_VIDEO">
+                <ng-template swiperSlide><a [href]="'https://youtu.be/' + item.content" target="_blank"><img
+                  [src]="'https://img.youtube.com/vi/' + item.content + '/hqdefault.jpg'" class="imageDetail"></a>
+                </ng-template>
+              </ng-container>
+            </ng-container>
+          </ng-container>
+        </swiper>
+
       </ng-container>
 
 

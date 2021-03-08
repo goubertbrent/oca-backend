@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime
 
@@ -32,7 +33,7 @@ def get_dataset_id_from_organization_type(organization_type):
 
 
 def save_to_mapbox_dataset(service_info, sections, profile, icon):
-    # type: (ServiceInfo, object, ServiceProfile) -> None
+    # type: (ServiceInfo, object, ServiceProfile, object) -> None
     phone_number = ''
     if service_info.addresses:
         address = service_info.addresses[0]
@@ -45,20 +46,23 @@ def save_to_mapbox_dataset(service_info, sections, profile, icon):
             'coordinates': [address.coordinates.lon, address.coordinates.lat]
         }
         properties = {
-            'name': service_info.name,
-            'email': str(service_info.email_addresses[0].value),
-            'address': {
-                'street': address.street,
-                'street_number': address.street_number,
-                'postal_code': address.postal_code,
-            },
-            'description': service_info.description,
-            'phone_number': phone_number,
-            'sections': [section.to_dict() for section in sections],
-            'icon': {
-                'icon_fa': icon.fa_icon,
-                'icon_color': icon.icon_color
-            }
+            'id': service_info.service_user.email(),
+            'icon': icon.fa_icon,
+            'icon_color': icon.icon_color,
+            # mapbox does not support objects as properties
+            'data':  json.dumps({
+                'name': service_info.name,
+                'email': str(service_info.email_addresses[0].value),
+                'address': {
+                    'street': address.street,
+                    'street_number': address.street_number,
+                    'postal_code': address.postal_code,
+                },
+                'timezone': service_info.timezone,
+                'description': service_info.description,
+                'phone_number': phone_number,
+                'sections': [section.to_dict() for section in sections]
+            })
         }
         mapbox_feature = {
             "id": service_info.service_user.email(),
@@ -118,9 +122,11 @@ def create_tile(tilename, dataset_Id):
         result.raise_for_status()
 
 
+MAPBOX_QUEUE = 'mapbox'
+
 
 def dataset_to_tileset():
-    deferred.defer(create_tile, 'services_profit', SERVICES_PROFIT_KEY)
-    deferred.defer(create_tile, 'services_non_profit', SERVICES_NON_PROFIT_KEY)
-    deferred.defer(create_tile, 'services_city', SERVICES_CITY_KEY)
-    deferred.defer(create_tile, 'services_emergency', SERVICES_EMERGENCY_KEY)
+    deferred.defer(create_tile, 'services_profit', SERVICES_PROFIT_KEY, _queue=MAPBOX_QUEUE)
+    deferred.defer(create_tile, 'services_non_profit', SERVICES_NON_PROFIT_KEY, _queue=MAPBOX_QUEUE)
+    deferred.defer(create_tile, 'services_city', SERVICES_CITY_KEY, _queue=MAPBOX_QUEUE)
+    deferred.defer(create_tile, 'services_emergency', SERVICES_EMERGENCY_KEY, _queue=MAPBOX_QUEUE)
