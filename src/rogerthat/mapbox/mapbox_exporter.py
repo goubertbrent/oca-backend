@@ -11,6 +11,7 @@ from rogerthat.bizz.maps.services import get_place_details
 from rogerthat.rpc import users
 from rogerthat.models import OpeningHours, ServiceProfile, BaseServiceProfile, NdbServiceProfile
 from rogerthat.models.settings import ServiceInfo
+from rogerthat.settings import get_server_settings
 from rogerthat.to.maps import OpeningHoursTO
 
 SERVICES_PROFIT_KEY = 'cklau70dk095923o1eg2y123o'
@@ -18,9 +19,6 @@ SERVICES_NON_PROFIT_KEY = 'cklau7gvs0ye123qmrhq9h19i'
 SERVICES_CITY_KEY = 'cklau7qfc0j2b21n3un69dne8'
 SERVICES_EMERGENCY_KEY = 'cklau8ben1ia522jckxg8c67c'
 
-ACCESS_TOKEN = 'sk.eyJ1IjoiZmFpcnZpbGxlIiwiYSI6ImNrbDZoMHBtZDI4dWYybmxicGF4ZHB0NXYifQ.hEXNFc6xZmRRDGd-HlHyfA'
-
-USERNAME = 'fairville'
 
 def get_dataset_id_from_organization_type(organization_type):
     types = {
@@ -76,7 +74,7 @@ def add_features_mapbox(feature, dataset_id):
     logging.info(feature)
     feature_id = feature['id']
     url =  'https://api.mapbox.com/datasets/v1/%s/%s/features/%s?access_token=%s' % (
-        USERNAME, dataset_id, feature_id, ACCESS_TOKEN)
+        USERNAME, dataset_id, feature_id, get_server_settings().mapbox_access_token)
     logging.info('url: %s' % url)
 
     result = requests.put(url, json=feature)
@@ -110,9 +108,10 @@ def _save_to_mapbox(key):
 
 
 def create_tile(tilename, dataset_Id):
-    url = 'https://api.mapbox.com/uploads/v1/%s?access_token=%s' % (USERNAME, ACCESS_TOKEN)
-    tileset = '%s.%s' % (USERNAME, tilename)
-    bodyurl = 'mapbox://datasets/%s/%s' % (USERNAME, dataset_Id)
+    server_settings= get_server_settings()
+    url = 'https://api.mapbox.com/uploads/v1/%s?access_token=%s' % (server_settings.mapbox_username, server_settings.mapbox_access_token)
+    tileset = '%s.%s' % (server_settings.mapbox_username, tilename)
+    bodyurl = 'mapbox://datasets/%s/%s' % (server_settings.mapbox_username, dataset_Id)
 
     params = {'tileset': tileset, 'url': bodyurl, 'name': tilename}
 

@@ -169,16 +169,18 @@ class ServerSettings(CachedModelMixIn, db.Model):
                                          order=400)
 
     worker_service_url = add_meta(db.StringProperty(indexed=False),
-                                                    doc='Worker service url',
-                                                    order=500)
+                                  doc='Worker service url',
+                                  order=500)
 
     oca3ApiKey = add_meta(db.StringProperty(indexed=False),
-                                            doc='oca-dot-rogerthat-server.ew.r.appspot.com/api api key',
-                                            order=501)
+                          doc='oca-dot-rogerthat-server.ew.r.appspot.com/api api key',
+                          order=501)
 
     imageResizerApiKey = add_meta(db.StringProperty(indexed=False),
-                                            doc='imageresizer-dot-rogerthat-server.ew.r.appspot.com/api api key',
-                                            order=502)
+                                  doc='imageresizer-dot-rogerthat-server.ew.r.appspot.com/api api key',
+                                  order=502)
+    mapbox_username = add_meta(db.TextProperty(), doc='Mapbox.com user name', order=503)
+    mapbox_access_token = add_meta(db.TextProperty(), doc='Mapbox.com access token', order=504)
 
     @property
     def senderEmail(self):
